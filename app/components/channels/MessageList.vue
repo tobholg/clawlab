@@ -85,17 +85,22 @@ function formatDateSeparator(date: Date): string {
 
 // Scroll container ref
 const scrollContainer = ref<HTMLElement | null>(null)
-const isAtBottom = ref(true)
+const isNearBottom = ref(true)
 const isAtTop = ref(false)
+const showScrollButton = ref(false)
 
 // Handle scroll
 const handleScroll = () => {
   if (!scrollContainer.value) return
   
   const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight
   
-  // Check if at bottom (with small threshold)
-  isAtBottom.value = scrollHeight - scrollTop - clientHeight < 50
+  // Check if near bottom (within 64px) - for auto-scroll on new messages
+  isNearBottom.value = distanceFromBottom < 64
+  
+  // Show scroll button when scrolled up more than 256px
+  showScrollButton.value = distanceFromBottom > 256
   
   // Check if at top (for loading more)
   isAtTop.value = scrollTop < 100
@@ -115,9 +120,9 @@ const scrollToBottom = (smooth = false) => {
   })
 }
 
-// Auto-scroll when new messages arrive (if already at bottom)
+// Auto-scroll when new messages arrive (if near bottom)
 watch(() => props.messages.length, (newLen, oldLen) => {
-  if (newLen > oldLen && isAtBottom.value) {
+  if (newLen > oldLen && isNearBottom.value) {
     nextTick(() => scrollToBottom(true))
   }
 })
@@ -132,11 +137,12 @@ defineExpose({ scrollToBottom })
 </script>
 
 <template>
-  <div 
-    ref="scrollContainer"
-    class="flex-1 overflow-y-auto"
-    @scroll="handleScroll"
-  >
+  <div class="flex-1 min-h-0 relative">
+    <div 
+      ref="scrollContainer"
+      class="absolute inset-0 overflow-y-auto"
+      @scroll="handleScroll"
+    >
     <!-- Load more indicator -->
     <div v-if="hasMore" class="py-4 text-center">
       <button 
@@ -190,6 +196,25 @@ defineExpose({ scrollToBottom })
       <p class="text-sm">No messages yet</p>
       <p class="text-xs mt-1">Be the first to say something!</p>
     </div>
+    </div>
+
+    <!-- Scroll to bottom button -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 scale-90 translate-y-2"
+      enter-to-class="opacity-100 scale-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 scale-100 translate-y-0"
+      leave-to-class="opacity-0 scale-90 translate-y-2"
+    >
+      <button
+        v-if="showScrollButton"
+        class="absolute bottom-4 right-4 w-10 h-10 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:shadow-xl transition-all"
+        @click="scrollToBottom(true)"
+      >
+        <Icon name="heroicons:chevron-down" class="w-5 h-5" />
+      </button>
+    </Transition>
   </div>
 </template>
 

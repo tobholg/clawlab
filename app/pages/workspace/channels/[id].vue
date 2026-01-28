@@ -340,9 +340,9 @@ const handleStopTyping = () => {
     </aside>
 
     <!-- Main Content - Channel View -->
-    <main :class="['flex-1 flex min-w-0', activeThread ? 'flex-row' : 'flex-col']">
+    <main :class="['flex-1 flex min-w-0 min-h-0', activeThread ? 'flex-row' : 'flex-col']">
       <!-- Channel content -->
-      <div :class="['flex flex-col relative', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
+      <div :class="['flex flex-col relative min-h-0', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
       
       <!-- Subtle vibrant gradient background (messages area only) -->
       <div class="absolute inset-0 pointer-events-none overflow-hidden">
