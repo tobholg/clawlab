@@ -4,6 +4,7 @@ const props = defineProps<{
   parentId?: string
   placeholder?: string
   disabled?: boolean
+  hideHelper?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -97,7 +98,7 @@ defineExpose({ focus })
     </div>
 
     <!-- Helper text -->
-    <p class="mt-1.5 text-xs text-slate-400 px-12">
+    <p v-if="!hideHelper" class="mt-1.5 text-xs text-slate-400 px-12">
       Press <kbd class="px-1 py-0.5 bg-slate-100 rounded text-[10px] font-mono">Enter</kbd> to send, 
       <kbd class="px-1 py-0.5 bg-slate-100 rounded text-[10px] font-mono">Shift+Enter</kbd> for new line
     </p>

@@ -268,9 +268,17 @@ const sidebarCollapsed = ref(false)
     <!-- Main Content - Channel View -->
     <main :class="['flex-1 flex min-w-0', activeThread ? 'flex-row' : 'flex-col']">
       <!-- Channel content -->
-      <div :class="['flex flex-col bg-white', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
+      <div :class="['flex flex-col relative', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
+      
+      <!-- Subtle vibrant gradient background (messages area only) -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-violet-200/30 via-fuchsia-200/20 to-transparent rounded-full blur-3xl" />
+        <div class="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-tr from-sky-200/30 via-cyan-200/20 to-transparent rounded-full blur-3xl" />
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 bg-gradient-to-r from-amber-200/10 via-rose-200/10 to-transparent rounded-full blur-3xl" />
+      </div>
+      
       <!-- Channel Header -->
-      <header class="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+      <header class="relative z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between bg-white">
         <div class="flex items-center gap-3">
           <Icon :name="channelIcon" class="w-5 h-5 text-slate-400" />
           <div>
@@ -308,12 +316,14 @@ const sidebarCollapsed = ref(false)
       />
 
       <!-- Message Input -->
-      <ChannelsMessageInput
-        v-if="currentChannel"
-        :channel-id="currentChannel.id"
-        :placeholder="`Message #${currentChannel.displayName}`"
-        @message-sent="handleSendMessage"
-      />
+      <div class="relative z-10">
+        <ChannelsMessageInput
+          v-if="currentChannel"
+          :channel-id="currentChannel.id"
+          :placeholder="`Message #${currentChannel.displayName}`"
+          @message-sent="handleSendMessage"
+        />
+      </div>
       </div>
 
       <!-- Thread Panel -->
@@ -325,7 +335,7 @@ const sidebarCollapsed = ref(false)
         leave-from-class="opacity-100 translate-x-0"
         leave-to-class="opacity-0 translate-x-4"
       >
-        <div v-if="activeThread && currentChannel" class="w-96 flex-shrink-0">
+        <div v-if="activeThread && currentChannel" class="w-96 2xl:w-[480px] flex-shrink-0">
           <ChannelsThreadPanel
             :parent-message="activeThread"
             :channel-id="currentChannel.id"

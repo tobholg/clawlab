@@ -65,7 +65,7 @@ watch(() => replies.value.length, () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-white border-l border-slate-200">
+  <div class="flex flex-col h-full bg-white border-l border-slate-200 w-full">
     <!-- Header -->
     <header class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
       <div>
@@ -128,6 +128,7 @@ watch(() => replies.value.length, () => {
       :channel-id="channelId"
       :parent-id="parentMessage.id"
       placeholder="Reply to thread..."
+      hide-helper
       @message-sent="handleSendReply"
     />
   </div>
