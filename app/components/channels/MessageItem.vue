@@ -83,8 +83,8 @@ const showActions = ref(false)
 
       <!-- Message content -->
       <div class="flex-1 min-w-0">
-        <!-- Author + timestamp (only if showing author) -->
-        <div v-if="showAuthor" class="flex items-baseline gap-2 mb-0.5">
+        <!-- Author + timestamp + inline actions (only if showing author) -->
+        <div v-if="showAuthor" class="flex items-center gap-2 mb-0.5">
           <span class="font-medium text-sm text-slate-900">
             {{ message.user?.name || 'Unknown User' }}
           </span>
@@ -98,12 +98,70 @@ const showActions = ref(false)
           >
             (edited)
           </span>
+          <!-- Inline actions (right of timestamp) -->
+          <div 
+            v-if="!isThread"
+            :class="[
+              'flex items-center gap-0.5 ml-1 transition-opacity duration-150',
+              showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            ]"
+          >
+            <button 
+              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Reply in thread"
+              @click="emit('reply', message)"
+            >
+              <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
+            </button>
+            <button 
+              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Add reaction"
+            >
+              <Icon name="heroicons:face-smile" class="w-4 h-4" />
+            </button>
+            <button 
+              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="More options"
+            >
+              <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        <!-- Message text -->
-        <p class="text-sm text-slate-700 whitespace-pre-wrap break-words leading-relaxed">
-          {{ message.content }}
-        </p>
+        <!-- Message text + inline actions for grouped messages -->
+        <div class="flex items-start gap-2">
+          <p class="text-sm text-slate-700 whitespace-pre-wrap break-words leading-relaxed flex-1">
+            {{ message.content }}
+          </p>
+          <!-- Inline actions for grouped messages (no author row) -->
+          <div 
+            v-if="!showAuthor && !isThread"
+            :class="[
+              'flex items-center gap-0.5 flex-shrink-0 transition-opacity duration-150',
+              showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            ]"
+          >
+            <button 
+              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Reply in thread"
+              @click="emit('reply', message)"
+            >
+              <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
+            </button>
+            <button 
+              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Add reaction"
+            >
+              <Icon name="heroicons:face-smile" class="w-4 h-4" />
+            </button>
+            <button 
+              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+              title="More options"
+            >
+              <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
         <!-- Thread reply count -->
         <button 
@@ -118,33 +176,5 @@ const showActions = ref(false)
       </div>
     </div>
 
-    <!-- Hover actions (absolute, below message) -->
-    <div 
-      v-if="!isThread"
-      :class="[
-        'absolute left-12 -bottom-3 flex items-center bg-white border border-slate-200 rounded-lg shadow-sm transition-opacity duration-150 z-10',
-        showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      ]"
-    >
-      <button 
-        class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-l-lg transition-colors"
-        title="Reply in thread"
-        @click="emit('reply', message)"
-      >
-        <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
-      </button>
-      <button 
-        class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-        title="Add reaction"
-      >
-        <Icon name="heroicons:face-smile" class="w-4 h-4" />
-      </button>
-      <button 
-        class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-r-lg transition-colors"
-        title="More options"
-      >
-        <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
-      </button>
-    </div>
   </div>
 </template>
