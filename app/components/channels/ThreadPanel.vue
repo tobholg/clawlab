@@ -62,6 +62,20 @@ watch(() => replies.value.length, () => {
     }
   })
 })
+
+// Group consecutive messages from same author (within 5 min)
+const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
+  if (index === 0) return true
+  
+  const prevReply = replies.value[index - 1]
+  if (prevReply.userId !== reply.userId) return true
+  
+  const prevTime = new Date(prevReply.createdAt).getTime()
+  const currTime = new Date(reply.createdAt).getTime()
+  const diffMinutes = (currTime - prevTime) / 1000 / 60
+  
+  return diffMinutes >= 5
+}
 </script>
 
 <template>
@@ -106,10 +120,10 @@ watch(() => replies.value.length, () => {
       <!-- Replies -->
       <div v-else class="py-2">
         <ChannelsMessageItem
-          v-for="reply in replies"
+          v-for="(reply, index) in replies"
           :key="reply.id"
           :message="reply"
-          :show-author="true"
+          :show-author="shouldShowAuthor(reply, index)"
           :is-thread="true"
         />
         
