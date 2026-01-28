@@ -115,40 +115,34 @@ const showActions = ref(false)
           {{ message.replyCount }} {{ message.replyCount === 1 ? 'reply' : 'replies' }}
         </button>
 
-        <!-- Hover actions (below message) -->
-        <Transition
-          enter-active-class="transition-all duration-150 ease-out"
-          enter-from-class="opacity-0 -translate-y-1"
-          enter-to-class="opacity-100 translate-y-0"
-          leave-active-class="transition-all duration-100 ease-in"
-          leave-from-class="opacity-100 translate-y-0"
-          leave-to-class="opacity-0 -translate-y-1"
+        <!-- Hover actions (below message, always reserved space) -->
+        <div 
+          v-if="!isThread"
+          :class="[
+            'mt-1 flex items-center gap-0.5 h-6 transition-opacity duration-150',
+            showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          ]"
         >
-          <div 
-            v-if="showActions && !isThread"
-            class="mt-1 flex items-center gap-0.5"
+          <button 
+            class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            title="Reply in thread"
+            @click="emit('reply', message)"
           >
-            <button 
-              class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-              title="Reply in thread"
-              @click="emit('reply', message)"
-            >
-              <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
-            </button>
-            <button 
-              class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-              title="Add reaction"
-            >
-              <Icon name="heroicons:face-smile" class="w-4 h-4" />
-            </button>
-            <button 
-              class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-              title="More options"
-            >
-              <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
-            </button>
-          </div>
-        </Transition>
+            <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
+          </button>
+          <button 
+            class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            title="Add reaction"
+          >
+            <Icon name="heroicons:face-smile" class="w-4 h-4" />
+          </button>
+          <button 
+            class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            title="More options"
+          >
+            <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   </div>
