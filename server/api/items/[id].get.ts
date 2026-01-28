@@ -1,0 +1,141 @@
+import { prisma } from '../../utils/prisma'
+import { calculateTemperature } from '../../utils/temperature'
+
+export default defineEventHandler(async (event) => {
+  const id = getRouterParam(event, 'id')
+  
+  if (!id) {
+    throw createError({ statusCode: 400, message: 'Item ID is required' })
+  }
+  
+  const item = await prisma.item.findUnique({
+    where: { id },
+    include: {
+      assignees: { include: { user: true } },
+      stakeholders: { include: { user: true } },
+      blockedBy: { include: { blockingItem: true } },
+      blocks: { include: { blockedItem: true } },
+      parent: true,
+      children: {
+        include: {
+          assignees: { include: { user: true } },
+          children: true,
+          blockedBy: true,
+        }
+      },
+      comments: {
+        where: { parentCommentId: null },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: true,
+          replies: {
+            orderBy: { createdAt: 'asc' },
+            include: { user: true }
+          }
+        }
+      }
+    }
+  })
+  
+  if (!item) {
+    throw createError({ statusCode: 404, message: 'Item not found' })
+  }
+  
+  // Build breadcrumb path
+  const breadcrumbs = await buildBreadcrumbs(item.id)
+  
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    parentId: item.parentId,
+    workspaceId: item.workspaceId,
+    status: item.status.toLowerCase(),
+    category: item.category,
+    dueDate: item.dueDate?.toISOString() ?? null,
+    startDate: item.startDate?.toISOString() ?? null,
+    confidence: item.confidence,
+    progress: item.progress,
+    temperature: calculateTemperature(item),
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    lastActivityAt: item.lastActivityAt.toISOString(),
+    assignee: item.assignees[0]?.user ? {
+      id: item.assignees[0].user.id,
+      name: item.assignees[0].user.name,
+      avatar: item.assignees[0].user.avatar,
+    } : null,
+    assignees: item.assignees.map(a => ({
+      id: a.user.id,
+      name: a.user.name,
+      avatar: a.user.avatar,
+    })),
+    stakeholders: item.stakeholders.map(s => ({
+      id: s.user.id,
+      name: s.user.name,
+      avatar: s.user.avatar,
+    })),
+    blockedBy: item.blockedBy.map(d => ({
+      id: d.blockingItem.id,
+      title: d.blockingItem.title,
+    })),
+    blocks: item.blocks.map(d => ({
+      id: d.blockedItem.id,
+      title: d.blockedItem.title,
+    })),
+    childrenCount: item.children.length,
+    children: item.children.map(child => ({
+      id: child.id,
+      title: child.title,
+      status: child.status.toLowerCase(),
+      progress: child.progress,
+      confidence: child.confidence,
+      dueDate: child.dueDate?.toISOString() ?? null,
+      assignee: child.assignees[0]?.user ? {
+        id: child.assignees[0].user.id,
+        name: child.assignees[0].user.name,
+        avatar: child.assignees[0].user.avatar,
+      } : null,
+      childrenCount: child.children.length,
+      isBlocked: child.blockedBy.length > 0,
+    })),
+    breadcrumbs,
+    comments: item.comments.map(c => ({
+      id: c.id,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+      user: c.user ? {
+        id: c.user.id,
+        name: c.user.name ?? c.user.email.split('@')[0],
+        avatar: c.user.avatar,
+      } : null,
+      replies: c.replies.map(r => ({
+        id: r.id,
+        content: r.content,
+        createdAt: r.createdAt.toISOString(),
+        user: r.user ? {
+          id: r.user.id,
+          name: r.user.name ?? r.user.email.split('@')[0],
+          avatar: r.user.avatar,
+        } : null,
+      })),
+    })),
+  }
+})
+
+async function buildBreadcrumbs(itemId: string): Promise<Array<{ id: string; title: string }>> {
+  const path: Array<{ id: string; title: string }> = []
+  let currentId: string | null = itemId
+  
+  while (currentId) {
+    const item = await prisma.item.findUnique({
+      where: { id: currentId },
+      select: { id: true, title: true, parentId: true }
+    })
+    if (!item) break
+    path.unshift({ id: item.id, title: item.title })
+    currentId = item.parentId
+  }
+  
+  return path
+}

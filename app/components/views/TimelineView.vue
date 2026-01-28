@@ -1,0 +1,657 @@
+<script setup lang="ts">
+import type { ItemNode } from '~/types'
+
+const props = defineProps<{
+  items: ItemNode[]
+  isRootLevel?: boolean
+}>()
+
+const emit = defineEmits<{
+  openItem: [item: ItemNode]
+  openDetail: [item: ItemNode]
+}>()
+
+// Zoom levels
+type ZoomLevel = 'days' | 'weeks' | 'months' | 'quarters'
+const zoomLevel = ref<ZoomLevel>('weeks')
+
+// Expanded tasks state (for subtask expansion)
+const expandedItems = ref<Set<string>>(new Set())
+
+function toggleExpand(itemId: string, event: Event) {
+  event.stopPropagation()
+  if (expandedItems.value.has(itemId)) {
+    expandedItems.value.delete(itemId)
+  } else {
+    expandedItems.value.add(itemId)
+  }
+  expandedItems.value = new Set(expandedItems.value)
+}
+
+const zoomOptions: { value: ZoomLevel; label: string }[] = [
+  { value: 'days', label: 'Days' },
+  { value: 'weeks', label: 'Weeks' },
+  { value: 'months', label: 'Months' },
+  { value: 'quarters', label: 'Quarters' },
+]
+
+// Flatten items with their children when expanded
+interface DisplayItem extends ItemNode {
+  isSubtask?: boolean
+  parentId?: string | null
+  depth?: number
+}
+
+const displayItems = computed<DisplayItem[]>(() => {
+  const result: DisplayItem[] = []
+  
+  const sortedItems = [...props.items].sort((a, b) => {
+    const aStart = a.startDate ? new Date(a.startDate).getTime() : Date.now()
+    const bStart = b.startDate ? new Date(b.startDate).getTime() : Date.now()
+    return aStart - bStart
+  })
+  
+  sortedItems.forEach(item => {
+    result.push({ ...item, isSubtask: false, depth: 0 })
+    
+    // If expanded and has children, add them
+    if (expandedItems.value.has(item.id) && item.children?.length) {
+      item.children
+        .filter(c => c.status !== 'done')
+        .forEach(child => {
+          result.push({
+            ...child,
+            isSubtask: true,
+            parentId: item.id,
+            depth: 1
+          } as DisplayItem)
+        })
+    }
+  })
+  
+  return result
+})
+
+// Calculate timeline range
+const timelineRange = computed(() => {
+  const now = new Date()
+  const items = props.items
+  
+  let earliest = new Date(now)
+  let latest = new Date(now)
+  latest.setMonth(latest.getMonth() + 3)
+  
+  items.forEach(item => {
+    if (item.startDate) {
+      const start = new Date(item.startDate)
+      if (start < earliest) earliest = start
+    }
+    if (item.dueDate) {
+      const due = new Date(item.dueDate)
+      if (due > latest) latest = due
+    }
+  })
+  
+  earliest.setDate(earliest.getDate() - 7)
+  latest.setDate(latest.getDate() + 14)
+  
+  return { start: earliest, end: latest }
+})
+
+// Generate time columns based on zoom level
+const timeColumns = computed(() => {
+  const { start, end } = timelineRange.value
+  const columns: { date: Date; label: string; isToday: boolean; isWeekend: boolean }[] = []
+  const current = new Date(start)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  while (current <= end) {
+    const isToday = current.toDateString() === today.toDateString()
+    const isWeekend = current.getDay() === 0 || current.getDay() === 6
+    
+    let label = ''
+    let shouldAdd = false
+    
+    switch (zoomLevel.value) {
+      case 'days':
+        label = `${current.getDate()} ${current.toLocaleDateString('en-US', { weekday: 'short' })}`
+        shouldAdd = true
+        break
+      case 'weeks':
+        if (current.getDay() === 1 || columns.length === 0) {
+          label = current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          shouldAdd = true
+        }
+        break
+      case 'months':
+        if (current.getDate() === 1 || columns.length === 0) {
+          label = current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+          shouldAdd = true
+        }
+        break
+      case 'quarters':
+        if (current.getMonth() % 3 === 0 && current.getDate() === 1 || columns.length === 0) {
+          const q = Math.floor(current.getMonth() / 3) + 1
+          label = `Q${q} ${current.getFullYear()}`
+          shouldAdd = true
+        }
+        break
+    }
+    
+    if (shouldAdd) {
+      columns.push({ date: new Date(current), label, isToday, isWeekend })
+    }
+    
+    current.setDate(current.getDate() + 1)
+  }
+  
+  return columns
+})
+
+// Calculate total days in range
+const totalDays = computed(() => {
+  const { start, end } = timelineRange.value
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+})
+
+// Column width in pixels based on zoom level
+const columnWidth = computed(() => {
+  switch (zoomLevel.value) {
+    case 'days': return 56
+    case 'weeks': return 80
+    case 'months': return 96
+    case 'quarters': return 128
+    default: return 60
+  }
+})
+
+// Total width of the timeline area
+const totalWidth = computed(() => timeColumns.value.length * columnWidth.value)
+
+// Calculate estimated completion data for an item
+const getEstimatedCompletion = (item: ItemNode | DisplayItem) => {
+  const today = new Date()
+  const startDate = item.startDate ? new Date(item.startDate) : today
+  const progress = item.progress ?? 0
+  const confidence = item.confidence ?? 70
+  const dueDate = item.dueDate ? new Date(item.dueDate) : null
+  
+  if (progress >= 100) {
+    return {
+      startDate,
+      estimatedEnd: today,
+      earliestEnd: today,
+      latestEnd: today,
+      dueDate,
+      isOverdue: false,
+      daysOverdue: 0,
+    }
+  }
+  
+  let estimatedEnd: Date
+  let remainingDays: number
+  
+  if (item.startDate && progress > 0) {
+    const daysSpent = Math.max(1, (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    const totalEstimate = Math.round(daysSpent / (progress / 100))
+    remainingDays = Math.max(1, totalEstimate - daysSpent)
+    estimatedEnd = new Date(today.getTime() + remainingDays * 24 * 60 * 60 * 1000)
+  } else {
+    remainingDays = 14
+    estimatedEnd = new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000)
+  }
+  
+  const bandDays = Math.ceil(remainingDays * (1 - confidence / 100) * 2)
+  const earliestEnd = new Date(estimatedEnd.getTime() - Math.floor(bandDays / 2) * 24 * 60 * 60 * 1000)
+  const latestEnd = new Date(estimatedEnd.getTime() + Math.ceil(bandDays / 2) * 24 * 60 * 60 * 1000)
+  
+  const isOverdue = dueDate && estimatedEnd > dueDate
+  const daysOverdue = isOverdue ? Math.ceil((estimatedEnd.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0
+  
+  return {
+    startDate,
+    estimatedEnd,
+    earliestEnd,
+    latestEnd,
+    dueDate,
+    isOverdue,
+    daysOverdue,
+    remainingDays,
+    bandDays,
+  }
+}
+
+// Get pixels per day
+const pixelsPerDay = computed(() => {
+  const start = visibleStartDate.value
+  const end = visibleEndDate.value
+  const totalVisibleDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+  return totalWidth.value / totalVisibleDays
+})
+
+// Get position and width for an item
+const getItemStyle = (item: ItemNode | DisplayItem) => {
+  const rangeStart = visibleStartDate.value
+  const ppd = pixelsPerDay.value
+  
+  const est = getEstimatedCompletion(item)
+  
+  const startOffset = (est.startDate.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24)
+  const duration = Math.max(1, (est.latestEnd.getTime() - est.startDate.getTime()) / (1000 * 60 * 60 * 24))
+  
+  const left = startOffset * ppd
+  const width = duration * ppd
+  
+  return {
+    left: `${left}px`,
+    width: `${Math.max(20, width)}px`,
+  }
+}
+
+// Get due date marker position relative to bar start
+const getDueDatePosition = (item: ItemNode | DisplayItem) => {
+  if (!item.dueDate) return null
+  
+  const ppd = pixelsPerDay.value
+  const est = getEstimatedCompletion(item)
+  const startDate = est.startDate
+  const dueDate = new Date(item.dueDate)
+  
+  const offsetFromStart = (dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  return offsetFromStart * ppd
+}
+
+// Get the overdue portion width
+const getOverdueWidth = (item: ItemNode | DisplayItem) => {
+  const est = getEstimatedCompletion(item)
+  if (!est.isOverdue || !est.dueDate) return 0
+  
+  const ppd = pixelsPerDay.value
+  const overdueDays = (est.latestEnd.getTime() - est.dueDate.getTime()) / (1000 * 60 * 60 * 24)
+  return Math.max(0, overdueDays * ppd)
+}
+
+// Get uncertainty fade width
+const getUncertaintyWidth = (item: ItemNode | DisplayItem) => {
+  const ppd = pixelsPerDay.value
+  const est = getEstimatedCompletion(item)
+  const uncertaintyDays = (est.latestEnd.getTime() - est.earliestEnd.getTime()) / (1000 * 60 * 60 * 24)
+  return uncertaintyDays * ppd
+}
+
+const visibleStartDate = computed(() => {
+  return timeColumns.value.length > 0 ? timeColumns.value[0].date : timelineRange.value.start
+})
+
+const visibleEndDate = computed(() => {
+  if (timeColumns.value.length === 0) return timelineRange.value.end
+  const lastCol = timeColumns.value[timeColumns.value.length - 1].date
+  const daysPerColumn = zoomLevel.value === 'days' ? 1 : 
+                        zoomLevel.value === 'weeks' ? 7 : 
+                        zoomLevel.value === 'months' ? 30 : 90
+  return new Date(lastCol.getTime() + daysPerColumn * 24 * 60 * 60 * 1000)
+})
+
+const todayPosition = computed(() => {
+  const start = visibleStartDate.value
+  const end = visibleEndDate.value
+  const today = new Date()
+  const totalVisibleDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+  const offset = (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+  const pixelsPerDay = totalWidth.value / totalVisibleDays
+  return `${Math.max(0, offset * pixelsPerDay)}px`
+})
+
+// Category color mapping
+const categoryColors: Record<string, { bar: string; bg: string }> = {
+  'Engineering': { bar: 'from-blue-400 to-blue-500', bg: 'bg-blue-100' },
+  'Design': { bar: 'from-purple-400 to-purple-500', bg: 'bg-purple-100' },
+  'Marketing': { bar: 'from-pink-400 to-pink-500', bg: 'bg-pink-100' },
+  'Product': { bar: 'from-indigo-400 to-indigo-500', bg: 'bg-indigo-100' },
+  'Research': { bar: 'from-cyan-400 to-cyan-500', bg: 'bg-cyan-100' },
+  'Operations': { bar: 'from-orange-400 to-orange-500', bg: 'bg-orange-100' },
+  'Sales': { bar: 'from-green-400 to-green-500', bg: 'bg-green-100' },
+  'default': { bar: 'from-slate-400 to-slate-500', bg: 'bg-slate-100' },
+}
+
+const getBarColor = (item: ItemNode | DisplayItem) => {
+  if (item.status === 'done') return 'from-emerald-400 to-emerald-500'
+  if (item.status === 'blocked') return 'from-rose-400 to-rose-500'
+  const category = item.category || 'default'
+  return categoryColors[category]?.bar || categoryColors.default.bar
+}
+
+const getBgColor = (item: ItemNode | DisplayItem) => {
+  if (item.status === 'done') return 'bg-emerald-100'
+  if (item.status === 'blocked') return 'bg-rose-100'
+  const category = item.category || 'default'
+  return categoryColors[category]?.bg || categoryColors.default.bg
+}
+</script>
+
+<template>
+  <div class="h-full flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="text-sm text-slate-500">
+        {{ items.length }} {{ isRootLevel ? 'projects' : 'items' }} on timeline
+      </div>
+      
+      <!-- Zoom toggle -->
+      <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
+        <button
+          v-for="opt in zoomOptions"
+          :key="opt.value"
+          @click="zoomLevel = opt.value"
+          :class="[
+            'px-2.5 py-1 text-xs font-medium rounded-md transition-all',
+            zoomLevel === opt.value 
+              ? 'bg-slate-100 text-slate-800' 
+              : 'text-slate-500 hover:text-slate-700'
+          ]"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+    
+    <!-- Timeline -->
+    <div class="flex-1 bg-white rounded-xl border border-slate-100 overflow-hidden">
+      <div class="h-full flex">
+        <!-- Sticky row labels column -->
+        <div class="w-52 flex-shrink-0 border-r border-slate-100 bg-white z-20 flex flex-col">
+          <!-- Header -->
+          <div class="h-10 px-4 flex items-center border-b border-slate-100 bg-slate-50/80">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+              {{ isRootLevel ? 'Projects' : 'Tasks' }}
+            </span>
+          </div>
+          
+          <!-- Row labels (scrolls with timeline) -->
+          <div class="flex-1 overflow-y-auto overflow-x-hidden">
+            <div 
+              v-for="item in displayItems" 
+              :key="item.id + '-label'"
+              class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group cursor-pointer"
+              :class="item.isSubtask ? 'h-10 bg-slate-50/30' : 'h-12'"
+              @click="emit('openDetail', item)"
+            >
+              <div 
+                class="h-full flex items-center gap-2"
+                :class="item.isSubtask ? 'pl-6 pr-2' : 'px-3'"
+              >
+                <!-- Subtask connector -->
+                <div v-if="item.isSubtask" class="flex-shrink-0 w-3 h-full relative">
+                  <div class="absolute left-0 top-0 bottom-1/2 w-px bg-slate-200" />
+                  <div class="absolute left-0 top-1/2 w-3 h-px bg-slate-200" />
+                </div>
+                
+                <!-- Status dot -->
+                <div 
+                  :class="[
+                    'rounded-full flex-shrink-0',
+                    item.isSubtask ? 'w-1.5 h-1.5' : 'w-2 h-2',
+                    item.status === 'done' ? 'bg-emerald-500' :
+                    item.status === 'blocked' ? 'bg-rose-500' :
+                    item.status === 'in_progress' ? 'bg-blue-500' :
+                    'bg-slate-400'
+                  ]"
+                />
+                
+                <!-- Item info -->
+                <div class="flex-1 min-w-0">
+                  <span 
+                    class="font-medium text-slate-700 truncate block group-hover:text-blue-600 transition-colors"
+                    :class="item.isSubtask ? 'text-xs' : 'text-sm'"
+                  >
+                    {{ item.title }}
+                  </span>
+                  <div 
+                    v-if="!item.isSubtask" 
+                    class="flex items-center gap-1.5 text-[10px] text-slate-400"
+                  >
+                    <span>{{ item.progress || 0 }}%</span>
+                    <span v-if="item.children?.length" class="text-slate-300">
+                      · {{ item.children.length }}
+                    </span>
+                  </div>
+                  <div v-else class="text-[10px] text-slate-400">
+                    {{ item.progress || 0 }}%
+                  </div>
+                </div>
+                
+                <!-- Expand/collapse button on right side -->
+                <button
+                  v-if="!item.isSubtask && item.children && item.children.length > 0"
+                  class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 transition-colors"
+                  @click="toggleExpand(item.id, $event)"
+                >
+                  <Icon 
+                    name="heroicons:chevron-down" 
+                    class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+                    :class="expandedItems.has(item.id) ? 'rotate-180' : ''"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Scrollable timeline area -->
+        <div class="flex-1 overflow-auto">
+          <div :style="{ width: `${totalWidth}px`, minWidth: '100%' }">
+            <!-- Time header -->
+            <div class="sticky top-0 z-10 h-10 border-b border-slate-100 bg-slate-50/80 backdrop-blur-sm">
+              <div class="relative h-full" :style="{ width: `${totalWidth}px` }">
+                <div class="flex h-full">
+                  <div 
+                    v-for="(col, i) in timeColumns" 
+                    :key="i"
+                    :class="[
+                      'flex-shrink-0 px-1 flex items-center justify-center border-r border-slate-100 last:border-r-0',
+                      zoomLevel === 'days' ? 'w-14' : 
+                      zoomLevel === 'weeks' ? 'w-20' : 
+                      zoomLevel === 'months' ? 'w-24' : 'w-32'
+                    ]"
+                  >
+                    <span 
+                      :class="[
+                        'text-[10px] font-medium whitespace-nowrap',
+                        col.isToday ? 'text-blue-600' : 'text-slate-500'
+                      ]"
+                    >
+                      {{ col.label }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Timeline rows -->
+            <div class="relative">
+              <!-- Today marker -->
+              <div 
+                class="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-10 pointer-events-none"
+                :style="{ left: todayPosition }"
+              >
+                <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-500 rounded-full" />
+              </div>
+              
+              <!-- Item rows -->
+              <div 
+                v-for="item in displayItems" 
+                :key="item.id"
+                class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
+                :class="item.isSubtask ? 'h-10' : 'h-12'"
+              >
+                <!-- Timeline bar area -->
+                <div class="relative h-full" :style="{ width: `${totalWidth}px` }">
+                  <!-- Grid lines -->
+                  <div class="absolute inset-0 flex pointer-events-none">
+                    <div 
+                      v-for="(col, i) in timeColumns" 
+                      :key="i"
+                      :class="[
+                        'flex-shrink-0 border-r',
+                        col.isWeekend ? 'bg-slate-50/50 border-slate-100' : 'border-slate-50',
+                        zoomLevel === 'days' ? 'w-14' : 
+                        zoomLevel === 'weeks' ? 'w-20' : 
+                        zoomLevel === 'months' ? 'w-24' : 'w-32'
+                      ]"
+                    />
+                  </div>
+                  
+                  <!-- Item bar -->
+                  <div 
+                    class="absolute top-1/2 -translate-y-1/2 rounded-lg cursor-pointer transition-all hover:scale-y-110 group/bar overflow-hidden"
+                    :class="[
+                      getBgColor(item),
+                      item.isSubtask ? 'h-5' : 'h-7'
+                    ]"
+                    :style="getItemStyle(item)"
+                    @click="emit('openDetail', item)"
+                  >
+                    <!-- Progress fill -->
+                    <div 
+                      class="absolute inset-y-0 left-0 rounded-l-lg bg-gradient-to-r transition-all"
+                      :class="getBarColor(item)"
+                      :style="{ width: `${item.progress || 0}%` }"
+                    />
+                    
+                    <!-- Uncertainty fade (only when NOT overdue) - fades bar to transparent -->
+                    <div 
+                      v-if="getUncertaintyWidth(item) > 0 && !getEstimatedCompletion(item).isOverdue"
+                      class="absolute inset-y-0 right-0 rounded-r-lg"
+                      :style="{ 
+                        width: `${getUncertaintyWidth(item)}px`,
+                        background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
+                      }"
+                    />
+                    
+                    <!-- Overdue section: orange tint fading to transparent -->
+                    <div 
+                      v-if="getOverdueWidth(item) > 0 && getDueDatePosition(item)"
+                      class="absolute inset-y-0 rounded-r-lg"
+                      :style="{ 
+                        left: `${getDueDatePosition(item)}px`,
+                        right: '0',
+                        background: 'linear-gradient(to right, rgba(251, 146, 60, 0.45), transparent)'
+                      }"
+                    />
+                    <!-- White fade overlay for overdue uncertainty -->
+                    <div 
+                      v-if="getOverdueWidth(item) > 0 && getDueDatePosition(item)"
+                      class="absolute inset-y-0 right-0 rounded-r-lg"
+                      :style="{ 
+                        width: `${getUncertaintyWidth(item)}px`,
+                        background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
+                      }"
+                    />
+                    
+                    <!-- Due date line marker (orange vertical line) -->
+                    <div 
+                      v-if="item.dueDate && getDueDatePosition(item)"
+                      class="absolute inset-y-0 w-0.5 z-10"
+                      :class="getEstimatedCompletion(item).isOverdue ? 'bg-orange-500' : 'bg-slate-400'"
+                      :style="{ left: `${getDueDatePosition(item)}px` }"
+                    />
+                    
+                    <!-- Rich Tooltip -->
+                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover/bar:opacity-100 transition-opacity pointer-events-none z-20 min-w-[200px]">
+                      <div class="font-semibold text-sm mb-2">
+                        <span v-if="item.isSubtask" class="text-slate-400 mr-1">↳</span>
+                        {{ item.title }}
+                      </div>
+                      
+                      <div class="space-y-1.5 text-slate-300">
+                        <div class="flex items-center justify-between">
+                          <span>Progress</span>
+                          <span class="font-medium text-white">{{ item.progress || 0 }}%</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                          <span>Confidence</span>
+                          <span class="font-medium text-white">{{ item.confidence || 70 }}%</span>
+                        </div>
+                        
+                        <div v-if="item.startDate" class="flex items-center justify-between">
+                          <span>Started</span>
+                          <span class="font-medium text-white">{{ new Date(item.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
+                        </div>
+                        
+                        <div v-if="item.dueDate" class="flex items-center justify-between">
+                          <span>Due</span>
+                          <span :class="getEstimatedCompletion(item).isOverdue ? 'font-medium text-amber-400' : 'font-medium text-white'">
+                            {{ new Date(item.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                          </span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between pt-1 border-t border-slate-700">
+                          <span>Est. completion</span>
+                          <span class="font-medium text-emerald-400">
+                            {{ getEstimatedCompletion(item).earliestEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                            <template v-if="getEstimatedCompletion(item).bandDays > 1">
+                              – {{ getEstimatedCompletion(item).latestEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                            </template>
+                          </span>
+                        </div>
+                        
+                        <div v-if="getEstimatedCompletion(item).isOverdue" class="flex items-center gap-1.5 pt-1 text-amber-400">
+                          <Icon name="heroicons:exclamation-triangle" class="w-3.5 h-3.5" />
+                          <span>~{{ getEstimatedCompletion(item).daysOverdue }} days over due date</span>
+                        </div>
+                      </div>
+                      
+                      <div v-if="item.assignee" class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-700">
+                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                          <span class="text-[9px] text-white font-medium">{{ item.assignee.name?.[0] }}</span>
+                        </div>
+                        <span class="text-slate-300">{{ item.assignee.name }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Empty state -->
+              <div 
+                v-if="items.length === 0"
+                class="flex items-center justify-center py-12 text-slate-400"
+              >
+                <div class="text-center">
+                  <Icon name="heroicons:calendar" class="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p class="text-sm">No items to display on timeline</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+      <span class="flex items-center gap-1.5">
+        <div class="w-4 h-2 rounded bg-gradient-to-r from-blue-400 to-blue-500" />
+        Progress
+      </span>
+      <span class="flex items-center gap-1.5">
+        <div class="w-6 h-2 rounded-l bg-slate-200" style="mask-image: linear-gradient(to right, black, transparent); -webkit-mask-image: linear-gradient(to right, black, transparent);" />
+        Uncertainty
+      </span>
+      <span class="flex items-center gap-1.5">
+        <div class="w-6 h-2 rounded bg-orange-300" style="mask-image: linear-gradient(to right, black, transparent); -webkit-mask-image: linear-gradient(to right, black, transparent);" />
+        Past Due
+      </span>
+      <span class="flex items-center gap-1.5">
+        <div class="w-0.5 h-3 bg-orange-500" />
+        Due Date
+      </span>
+      <span class="flex items-center gap-1.5">
+        <div class="w-0.5 h-3 bg-blue-500" />
+        Today
+      </span>
+    </div>
+  </div>
+</template>

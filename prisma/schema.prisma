@@ -1,0 +1,260 @@
+// Relai - Multi-stakeholder Project Management
+// Prisma Schema - Recursive Item Model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USER & AUTH
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Current focus
+  currentFocusItemId    String?
+  currentFocusStartedAt DateTime?
+
+  // Relations
+  assignedItems    ItemAssignment[]
+  stakeholderItems ItemStakeholder[]
+  activities       Activity[]
+  comments         Comment[]
+  workspaceMembers WorkspaceMember[]
+  magicLinkTokens  MagicLinkToken[]
+  focusSessions    FocusSession[]
+  currentFocusItem Item?            @relation("CurrentFocus", fields: [currentFocusItemId], references: [id])
+
+  @@map("users")
+}
+
+model MagicLinkToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("magic_link_tokens")
+}
+
+// ============================================
+// WORKSPACE (Container for Items)
+// ============================================
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members WorkspaceMember[]
+  items   Item[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// ============================================
+// ITEM (Recursive Task/Project Model)
+// ============================================
+
+model Item {
+  id          String   @id @default(cuid())
+  workspaceId String
+  parentId    String?  // null = root item (project level)
+  
+  // Core fields
+  title       String
+  description String?
+  category    String?  // Engineering, Design, Marketing, etc.
+  
+  // Status & Progress
+  status      ItemStatus @default(TODO)
+  progress    Int        @default(0) // 0-100
+  
+  // Scheduling
+  dueDate     DateTime?
+  startDate   DateTime?
+  
+  // AI-assisted fields
+  confidence  Int        @default(70) // 0-100, AI-estimated completion likelihood
+  
+  // Timestamps for temperature calculation
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastActivityAt DateTime @default(now())
+  
+  // Relations
+  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent         Item?             @relation("ItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children       Item[]            @relation("ItemHierarchy")
+  assignees      ItemAssignment[]
+  stakeholders   ItemStakeholder[]
+  blockedBy      ItemDependency[]  @relation("BlockedItem")
+  blocks         ItemDependency[]  @relation("BlockingItem")
+  activities     Activity[]
+  comments       Comment[]
+  focusSessions  FocusSession[]
+  currentFocusBy User[]            @relation("CurrentFocus")
+
+  @@index([workspaceId])
+  @@index([parentId])
+  @@index([status])
+  @@index([lastActivityAt])
+  @@map("items")
+}
+
+model ItemAssignment {
+  id         String   @id @default(cuid())
+  itemId     String
+  userId     String
+  assignedAt DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, userId])
+  @@map("item_assignments")
+}
+
+model ItemStakeholder {
+  id     String @id @default(cuid())
+  itemId String
+  userId String
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, userId])
+  @@map("item_stakeholders")
+}
+
+model ItemDependency {
+  id             String @id @default(cuid())
+  blockedItemId  String
+  blockingItemId String
+
+  blockedItem  Item @relation("BlockedItem", fields: [blockedItemId], references: [id], onDelete: Cascade)
+  blockingItem Item @relation("BlockingItem", fields: [blockingItemId], references: [id], onDelete: Cascade)
+
+  @@unique([blockedItemId, blockingItemId])
+  @@map("item_dependencies")
+}
+
+enum ItemStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  PAUSED
+  DONE
+}
+
+// ============================================
+// FOCUS TRACKING
+// ============================================
+
+model FocusSession {
+  id        String    @id @default(cuid())
+  userId    String
+  itemId    String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([itemId])
+  @@index([startedAt])
+  @@map("focus_sessions")
+}
+
+// ============================================
+// ACTIVITY & COMMENTS
+// ============================================
+
+model Activity {
+  id        String       @id @default(cuid())
+  itemId    String
+  userId    String
+  type      ActivityType
+  oldValue  String?
+  newValue  String?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([createdAt])
+  @@map("activities")
+}
+
+model Comment {
+  id              String   @id @default(cuid())
+  itemId          String
+  userId          String
+  parentCommentId String?  // For nested replies
+  content         String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  item     Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  @@index([itemId])
+  @@index([parentCommentId])
+  @@map("comments")
+}
+
+enum ActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGE
+  PROGRESS_UPDATE
+  ASSIGNMENT
+  COMMENT
+  DEPENDENCY_ADDED
+  DEPENDENCY_REMOVED
+}
