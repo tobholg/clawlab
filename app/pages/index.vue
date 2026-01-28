@@ -1,576 +1,226 @@
 <script setup lang="ts">
 definePageMeta({
   layout: false,
-  // middleware: ['auth']  // TODO: re-enable
 })
 
-const { 
-  scopedItems, 
-  currentScope, 
-  breadcrumbs, 
-  navigateTo, 
-  navigateUp,
-  createItem,
-  updateItem,
-  refreshItems,
-} = useItems()
-
-const activeView = ref<'dashboard' | 'kanban' | 'timeline' | 'list'>('dashboard')
-const filterCategory = ref<string | null>(null)
-const showCreateModal = ref(false)
-const sidebarCollapsed = ref(false)
-const showDetailModal = ref(false)
-const selectedItem = ref<any>(null)
-
-// Check if at root level (projects view)
-const isRootLevel = computed(() => !currentScope.value || currentScope.value.id === 'root')
-
-// Reset view when navigating between levels
-watch(isRootLevel, (isRoot) => {
-  // Keep timeline if that's what user selected, otherwise default appropriately
-  if (activeView.value !== 'timeline') {
-    activeView.value = isRoot ? 'dashboard' : 'kanban'
-  }
-})
-
-// Toggle sidebar
-const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value
-}
-
-// Handle item creation
-const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string }) => {
-  await createItem(data)
-  showCreateModal.value = false
-}
-
-// Get unique categories from current scope
-const categories = computed(() => {
-  const cats = new Set(scopedItems.value.map(i => i.category).filter(Boolean))
-  return Array.from(cats)
-})
-
-// Filter items
-const filteredItems = computed(() => {
-  if (!filterCategory.value) return scopedItems.value
-  return scopedItems.value.filter(i => i.category === filterCategory.value)
-})
-
-// Handle drill down
-const handleDrillDown = (item: any) => {
-  navigateTo(item.id)
-}
-
-// Handle opening item detail
-const handleOpenDetail = (item: any) => {
-  selectedItem.value = item
-  showDetailModal.value = true
-}
-
-// Handle item update from modal (modal already saved, just refresh list)
-const handleUpdateItem = async (_id: string, data: any) => {
-  // Modal already saved the data, just refresh the items list
-  await refreshItems()
-  // Only close if explicitly requested (not on auto-save)
-  if (data?._close) {
-    showDetailModal.value = false
-  }
-}
-
-// Handle view full board from modal
-const handleViewFull = (item: any) => {
-  navigateTo(item.id)
-}
-
-// Handle status change from drag and drop
-const handleStatusChange = async (itemId: string, newStatus: string) => {
-  await updateItem(itemId, { status: newStatus })
-}
-
-// Project-level editing state
-const editedProjectTitle = ref('')
-const editedProjectDescription = ref('')
-const projectSaveTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
-const isProjectInitializing = ref(true)
-
-// Load project data when scope changes
-watch(currentScope, (scope) => {
-  isProjectInitializing.value = true
-  if (scope && scope.id !== 'root') {
-    editedProjectTitle.value = scope.title ?? ''
-    editedProjectDescription.value = scope.description ?? ''
-  }
-  nextTick(() => {
-    isProjectInitializing.value = false
-  })
-}, { immediate: true })
-
-// Auto-save project changes
-const saveProjectChanges = async () => {
-  if (!currentScope.value || currentScope.value.id === 'root') return
-  
-  try {
-    await $fetch(`/api/items/${currentScope.value.id}`, {
-      method: 'PATCH',
-      body: {
-        title: editedProjectTitle.value,
-        description: editedProjectDescription.value,
-      }
-    })
-    await refreshItems()
-  } catch (e) {
-    console.error('Failed to save project:', e)
-  }
-}
-
-const debouncedProjectSave = () => {
-  if (projectSaveTimeout.value) clearTimeout(projectSaveTimeout.value)
-  projectSaveTimeout.value = setTimeout(saveProjectChanges, 500)
-}
-
-// Watch project fields for auto-save
-watch([editedProjectTitle, editedProjectDescription], () => {
-  if (currentScope.value && currentScope.value.id !== 'root' && !isProjectInitializing.value) {
-    debouncedProjectSave()
-  }
-})
-
-// Keyboard navigation
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') {
-      e.preventDefault()
-      navigateUp()
-    }
-  }
-  window.addEventListener('keydown', handleKeydown)
-  onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
-})
+const features = [
+  {
+    icon: 'heroicons:sparkles',
+    title: 'AI-Powered Insights',
+    description: 'Intelligent progress tracking that predicts completion dates and identifies risks before they become blockers.',
+  },
+  {
+    icon: 'heroicons:calendar',
+    title: 'Smart Scheduling',
+    description: 'Automatic timeline adjustments based on team velocity, dependencies, and historical patterns.',
+  },
+  {
+    icon: 'heroicons:users',
+    title: 'Team Coordination',
+    description: 'Keep everyone aligned with clear ownership, real-time updates, and stakeholder visibility.',
+  },
+  {
+    icon: 'heroicons:squares-2x2',
+    title: 'Recursive Tasks',
+    description: 'Break work down infinitely. Projects contain tasks contain subtasks — all with the same powerful features.',
+  },
+]
 </script>
 
 <template>
-  <div class="flex h-screen bg-[#FAFAFA] font-sans text-slate-900 overflow-hidden">
-    
-    <!-- Sidebar -->
-    <aside 
-      :class="[
-        'border-r border-slate-100 bg-white flex flex-col py-5 transition-all duration-300 ease-in-out',
-        sidebarCollapsed ? 'w-16' : 'w-56'
-      ]"
-    >
-      <!-- Logo + Toggle -->
-      <div :class="['mb-8 flex items-center', sidebarCollapsed ? 'flex-col gap-3' : 'px-5 justify-between']">
-        <div :class="['flex items-center gap-2.5', sidebarCollapsed ? 'justify-center w-full' : '']">
-          <div class="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-sm font-medium">R</span>
+  <div class="min-h-screen bg-white">
+    <!-- Navigation -->
+    <nav class="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-sm border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
+            <span class="text-white text-sm font-semibold">R</span>
           </div>
-          <span 
-            :class="[
-              'text-base font-medium tracking-tight transition-all duration-300 overflow-hidden whitespace-nowrap',
-              sidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
-            ]"
-          >
-            Relai
-          </span>
+          <span class="text-lg font-semibold tracking-tight">Relai</span>
         </div>
-        <button 
-          @click="toggleSidebar"
-          class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex items-center justify-center"
-        >
-          <Icon :name="sidebarCollapsed ? 'heroicons:chevron-right' : 'heroicons:chevron-left'" class="w-4 h-4" />
-        </button>
-      </div>
-
-      <!-- Navigation -->
-      <nav class="flex-1 px-3">
-        <div class="space-y-0.5">
-          <button
-            @click="navigateTo('root'); activeView = 'dashboard'"
-            :class="[
-              'w-full flex items-center rounded-lg text-sm font-normal transition-all duration-200',
-              isRootLevel && activeView === 'dashboard'
-                ? 'text-slate-900 bg-slate-50' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50',
-              sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-            ]"
-            :title="sidebarCollapsed ? 'Projects' : undefined"
+        
+        <div class="flex items-center gap-4">
+          <NuxtLink 
+            to="/login" 
+            class="text-sm text-slate-600 hover:text-slate-900 transition-colors"
           >
-            <Icon name="heroicons:folder" class="w-4 h-4 flex-shrink-0" />
-            <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Projects</span>
-          </button>
-          
-          <button
-            @click="navigateTo('root'); activeView = 'timeline'"
-            :class="[
-              'w-full flex items-center rounded-lg text-sm font-normal transition-all duration-200',
-              isRootLevel && activeView === 'timeline'
-                ? 'text-slate-900 bg-slate-50' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50',
-              sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-            ]"
-            :title="sidebarCollapsed ? 'Timeline' : undefined"
+            Sign in
+          </NuxtLink>
+          <NuxtLink 
+            to="/onboarding" 
+            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
           >
-            <Icon name="heroicons:calendar" class="w-4 h-4 flex-shrink-0" />
-            <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Timeline</span>
-          </button>
-          
-          <NuxtLink
-            to="/dependencies"
-            :class="[
-              'flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-              sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-            ]"
-            :title="sidebarCollapsed ? 'Dependencies' : undefined"
-          >
-            <Icon name="heroicons:arrow-path" class="w-4 h-4 flex-shrink-0" />
-            <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Dependencies</span>
+            Get Started
           </NuxtLink>
         </div>
-        
-        <div class="mt-8">
-          <h3 
-            :class="[
-              'mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap',
-              sidebarCollapsed ? 'px-0 text-center opacity-0 h-0' : 'px-3 opacity-100 h-auto'
-            ]"
-          >
-            Team
-          </h3>
-          <div class="space-y-0.5">
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-              :title="sidebarCollapsed ? 'Members' : undefined"
-            >
-              <Icon name="heroicons:users" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Members</span>
-            </button>
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-              :title="sidebarCollapsed ? 'Settings' : undefined"
-            >
-              <Icon name="heroicons:cog-6-tooth" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Settings</span>
-            </button>
-          </div>
-        </div>
-      </nav>
+      </div>
+    </nav>
 
-      <!-- User -->
-      <div class="px-3 mt-auto">
-        <div 
-          :class="[
-            'flex items-center rounded-lg hover:bg-slate-50 cursor-pointer transition-all duration-200',
-            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-          ]"
-        >
-          <div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-            <span class="text-xs font-medium text-slate-600">T</span>
-          </div>
-          <div :class="['flex-1 min-w-0 transition-all duration-300 overflow-hidden', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">
-            <div class="text-sm font-normal text-slate-800 truncate">Tobias</div>
-          </div>
-          <Icon 
-            v-if="!sidebarCollapsed"
-            name="heroicons:chevron-up-down" 
-            class="w-4 h-4 text-slate-400 flex-shrink-0" 
-          />
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-6">
+      <div class="max-w-4xl mx-auto text-center">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-50 to-blue-50 border border-violet-100 mb-8">
+          <Icon name="heroicons:sparkles" class="w-4 h-4 text-violet-500" />
+          <span class="text-sm font-medium text-violet-700">Powered by AI</span>
+        </div>
+        
+        <!-- Headline -->
+        <h1 class="text-5xl sm:text-6xl font-semibold text-slate-900 leading-tight tracking-tight mb-6">
+          Project management that
+          <span class="bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">thinks ahead</span>
+        </h1>
+        
+        <!-- Subheadline -->
+        <p class="text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+          AI-powered progress tracking, intelligent scheduling, and team coordination that actually works. 
+          Stop managing spreadsheets — start shipping.
+        </p>
+        
+        <!-- CTA Buttons -->
+        <div class="flex items-center justify-center gap-4">
+          <NuxtLink 
+            to="/onboarding"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all hover:scale-[1.02] shadow-lg shadow-slate-900/10"
+          >
+            <span>Get Started Free</span>
+            <Icon name="heroicons:arrow-right" class="w-4 h-4" />
+          </NuxtLink>
+          <a 
+            href="#features"
+            class="inline-flex items-center gap-2 px-6 py-3 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+          >
+            <span>Learn More</span>
+          </a>
         </div>
       </div>
-    </aside>
+    </section>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden">
-      <!-- Subtle vibrant gradient background -->
-      <div class="absolute inset-0 pointer-events-none overflow-hidden">
-        <div class="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-violet-200/30 via-fuchsia-200/20 to-transparent rounded-full blur-3xl" />
-        <div class="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-tr from-sky-200/30 via-cyan-200/20 to-transparent rounded-full blur-3xl" />
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 bg-gradient-to-r from-amber-200/10 via-rose-200/10 to-transparent rounded-full blur-3xl" />
-      </div>
-      
-      <!-- Header -->
-      <header class="relative z-10 px-6 py-5 flex flex-col gap-4">
-        <!-- Breadcrumbs -->
-        <nav class="flex items-center gap-1.5 text-sm">
-          <button 
-            v-for="(crumb, i) in breadcrumbs" 
-            :key="crumb.id"
-            class="flex items-center gap-1.5"
-            @click="navigateTo(crumb.id)"
-          >
-            <!-- Icon based on level: root=home, project=folder, task=clipboard -->
-            <Icon 
-              :name="i === 0 ? 'heroicons:home' : i === 1 ? 'heroicons:folder' : 'heroicons:clipboard-document-list'"
-              :class="[
-                'w-3.5 h-3.5 transition-colors',
-                i === breadcrumbs.length - 1 
-                  ? (i === 0 ? 'text-slate-500' : i === 1 ? 'text-blue-500' : 'text-emerald-500')
-                  : 'text-slate-300'
-              ]"
-            />
-            <span 
-              :class="[
-                'hover:text-slate-900 transition-colors',
-                i === breadcrumbs.length - 1 ? 'text-slate-800 font-medium' : 'text-slate-400'
-              ]"
-            >
-              {{ crumb.title }}
-            </span>
-            <Icon 
-              v-if="i < breadcrumbs.length - 1"
-              name="heroicons:chevron-right" 
-              class="w-3 h-3 text-slate-300" 
-            />
-          </button>
-        </nav>
-        
-        <!-- Title row -->
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <!-- Scope icon (color coded: project=blue, task=green) -->
-            <div 
-              v-if="!isRootLevel" 
-              class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              :class="breadcrumbs.length <= 2 
-                ? 'bg-gradient-to-br from-blue-50 to-blue-100' 
-                : 'bg-gradient-to-br from-emerald-50 to-emerald-100'"
-            >
-              <Icon 
-                :name="breadcrumbs.length <= 2 ? 'heroicons:folder' : 'heroicons:clipboard-document-list'" 
-                :class="breadcrumbs.length <= 2 ? 'w-5 h-5 text-blue-500' : 'w-5 h-5 text-emerald-500'" 
-              />
+    <!-- Visual Preview -->
+    <section class="pb-20 px-6">
+      <div class="max-w-5xl mx-auto">
+        <div class="relative rounded-2xl overflow-hidden border border-slate-200 shadow-2xl shadow-slate-200/50 bg-gradient-to-br from-slate-50 to-white">
+          <!-- Browser Chrome -->
+          <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-100 bg-white/50">
+            <div class="flex gap-1.5">
+              <div class="w-3 h-3 rounded-full bg-rose-400" />
+              <div class="w-3 h-3 rounded-full bg-amber-400" />
+              <div class="w-3 h-3 rounded-full bg-emerald-400" />
             </div>
-            
-            <div>
-              <!-- Editable title when inside project, static when at root -->
-              <input
-                v-if="!isRootLevel"
-                v-model="editedProjectTitle"
-                type="text"
-                class="text-xl font-medium text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 p-0"
-                placeholder="Project title..."
-              />
-              <h1 v-else class="text-xl font-medium text-slate-900">Projects</h1>
+            <div class="flex-1 mx-8">
+              <div class="max-w-md mx-auto h-6 bg-slate-100 rounded-md" />
+            </div>
+          </div>
+          
+          <!-- App Preview Mockup -->
+          <div class="aspect-video bg-gradient-to-br from-slate-50 via-white to-slate-50 p-8">
+            <div class="h-full flex gap-6">
+              <!-- Sidebar Mock -->
+              <div class="w-48 bg-white rounded-xl border border-slate-100 p-4 space-y-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 bg-slate-900 rounded-md" />
+                  <div class="h-4 w-16 bg-slate-200 rounded" />
+                </div>
+                <div class="space-y-2 mt-6">
+                  <div class="h-8 bg-slate-100 rounded-lg" />
+                  <div class="h-8 bg-slate-50 rounded-lg" />
+                  <div class="h-8 bg-slate-50 rounded-lg" />
+                </div>
+              </div>
               
-              <!-- Editable description when inside project -->
-              <input
-                v-if="!isRootLevel"
-                v-model="editedProjectDescription"
-                type="text"
-                class="text-sm text-slate-400 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 p-0 mt-0.5 w-full"
-                placeholder="Add a description..."
-              />
-              <p v-else class="text-sm text-slate-400 mt-0.5">
-                {{ scopedItems.length }} projects in workspace
-              </p>
-            </div>
-          </div>
-          
-          <div class="flex items-center gap-4">
-            <!-- Progress bar (only when inside a project) -->
-            <div v-if="!isRootLevel && currentScope?.progress !== undefined" class="flex items-center gap-3">
-              <div class="w-32">
-                <div class="flex items-center justify-between text-xs mb-1">
-                  <span class="text-slate-400">Progress</span>
-                  <span class="font-medium text-slate-600">{{ currentScope.progress }}%</span>
+              <!-- Main Content Mock -->
+              <div class="flex-1 bg-white rounded-xl border border-slate-100 p-6">
+                <div class="flex items-center justify-between mb-6">
+                  <div class="h-6 w-32 bg-slate-200 rounded" />
+                  <div class="h-8 w-24 bg-slate-900 rounded-lg" />
                 </div>
-                <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div 
-                    class="h-full bg-gradient-to-r from-blue-400 to-blue-500 transition-all duration-300"
-                    :style="{ width: `${currentScope.progress}%` }"
-                  />
+                
+                <!-- Kanban Mock -->
+                <div class="flex gap-4 h-[calc(100%-3rem)]">
+                  <div class="flex-1 bg-slate-50 rounded-lg p-3 space-y-2">
+                    <div class="h-4 w-16 bg-slate-200 rounded mb-3" />
+                    <div class="h-20 bg-white rounded-lg border border-slate-100" />
+                    <div class="h-16 bg-white rounded-lg border border-slate-100" />
+                  </div>
+                  <div class="flex-1 bg-blue-50/50 rounded-lg p-3 space-y-2">
+                    <div class="h-4 w-20 bg-blue-100 rounded mb-3" />
+                    <div class="h-24 bg-white rounded-lg border border-blue-100" />
+                  </div>
+                  <div class="flex-1 bg-emerald-50/50 rounded-lg p-3 space-y-2">
+                    <div class="h-4 w-12 bg-emerald-100 rounded mb-3" />
+                    <div class="h-16 bg-white rounded-lg border border-emerald-100" />
+                    <div class="h-20 bg-white rounded-lg border border-emerald-100" />
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <!-- Team avatars (only when inside a project) -->
-            <div v-if="!isRootLevel && currentScope?.assignees?.length" class="flex -space-x-2">
-              <div 
-                v-for="assignee in currentScope.assignees.slice(0, 3)" 
-                :key="assignee.id"
-                class="w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center"
-                :title="assignee.name"
-              >
-                <span class="text-xs text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
-              </div>
-              <div 
-                v-if="currentScope.assignees.length > 3"
-                class="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center"
-              >
-                <span class="text-xs text-slate-600 font-medium">+{{ currentScope.assignees.length - 3 }}</span>
-              </div>
-            </div>
-            
-            <!-- Settings button (only when inside a project) -->
-            <button 
-              v-if="!isRootLevel"
-              @click="selectedItem = currentScope; showDetailModal = true"
-              class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              title="Edit project details"
-            >
-              <Icon name="heroicons:cog-6-tooth" class="w-5 h-5" />
-            </button>
-          
-            <!-- View toggle -->
-            <div class="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
-              <!-- Dashboard (root only) -->
-              <button 
-                v-if="isRootLevel"
-                @click="activeView = 'dashboard'"
-                :class="[
-                  'p-1.5 rounded-md transition-all',
-                  activeView === 'dashboard' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'
-                ]"
-                title="Dashboard"
-              >
-                <Icon name="heroicons:squares-2x2" class="w-4 h-4" />
-              </button>
-              <!-- Kanban (inside project only) -->
-              <button 
-                v-if="!isRootLevel"
-                @click="activeView = 'kanban'"
-                :class="[
-                  'p-1.5 rounded-md transition-all',
-                  activeView === 'kanban' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'
-                ]"
-                title="Kanban"
-              >
-                <Icon name="heroicons:view-columns" class="w-4 h-4" />
-              </button>
-              <!-- Timeline (all levels) -->
-              <button 
-                @click="activeView = 'timeline'"
-                :class="[
-                  'p-1.5 rounded-md transition-all',
-                  activeView === 'timeline' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'
-                ]"
-                title="Timeline"
-              >
-                <Icon name="heroicons:calendar" class="w-4 h-4" />
-              </button>
-              <!-- List (inside project only) -->
-              <button 
-                v-if="!isRootLevel"
-                @click="activeView = 'list'"
-                :class="[
-                  'p-1.5 rounded-md transition-all',
-                  activeView === 'list' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'
-                ]"
-                title="List"
-              >
-                <Icon name="heroicons:bars-3" class="w-4 h-4" />
-              </button>
-            </div>
-            
-            <!-- New item/project button -->
-            <button 
-              @click="showCreateModal = true"
-              class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              <Icon name="heroicons:plus" class="w-4 h-4" />
-              <span>{{ isRootLevel ? 'New Project' : 'New' }}</span>
-            </button>
           </div>
-        </div>
-        
-        <!-- Filters (only inside projects) -->
-        <div v-if="!isRootLevel" class="flex items-center gap-2">
-          <button
-            @click="filterCategory = null"
-            :class="[
-              'px-2.5 py-1 rounded-full text-xs font-normal border transition-all',
-              filterCategory === null 
-                ? 'bg-slate-800 text-white border-slate-800' 
-                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-            ]"
-          >
-            All
-          </button>
-          <button
-            v-for="cat in categories"
-            :key="cat"
-            @click="filterCategory = filterCategory === cat ? null : cat"
-            :class="[
-              'px-2.5 py-1 rounded-full text-xs font-normal border transition-all',
-              filterCategory === cat 
-                ? 'bg-slate-800 text-white border-slate-800' 
-                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-            ]"
-          >
-            {{ cat }}
-          </button>
-          
-          <div class="h-4 w-px bg-slate-200 mx-1" />
-          
-          <!-- Search -->
-          <div class="relative">
-            <Icon name="heroicons:magnifying-glass" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              class="pl-8 pr-3 py-1 text-xs bg-white border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 w-40 transition-all"
-            />
-          </div>
-        </div>
-      </header>
-
-      <!-- Content -->
-      <div class="flex-1 overflow-auto px-6 pb-8">
-        <!-- Projects Dashboard (root level, dashboard view) -->
-        <ViewsProjectsView 
-          v-if="isRootLevel && activeView === 'dashboard'"
-          :projects="filteredItems"
-          @open-project="handleDrillDown"
-          @open-detail="handleOpenDetail"
-          @create-project="showCreateModal = true"
-        />
-        
-        <!-- Timeline View (all levels) -->
-        <ViewsTimelineView
-          v-else-if="activeView === 'timeline'"
-          :items="filteredItems"
-          :is-root-level="isRootLevel"
-          @open-item="handleDrillDown"
-          @open-detail="handleOpenDetail"
-        />
-        
-        <!-- Kanban View (inside project) -->
-        <ViewsKanbanView 
-          v-else-if="!isRootLevel && activeView === 'kanban'"
-          :items="filteredItems"
-          @drill-down="handleDrillDown"
-          @open-detail="handleOpenDetail"
-          @status-change="handleStatusChange"
-        />
-        
-        <!-- List View (inside project) -->
-        <div v-else-if="!isRootLevel && activeView === 'list'" class="text-sm text-slate-400">
-          List view coming soon...
         </div>
       </div>
-    </main>
-    
-    <!-- Create Item Modal -->
-    <ItemsCreateItemModal
-      :open="showCreateModal"
-      :parent-title="currentScope?.title"
-      :is-project="isRootLevel"
-      @close="showCreateModal = false"
-      @create="handleCreateItem"
-    />
-    
-    <!-- Item Detail Modal -->
-    <ItemsItemDetailModal
-      :open="showDetailModal"
-      :item="selectedItem"
-      @close="showDetailModal = false"
-      @update="handleUpdateItem"
-      @view-full="handleViewFull"
-    />
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 px-6 bg-gradient-to-b from-slate-50 to-white">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-semibold text-slate-900 mb-4">
+            Everything you need to ship faster
+          </h2>
+          <p class="text-lg text-slate-500 max-w-xl mx-auto">
+            Built for teams who care about execution, not ceremony.
+          </p>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+          <div 
+            v-for="feature in features"
+            :key="feature.title"
+            class="p-6 bg-white rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg hover:shadow-slate-100 transition-all"
+          >
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-blue-100 flex items-center justify-center mb-4">
+              <Icon :name="feature.icon" class="w-5 h-5 text-violet-600" />
+            </div>
+            <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ feature.title }}</h3>
+            <p class="text-slate-500 leading-relaxed">{{ feature.description }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold text-slate-900 mb-4">
+          Ready to transform how you manage projects?
+        </h2>
+        <p class="text-lg text-slate-500 mb-8">
+          Get started in minutes. No credit card required.
+        </p>
+        <NuxtLink 
+          to="/onboarding"
+          class="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all hover:scale-[1.02] shadow-lg shadow-slate-900/10 text-lg"
+        >
+          <span>Start Your Free Workspace</span>
+          <Icon name="heroicons:arrow-right" class="w-5 h-5" />
+        </NuxtLink>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-100 py-8 px-6">
+      <div class="max-w-6xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 bg-slate-900 rounded-md flex items-center justify-center">
+            <span class="text-white text-xs font-semibold">R</span>
+          </div>
+          <span class="text-sm text-slate-500">© 2025 Relai</span>
+        </div>
+        <div class="flex items-center gap-6 text-sm text-slate-500">
+          <a href="#" class="hover:text-slate-900 transition-colors">Privacy</a>
+          <a href="#" class="hover:text-slate-900 transition-colors">Terms</a>
+          <a href="#" class="hover:text-slate-900 transition-colors">Contact</a>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>

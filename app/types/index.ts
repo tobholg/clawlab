@@ -5,6 +5,7 @@ export interface Item {
   description?: string | null
   parentId: string | null  // null = root project
   status: 'todo' | 'in_progress' | 'blocked' | 'paused' | 'done'
+  subStatus?: string | null  // Sub-state within the status (e.g., 'scoping', 'review')
   temperature: 'cold' | 'warm' | 'hot' | 'critical'
   progress: number  // 0-100, completion percentage
   confidence: number  // 0-100, certainty of estimates
@@ -77,6 +78,62 @@ export const STATUS_CONFIG = {
   paused: { label: 'Paused', color: 'bg-amber-50 text-amber-600' },
   done: { label: 'Done', color: 'bg-emerald-50 text-emerald-600' },
 } as const
+
+// Sub-states for each status (with colors for badges)
+export const SUB_STATUS_CONFIG: Record<string, { label: string; icon: string; order: number; color: string }> = {
+  // Todo sub-states
+  backlog: { label: 'Backlog', icon: 'heroicons:inbox', order: 0, color: 'bg-slate-100 text-slate-500' },
+  ready: { label: 'Ready', icon: 'heroicons:check-circle', order: 1, color: 'bg-emerald-50 text-emerald-600' },
+  // In Progress sub-states
+  scoping: { label: 'Scoping', icon: 'heroicons:document-magnifying-glass', order: 0, color: 'bg-violet-50 text-violet-600' },
+  active: { label: 'Active', icon: 'heroicons:play', order: 1, color: 'bg-blue-50 text-blue-600' },
+  review: { label: 'Review', icon: 'heroicons:eye', order: 2, color: 'bg-amber-50 text-amber-600' },
+  finalizing: { label: 'Finalizing', icon: 'heroicons:sparkles', order: 3, color: 'bg-cyan-50 text-cyan-600' },
+  // Blocked sub-states
+  dependency: { label: 'Dependency', icon: 'heroicons:link', order: 0, color: 'bg-rose-50 text-rose-600' },
+  external: { label: 'External', icon: 'heroicons:arrow-top-right-on-square', order: 1, color: 'bg-orange-50 text-orange-600' },
+  decision: { label: 'Awaiting Decision', icon: 'heroicons:question-mark-circle', order: 2, color: 'bg-pink-50 text-pink-600' },
+  // Paused sub-states
+  on_hold: { label: 'On Hold', icon: 'heroicons:pause', order: 0, color: 'bg-slate-100 text-slate-500' },
+  deprioritized: { label: 'Deprioritized', icon: 'heroicons:arrow-down', order: 1, color: 'bg-slate-50 text-slate-400' },
+}
+
+// Sub-states grouped by parent status (for dropdowns)
+export const SUB_STATUS_BY_STATUS = {
+  todo: {
+    backlog: SUB_STATUS_CONFIG.backlog,
+    ready: SUB_STATUS_CONFIG.ready,
+  },
+  in_progress: {
+    scoping: SUB_STATUS_CONFIG.scoping,
+    active: SUB_STATUS_CONFIG.active,
+    review: SUB_STATUS_CONFIG.review,
+    finalizing: SUB_STATUS_CONFIG.finalizing,
+  },
+  blocked: {
+    dependency: SUB_STATUS_CONFIG.dependency,
+    external: SUB_STATUS_CONFIG.external,
+    decision: SUB_STATUS_CONFIG.decision,
+  },
+  paused: {
+    on_hold: SUB_STATUS_CONFIG.on_hold,
+    deprioritized: SUB_STATUS_CONFIG.deprioritized,
+  },
+  done: {}, // No sub-states for done
+} as const
+
+export type SubStatus = {
+  todo: keyof typeof SUB_STATUS_BY_STATUS.todo | null
+  in_progress: keyof typeof SUB_STATUS_BY_STATUS.in_progress | null
+  blocked: keyof typeof SUB_STATUS_BY_STATUS.blocked | null
+  paused: keyof typeof SUB_STATUS_BY_STATUS.paused | null
+  done: null
+}
+
+// Get sub-statuses for a given status (for dropdown menus)
+export function getSubStatusesForStatus(status: string) {
+  return SUB_STATUS_BY_STATUS[status as keyof typeof SUB_STATUS_BY_STATUS] ?? {}
+}
 
 export const CATEGORY_COLORS: Record<string, string> = {
   Engineering: 'bg-blue-50 text-blue-600 border-blue-100',

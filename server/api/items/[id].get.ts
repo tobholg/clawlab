@@ -51,6 +51,7 @@ export default defineEventHandler(async (event) => {
     parentId: item.parentId,
     workspaceId: item.workspaceId,
     status: item.status.toLowerCase(),
+    subStatus: item.subStatus ?? null,
     category: item.category,
     dueDate: item.dueDate?.toISOString() ?? null,
     startDate: item.startDate?.toISOString() ?? null,
@@ -100,6 +101,14 @@ export default defineEventHandler(async (event) => {
       isBlocked: child.blockedBy.length > 0,
     })),
     breadcrumbs,
+    parent: item.parent ? {
+      id: item.parent.id,
+      title: item.parent.title,
+      parentId: item.parent.parentId,
+      status: item.parent.status.toLowerCase(),
+      progress: item.parent.progress,
+      childrenCount: 0, // We'd need another query for this
+    } : null,
     comments: item.comments.map(c => ({
       id: c.id,
       content: c.content,

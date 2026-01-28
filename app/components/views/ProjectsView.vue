@@ -140,9 +140,9 @@ const formatDate = (dateStr: string | null) => {
             {{ project.title }}
           </h3>
           
-          <!-- Description -->
-          <p v-if="project.description" class="text-sm text-slate-500 line-clamp-2 mb-4">
-            {{ project.description }}
+          <!-- Description (truncate at first newline) -->
+          <p v-if="project.description" class="text-sm text-slate-500 truncate mb-4">
+            {{ project.description.split('\n')[0] }}{{ project.description.includes('\n') ? '...' : '' }}
           </p>
           
           <!-- Progress -->

@@ -1,6 +1,30 @@
 import { prisma } from '../../utils/prisma'
 import { calculateTemperature } from '../../utils/temperature'
 
+// Deep include for children up to 4 levels
+const childrenInclude = {
+  assignees: { include: { user: true } },
+  blockedBy: true,
+  children: {
+    include: {
+      assignees: { include: { user: true } },
+      blockedBy: true,
+      children: {
+        include: {
+          assignees: { include: { user: true } },
+          blockedBy: true,
+          children: {
+            include: {
+              assignees: { include: { user: true } },
+              blockedBy: true,
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const workspaceId = query.workspaceId as string
@@ -25,17 +49,14 @@ export default defineEventHandler(async (event) => {
       },
       blockedBy: true,
       children: {
-        include: {
-          children: true, // One level deeper for counting
-          blockedBy: true,
-        }
+        include: childrenInclude
       },
     },
     orderBy: { createdAt: 'asc' }
   })
   
-  // Transform and calculate derived fields
-  return items.map(item => {
+  // Transform item recursively
+  function transformItem(item: any, depth: number = 0): any {
     const childrenCount = countAllChildren(item)
     const hotCount = countByTemperature(item, ['hot', 'critical'])
     const blockedCount = countByStatus(item, 'BLOCKED')
@@ -46,57 +67,53 @@ export default defineEventHandler(async (event) => {
       description: item.description,
       parentId: item.parentId,
       status: item.status.toLowerCase(),
+      subStatus: item.subStatus ?? null,
       category: item.category,
       dueDate: item.dueDate?.toISOString() ?? null,
       startDate: item.startDate?.toISOString() ?? null,
       progress: item.progress ?? 0,
       confidence: item.confidence,
       temperature: calculateTemperature(item),
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt.toISOString(),
-      lastActivityAt: item.lastActivityAt.toISOString(),
-      // Assignee (first one)
-      assignee: item.assignees[0]?.user ? {
+      createdAt: item.createdAt?.toISOString() ?? null,
+      updatedAt: item.updatedAt?.toISOString() ?? null,
+      lastActivityAt: item.lastActivityAt?.toISOString() ?? null,
+      // Owner (first assignee) - the primary responsible person
+      assignee: item.assignees?.[0]?.user ? {
         id: item.assignees[0].user.id,
         name: item.assignees[0].user.name,
         avatar: item.assignees[0].user.avatar,
+        role: 'owner',
       } : null,
       // All assignees
-      assignees: item.assignees.map(a => ({
+      assignees: item.assignees?.map((a: any) => ({
         id: a.user.id,
         name: a.user.name,
         avatar: a.user.avatar,
-      })),
-      // Stakeholders
-      stakeholders: item.stakeholders.map(s => ({
-        id: s.user.id,
-        name: s.user.name,
-        avatar: s.user.avatar,
-      })),
+      })) ?? [],
       // Dependencies
-      dependencyIds: item.blockedBy.map(d => d.blockingItemId),
+      dependencyIds: item.blockedBy?.map((d: any) => d.blockingItemId) ?? [],
+      isBlocked: (item.blockedBy?.length ?? 0) > 0,
       // Children stats
       childrenCount,
       hotChildrenCount: hotCount,
       blockedChildrenCount: blockedCount,
-      hasChildren: item.children.length > 0,
-      // Direct children (for timeline expansion)
-      children: item.children.map((child: any) => ({
-        id: child.id,
-        title: child.title,
-        description: child.description,
-        parentId: child.parentId,
-        status: child.status.toLowerCase(),
-        category: child.category,
-        dueDate: child.dueDate?.toISOString() ?? null,
-        startDate: child.startDate?.toISOString() ?? null,
-        progress: child.progress ?? 0,
-        confidence: child.confidence,
-        temperature: calculateTemperature(child),
-        childrenCount: child.children?.length ?? 0,
-        hasChildren: (child.children?.length ?? 0) > 0,
-      })),
+      hasChildren: (item.children?.length ?? 0) > 0,
+      // Recursive children (up to 4 levels)
+      children: depth < 4 && item.children?.length 
+        ? item.children.map((child: any) => transformItem(child, depth + 1))
+        : [],
     }
+  }
+  
+  // Transform top-level items (include stakeholders only at top level)
+  return items.map(item => {
+    const transformed = transformItem(item, 0)
+    transformed.stakeholders = item.stakeholders.map((s: any) => ({
+      id: s.user.id,
+      name: s.user.name,
+      avatar: s.user.avatar,
+    }))
+    return transformed
   })
 })
 

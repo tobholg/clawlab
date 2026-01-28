@@ -1,0 +1,813 @@
+<script setup lang="ts">
+import type { ItemNode } from '~/types'
+import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, getSubStatusesForStatus } from '~/types'
+
+const props = defineProps<{
+  items: ItemNode[]
+  isRootLevel?: boolean
+}>()
+
+const emit = defineEmits<{
+  openItem: [item: ItemNode]
+  openDetail: [item: ItemNode]
+}>()
+
+// Expanded state
+const expandedIds = ref<Set<string>>(new Set())
+
+// ===== FILTERING =====
+const searchQuery = ref('')
+const statusFilter = ref<string[]>([])
+const categoryFilter = ref<string[]>([])
+const assigneeFilter = ref<string[]>([])
+const riskFilter = ref<string[]>([])
+const showAdvancedFilters = ref(false)
+
+// Get unique values for filter dropdowns
+const availableStatuses = computed(() => Object.keys(STATUS_CONFIG))
+const availableCategories = computed(() => {
+  const cats = new Set<string>()
+  const collect = (items: ItemNode[]) => {
+    items.forEach(item => {
+      if (item.category) cats.add(item.category)
+      if (item.children) collect(item.children)
+    })
+  }
+  collect(props.items)
+  return Array.from(cats).sort()
+})
+const availableAssignees = computed(() => {
+  const assignees = new Map<string, { id: string; name: string }>()
+  const collect = (items: ItemNode[]) => {
+    items.forEach(item => {
+      if (item.assignee) assignees.set(item.assignee.id, item.assignee)
+      if (item.children) collect(item.children)
+    })
+  }
+  collect(props.items)
+  return Array.from(assignees.values()).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// Smart presets
+const activePreset = ref<string | null>(null)
+function applyPreset(preset: string) {
+  clearFilters()
+  activePreset.value = preset
+  switch (preset) {
+    case 'needs-attention':
+      statusFilter.value = ['blocked']
+      riskFilter.value = ['high', 'medium']
+      break
+    case 'at-risk':
+      riskFilter.value = ['high']
+      break
+    case 'due-this-week':
+      // Will be handled in filter logic
+      break
+    case 'my-tasks':
+      // Would need current user context
+      break
+  }
+}
+
+function clearFilters() {
+  searchQuery.value = ''
+  statusFilter.value = []
+  categoryFilter.value = []
+  assigneeFilter.value = []
+  riskFilter.value = []
+  activePreset.value = null
+}
+
+const hasActiveFilters = computed(() => 
+  searchQuery.value || 
+  statusFilter.value.length > 0 || 
+  categoryFilter.value.length > 0 || 
+  assigneeFilter.value.length > 0 ||
+  riskFilter.value.length > 0 ||
+  activePreset.value
+)
+
+// ===== SORTING =====
+type SortColumn = 'title' | 'status' | 'progress' | 'confidence' | 'estCompletion' | 'dueDate' | 'risk' | 'assignee' | 'category'
+const sortColumn = ref<SortColumn | null>(null)
+const sortDirection = ref<'asc' | 'desc'>('asc')
+
+function toggleSort(column: SortColumn) {
+  if (sortColumn.value === column) {
+    if (sortDirection.value === 'asc') {
+      sortDirection.value = 'desc'
+    } else {
+      sortColumn.value = null
+      sortDirection.value = 'asc'
+    }
+  } else {
+    sortColumn.value = column
+    sortDirection.value = 'asc'
+  }
+}
+
+// Toggle single item
+function toggleExpand(id: string, event?: Event) {
+  event?.stopPropagation()
+  if (expandedIds.value.has(id)) {
+    expandedIds.value.delete(id)
+  } else {
+    expandedIds.value.add(id)
+  }
+  expandedIds.value = new Set(expandedIds.value)
+}
+
+// Expand/Collapse all
+function expandAll() {
+  const allIds = new Set<string>()
+  const addIds = (items: ItemNode[]) => {
+    items.forEach(item => {
+      if (item.children?.length) {
+        allIds.add(item.id)
+        addIds(item.children)
+      }
+    })
+  }
+  addIds(props.items)
+  expandedIds.value = allIds
+}
+
+function collapseAll() {
+  expandedIds.value = new Set()
+}
+
+function expandToLevel(level: number) {
+  const ids = new Set<string>()
+  const addIds = (items: ItemNode[], currentLevel: number) => {
+    if (currentLevel >= level) return
+    items.forEach(item => {
+      if (item.children?.length) {
+        ids.add(item.id)
+        addIds(item.children, currentLevel + 1)
+      }
+    })
+  }
+  addIds(props.items, 0)
+  expandedIds.value = ids
+}
+
+// Flatten items for display
+interface FlatItem extends ItemNode {
+  depth: number
+  isExpanded: boolean
+  hasChildren: boolean
+  riskLevel: 'low' | 'medium' | 'high' | null
+}
+
+// Check if an item matches current filters
+function matchesFilters(item: ItemNode): boolean {
+  // Search query
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    if (!item.title.toLowerCase().includes(q)) return false
+  }
+  
+  // Status filter
+  if (statusFilter.value.length > 0 && !statusFilter.value.includes(item.status)) {
+    return false
+  }
+  
+  // Category filter
+  if (categoryFilter.value.length > 0 && (!item.category || !categoryFilter.value.includes(item.category))) {
+    return false
+  }
+  
+  // Assignee filter
+  if (assigneeFilter.value.length > 0 && (!item.assignee || !assigneeFilter.value.includes(item.assignee.id))) {
+    return false
+  }
+  
+  // Risk filter
+  if (riskFilter.value.length > 0) {
+    const risk = getRiskLevel(item)
+    if (!risk || !riskFilter.value.includes(risk)) return false
+  }
+  
+  // Due this week preset
+  if (activePreset.value === 'due-this-week' && item.dueDate) {
+    const due = new Date(item.dueDate)
+    const now = new Date()
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    if (due > weekFromNow) return false
+  }
+  
+  return true
+}
+
+// Filter items recursively (keep parents if any child matches)
+function filterItems(items: ItemNode[]): ItemNode[] {
+  return items.reduce<ItemNode[]>((acc, item) => {
+    const filteredChildren = item.children ? filterItems(item.children) : []
+    const selfMatches = matchesFilters(item)
+    const hasMatchingChildren = filteredChildren.length > 0
+    
+    if (selfMatches || hasMatchingChildren) {
+      acc.push({
+        ...item,
+        children: filteredChildren,
+      })
+    }
+    
+    return acc
+  }, [])
+}
+
+// Sort items
+function sortItems(items: FlatItem[]): FlatItem[] {
+  if (!sortColumn.value) return items
+  
+  return [...items].sort((a, b) => {
+    let comparison = 0
+    
+    switch (sortColumn.value) {
+      case 'title':
+        comparison = a.title.localeCompare(b.title)
+        break
+      case 'status':
+        const statusOrder = { todo: 0, in_progress: 1, blocked: 2, paused: 3, done: 4 }
+        comparison = (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0)
+        break
+      case 'progress':
+        comparison = (a.progress ?? 0) - (b.progress ?? 0)
+        break
+      case 'confidence':
+        comparison = (a.confidence ?? 70) - (b.confidence ?? 70)
+        break
+      case 'dueDate':
+        const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+        const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
+        comparison = aDate - bDate
+        break
+      case 'risk':
+        const riskOrder = { high: 0, medium: 1, low: 2 }
+        comparison = (riskOrder[a.riskLevel ?? 'low'] ?? 3) - (riskOrder[b.riskLevel ?? 'low'] ?? 3)
+        break
+      case 'assignee':
+        comparison = (a.assignee?.name ?? 'zzz').localeCompare(b.assignee?.name ?? 'zzz')
+        break
+      case 'category':
+        comparison = (a.category ?? 'zzz').localeCompare(b.category ?? 'zzz')
+        break
+    }
+    
+    return sortDirection.value === 'desc' ? -comparison : comparison
+  })
+}
+
+const flattenedItems = computed<FlatItem[]>(() => {
+  // First, filter the items
+  const filtered = hasActiveFilters.value ? filterItems(props.items) : props.items
+  
+  const result: FlatItem[] = []
+  
+  const flatten = (items: ItemNode[], depth: number) => {
+    items.forEach(item => {
+      const hasChildren = (item.children?.length ?? 0) > 0 || (item.childrenCount ?? 0) > 0
+      const isExpanded = expandedIds.value.has(item.id)
+      
+      result.push({
+        ...item,
+        depth,
+        isExpanded,
+        hasChildren,
+        riskLevel: getRiskLevel(item),
+      })
+      
+      if (isExpanded && item.children?.length) {
+        flatten(item.children, depth + 1)
+      }
+    })
+  }
+  
+  flatten(filtered, 0)
+  
+  // Sort only top-level items to preserve tree structure
+  // For now, we'll sort all items but this could be improved
+  return sortColumn.value ? sortItems(result) : result
+})
+
+// Calculate estimated completion for an item
+function getEstimatedCompletion(item: ItemNode) {
+  const progress = item.progress ?? 0
+  const confidence = item.confidence ?? 70
+  const startDate = item.startDate
+  
+  if (!startDate || progress === 0) return null
+  
+  const start = new Date(startDate)
+  const now = new Date()
+  const daysSpent = Math.max(1, (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  
+  if (progress >= 100) return { complete: true, daysRemaining: 0 }
+  
+  const totalEstimate = daysSpent / (progress / 100)
+  const remainingDays = Math.max(0, totalEstimate - daysSpent)
+  
+  const baseDate = new Date(now.getTime() + remainingDays * 24 * 60 * 60 * 1000)
+  const bandDays = remainingDays * (1 - confidence / 100)
+  
+  const earliest = new Date(baseDate.getTime() - bandDays * 12 * 60 * 60 * 1000)
+  const latest = new Date(baseDate.getTime() + bandDays * 12 * 60 * 60 * 1000)
+  
+  return {
+    complete: false,
+    daysRemaining: Math.round(remainingDays),
+    earliest,
+    latest,
+    baseDate,
+  }
+}
+
+// Calculate risk level
+function getRiskLevel(item: ItemNode): 'low' | 'medium' | 'high' | null {
+  if (item.status === 'done') return null
+  if (item.status === 'blocked') return 'high'
+  
+  const est = getEstimatedCompletion(item)
+  if (!est || est.complete) return 'low'
+  
+  if (!item.dueDate) return null
+  
+  const dueDate = new Date(item.dueDate)
+  const now = new Date()
+  const daysUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  
+  if (est.daysRemaining > daysUntilDue * 1.5) return 'high'
+  if (est.daysRemaining > daysUntilDue) return 'medium'
+  return 'low'
+}
+
+// Format date
+function formatDate(date: string | Date | null): string {
+  if (!date) return '—'
+  const d = new Date(date)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// Format date range
+function formatDateRange(est: ReturnType<typeof getEstimatedCompletion>): string {
+  if (!est) return '—'
+  if (est.complete) return 'Done'
+  return `${formatDate(est.earliest)} – ${formatDate(est.latest)}`
+}
+
+// Category colors
+const categoryDotColors: Record<string, string> = {
+  'Engineering': 'bg-blue-500',
+  'Design': 'bg-violet-500',
+  'Marketing': 'bg-pink-500',
+  'Product': 'bg-indigo-500',
+  'Research': 'bg-cyan-500',
+  'Operations': 'bg-orange-500',
+  'Sales': 'bg-green-500',
+}
+
+// Depth-based styling
+function getDepthIcon(depth: number, isProject: boolean) {
+  if (depth === 0 && isProject) return 'heroicons:folder'
+  if (depth === 0) return 'heroicons:clipboard-document-list'
+  if (depth === 1) return 'heroicons:document-text'
+  return 'heroicons:document'
+}
+
+function getDepthIconColor(depth: number, isProject: boolean) {
+  if (depth === 0 && isProject) return 'text-blue-500'
+  if (depth === 0) return 'text-emerald-500'
+  if (depth === 1) return 'text-slate-500'
+  return 'text-slate-400'
+}
+
+// Row click
+function handleRowClick(item: FlatItem) {
+  emit('openDetail', item)
+}
+</script>
+
+<template>
+  <div class="h-full flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+      <div class="flex items-center gap-4">
+        <span class="text-sm font-medium text-slate-700">
+          {{ flattenedItems.length }} items
+        </span>
+        
+        <!-- Expand/Collapse controls -->
+        <div class="flex items-center gap-1 border-l border-slate-200 pl-4">
+          <button
+            @click="expandAll"
+            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+          >
+            Expand All
+          </button>
+          <button
+            @click="collapseAll"
+            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+          >
+            Collapse All
+          </button>
+          <div class="w-px h-4 bg-slate-200 mx-1" />
+          <button
+            @click="expandToLevel(1)"
+            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            title="Expand to Level 1"
+          >
+            L1
+          </button>
+          <button
+            @click="expandToLevel(2)"
+            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            title="Expand to Level 2"
+          >
+            L2
+          </button>
+          <button
+            @click="expandToLevel(3)"
+            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            title="Expand to Level 3"
+          >
+            L3
+          </button>
+        </div>
+      </div>
+      
+      <!-- View options -->
+      <div class="flex items-center gap-2">
+        <button 
+          @click="showAdvancedFilters = !showAdvancedFilters"
+          class="p-1.5 rounded transition-colors"
+          :class="showAdvancedFilters || hasActiveFilters ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'"
+        >
+          <Icon name="heroicons:funnel" class="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="px-4 py-2 border-b border-slate-100 bg-white flex flex-wrap items-center gap-3">
+      <!-- Search -->
+      <div class="relative">
+        <Icon name="heroicons:magnifying-glass" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search tasks..."
+          class="w-48 pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+        />
+      </div>
+      
+      <!-- Status filter -->
+      <select
+        v-model="statusFilter"
+        multiple
+        class="hidden"
+      />
+      <div class="relative group">
+        <button 
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg transition-colors"
+          :class="statusFilter.length ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'"
+        >
+          Status
+          <span v-if="statusFilter.length" class="bg-blue-200 text-blue-800 px-1 rounded text-[10px]">{{ statusFilter.length }}</span>
+          <Icon name="heroicons:chevron-down" class="w-3 h-3" />
+        </button>
+        <div class="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[140px]">
+          <label
+            v-for="status in availableStatuses"
+            :key="status"
+            class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              :value="status"
+              v-model="statusFilter"
+              class="rounded border-slate-300 text-blue-500 focus:ring-blue-200"
+            />
+            <span 
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+              :class="STATUS_CONFIG[status]?.color"
+            >
+              {{ STATUS_CONFIG[status]?.label }}
+            </span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Category filter -->
+      <div v-if="availableCategories.length" class="relative group">
+        <button 
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg transition-colors"
+          :class="categoryFilter.length ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'"
+        >
+          Category
+          <span v-if="categoryFilter.length" class="bg-blue-200 text-blue-800 px-1 rounded text-[10px]">{{ categoryFilter.length }}</span>
+          <Icon name="heroicons:chevron-down" class="w-3 h-3" />
+        </button>
+        <div class="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[140px]">
+          <label
+            v-for="cat in availableCategories"
+            :key="cat"
+            class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              :value="cat"
+              v-model="categoryFilter"
+              class="rounded border-slate-300 text-blue-500 focus:ring-blue-200"
+            />
+            <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400'" />
+            {{ cat }}
+          </label>
+        </div>
+      </div>
+      
+      <!-- Risk filter -->
+      <div class="relative group">
+        <button 
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg transition-colors"
+          :class="riskFilter.length ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'"
+        >
+          Risk
+          <span v-if="riskFilter.length" class="bg-blue-200 text-blue-800 px-1 rounded text-[10px]">{{ riskFilter.length }}</span>
+          <Icon name="heroicons:chevron-down" class="w-3 h-3" />
+        </button>
+        <div class="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[120px]">
+          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer">
+            <input type="checkbox" value="high" v-model="riskFilter" class="rounded border-slate-300 text-blue-500" />
+            🔴 High
+          </label>
+          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer">
+            <input type="checkbox" value="medium" v-model="riskFilter" class="rounded border-slate-300 text-blue-500" />
+            🟡 Medium
+          </label>
+          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer">
+            <input type="checkbox" value="low" v-model="riskFilter" class="rounded border-slate-300 text-blue-500" />
+            🟢 Low
+          </label>
+        </div>
+      </div>
+      
+      <!-- Spacer -->
+      <div class="flex-1" />
+      
+      <!-- Smart Presets -->
+      <div class="flex items-center gap-1">
+        <button
+          @click="applyPreset('needs-attention')"
+          class="px-2 py-1 text-xs rounded transition-colors"
+          :class="activePreset === 'needs-attention' ? 'bg-rose-100 text-rose-700' : 'text-slate-500 hover:bg-slate-100'"
+        >
+          🔥 Needs Attention
+        </button>
+        <button
+          @click="applyPreset('at-risk')"
+          class="px-2 py-1 text-xs rounded transition-colors"
+          :class="activePreset === 'at-risk' ? 'bg-amber-100 text-amber-700' : 'text-slate-500 hover:bg-slate-100'"
+        >
+          ⚠️ At Risk
+        </button>
+        <button
+          @click="applyPreset('due-this-week')"
+          class="px-2 py-1 text-xs rounded transition-colors"
+          :class="activePreset === 'due-this-week' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'"
+        >
+          📅 Due This Week
+        </button>
+      </div>
+      
+      <!-- Clear filters -->
+      <button
+        v-if="hasActiveFilters"
+        @click="clearFilters"
+        class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+      >
+        <Icon name="heroicons:x-mark" class="w-3 h-3" />
+        Clear
+      </button>
+    </div>
+    
+    <!-- Table Header (Sortable) -->
+    <div class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,50px,110px,100px] gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+      <button @click="toggleSort('title')" class="pl-2 text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Task
+        <Icon v-if="sortColumn === 'title'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+      <button @click="toggleSort('status')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Status
+        <Icon v-if="sortColumn === 'status'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+      <div class="text-left">Stage</div>
+      <button @click="toggleSort('progress')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Progress
+        <Icon v-if="sortColumn === 'progress'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+      <button @click="toggleSort('confidence')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Conf.
+        <Icon v-if="sortColumn === 'confidence'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+      <div>Est. Completion</div>
+      <button @click="toggleSort('dueDate')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Due
+        <Icon v-if="sortColumn === 'dueDate'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+      <button @click="toggleSort('risk')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Risk
+        <Icon v-if="sortColumn === 'risk'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+      <button @click="toggleSort('assignee')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors" title="Task Owner - primary responsible person">
+        Owner
+        <Icon v-if="sortColumn === 'assignee'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+      <button @click="toggleSort('category')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Category
+        <Icon v-if="sortColumn === 'category'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
+    </div>
+    
+    <!-- Table Body -->
+    <div class="flex-1 overflow-y-auto">
+      <div
+        v-for="item in flattenedItems"
+        :key="item.id"
+        class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,50px,110px,100px] gap-3 px-4 py-2.5 border-b border-slate-50 hover:bg-slate-50/80 cursor-pointer transition-colors items-center group"
+        :class="[
+          item.status === 'done' ? 'opacity-60' : '',
+          item.status === 'blocked' ? 'border-l-2 border-l-rose-400' : '',
+        ]"
+        @click="handleRowClick(item)"
+      >
+        <!-- Task Name with expand/collapse -->
+        <div 
+          class="flex items-center gap-2 min-w-0"
+          :style="{ paddingLeft: `${item.depth * 24}px` }"
+        >
+          <!-- Expand/collapse button or spacer -->
+          <button
+            v-if="item.hasChildren"
+            @click="toggleExpand(item.id, $event)"
+            class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 transition-colors"
+          >
+            <Icon 
+              name="heroicons:chevron-right" 
+              class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+              :class="item.isExpanded ? 'rotate-90' : ''"
+            />
+          </button>
+          <div v-else class="w-5 flex-shrink-0" />
+          
+          <!-- Icon -->
+          <Icon 
+            :name="getDepthIcon(item.depth, isRootLevel && item.depth === 0)"
+            class="w-4 h-4 flex-shrink-0"
+            :class="getDepthIconColor(item.depth, isRootLevel && item.depth === 0)"
+          />
+          
+          <!-- Title -->
+          <span 
+            class="truncate text-sm"
+            :class="[
+              item.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-800',
+              item.depth === 0 ? 'font-medium' : 'font-normal'
+            ]"
+          >
+            {{ item.title }}
+          </span>
+          
+          <!-- Children count badge -->
+          <span 
+            v-if="item.hasChildren && !item.isExpanded"
+            class="flex-shrink-0 text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded"
+          >
+            {{ item.childrenCount || item.children?.length || 0 }}
+          </span>
+        </div>
+        
+        <!-- Status -->
+        <div>
+          <span 
+            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium"
+            :class="STATUS_CONFIG[item.status]?.color || 'bg-slate-100 text-slate-600'"
+          >
+            {{ STATUS_CONFIG[item.status]?.label || item.status }}
+          </span>
+        </div>
+        
+        <!-- Stage (subStatus) -->
+        <div>
+          <span 
+            v-if="item.subStatus && SUB_STATUS_CONFIG[item.subStatus]"
+            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium"
+            :class="SUB_STATUS_CONFIG[item.subStatus]?.color || 'bg-slate-100 text-slate-500'"
+          >
+            {{ SUB_STATUS_CONFIG[item.subStatus]?.label || item.subStatus }}
+          </span>
+          <span v-else class="text-xs text-slate-300">—</span>
+        </div>
+        
+        <!-- Progress -->
+        <div class="flex items-center gap-2">
+          <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div 
+              class="h-full rounded-full transition-all"
+              :class="[
+                item.progress >= 80 ? 'bg-emerald-400' :
+                item.progress >= 50 ? 'bg-blue-400' :
+                item.progress >= 25 ? 'bg-amber-400' : 'bg-slate-300'
+              ]"
+              :style="{ width: `${item.progress || 0}%` }"
+            />
+          </div>
+          <span class="text-xs text-slate-500 w-8 text-right">{{ item.progress || 0 }}%</span>
+        </div>
+        
+        <!-- Confidence -->
+        <div class="flex items-center gap-1">
+          <span 
+            class="text-xs"
+            :class="[
+              (item.confidence ?? 70) >= 80 ? 'text-emerald-500' :
+              (item.confidence ?? 70) >= 50 ? 'text-amber-500' : 'text-rose-500'
+            ]"
+          >
+            {{ (item.confidence ?? 70) >= 80 ? '●●●' : (item.confidence ?? 70) >= 50 ? '●●○' : '●○○' }}
+          </span>
+          <span class="text-[10px] text-slate-400">{{ item.confidence ?? 70 }}%</span>
+        </div>
+        
+        <!-- Est. Completion -->
+        <div class="text-xs text-slate-600">
+          {{ formatDateRange(getEstimatedCompletion(item)) }}
+        </div>
+        
+        <!-- Due Date -->
+        <div 
+          class="text-xs"
+          :class="[
+            item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'done'
+              ? 'text-rose-500 font-medium'
+              : 'text-slate-600'
+          ]"
+        >
+          {{ formatDate(item.dueDate) }}
+        </div>
+        
+        <!-- Risk -->
+        <div>
+          <span 
+            v-if="item.riskLevel"
+            class="text-sm"
+            :title="item.riskLevel === 'high' ? 'High risk' : item.riskLevel === 'medium' ? 'Medium risk' : 'Low risk'"
+          >
+            {{ item.riskLevel === 'high' ? '🔴' : item.riskLevel === 'medium' ? '🟡' : '🟢' }}
+          </span>
+          <span v-else class="text-slate-300">—</span>
+        </div>
+        
+        <!-- Assignee -->
+        <div class="flex items-center gap-1.5">
+          <template v-if="item.assignee">
+            <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
+              <span class="text-[9px] text-white font-medium">{{ item.assignee.name?.[0] || '?' }}</span>
+            </div>
+            <span class="text-xs text-slate-600 truncate">{{ item.assignee.name?.split(' ')[0] }}</span>
+          </template>
+          <span v-else class="text-xs text-slate-300">—</span>
+        </div>
+        
+        <!-- Category -->
+        <div class="flex items-center gap-1.5">
+          <template v-if="item.category">
+            <div 
+              class="w-2 h-2 rounded-full flex-shrink-0"
+              :class="categoryDotColors[item.category] || 'bg-slate-400'"
+            />
+            <span class="text-xs text-slate-600 truncate">{{ item.category }}</span>
+          </template>
+          <span v-else class="text-xs text-slate-300">—</span>
+        </div>
+      </div>
+      
+      <!-- Empty state -->
+      <div 
+        v-if="flattenedItems.length === 0"
+        class="flex flex-col items-center justify-center py-16 text-slate-400"
+      >
+        <Icon :name="hasActiveFilters ? 'heroicons:funnel' : 'heroicons:clipboard-document-list'" class="w-12 h-12 mb-4 opacity-50" />
+        <p class="text-sm">{{ hasActiveFilters ? 'No items match your filters' : 'No items to display' }}</p>
+        <button
+          v-if="hasActiveFilters"
+          @click="clearFilters"
+          class="mt-3 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          Clear filters
+        </button>
+      </div>
+    </div>
+  </div>
+</template>

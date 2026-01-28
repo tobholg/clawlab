@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
-import { STATUS_CONFIG, CATEGORY_COLORS } from '~/types'
+import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, getSubStatusesForStatus } from '~/types'
 
 const props = defineProps<{
   open: boolean
@@ -16,26 +16,73 @@ const emit = defineEmits<{
 // Focus management
 const { currentFocus, startFocus, clearFocus, isFocusedOn, isLoading: focusLoading, currentUserId } = useFocus()
 
+// Current item ID (allows in-modal navigation)
+const currentItemId = ref<string | null>(null)
+
+// Navigation history for back button
+const navigationHistory = ref<string[]>([])
+
 // Item detail fetched via $fetch when item changes
 const itemDetail = ref<any>(null)
+const parentDetail = ref<any>(null)
+
+const loadItem = async (itemId: string, addToHistory = true) => {
+  if (!itemId) return
+  
+  // Add current item to history before navigating (if we have one)
+  if (addToHistory && currentItemId.value && currentItemId.value !== itemId) {
+    navigationHistory.value.push(currentItemId.value)
+  }
+  
+  currentItemId.value = itemId
+  
+  try {
+    itemDetail.value = await $fetch(`/api/items/${itemId}`)
+    
+    // Use parent from API response
+    parentDetail.value = itemDetail.value?.parent ?? null
+  } catch (e) {
+    console.error('Failed to fetch item details:', e)
+  }
+}
+
 const refreshItem = async () => {
-  if (props.item?.id) {
-    try {
-      itemDetail.value = await $fetch(`/api/items/${props.item.id}`)
-      console.log('Loaded item detail:', itemDetail.value)
-    } catch (e) {
-      console.error('Failed to fetch item details:', e)
+  if (currentItemId.value) {
+    await loadItem(currentItemId.value, false)
+  }
+}
+
+// Navigate to parent or child within modal
+const navigateToItem = (itemId: string) => {
+  loadItem(itemId)
+}
+
+// Go back in navigation history
+const navigateBack = () => {
+  if (navigationHistory.value.length > 0) {
+    const previousId = navigationHistory.value.pop()
+    if (previousId) {
+      loadItem(previousId, false)
     }
   }
 }
 
+// Check if parent is a project (has no parent itself)
+const isParentProject = computed(() => {
+  return parentDetail.value && !parentDetail.value.parentId
+})
+
 // Fetch when item changes OR modal opens
 watch([() => props.item?.id, () => props.open], ([id, isOpen]) => {
   if (id && isOpen) {
-    refreshItem()
+    navigationHistory.value = [] // Reset history when opening fresh
+    loadItem(id, false)
   } else if (!isOpen) {
     // Clear when modal closes
     itemDetail.value = null
+    parentDetail.value = null
+    currentItemId.value = null
+    navigationHistory.value = []
   }
 }, { immediate: true })
 
@@ -58,11 +105,17 @@ watch(() => props.item?.id, async (itemId) => {
 const editedTitle = ref('')
 const editedDescription = ref('')
 const editedStatus = ref('')
+const editedSubStatus = ref<string | null>(null)
 const editedCategory = ref('')
 const editedProgress = ref(0)
 const editedConfidence = ref(70)
 const editedDueDate = ref('')
 const editedStartDate = ref('')
+
+// Available sub-statuses for current status
+const availableSubStatuses = computed(() => {
+  return getSubStatusesForStatus(editedStatus.value)
+})
 
 // UI state
 const showAssigneeDropdown = ref(false)
@@ -81,6 +134,7 @@ watch(itemDetail, (detail) => {
     editedTitle.value = detail.title ?? ''
     editedDescription.value = detail.description ?? ''
     editedStatus.value = detail.status ?? 'todo'
+    editedSubStatus.value = detail.subStatus ?? null
     editedCategory.value = detail.category ?? ''
     editedProgress.value = detail.progress ?? 0
     editedConfidence.value = detail.confidence ?? 70
@@ -191,6 +245,7 @@ const saveChanges = async () => {
     title: editedTitle.value,
     description: editedDescription.value,
     status: editedStatus.value,
+    subStatus: editedSubStatus.value,
     category: editedCategory.value,
     progress: editedProgress.value,
     confidence: editedConfidence.value,
@@ -233,6 +288,19 @@ watch(editedStatus, async (newStatus, oldStatus) => {
   // Skip during initialization
   if (isInitializing.value) return
   
+  // Only clear subStatus when moving between non-done statuses with incompatible sub-statuses
+  // Preserve subStatus when moving to/from done (for round-trips)
+  if (oldStatus && newStatus !== oldStatus) {
+    const isDoneTransition = newStatus === 'done' || oldStatus === 'done'
+    if (!isDoneTransition && editedSubStatus.value) {
+      // Check if current subStatus is valid for new status
+      const validSubStatuses = getSubStatusesForStatus(newStatus)
+      if (!validSubStatuses[editedSubStatus.value as keyof typeof validSubStatuses]) {
+        editedSubStatus.value = null
+      }
+    }
+  }
+  
   if (newStatus === 'in_progress' && oldStatus !== 'in_progress') {
     // Set start date to today if not already set
     if (!editedStartDate.value) {
@@ -243,6 +311,13 @@ watch(editedStatus, async (newStatus, oldStatus) => {
     await immediateSave()
     // Refresh to get any auto-set fields from backend
     await refreshItem()
+  }
+})
+
+// Watch subStatus changes for auto-save
+watch(editedSubStatus, () => {
+  if (props.open && itemDetail.value && !isInitializing.value) {
+    debouncedSave()
   }
 })
 
@@ -350,10 +425,10 @@ const submitReply = async (parentId: string) => {
   }
 }
 
-// View full board
+// View full board - navigates to the currently displayed item's board
 const handleViewFull = () => {
-  if (props.item) {
-    emit('viewFull', props.item)
+  if (itemDetail.value) {
+    emit('viewFull', itemDetail.value)
     emit('close')
   }
 }
@@ -425,6 +500,16 @@ const formatRelativeTime = (dateStr: string) => {
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div class="flex items-center gap-3">
+              <!-- Back button (when navigated within modal) -->
+              <button
+                v-if="navigationHistory.length > 0"
+                @click="navigateBack"
+                class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+              >
+                <Icon name="heroicons:arrow-left" class="w-3.5 h-3.5" />
+                Back
+              </button>
+              
               <!-- Category -->
               <select
                 v-model="editedCategory"
@@ -443,6 +528,22 @@ const formatRelativeTime = (dateStr: string) => {
               >
                 <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
+                </option>
+              </select>
+              
+              <!-- Sub-Status (if available for current status) -->
+              <select
+                v-if="Object.keys(availableSubStatuses).length > 0"
+                v-model="editedSubStatus"
+                class="text-xs font-normal px-2 py-1 rounded-full border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
+              >
+                <option :value="null">— Stage —</option>
+                <option 
+                  v-for="(config, key) in availableSubStatuses" 
+                  :key="key" 
+                  :value="key"
+                >
+                  {{ config.label }}
                 </option>
               </select>
             </div>
@@ -791,6 +892,64 @@ const formatRelativeTime = (dateStr: string) => {
               <p class="text-xs text-slate-400">Set a start date and progress to see estimated completion</p>
             </div>
             
+            <!-- Parent Section -->
+            <div v-if="parentDetail" class="mb-6">
+              <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+                {{ isParentProject ? 'Parent Project' : 'Parent Task' }}
+              </h3>
+              <div 
+                class="group flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer"
+                :class="isParentProject 
+                  ? 'bg-blue-50 hover:bg-blue-100 border border-blue-100' 
+                  : 'bg-emerald-50 hover:bg-emerald-100 border border-emerald-100'"
+                @click="navigateToItem(parentDetail.id)"
+              >
+                <!-- Icon -->
+                <div 
+                  class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  :class="isParentProject ? 'bg-blue-100' : 'bg-emerald-100'"
+                >
+                  <Icon 
+                    :name="isParentProject ? 'heroicons:folder' : 'heroicons:clipboard-document-list'" 
+                    class="w-4 h-4"
+                    :class="isParentProject ? 'text-blue-500' : 'text-emerald-500'"
+                  />
+                </div>
+                
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                  <span 
+                    class="text-sm font-medium truncate block"
+                    :class="isParentProject ? 'text-blue-700' : 'text-emerald-700'"
+                  >
+                    {{ parentDetail.title }}
+                  </span>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span 
+                      class="text-[10px]"
+                      :class="isParentProject ? 'text-blue-500' : 'text-emerald-500'"
+                    >
+                      {{ parentDetail.progress ?? 0 }}% complete
+                    </span>
+                    <span 
+                      v-if="parentDetail.childrenCount" 
+                      class="text-[10px]"
+                      :class="isParentProject ? 'text-blue-400' : 'text-emerald-400'"
+                    >
+                      · {{ parentDetail.childrenCount }} items
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Arrow -->
+                <Icon 
+                  name="heroicons:arrow-up-right" 
+                  class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                  :class="isParentProject ? 'text-blue-400' : 'text-emerald-400'"
+                />
+              </div>
+            </div>
+            
             <!-- Subtasks Section -->
             <div v-if="itemDetail?.children?.length > 0 || itemDetail?.childrenCount > 0">
               <div class="flex items-center justify-between mb-3">
@@ -798,7 +957,7 @@ const formatRelativeTime = (dateStr: string) => {
                   Subtasks
                   <span class="text-slate-400 font-normal">({{ itemDetail.children?.length || itemDetail.childrenCount }})</span>
                 </h3>
-                <button class="text-xs text-blue-500 hover:text-blue-600 font-medium transition-colors">
+                <button class="text-xs text-emerald-500 hover:text-emerald-600 font-medium transition-colors">
                   + Add subtask
                 </button>
               </div>
@@ -824,7 +983,7 @@ const formatRelativeTime = (dateStr: string) => {
                   v-for="subtask in itemDetail.children" 
                   :key="subtask.id"
                   class="group flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                  @click="$emit('viewFull', subtask)"
+                  @click="navigateToItem(subtask.id)"
                 >
                   <!-- Status checkbox -->
                   <div 
@@ -1055,34 +1214,23 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
           </div>
           
-          <!-- Footer -->
-          <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-            <button
-              @click="handleViewFull"
-              class="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              <Icon name="heroicons:arrow-top-right-on-square" class="w-4 h-4" />
+          <!-- Footer - View Full Board button -->
+          <button
+            @click="handleViewFull"
+            class="w-full px-6 py-4 border-t border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors flex items-center justify-center gap-2 group"
+          >
+            <Icon name="heroicons:arrow-top-right-on-square" class="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
+            <span class="text-sm font-medium text-blue-600 group-hover:text-blue-700">
               View Full Board
-            </button>
-            
-            <div class="flex items-center gap-3">
-              <!-- Auto-save indicator -->
-              <span v-if="isSaving" class="flex items-center gap-1.5 text-xs text-slate-400">
-                <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5 animate-spin" />
-                Saving...
-              </span>
-              <span v-else-if="hasUnsavedChanges" class="text-xs text-amber-500">
-                Unsaved
-              </span>
-              
-              <button
-                @click="handleClose"
-                class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+            </span>
+            <!-- Auto-save indicator -->
+            <span v-if="isSaving" class="ml-2 flex items-center gap-1.5 text-xs text-slate-400">
+              <Icon name="heroicons:arrow-path" class="w-3 h-3 animate-spin" />
+            </span>
+            <span v-else-if="hasUnsavedChanges" class="ml-2 text-[10px] text-amber-500">
+              (unsaved)
+            </span>
+          </button>
         </div>
       </div>
     </Transition>

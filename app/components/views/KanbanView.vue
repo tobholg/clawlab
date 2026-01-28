@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ItemNode, Item } from '~/types'
-import { STATUS_CONFIG } from '~/types'
+import { STATUS_CONFIG, SUB_STATUS_CONFIG, SUB_STATUS_BY_STATUS, getSubStatusesForStatus } from '~/types'
 
 const props = defineProps<{
   items: ItemNode[]
@@ -10,7 +10,7 @@ const emit = defineEmits<{
   itemClick: [item: ItemNode]
   drillDown: [item: ItemNode]
   openDetail: [item: ItemNode]
-  statusChange: [itemId: string, newStatus: string]
+  statusChange: [itemId: string, newStatus: string, newSubStatus?: string | null]
 }>()
 
 const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
@@ -20,16 +20,146 @@ const columnStyles: Record<Item['status'], { bg: string; headerColor: string; dr
   todo: { bg: 'bg-slate-100/60', headerColor: 'text-slate-500', dropBg: 'bg-slate-200/80' },
   in_progress: { bg: 'bg-blue-50/80', headerColor: 'text-blue-600', dropBg: 'bg-blue-100/80' },
   blocked: { bg: 'bg-rose-50/80', headerColor: 'text-rose-500', dropBg: 'bg-rose-100/80' },
+  paused: { bg: 'bg-amber-50/80', headerColor: 'text-amber-600', dropBg: 'bg-amber-100/80' },
   done: { bg: 'bg-emerald-50/80', headerColor: 'text-emerald-600', dropBg: 'bg-emerald-100/80' },
+}
+
+// Track collapsed state for each section (key: "status:subStatus" or "done:timeGroup")
+const collapsedSections = ref<Set<string>>(new Set([
+  'done:last_month',
+  'done:all_time'
+]))
+
+const toggleSection = (sectionKey: string) => {
+  if (collapsedSections.value.has(sectionKey)) {
+    collapsedSections.value.delete(sectionKey)
+  } else {
+    collapsedSections.value.add(sectionKey)
+  }
+  collapsedSections.value = new Set(collapsedSections.value)
+}
+
+const isSectionCollapsed = (sectionKey: string) => {
+  return collapsedSections.value.has(sectionKey)
 }
 
 const getItemsByStatus = (status: Item['status']) => {
   return props.items.filter(item => item.status === status)
 }
 
+// Time-based grouping for DONE items
+const getDoneItemsByTimeGroup = () => {
+  const doneItems = getItemsByStatus('done')
+  const now = new Date()
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  
+  const groups: { key: string; label: string; icon: string; items: ItemNode[]; defaultCollapsed: boolean }[] = []
+  
+  const lastWeekItems = doneItems.filter(item => {
+    const completedDate = new Date(item.updatedAt || item.createdAt)
+    return completedDate >= oneWeekAgo
+  })
+  
+  const lastMonthItems = doneItems.filter(item => {
+    const completedDate = new Date(item.updatedAt || item.createdAt)
+    return completedDate >= oneMonthAgo && completedDate < oneWeekAgo
+  })
+  
+  const olderItems = doneItems.filter(item => {
+    const completedDate = new Date(item.updatedAt || item.createdAt)
+    return completedDate < oneMonthAgo
+  })
+  
+  if (lastWeekItems.length > 0) {
+    groups.push({
+      key: 'last_week',
+      label: 'Last 7 days',
+      icon: 'heroicons:calendar',
+      items: lastWeekItems,
+      defaultCollapsed: false
+    })
+  }
+  
+  if (lastMonthItems.length > 0) {
+    groups.push({
+      key: 'last_month',
+      label: 'Last 30 days',
+      icon: 'heroicons:calendar-days',
+      items: lastMonthItems,
+      defaultCollapsed: true
+    })
+  }
+  
+  if (olderItems.length > 0) {
+    groups.push({
+      key: 'all_time',
+      label: 'Older',
+      icon: 'heroicons:archive-box',
+      items: olderItems,
+      defaultCollapsed: true
+    })
+  }
+  
+  return groups
+}
+
+// Group items by sub-status within a column (for non-done columns)
+const getItemsGroupedBySubStatus = (status: Item['status']) => {
+  const items = getItemsByStatus(status)
+  const subStatuses = getSubStatusesForStatus(status)
+  const subStatusKeys = Object.keys(subStatuses)
+  
+  if (subStatusKeys.length === 0) {
+    // No sub-statuses for this status, return all items in default group
+    return [{ subStatus: null, label: null, icon: null, items, sectionKey: `${status}:default` }]
+  }
+  
+  // Group items by sub-status
+  const groups: { subStatus: string | null; label: string | null; icon: string | null; items: ItemNode[]; sectionKey: string }[] = []
+  
+  // First, items without sub-status (default group)
+  const defaultItems = items.filter(i => !i.subStatus || !subStatusKeys.includes(i.subStatus))
+  if (defaultItems.length > 0) {
+    groups.push({ subStatus: null, label: 'Unsorted', icon: 'heroicons:inbox-stack', items: defaultItems, sectionKey: `${status}:default` })
+  }
+  
+  // Then, items with sub-status (sorted by order)
+  const sortedSubStatuses = subStatusKeys.sort((a, b) => {
+    const configA = subStatuses[a as keyof typeof subStatuses]
+    const configB = subStatuses[b as keyof typeof subStatuses]
+    return (configA?.order ?? 99) - (configB?.order ?? 99)
+  })
+  
+  for (const ss of sortedSubStatuses) {
+    const subStatusItems = items.filter(i => i.subStatus === ss)
+    if (subStatusItems.length > 0) {
+      const config = subStatuses[ss as keyof typeof subStatuses]
+      groups.push({
+        subStatus: ss,
+        label: config?.label ?? ss,
+        icon: config?.icon ?? null,
+        items: subStatusItems,
+        sectionKey: `${status}:${ss}`
+      })
+    }
+  }
+  
+  return groups
+}
+
+// Check if a column has multiple groups (for showing headers)
+const hasMultipleGroups = (status: Item['status']) => {
+  if (status === 'done') {
+    return getDoneItemsByTimeGroup().length > 1
+  }
+  return getItemsGroupedBySubStatus(status).length > 1
+}
+
 // Drag and drop state
 const draggedItem = ref<ItemNode | null>(null)
 const dragOverColumn = ref<string | null>(null)
+const dragOverSubStatus = ref<string | null>(null)
 
 const handleDragStart = (e: DragEvent, item: ItemNode) => {
   draggedItem.value = item
@@ -37,7 +167,6 @@ const handleDragStart = (e: DragEvent, item: ItemNode) => {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', item.id)
   }
-  // Add visual feedback
   setTimeout(() => {
     const target = e.target as HTMLElement
     target.style.opacity = '0.5'
@@ -47,32 +176,40 @@ const handleDragStart = (e: DragEvent, item: ItemNode) => {
 const handleDragEnd = (e: DragEvent) => {
   draggedItem.value = null
   dragOverColumn.value = null
+  dragOverSubStatus.value = null
   const target = e.target as HTMLElement
   target.style.opacity = '1'
 }
 
-const handleDragOver = (e: DragEvent, status: string) => {
+const handleDragOver = (e: DragEvent, status: string, subStatus?: string | null) => {
   e.preventDefault()
   if (e.dataTransfer) {
     e.dataTransfer.dropEffect = 'move'
   }
   dragOverColumn.value = status
+  dragOverSubStatus.value = subStatus ?? null
 }
 
 const handleDragLeave = (e: DragEvent) => {
-  // Only clear if leaving the column entirely
   const relatedTarget = e.relatedTarget as HTMLElement
   if (!relatedTarget || !relatedTarget.closest('[data-column]')) {
     dragOverColumn.value = null
+    dragOverSubStatus.value = null
   }
 }
 
-const handleDrop = (e: DragEvent, targetStatus: string) => {
+const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string | null) => {
   e.preventDefault()
   dragOverColumn.value = null
+  dragOverSubStatus.value = null
   
-  if (draggedItem.value && draggedItem.value.status !== targetStatus) {
-    emit('statusChange', draggedItem.value.id, targetStatus)
+  if (draggedItem.value) {
+    const statusChanged = draggedItem.value.status !== targetStatus
+    const subStatusChanged = draggedItem.value.subStatus !== targetSubStatus
+    
+    if (statusChanged || subStatusChanged) {
+      emit('statusChange', draggedItem.value.id, targetStatus, targetSubStatus)
+    }
   }
   draggedItem.value = null
 }
@@ -109,36 +246,132 @@ const handleDrop = (e: DragEvent, targetStatus: string) => {
         </button>
       </div>
       
-      <!-- Cards -->
-      <div class="flex flex-col gap-3 flex-1 min-h-[120px]">
-        <div
-          v-for="item in getItemsByStatus(status)"
-          :key="item.id"
-          draggable="true"
-          class="cursor-grab active:cursor-grabbing"
-          @dragstart="handleDragStart($event, item)"
-          @dragend="handleDragEnd"
-        >
-          <ItemsItemCard
-            :item="item"
-            :class="{ 'opacity-50': draggedItem?.id === item.id }"
-            @click="emit('itemClick', item)"
-            @drill-down="emit('drillDown', item)"
-            @open-detail="emit('openDetail', item)"
-          />
+      <!-- DONE column: Time-based groups -->
+      <template v-if="status === 'done'">
+        <div class="flex flex-col gap-3 flex-1 min-h-[120px] overflow-y-auto">
+          <template v-for="group in getDoneItemsByTimeGroup()" :key="group.key">
+            <!-- Time group header (collapsible) -->
+            <button 
+              v-if="hasMultipleGroups('done')"
+              class="flex items-center gap-2 px-2 py-1.5 bg-white/60 hover:bg-white/80 rounded-lg border border-white/80 transition-colors text-left w-full"
+              @click="toggleSection(`done:${group.key}`)"
+            >
+              <Icon 
+                name="heroicons:chevron-right" 
+                class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" 
+                :class="{ 'rotate-90': !isSectionCollapsed(`done:${group.key}`) }"
+              />
+              <Icon 
+                :name="group.icon" 
+                class="w-3.5 h-3.5 text-emerald-500" 
+              />
+              <span class="text-[11px] font-medium text-slate-600 flex-1">{{ group.label }}</span>
+              <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{{ group.items.length }}</span>
+            </button>
+            
+            <!-- Items in this time group -->
+            <div 
+              v-show="!isSectionCollapsed(`done:${group.key}`)"
+              class="flex flex-col gap-2"
+            >
+              <div
+                v-for="item in group.items"
+                :key="item.id"
+                draggable="true"
+                class="cursor-grab active:cursor-grabbing"
+                @dragstart="handleDragStart($event, item)"
+                @dragend="handleDragEnd"
+              >
+                <ItemsItemCard
+                  :item="item"
+                  :class="{ 'opacity-50': draggedItem?.id === item.id }"
+                  @click="emit('itemClick', item)"
+                  @drill-down="emit('drillDown', item)"
+                  @open-detail="emit('openDetail', item)"
+                />
+              </div>
+            </div>
+          </template>
+          
+          <!-- Empty state for Done -->
+          <div 
+            v-if="getItemsByStatus('done').length === 0"
+            class="flex-1 rounded-xl border border-dashed border-slate-200 flex items-center justify-center transition-colors"
+            :class="{ 'border-slate-400 bg-slate-100/50': dragOverColumn === 'done' }"
+          >
+            <span class="text-xs text-slate-300">
+              {{ dragOverColumn === 'done' ? 'Drop here' : 'No items' }}
+            </span>
+          </div>
         </div>
-        
-        <!-- Drop zone / Empty state -->
-        <div 
-          v-if="getItemsByStatus(status).length === 0"
-          class="flex-1 rounded-xl border border-dashed border-slate-200 flex items-center justify-center transition-colors"
-          :class="{ 'border-slate-400 bg-slate-100/50': dragOverColumn === status }"
-        >
-          <span class="text-xs text-slate-300">
-            {{ dragOverColumn === status ? 'Drop here' : 'No items' }}
-          </span>
+      </template>
+      
+      <!-- Other columns: Sub-status groups -->
+      <template v-else>
+        <div class="flex flex-col gap-3 flex-1 min-h-[120px] overflow-y-auto">
+          <template v-for="group in getItemsGroupedBySubStatus(status)" :key="group.sectionKey">
+            <!-- Sub-status section header (collapsible, only if multiple groups) -->
+            <button 
+              v-if="group.label && hasMultipleGroups(status)"
+              class="flex items-center gap-2 px-2 py-1.5 bg-white/60 hover:bg-white/80 rounded-lg border border-white/80 transition-colors text-left w-full"
+              :data-substatus="group.subStatus"
+              @click="toggleSection(group.sectionKey)"
+              @dragover.stop="handleDragOver($event, status, group.subStatus)"
+              @drop.stop="handleDrop($event, status, group.subStatus)"
+            >
+              <Icon 
+                name="heroicons:chevron-right" 
+                class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" 
+                :class="{ 'rotate-90': !isSectionCollapsed(group.sectionKey) }"
+              />
+              <Icon 
+                v-if="group.icon" 
+                :name="group.icon" 
+                class="w-3.5 h-3.5 text-slate-400" 
+              />
+              <span class="text-[11px] font-medium text-slate-500 flex-1">{{ group.label }}</span>
+              <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{{ group.items.length }}</span>
+            </button>
+            
+            <!-- Items in this group -->
+            <div 
+              v-show="!isSectionCollapsed(group.sectionKey)"
+              class="flex flex-col gap-2"
+              :data-substatus="group.subStatus"
+              @dragover.stop="handleDragOver($event, status, group.subStatus)"
+              @drop.stop="handleDrop($event, status, group.subStatus)"
+            >
+              <div
+                v-for="item in group.items"
+                :key="item.id"
+                draggable="true"
+                class="cursor-grab active:cursor-grabbing"
+                @dragstart="handleDragStart($event, item)"
+                @dragend="handleDragEnd"
+              >
+                <ItemsItemCard
+                  :item="item"
+                  :class="{ 'opacity-50': draggedItem?.id === item.id }"
+                  @click="emit('itemClick', item)"
+                  @drill-down="emit('drillDown', item)"
+                  @open-detail="emit('openDetail', item)"
+                />
+              </div>
+            </div>
+          </template>
+          
+          <!-- Drop zone / Empty state -->
+          <div 
+            v-if="getItemsByStatus(status).length === 0"
+            class="flex-1 rounded-xl border border-dashed border-slate-200 flex items-center justify-center transition-colors"
+            :class="{ 'border-slate-400 bg-slate-100/50': dragOverColumn === status }"
+          >
+            <span class="text-xs text-slate-300">
+              {{ dragOverColumn === status ? 'Drop here' : 'No items' }}
+            </span>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
