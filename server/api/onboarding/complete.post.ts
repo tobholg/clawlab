@@ -1,5 +1,7 @@
 import { prisma } from '../../utils/prisma'
 import { seedDemoData } from '../../utils/seedDemoData'
+import { createDefaultChannels } from '../../utils/channelUtils'
+import { createSession } from '../../utils/auth'
 
 interface OnboardingRequest {
   organization: {
@@ -14,6 +16,7 @@ interface OnboardingRequest {
     name: string
     email: string
   }
+  teamEmails?: string[]
   loadDemoData: boolean
 }
 
@@ -102,6 +105,98 @@ export default defineEventHandler(async (event) => {
     return { organization, workspace, user }
   })
 
+  // Create default channels (#general, #off-topic) for the new workspace
+  let channels: any[] = []
+  try {
+    channels = await createDefaultChannels(result.workspace.id, result.user.id)
+  } catch (err) {
+    console.error('Failed to create default channels:', err)
+    // Don't fail the whole request if channel creation fails
+  }
+
+  // Create invited team members
+  const createdTeamMembers: any[] = []
+  if (body.teamEmails && body.teamEmails.length > 0) {
+    for (const email of body.teamEmails) {
+      try {
+        // Check if user already exists
+        let teamUser = await prisma.user.findUnique({
+          where: { email }
+        })
+
+        if (!teamUser) {
+          // Create new user with name derived from email
+          const nameFromEmail = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+          teamUser = await prisma.user.create({
+            data: {
+              email,
+              name: nameFromEmail,
+            }
+          })
+        }
+
+        // Add to organization
+        await prisma.organizationMember.upsert({
+          where: {
+            organizationId_userId: {
+              organizationId: result.organization.id,
+              userId: teamUser.id,
+            }
+          },
+          update: {},
+          create: {
+            organizationId: result.organization.id,
+            userId: teamUser.id,
+            role: 'MEMBER',
+          }
+        })
+
+        // Add to workspace
+        await prisma.workspaceMember.upsert({
+          where: {
+            workspaceId_userId: {
+              workspaceId: result.workspace.id,
+              userId: teamUser.id,
+            }
+          },
+          update: {},
+          create: {
+            workspaceId: result.workspace.id,
+            userId: teamUser.id,
+            role: 'MEMBER',
+          }
+        })
+
+        // Add to default channels
+        for (const channel of channels) {
+          await prisma.channelMember.upsert({
+            where: {
+              channelId_userId: {
+                channelId: channel.id,
+                userId: teamUser.id,
+              }
+            },
+            update: {},
+            create: {
+              channelId: channel.id,
+              userId: teamUser.id,
+              role: 'MEMBER',
+            }
+          })
+        }
+
+        createdTeamMembers.push({
+          id: teamUser.id,
+          email: teamUser.email,
+          name: teamUser.name,
+        })
+      } catch (err) {
+        console.error(`Failed to create team member ${email}:`, err)
+        // Continue with other team members
+      }
+    }
+  }
+
   // Seed demo data if requested (outside transaction for performance)
   if (body.loadDemoData) {
     try {
@@ -112,13 +207,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Set a session cookie (simplified - in production use proper JWT)
-  setCookie(event, 'relai_user_id', result.user.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-  })
+  // Create proper auth session
+  await createSession(event, { id: result.user.id, email: result.user.email })
 
   return {
     success: true,
@@ -137,5 +227,6 @@ export default defineEventHandler(async (event) => {
       name: result.user.name,
       email: result.user.email,
     },
+    teamMembers: createdTeamMembers,
   }
 })

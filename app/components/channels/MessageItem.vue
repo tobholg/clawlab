@@ -1,0 +1,146 @@
+<script setup lang="ts">
+import type { ChannelMessage } from '~/composables/useChannels'
+
+const props = defineProps<{
+  message: ChannelMessage
+  showAuthor?: boolean
+  isThread?: boolean
+}>()
+
+const emit = defineEmits<{
+  reply: [message: ChannelMessage]
+}>()
+
+// Format timestamp
+const formattedTime = computed(() => {
+  const date = new Date(props.message.createdAt)
+  return date.toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit',
+    hour12: true 
+  })
+})
+
+// User initials for avatar
+const initials = computed(() => {
+  const name = props.message.user?.name || 'U'
+  return name.split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || 'U'
+})
+
+// Avatar background color (deterministic based on user id)
+const avatarColor = computed(() => {
+  const colors = [
+    'bg-blue-500',
+    'bg-emerald-500', 
+    'bg-violet-500',
+    'bg-rose-500',
+    'bg-amber-500',
+    'bg-cyan-500',
+    'bg-pink-500',
+    'bg-indigo-500',
+  ]
+  const id = props.message.userId || props.message.id || 'default'
+  const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return colors[hash % colors.length]
+})
+
+// Show hover actions
+const showActions = ref(false)
+</script>
+
+<template>
+  <div 
+    :class="[
+      'group relative px-4 py-0.5',
+      showAuthor ? 'pt-2' : '',
+      'hover:bg-slate-50/50 transition-colors'
+    ]"
+    @mouseenter="showActions = true"
+    @mouseleave="showActions = false"
+  >
+    <div :class="['flex gap-3', showAuthor ? 'items-start' : 'items-start']">
+      <!-- Avatar (only if showing author) -->
+      <div v-if="showAuthor" class="flex-shrink-0 w-9">
+        <div 
+          :class="[
+            'w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium',
+            avatarColor
+          ]"
+        >
+          {{ initials }}
+        </div>
+      </div>
+      
+      <!-- Spacer when no avatar (grouped messages) -->
+      <div v-else class="flex-shrink-0 w-9">
+        <!-- Timestamp on hover for grouped messages -->
+        <span 
+          class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity leading-5 block text-right pr-1"
+        >
+          {{ formattedTime }}
+        </span>
+      </div>
+
+      <!-- Message content -->
+      <div class="flex-1 min-w-0">
+        <!-- Author + timestamp (only if showing author) -->
+        <div v-if="showAuthor" class="flex items-baseline gap-2 mb-0.5">
+          <span class="font-medium text-sm text-slate-900">
+            {{ message.user?.name || 'Unknown User' }}
+          </span>
+          <span class="text-xs text-slate-400">
+            {{ formattedTime }}
+          </span>
+          <span 
+            v-if="message.editedAt" 
+            class="text-xs text-slate-400"
+            title="Edited"
+          >
+            (edited)
+          </span>
+        </div>
+
+        <!-- Message text -->
+        <p class="text-sm text-slate-700 whitespace-pre-wrap break-words leading-relaxed">
+          {{ message.content }}
+        </p>
+
+        <!-- Thread reply count -->
+        <button 
+          v-if="message.replyCount > 0 && !isThread"
+          class="mt-1 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+          @click="emit('reply', message)"
+        >
+          <Icon name="heroicons:chat-bubble-left" class="w-3.5 h-3.5" />
+          {{ message.replyCount }} {{ message.replyCount === 1 ? 'reply' : 'replies' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Hover actions -->
+    <div 
+      v-if="showActions && !isThread"
+      class="absolute right-4 top-0 -translate-y-1/2 flex items-center bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden"
+    >
+      <button 
+        class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+        title="Reply in thread"
+        @click="emit('reply', message)"
+      >
+        <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
+      </button>
+      <button 
+        class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+        title="Add reaction"
+      >
+        <Icon name="heroicons:face-smile" class="w-4 h-4" />
+      </button>
+      <button 
+        class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+        title="More options"
+      >
+        <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+</template>

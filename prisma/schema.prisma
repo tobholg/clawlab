@@ -72,6 +72,8 @@ model User {
   magicLinkTokens     MagicLinkToken[]
   focusSessions       FocusSession[]
   currentFocusItem    Item?                @relation("CurrentFocus", fields: [currentFocusItemId], references: [id])
+  channelMembers      ChannelMember[]
+  messages            Message[]
 
   @@map("users")
 }
@@ -107,6 +109,7 @@ model Workspace {
   organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   members      WorkspaceMember[]
   items        Item[]
+  channels     Channel[]
 
   @@index([organizationId])
   @@map("workspaces")
@@ -176,6 +179,7 @@ model Item {
   comments       Comment[]
   focusSessions  FocusSession[]
   currentFocusBy User[]            @relation("CurrentFocus")
+  channel        Channel?          // One project = one channel
 
   @@index([workspaceId])
   @@index([parentId])
@@ -299,4 +303,104 @@ enum ActivityType {
   COMMENT
   DEPENDENCY_ADDED
   DEPENDENCY_REMOVED
+}
+
+// ============================================
+// CHANNELS & MESSAGING
+// ============================================
+
+enum ChannelType {
+  WORKSPACE // #general, #off-topic
+  PROJECT   // Auto-linked to project
+  EXTERNAL  // Has external stakeholders
+  CUSTOM    // User-created
+}
+
+enum ChannelVisibility {
+  PUBLIC   // Anyone in workspace can join
+  PRIVATE  // Invite only
+  EXTERNAL // Has external users
+}
+
+enum ChannelRole {
+  OWNER
+  ADMIN
+  MEMBER
+  GUEST // External users
+}
+
+model Channel {
+  id          String   @id @default(cuid())
+  workspaceId String
+  parentId    String? // For nested channels
+  projectId   String? @unique // If linked to a project (one project = one channel)
+
+  name        String  // Slug: "general", "q4-product-launch"
+  displayName String? // Pretty name override
+  description String?
+  type        ChannelType       @default(CUSTOM)
+  visibility  ChannelVisibility @default(PUBLIC)
+
+  inheritMembers Boolean @default(true)
+  archived       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent    Channel?        @relation("ChannelHierarchy", fields: [parentId], references: [id])
+  children  Channel[]       @relation("ChannelHierarchy")
+  project   Item?           @relation(fields: [projectId], references: [id])
+  members   ChannelMember[]
+  messages  Message[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@index([parentId])
+  @@index([projectId])
+  @@map("channels")
+}
+
+model ChannelMember {
+  id         String      @id @default(cuid())
+  channelId  String
+  userId     String
+  role       ChannelRole @default(MEMBER)
+  isExternal Boolean     @default(false)
+  muted      Boolean     @default(false)
+  joinedAt   DateTime    @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([channelId])
+  @@index([userId])
+  @@map("channel_members")
+}
+
+model Message {
+  id          String  @id @default(cuid())
+  channelId   String
+  userId      String
+  parentId    String? // For threads
+
+  content     String
+  attachments Json? // Future: file attachments
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
+  deleted   Boolean   @default(false)
+
+  // Relations
+  channel Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id])
+  parent  Message?  @relation("MessageThreads", fields: [parentId], references: [id])
+  replies Message[] @relation("MessageThreads")
+
+  @@index([channelId, createdAt])
+  @@index([parentId])
+  @@map("messages")
 }

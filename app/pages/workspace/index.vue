@@ -13,7 +13,11 @@ const {
   createItem,
   updateItem,
   refreshItems,
+  workspaceId,
 } = useItems()
+
+// Fetch channels for sidebar
+const { channelTree, loading: channelsLoading } = useChannels(workspaceId)
 
 const activeView = ref<'dashboard' | 'kanban' | 'timeline' | 'list'>('dashboard')
 const filterCategory = ref<string | null>(null)
@@ -253,26 +257,56 @@ onMounted(() => {
             Channels
           </h3>
           <div class="space-y-0.5">
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-              :title="sidebarCollapsed ? 'General' : undefined"
-            >
-              <Icon name="heroicons:chat-bubble-left-right" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']"># general</span>
-            </button>
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-              :title="sidebarCollapsed ? 'Off Topic' : undefined"
-            >
-              <Icon name="heroicons:chat-bubble-left-right" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']"># off-topic</span>
-            </button>
+            <template v-for="channel in channelTree" :key="channel.id">
+              <!-- Parent channel -->
+              <NuxtLink 
+                :to="`/workspace/channels/${channel.id}`"
+                :class="[
+                  'w-full flex items-center rounded-lg text-sm font-normal transition-all duration-200',
+                  'text-slate-500 hover:text-slate-700 hover:bg-slate-50',
+                  sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
+                ]"
+                :title="sidebarCollapsed ? channel.displayName : undefined"
+              >
+                <Icon 
+                  :name="channel.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'" 
+                  class="w-4 h-4 flex-shrink-0" 
+                />
+                <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap truncate', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">
+                  {{ channel.displayName }}
+                </span>
+                <span 
+                  v-if="channel.unreadCount && channel.unreadCount > 0 && !sidebarCollapsed"
+                  class="ml-auto text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full"
+                >
+                  {{ channel.unreadCount }}
+                </span>
+              </NuxtLink>
+              
+              <!-- Child channels (nested) -->
+              <div v-if="!sidebarCollapsed && channel.children?.length" class="ml-3 pl-3 border-l border-slate-200 space-y-0.5">
+                <NuxtLink 
+                  v-for="child in channel.children"
+                  :key="child.id"
+                  :to="`/workspace/channels/${child.id}`"
+                  :class="[
+                    'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200',
+                    'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  ]"
+                >
+                  <Icon 
+                    :name="child.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'" 
+                    class="w-3 h-3 flex-shrink-0" 
+                  />
+                  <span class="truncate">{{ child.displayName }}</span>
+                </NuxtLink>
+              </div>
+            </template>
+            
+            <!-- Fallback when no channels -->
+            <div v-if="channelTree.length === 0 && !channelsLoading" class="px-3 py-2 text-xs text-slate-400">
+              No channels yet
+            </div>
           </div>
         </div>
         

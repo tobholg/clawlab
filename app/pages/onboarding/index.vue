@@ -14,7 +14,8 @@ const workspaceName = ref('')
 const workspaceDescription = ref('')
 const userName = ref('')
 const userEmail = ref('')
-const loadDemoData = ref(process.env.NODE_ENV === 'development' || true) // Default checked in dev
+const loadDemoData = ref(true) // Default checked
+const teamEmails = ref<string[]>(['']) // Start with one empty field
 
 // Auto-generate slug from org name
 watch(orgName, (name) => {
@@ -32,16 +33,18 @@ const isStep3Valid = computed(() =>
   userName.value.trim().length >= 2 && 
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail.value)
 )
+const isStep4Valid = computed(() => true) // Team invite is optional
 
 const canProceed = computed(() => {
   if (currentStep.value === 1) return isStep1Valid.value
   if (currentStep.value === 2) return isStep2Valid.value
   if (currentStep.value === 3) return isStep3Valid.value
+  if (currentStep.value === 4) return isStep4Valid.value
   return false
 })
 
 const nextStep = () => {
-  if (canProceed.value && currentStep.value < 3) {
+  if (canProceed.value && currentStep.value < 4) {
     currentStep.value++
   }
 }
@@ -51,6 +54,25 @@ const prevStep = () => {
     currentStep.value--
   }
 }
+
+// Team email management
+const addEmailField = () => {
+  if (teamEmails.value.length < 10) {
+    teamEmails.value.push('')
+  }
+}
+
+const removeEmailField = (index: number) => {
+  if (teamEmails.value.length > 1) {
+    teamEmails.value.splice(index, 1)
+  }
+}
+
+const validTeamEmails = computed(() => {
+  return teamEmails.value
+    .map(e => e.trim().toLowerCase())
+    .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e !== userEmail.value.trim().toLowerCase())
+})
 
 const completeOnboarding = async () => {
   if (!canProceed.value || isSubmitting.value) return
@@ -74,6 +96,7 @@ const completeOnboarding = async () => {
           name: userName.value.trim(),
           email: userEmail.value.trim().toLowerCase(),
         },
+        teamEmails: validTeamEmails.value,
         loadDemoData: loadDemoData.value,
       },
     })
@@ -91,6 +114,7 @@ const stepIndicators = [
   { step: 1, label: 'Organization' },
   { step: 2, label: 'Workspace' },
   { step: 3, label: 'Profile' },
+  { step: 4, label: 'Team' },
 ]
 </script>
 
@@ -111,12 +135,12 @@ const stepIndicators = [
       <div class="w-full max-w-md">
         <!-- Step Indicators -->
         <div class="flex items-center justify-center mb-10">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <template v-for="(indicator, i) in stepIndicators" :key="indicator.step">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5">
                 <div 
                   :class="[
-                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all',
+                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all',
                     currentStep >= indicator.step
                       ? 'bg-slate-900 text-white'
                       : 'bg-slate-100 text-slate-400'
@@ -125,13 +149,13 @@ const stepIndicators = [
                   <Icon 
                     v-if="currentStep > indicator.step" 
                     name="heroicons:check" 
-                    class="w-4 h-4" 
+                    class="w-3.5 h-3.5" 
                   />
                   <span v-else>{{ indicator.step }}</span>
                 </div>
                 <span 
                   :class="[
-                    'text-sm font-medium transition-colors hidden sm:block',
+                    'text-xs font-medium transition-colors hidden sm:block',
                     currentStep >= indicator.step ? 'text-slate-900' : 'text-slate-400'
                   ]"
                 >
@@ -141,7 +165,7 @@ const stepIndicators = [
               <div 
                 v-if="i < stepIndicators.length - 1"
                 :class="[
-                  'w-12 h-0.5 transition-colors',
+                  'w-8 h-0.5 transition-colors',
                   currentStep > indicator.step ? 'bg-slate-900' : 'bg-slate-200'
                 ]"
               />
@@ -260,31 +284,76 @@ const stepIndicators = [
                   type="email"
                   placeholder="jane@acme.com"
                   class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
-                  @keyup.enter="completeOnboarding"
+                  @keyup.enter="nextStep"
                 />
               </div>
-              
-              <!-- Demo Data Checkbox -->
-              <div class="pt-2">
-                <label class="flex items-start gap-3 cursor-pointer group">
-                  <div class="relative mt-0.5">
-                    <input
-                      v-model="loadDemoData"
-                      type="checkbox"
-                      class="sr-only peer"
-                    />
-                    <div class="w-5 h-5 border-2 border-slate-200 rounded-md peer-checked:bg-slate-900 peer-checked:border-slate-900 transition-all group-hover:border-slate-300" />
-                    <Icon 
-                      name="heroicons:check" 
-                      class="absolute inset-0 m-auto w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" 
-                    />
-                  </div>
-                  <div>
-                    <span class="text-sm font-medium text-slate-700">Load demo data</span>
-                    <p class="text-xs text-slate-400 mt-0.5">Start with sample projects, tasks, and team members to explore the app.</p>
-                  </div>
-                </label>
+            </div>
+          </div>
+
+          <!-- Step 4: Invite Team -->
+          <div v-if="currentStep === 4" class="space-y-6">
+            <div class="text-center">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Icon name="heroicons:user-plus" class="w-6 h-6 text-blue-600" />
               </div>
+              <h2 class="text-xl font-semibold text-slate-900 mb-2">Invite your team</h2>
+              <p class="text-slate-500 text-sm">Add teammates to collaborate with. You can skip this for now.</p>
+            </div>
+            
+            <div class="space-y-3">
+              <label class="block text-sm font-medium text-slate-700">Team member emails</label>
+              
+              <div v-for="(email, index) in teamEmails" :key="index" class="flex items-center gap-2">
+                <input
+                  v-model="teamEmails[index]"
+                  type="email"
+                  placeholder="teammate@company.com"
+                  class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                  @keyup.enter="index === teamEmails.length - 1 ? addEmailField() : null"
+                />
+                <button
+                  v-if="teamEmails.length > 1"
+                  @click="removeEmailField(index)"
+                  class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <Icon name="heroicons:x-mark" class="w-5 h-5" />
+                </button>
+              </div>
+              
+              <button
+                v-if="teamEmails.length < 10"
+                @click="addEmailField"
+                class="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                <Icon name="heroicons:plus" class="w-4 h-4" />
+                <span>Add another</span>
+              </button>
+              
+              <p v-if="validTeamEmails.length > 0" class="text-xs text-emerald-600 mt-2">
+                {{ validTeamEmails.length }} teammate{{ validTeamEmails.length > 1 ? 's' : '' }} will be invited
+              </p>
+            </div>
+            
+            <!-- Demo Data Checkbox -->
+            <div class="pt-4 border-t border-slate-100">
+              <label class="flex items-start gap-3 cursor-pointer group">
+                <div class="relative mt-0.5">
+                  <input
+                    v-model="loadDemoData"
+                    type="checkbox"
+                    class="sr-only peer"
+                  />
+                  <div class="w-5 h-5 border-2 border-slate-200 rounded-md peer-checked:bg-slate-900 peer-checked:border-slate-900 transition-all group-hover:border-slate-300" />
+                  <Icon 
+                    name="heroicons:check" 
+                    class="absolute inset-0 m-auto w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" 
+                  />
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-slate-700">Load demo data</span>
+                  <p class="text-xs text-slate-400 mt-0.5">Start with sample projects, tasks, and team members.</p>
+                </div>
+              </label>
             </div>
           </div>
 
@@ -301,7 +370,7 @@ const stepIndicators = [
             <div v-else />
             
             <button
-              v-if="currentStep < 3"
+              v-if="currentStep < 4"
               @click="nextStep"
               :disabled="!canProceed"
               :class="[
@@ -327,7 +396,7 @@ const stepIndicators = [
               ]"
             >
               <Icon v-if="isSubmitting" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-              <span>{{ isSubmitting ? 'Creating...' : 'Complete Setup' }}</span>
+              <span>{{ isSubmitting ? 'Creating...' : validTeamEmails.length > 0 ? 'Complete & Invite' : 'Complete Setup' }}</span>
               <Icon v-if="!isSubmitting" name="heroicons:check" class="w-4 h-4" />
             </button>
           </div>

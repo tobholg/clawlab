@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { createProjectChannel } from '../../utils/channelUtils'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -55,6 +56,27 @@ export default defineEventHandler(async (event) => {
     }
   })
   
+  // If this is a root-level item (project), create a project channel
+  if (!parentId) {
+    try {
+      // Use first assignee as channel creator, or find any workspace member
+      let creatorUserId = assigneeIds?.[0]
+      if (!creatorUserId) {
+        const member = await prisma.workspaceMember.findFirst({
+          where: { workspaceId },
+          select: { userId: true },
+        })
+        creatorUserId = member?.userId
+      }
+      if (creatorUserId) {
+        await createProjectChannel(item.id, workspaceId, title, creatorUserId)
+      }
+    } catch (err) {
+      console.error('Failed to create project channel:', err)
+      // Don't fail the whole request if channel creation fails
+    }
+  }
+
   return {
     id: item.id,
     title: item.title,

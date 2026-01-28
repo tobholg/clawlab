@@ -115,14 +115,14 @@ export const getSessionUser = async (event: H3Event): Promise<SessionUser | null
     const payload = await verifyAuthToken(token)
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, name: true, role: true }
+      select: { id: true, email: true, name: true }
     })
     if (!user) return null
     return {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: 'MEMBER' // Default role since User model doesn't have role field
     }
   } catch (error) {
     clearAuthCookie(event)
