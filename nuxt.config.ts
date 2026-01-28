@@ -8,6 +8,12 @@ export default defineNuxtConfig({
     '@nuxt/icon',
   ],
 
+  nitro: {
+    experimental: {
+      websocket: true,
+    },
+  },
+
   tailwindcss: {
     cssPath: './assets/css/main.css',
     configPath: 'tailwind.config.ts',

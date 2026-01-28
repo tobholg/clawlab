@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireUser } from '../../../utils/auth'
+import { broadcastNewMessage } from '../../../utils/websocket'
 
 interface CreateMessageBody {
   content: string
@@ -59,7 +60,7 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  return {
+  const formattedMessage = {
     id: message.id,
     channelId: message.channelId,
     userId: message.userId,
@@ -72,4 +73,9 @@ export default defineEventHandler(async (event) => {
     user: message.user,
     replyCount: message._count.replies,
   }
+
+  // Broadcast to WebSocket clients
+  broadcastNewMessage(channelId, formattedMessage, user.id)
+
+  return formattedMessage
 })

@@ -9,11 +9,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   messageSent: [content: string]
+  typing: []
+  stopTyping: []
 }>()
 
 const content = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
+const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+const isTyping = ref(false)
 
 // Auto-resize textarea
 const adjustHeight = () => {
@@ -22,8 +26,32 @@ const adjustHeight = () => {
   textareaRef.value.style.height = Math.min(textareaRef.value.scrollHeight, 200) + 'px'
 }
 
-watch(content, () => {
+watch(content, (newVal, oldVal) => {
   nextTick(adjustHeight)
+  
+  // Typing detection
+  if (newVal && newVal.length > 0) {
+    if (!isTyping.value) {
+      isTyping.value = true
+      emit('typing')
+    }
+    
+    // Reset typing timeout
+    if (typingTimeout.value) {
+      clearTimeout(typingTimeout.value)
+    }
+    typingTimeout.value = setTimeout(() => {
+      isTyping.value = false
+      emit('stopTyping')
+    }, 2000)
+  } else if (isTyping.value) {
+    isTyping.value = false
+    emit('stopTyping')
+    if (typingTimeout.value) {
+      clearTimeout(typingTimeout.value)
+      typingTimeout.value = null
+    }
+  }
 })
 
 // Handle keyboard shortcuts
@@ -42,6 +70,16 @@ const sendMessage = async () => {
 
   sending.value = true
   try {
+    // Stop typing indicator
+    if (isTyping.value) {
+      isTyping.value = false
+      emit('stopTyping')
+    }
+    if (typingTimeout.value) {
+      clearTimeout(typingTimeout.value)
+      typingTimeout.value = null
+    }
+    
     emit('messageSent', trimmed)
     content.value = ''
     nextTick(adjustHeight)

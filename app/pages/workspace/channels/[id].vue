@@ -89,6 +89,80 @@ const channelIcon = computed(() => {
 
 // Sidebar state
 const sidebarCollapsed = ref(false)
+
+// WebSocket setup
+const { 
+  authenticate, 
+  subscribe, 
+  unsubscribe, 
+  sendTyping, 
+  sendStopTyping,
+  getPresence,
+  getTyping,
+  presence,
+  typing,
+} = useWebSocket()
+
+// Get current user from auth (for now using a mock - integrate with actual auth later)
+const { user: currentUser } = useAuth()
+
+// Authenticate WebSocket on mount
+onMounted(() => {
+  if (currentUser.value) {
+    authenticate({
+      id: currentUser.value.id,
+      name: currentUser.value.name || 'Anonymous',
+      avatar: currentUser.value.avatar,
+    })
+  }
+})
+
+// Subscribe to channel WebSocket when channel changes
+watch([channelId, currentChannel], ([id, channel], [oldId]) => {
+  // Unsubscribe from old channel
+  if (oldId && oldId !== id) {
+    unsubscribe(oldId)
+  }
+  
+  // Subscribe to new channel
+  if (id && channel) {
+    subscribe(id, channel.displayName, (message) => {
+      // Only add to messages if not from current user (they already see their own)
+      // and if it's a top-level message (not a thread reply)
+      if (message.userId !== currentUser.value?.id && !message.parentId) {
+        messages.value = [...messages.value, message]
+        // Scroll to bottom
+        nextTick(() => messageListRef.value?.scrollToBottom(true))
+      }
+    })
+  }
+}, { immediate: true })
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (channelId.value) {
+    unsubscribe(channelId.value)
+  }
+})
+
+// Presence for current channel
+const channelPresence = computed(() => getPresence(channelId.value))
+
+// Typing for current channel (excluding self)
+const channelTyping = computed(() => getTyping(channelId.value))
+
+// Handle typing events from input
+const handleTyping = () => {
+  if (channelId.value) {
+    sendTyping(channelId.value)
+  }
+}
+
+const handleStopTyping = () => {
+  if (channelId.value) {
+    sendStopTyping(channelId.value)
+  }
+}
 </script>
 
 <template>
@@ -291,12 +365,9 @@ const sidebarCollapsed = ref(false)
           </div>
         </div>
         
-        <div class="flex items-center gap-2">
-          <!-- Members count -->
-          <div v-if="currentChannel?.members?.length" class="flex items-center gap-1.5 text-sm text-slate-500">
-            <Icon name="heroicons:users" class="w-4 h-4" />
-            {{ currentChannel.members.length }}
-          </div>
+        <div class="flex items-center gap-4">
+          <!-- Online presence -->
+          <ChannelsPresenceIndicator :users="channelPresence" />
           
           <!-- Settings -->
           <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
@@ -315,6 +386,9 @@ const sidebarCollapsed = ref(false)
         @reply="handleOpenThread"
       />
 
+      <!-- Typing indicator -->
+      <ChannelsTypingIndicator :users="channelTyping" />
+
       <!-- Message Input -->
       <div class="relative z-10">
         <ChannelsMessageInput
@@ -322,6 +396,8 @@ const sidebarCollapsed = ref(false)
           :channel-id="currentChannel.id"
           :placeholder="`Message #${currentChannel.displayName}`"
           @message-sent="handleSendMessage"
+          @typing="handleTyping"
+          @stop-typing="handleStopTyping"
         />
       </div>
       </div>
