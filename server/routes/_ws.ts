@@ -354,6 +354,14 @@ onBroadcast((data) => {
         }))
       }
     }
+  } else if (data.type === 'reaction_update') {
+    // Broadcast reaction update to channel subscribers
+    broadcastToChannel(data.channelId, {
+      type: 'reaction',
+      channelId: data.channelId,
+      messageId: data.messageId,
+      reactions: data.reactions,
+    })
   }
 })
 

@@ -5,11 +5,13 @@ const props = defineProps<{
   messages: ChannelMessage[]
   loading?: boolean
   hasMore?: boolean
+  currentUserId?: string
 }>()
 
 const emit = defineEmits<{
   loadMore: []
   reply: [message: ChannelMessage]
+  react: [messageId: string, emoji: string]
 }>()
 
 // Group messages by date and consecutive author
@@ -182,7 +184,9 @@ defineExpose({ scrollToBottom })
           v-else-if="group.message"
           :message="group.message"
           :show-author="group.showAuthor"
+          :current-user-id="currentUserId"
           @reply="(msg) => emit('reply', msg)"
+          @react="(msgId, emoji) => emit('react', msgId, emoji)"
         />
       </template>
     </TransitionGroup>

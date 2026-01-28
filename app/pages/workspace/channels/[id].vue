@@ -126,14 +126,24 @@ watch([channelId, currentChannel], ([id, channel], [oldId]) => {
   
   // Subscribe to new channel
   if (id && channel) {
-    subscribe(id, channel.displayName, (message) => {
-      // Only add to messages if not from current user (they already see their own)
-      // and if it's a top-level message (not a thread reply)
-      if (message.userId !== currentUser.value?.id && !message.parentId) {
-        messages.value = [...messages.value, message]
-        // Scroll to bottom
-        nextTick(() => messageListRef.value?.scrollToBottom(true))
-      }
+    subscribe(id, {
+      channelName: channel.displayName,
+      onMessage: (message) => {
+        // Only add to messages if not from current user (they already see their own)
+        // and if it's a top-level message (not a thread reply)
+        if (message.userId !== currentUser.value?.id && !message.parentId) {
+          messages.value = [...messages.value, message]
+          // Scroll to bottom
+          nextTick(() => messageListRef.value?.scrollToBottom(true))
+        }
+      },
+      onReaction: (messageId, reactions) => {
+        // Update reactions on the message
+        const message = messages.value.find(m => m.id === messageId)
+        if (message) {
+          message.reactions = reactions
+        }
+      },
     })
   }
 }, { immediate: true })
@@ -161,6 +171,18 @@ const handleTyping = () => {
 const handleStopTyping = () => {
   if (channelId.value) {
     sendStopTyping(channelId.value)
+  }
+}
+
+// Handle reactions
+const handleReaction = async (messageId: string, emoji: string) => {
+  try {
+    await $fetch(`/api/messages/${messageId}/reactions`, {
+      method: 'POST',
+      body: { emoji },
+    })
+  } catch (error) {
+    console.error('Failed to toggle reaction:', error)
   }
 }
 </script>
@@ -382,8 +404,10 @@ const handleStopTyping = () => {
         :messages="messages"
         :loading="messagesLoading"
         :has-more="hasMoreMessages"
+        :current-user-id="currentUser?.id"
         @load-more="handleLoadMore"
         @reply="handleOpenThread"
+        @react="handleReaction"
       />
 
       <!-- Typing indicator -->

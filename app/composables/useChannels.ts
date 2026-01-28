@@ -4,6 +4,12 @@ export interface ChannelUser {
   avatar: string | null
 }
 
+export interface MessageReaction {
+  emoji: string
+  count: number
+  users: { id: string; name: string | null }[]
+}
+
 export interface ChannelMessage {
   id: string
   channelId: string
@@ -16,6 +22,7 @@ export interface ChannelMessage {
   editedAt: string | null
   user: ChannelUser
   replyCount: number
+  reactions?: MessageReaction[]
 }
 
 export interface ChannelMember {

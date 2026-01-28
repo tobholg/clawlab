@@ -5,10 +5,12 @@ const props = defineProps<{
   message: ChannelMessage
   showAuthor?: boolean
   isThread?: boolean
+  currentUserId?: string
 }>()
 
 const emit = defineEmits<{
   reply: [message: ChannelMessage]
+  react: [messageId: string, emoji: string]
 }>()
 
 // Format timestamp
@@ -46,6 +48,14 @@ const avatarColor = computed(() => {
 
 // Show hover actions
 const showActions = ref(false)
+
+// Emoji picker state
+const showEmojiPicker = ref(false)
+
+const handleReaction = (emoji: string) => {
+  emit('react', props.message.id, emoji)
+  showEmojiPicker.value = false
+}
 </script>
 
 <template>
@@ -113,12 +123,22 @@ const showActions = ref(false)
             >
               <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
             </button>
-            <button 
-              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Add reaction"
-            >
-              <Icon name="heroicons:face-smile" class="w-4 h-4" />
-            </button>
+            <div class="relative">
+              <button 
+                class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+                title="Add reaction"
+                @click.stop="showEmojiPicker = !showEmojiPicker"
+              >
+                <Icon name="heroicons:face-smile" class="w-4 h-4" />
+              </button>
+              <!-- Emoji picker (with author) -->
+              <div v-if="showEmojiPicker" class="absolute top-6 left-0 z-20">
+                <ChannelsEmojiPicker 
+                  @select="handleReaction" 
+                  @close="showEmojiPicker = false" 
+                />
+              </div>
+            </div>
             <button 
               class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
               title="More options"
@@ -148,12 +168,22 @@ const showActions = ref(false)
             >
               <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
             </button>
-            <button 
-              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Add reaction"
-            >
-              <Icon name="heroicons:face-smile" class="w-4 h-4" />
-            </button>
+            <div class="relative">
+              <button 
+                class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
+                title="Add reaction"
+                @click.stop="showEmojiPicker = !showEmojiPicker"
+              >
+                <Icon name="heroicons:face-smile" class="w-4 h-4" />
+              </button>
+              <!-- Emoji picker (grouped) -->
+              <div v-if="showEmojiPicker" class="absolute top-6 right-0 z-20">
+                <ChannelsEmojiPicker 
+                  @select="handleReaction" 
+                  @close="showEmojiPicker = false" 
+                />
+              </div>
+            </div>
             <button 
               class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
               title="More options"
@@ -162,6 +192,14 @@ const showActions = ref(false)
             </button>
           </div>
         </div>
+
+        <!-- Reactions display -->
+        <ChannelsMessageReactions
+          v-if="message.reactions && message.reactions.length > 0"
+          :reactions="message.reactions"
+          :current-user-id="currentUserId"
+          @toggle="(emoji) => emit('react', message.id, emoji)"
+        />
 
         <!-- Thread reply count -->
         <button 

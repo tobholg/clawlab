@@ -1,4 +1,4 @@
-import type { ChannelMessage, ChannelUser } from './useChannels'
+import type { ChannelMessage, ChannelUser, MessageReaction } from './useChannels'
 
 interface WebSocketState {
   connected: boolean
@@ -37,6 +37,9 @@ const notifications = ref<Notification[]>([])
 
 // Message handlers per channel
 const messageHandlers = new Map<string, (message: ChannelMessage) => void>()
+
+// Reaction handlers per channel
+const reactionHandlers = new Map<string, (messageId: string, reactions: MessageReaction[]) => void>()
 
 // Current user
 let currentUser: { id: string; name: string; avatar?: string | null } | null = null
@@ -145,6 +148,14 @@ function handleMessage(data: any) {
       break
     }
 
+    case 'reaction': {
+      const handler = reactionHandlers.get(data.channelId)
+      if (handler) {
+        handler(data.messageId, data.reactions)
+      }
+      break
+    }
+
     case 'notification': {
       // Add to notifications queue
       const notification: Notification = {
@@ -170,20 +181,40 @@ function authenticate(user: { id: string; name: string; avatar?: string | null }
   send({ type: 'auth', user })
 }
 
-function subscribe(channelId: string, channelName?: string, onMessage?: (message: ChannelMessage) => void) {
+interface SubscribeOptions {
+  channelName?: string
+  onMessage?: (message: ChannelMessage) => void
+  onReaction?: (messageId: string, reactions: MessageReaction[]) => void
+}
+
+function subscribe(channelId: string, options?: SubscribeOptions | string, onMessage?: (message: ChannelMessage) => void) {
   subscribedChannels.add(channelId)
-  if (channelName) {
-    channelNameCache.set(channelId, channelName)
+  
+  // Handle old signature for backwards compatibility
+  if (typeof options === 'string') {
+    channelNameCache.set(channelId, options)
+    if (onMessage) {
+      messageHandlers.set(channelId, onMessage)
+    }
+  } else if (options) {
+    if (options.channelName) {
+      channelNameCache.set(channelId, options.channelName)
+    }
+    if (options.onMessage) {
+      messageHandlers.set(channelId, options.onMessage)
+    }
+    if (options.onReaction) {
+      reactionHandlers.set(channelId, options.onReaction)
+    }
   }
-  if (onMessage) {
-    messageHandlers.set(channelId, onMessage)
-  }
+  
   send({ type: 'subscribe', channelId })
 }
 
 function unsubscribe(channelId: string) {
   subscribedChannels.delete(channelId)
   messageHandlers.delete(channelId)
+  reactionHandlers.delete(channelId)
   send({ type: 'unsubscribe', channelId })
 }
 

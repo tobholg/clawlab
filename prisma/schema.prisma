@@ -74,6 +74,7 @@ model User {
   currentFocusItem    Item?                @relation("CurrentFocus", fields: [currentFocusItemId], references: [id])
   channelMembers      ChannelMember[]
   messages            Message[]
+  reactions           Reaction[]
 
   @@map("users")
 }
@@ -395,12 +396,30 @@ model Message {
   deleted   Boolean   @default(false)
 
   // Relations
-  channel Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user    User      @relation(fields: [userId], references: [id])
-  parent  Message?  @relation("MessageThreads", fields: [parentId], references: [id])
-  replies Message[] @relation("MessageThreads")
+  channel   Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id])
+  parent    Message?   @relation("MessageThreads", fields: [parentId], references: [id])
+  replies   Message[]  @relation("MessageThreads")
+  reactions Reaction[]
 
   @@index([channelId, createdAt])
   @@index([parentId])
   @@map("messages")
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String   // e.g., "👍", "❤️", "😂"
+  createdAt DateTime @default(now())
+
+  // Relations
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  // One reaction per user per emoji per message
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("reactions")
 }
