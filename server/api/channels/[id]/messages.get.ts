@@ -37,6 +37,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  console.log('[Messages GET] Fetching messages for channel:', channelId)
+  
+  // Debug: directly query reactions table
+  const allReactions = await prisma.reaction.findMany({ take: 10 })
+  console.log('[Messages GET] All reactions in DB:', allReactions.length, allReactions.map(r => ({ id: r.id.slice(-8), msgId: r.messageId.slice(-8) })))
   const messages = await prisma.message.findMany({
     where: whereClause,
     include: {
@@ -58,28 +63,36 @@ export default defineEventHandler(async (event) => {
     orderBy: { createdAt: 'desc' },
     take: limit,
   })
+  console.log('[Messages GET] Found', messages.length, 'messages, reactions counts:', messages.map(m => ({ id: m.id.slice(-8), reactions: m.reactions.length })))
 
   // Reverse to get chronological order
   const chronological = messages.reverse()
 
-  return {
-    messages: chronological.map((msg) => ({
-      id: msg.id,
-      channelId: msg.channelId,
-      userId: msg.userId,
-      parentId: msg.parentId,
-      content: msg.content,
-      attachments: msg.attachments,
-      createdAt: msg.createdAt.toISOString(),
-      updatedAt: msg.updatedAt.toISOString(),
-      editedAt: msg.editedAt?.toISOString() ?? null,
-      user: msg.user,
-      replyCount: msg._count.replies,
-      reactions: groupReactions(msg.reactions),
-    })),
+  const result = {
+    messages: chronological.map((msg) => {
+      const grouped = groupReactions(msg.reactions)
+      if (grouped.length > 0) {
+        console.log('[Messages GET] Message', msg.id, 'has reactions:', grouped)
+      }
+      return {
+        id: msg.id,
+        channelId: msg.channelId,
+        userId: msg.userId,
+        parentId: msg.parentId,
+        content: msg.content,
+        attachments: msg.attachments,
+        createdAt: msg.createdAt.toISOString(),
+        updatedAt: msg.updatedAt.toISOString(),
+        editedAt: msg.editedAt?.toISOString() ?? null,
+        user: msg.user,
+        replyCount: msg._count.replies,
+        reactions: grouped,
+      }
+    }),
     hasMore: messages.length === limit,
     nextCursor: messages.length > 0 ? messages[0].id : null,
   }
+  return result
 })
 
 // Group reactions by emoji

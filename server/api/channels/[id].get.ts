@@ -27,6 +27,14 @@ export default defineEventHandler(async (event) => {
           _count: {
             select: { replies: true },
           },
+          reactions: {
+            include: {
+              user: {
+                select: { id: true, name: true },
+              },
+            },
+            orderBy: { createdAt: 'asc' },
+          },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -96,6 +104,28 @@ export default defineEventHandler(async (event) => {
       editedAt: msg.editedAt?.toISOString() ?? null,
       user: msg.user,
       replyCount: msg._count.replies,
+      reactions: groupReactions(msg.reactions),
     })),
   }
 })
+
+// Group reactions by emoji
+function groupReactions(reactions: { emoji: string; user: { id: string; name: string | null } }[]) {
+  const grouped = new Map<string, { emoji: string; count: number; users: { id: string; name: string | null }[] }>()
+  
+  for (const reaction of reactions) {
+    const existing = grouped.get(reaction.emoji)
+    if (existing) {
+      existing.count++
+      existing.users.push(reaction.user)
+    } else {
+      grouped.set(reaction.emoji, {
+        emoji: reaction.emoji,
+        count: 1,
+        users: [reaction.user],
+      })
+    }
+  }
+
+  return Array.from(grouped.values())
+}

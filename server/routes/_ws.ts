@@ -25,11 +25,14 @@ const channelTyping = new Map<string, Set<string>>()
 // Broadcast to all peers in a channel
 function broadcastToChannel(channelId: string, message: object, excludePeer?: Peer) {
   const payload = JSON.stringify(message)
+  let sentCount = 0
   for (const [peer, data] of peers) {
     if (data.channels.has(channelId) && peer !== excludePeer) {
       peer.send(payload)
+      sentCount++
     }
   }
+  console.log('[WS] broadcastToChannel:', channelId, 'sent to', sentCount, 'peers')
 }
 
 // Broadcast to a specific user across all their connections
@@ -80,6 +83,7 @@ function getChannelTyping(channelId: string): UserInfo[] {
 
 export default defineWebSocketHandler({
   open(peer) {
+    console.log('[WS] Peer connected, total peers:', peers.size + 1)
     peers.set(peer, {
       user: null,
       channels: new Set(),
@@ -150,21 +154,25 @@ export default defineWebSocketHandler({
     switch (parsed.type) {
       case 'auth': {
         // Authenticate and set user info
+        console.log('[WS] Auth request for user:', parsed.user?.name || 'unknown')
         data.user = {
           id: parsed.user.id,
           name: parsed.user.name,
           avatar: parsed.user.avatar,
         }
         peer.send(JSON.stringify({ type: 'auth', success: true }))
+        console.log('[WS] User authenticated:', data.user.name)
         break
       }
 
       case 'subscribe': {
         // Subscribe to a channel
         const channelId = parsed.channelId
+        console.log('[WS] Subscribe request for channel:', channelId, 'user:', data.user?.name || 'NOT AUTHENTICATED')
         if (!channelId || !data.user) return
 
         data.channels.add(channelId)
+        console.log('[WS] User', data.user.name, 'subscribed to channel:', channelId)
 
         // Add to presence
         if (!channelPresence.has(channelId)) {
@@ -356,6 +364,7 @@ onBroadcast((data) => {
     }
   } else if (data.type === 'reaction_update') {
     // Broadcast reaction update to channel subscribers
+    console.log('[WS] Broadcasting reaction_update to channel:', data.channelId)
     broadcastToChannel(data.channelId, {
       type: 'reaction',
       channelId: data.channelId,

@@ -66,16 +66,19 @@ function connect() {
   ws = new WebSocket(url)
 
   ws.onopen = () => {
+    console.log('[WS Client] Connected')
     state.connected = true
     reconnectAttempts = 0
 
     // Re-authenticate if we have user info
     if (currentUser) {
+      console.log('[WS Client] Re-authenticating as:', currentUser.name)
       send({ type: 'auth', user: currentUser })
     }
 
     // Re-subscribe to channels
     for (const channelId of subscribedChannels) {
+      console.log('[WS Client] Re-subscribing to:', channelId)
       send({ type: 'subscribe', channelId })
     }
   }
@@ -149,9 +152,12 @@ function handleMessage(data: any) {
     }
 
     case 'reaction': {
+      console.log('[WS Client] Received reaction update for message:', data.messageId, 'reactions:', data.reactions)
       const handler = reactionHandlers.get(data.channelId)
       if (handler) {
         handler(data.messageId, data.reactions)
+      } else {
+        console.log('[WS Client] No reaction handler for channel:', data.channelId)
       }
       break
     }
@@ -177,6 +183,7 @@ function handleMessage(data: any) {
 }
 
 function authenticate(user: { id: string; name: string; avatar?: string | null }) {
+  console.log('[WS Client] authenticate() called for:', user.name)
   currentUser = user
   send({ type: 'auth', user })
 }
@@ -188,6 +195,7 @@ interface SubscribeOptions {
 }
 
 function subscribe(channelId: string, options?: SubscribeOptions | string, onMessage?: (message: ChannelMessage) => void) {
+  console.log('[WS Client] subscribe() called for channel:', channelId)
   subscribedChannels.add(channelId)
   
   // Handle old signature for backwards compatibility
@@ -209,6 +217,7 @@ function subscribe(channelId: string, options?: SubscribeOptions | string, onMes
   }
   
   send({ type: 'subscribe', channelId })
+  console.log('[WS Client] subscribe message sent, connected:', state.connected)
 }
 
 function unsubscribe(channelId: string) {

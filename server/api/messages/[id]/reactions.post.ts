@@ -39,24 +39,27 @@ export default defineEventHandler(async (event) => {
       },
     },
   })
+  console.log('[Reactions] Checking existing reaction for user:', user.id, 'emoji:', body.emoji, ':', existingReaction ? 'FOUND' : 'NOT FOUND')
 
   let action: 'added' | 'removed'
   
   if (existingReaction) {
     // Remove reaction
+    console.log('[Reactions] Deleting existing reaction:', existingReaction.id)
     await prisma.reaction.delete({
       where: { id: existingReaction.id },
     })
     action = 'removed'
   } else {
     // Add reaction
-    await prisma.reaction.create({
+    const newReaction = await prisma.reaction.create({
       data: {
         messageId,
         userId: user.id,
         emoji: body.emoji.trim(),
       },
     })
+    console.log('[Reactions] Created reaction:', newReaction.id, 'for message:', messageId)
     action = 'added'
   }
 
@@ -64,6 +67,7 @@ export default defineEventHandler(async (event) => {
   const reactions = await getMessageReactions(messageId)
 
   // Broadcast to channel
+  console.log('[Reactions] Broadcasting to channel:', message.channelId, 'messageId:', messageId, 'reactions:', reactions.length)
   broadcast({
     type: 'reaction_update',
     channelId: message.channelId,
