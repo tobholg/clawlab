@@ -118,29 +118,29 @@ const showActions = ref(false)
       </div>
     </div>
 
-    <!-- Hover actions (absolute, bottom-left of message) -->
+    <!-- Hover actions (absolute, below message) -->
     <div 
       v-if="!isThread"
       :class="[
-        'absolute left-12 bottom-0 translate-y-1/2 flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg shadow-sm px-1 py-0.5 transition-opacity duration-150 z-10',
+        'absolute left-12 -bottom-3 flex items-center bg-white border border-slate-200 rounded-lg shadow-sm transition-opacity duration-150 z-10',
         showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
       ]"
     >
       <button 
-        class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+        class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-l-lg transition-colors"
         title="Reply in thread"
         @click="emit('reply', message)"
       >
         <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
       </button>
       <button 
-        class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+        class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
         title="Add reaction"
       >
         <Icon name="heroicons:face-smile" class="w-4 h-4" />
       </button>
       <button 
-        class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+        class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-r-lg transition-colors"
         title="More options"
       >
         <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
