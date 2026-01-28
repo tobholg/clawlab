@@ -153,7 +153,14 @@ defineExpose({ scrollToBottom })
     </div>
 
     <!-- Messages -->
-    <div class="py-4">
+    <TransitionGroup 
+      tag="div" 
+      class="py-4"
+      enter-active-class="message-enter-active"
+      enter-from-class="message-enter-from"
+      enter-to-class="message-enter-to"
+      move-class="message-move"
+    >
       <template v-for="group in groupedMessages" :key="group.type === 'date' ? group.date : group.message?.id">
         <!-- Date separator -->
         <div v-if="group.type === 'date'" class="flex items-center px-4 py-3">
@@ -172,7 +179,7 @@ defineExpose({ scrollToBottom })
           @reply="(msg) => emit('reply', msg)"
         />
       </template>
-    </div>
+    </TransitionGroup>
 
     <!-- Empty state -->
     <div 
@@ -185,3 +192,25 @@ defineExpose({ scrollToBottom })
     </div>
   </div>
 </template>
+
+<style scoped>
+.message-enter-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.message-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+  filter: blur(4px);
+}
+
+.message-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.message-move {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+</style>
