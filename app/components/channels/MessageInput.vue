@@ -17,7 +17,8 @@ const content = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
-const isTyping = ref(false)
+const lastTypingEmit = ref(0)
+const TYPING_THROTTLE = 1000 // Send typing at most once per second
 
 // Auto-resize textarea
 const adjustHeight = () => {
@@ -26,26 +27,30 @@ const adjustHeight = () => {
   textareaRef.value.style.height = Math.min(textareaRef.value.scrollHeight, 200) + 'px'
 }
 
-watch(content, (newVal, oldVal) => {
+watch(content, (newVal) => {
   nextTick(adjustHeight)
   
-  // Typing detection
+  // Typing detection (throttled)
   if (newVal && newVal.length > 0) {
-    if (!isTyping.value) {
-      isTyping.value = true
+    const now = Date.now()
+    
+    // Emit typing if we haven't recently (throttled to prevent spam)
+    if (now - lastTypingEmit.value > TYPING_THROTTLE) {
+      lastTypingEmit.value = now
       emit('typing')
     }
     
-    // Reset typing timeout
+    // Reset stop-typing timeout
     if (typingTimeout.value) {
       clearTimeout(typingTimeout.value)
     }
     typingTimeout.value = setTimeout(() => {
-      isTyping.value = false
+      lastTypingEmit.value = 0
       emit('stopTyping')
     }, 2000)
-  } else if (isTyping.value) {
-    isTyping.value = false
+  } else {
+    // Content cleared - stop typing immediately
+    lastTypingEmit.value = 0
     emit('stopTyping')
     if (typingTimeout.value) {
       clearTimeout(typingTimeout.value)
@@ -71,10 +76,8 @@ const sendMessage = async () => {
   sending.value = true
   try {
     // Stop typing indicator
-    if (isTyping.value) {
-      isTyping.value = false
-      emit('stopTyping')
-    }
+    lastTypingEmit.value = 0
+    emit('stopTyping')
     if (typingTimeout.value) {
       clearTimeout(typingTimeout.value)
       typingTimeout.value = null
