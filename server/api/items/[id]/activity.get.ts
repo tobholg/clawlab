@@ -17,10 +17,13 @@ export default defineEventHandler(async (event) => {
   const descendantIds = await getDescendantIds(id)
   const allItemIds = [id, ...descendantIds]
   
-  // Get all focus sessions for this item and descendants
+  // Get all focus sessions for this item and descendants (task or project)
   const sessions = await prisma.focusSession.findMany({
     where: {
-      itemId: { in: allItemIds },
+      OR: [
+        { taskId: { in: allItemIds } },
+        { projectId: { in: allItemIds } },
+      ],
       startedAt: { gte: startDate },
     },
     select: {
