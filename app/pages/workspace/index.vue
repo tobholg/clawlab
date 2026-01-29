@@ -211,7 +211,7 @@ onMounted(() => {
       </div>
 
       <!-- Focus Section -->
-      <FocusSidebar v-if="!sidebarCollapsed" />
+      <FocusSidebar v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
       
       <!-- Team Presence -->
       <TeamPresence v-if="!sidebarCollapsed" :workspace-id="workspaceId" />

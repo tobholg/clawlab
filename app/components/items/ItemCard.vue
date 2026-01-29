@@ -150,19 +150,19 @@ const handleCardClick = () => {
       </div>
       
       <!-- Action buttons (on hover) -->
-      <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-1 -mt-0.5">
+      <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
         <!-- Focus button -->
         <button 
           v-if="!isCurrentlyFocused"
           @click="handleFocusClick"
-          class="p-1 rounded hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors"
+          class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors"
           title="Focus on this"
         >
           <Icon name="heroicons:bolt" class="w-4 h-4" />
         </button>
         <!-- Menu button -->
-        <button class="p-1 rounded hover:bg-slate-50">
-          <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4 text-slate-300 hover:text-slate-500" />
+        <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-slate-50 text-slate-300 hover:text-slate-500">
+          <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
         </button>
       </div>
     </div>
