@@ -23,6 +23,7 @@ const {
 const showProjectPicker = ref(false)
 const showLanePicker = ref(false)
 const showTaskActionModal = ref(false)
+const showTimeline = ref(false)
 const actionComment = ref('')
 const selectedNextLane = ref<FocusLane>('GENERAL')
 
@@ -115,9 +116,13 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
 <template>
   <div class="px-3 mb-4">
     <!-- Section Title -->
-    <h3 class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider px-0">
+    <button 
+      @click="showTimeline = true"
+      class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider px-0 hover:text-slate-600 transition-colors flex items-center gap-1"
+    >
       Focus
-    </h3>
+      <Icon name="heroicons:clock" class="w-3 h-3" />
+    </button>
 
     <div class="space-y-1">
       <!-- Project Focus -->
@@ -316,6 +321,34 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
             >
               Complete ✓
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Timeline Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showTimeline"
+        class="fixed inset-0 z-50 flex items-start justify-center pt-8 pb-8"
+        @click.self="showTimeline = false"
+      >
+        <div class="absolute inset-0 bg-black/25" @click="showTimeline = false"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-full overflow-hidden flex flex-col">
+          <!-- Header -->
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+            <h2 class="text-base font-medium text-slate-900">Focus Timeline</h2>
+            <button 
+              @click="showTimeline = false"
+              class="p-1 text-slate-400 hover:text-slate-600"
+            >
+              <Icon name="heroicons:x-mark" class="w-5 h-5" />
+            </button>
+          </div>
+          
+          <!-- Timeline content -->
+          <div class="flex-1 overflow-y-auto p-4">
+            <FocusTimeline />
           </div>
         </div>
       </div>
