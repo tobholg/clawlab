@@ -70,7 +70,7 @@ const handleReaction = (emoji: string) => {
   >
     <div :class="['flex gap-3', showAuthor ? 'items-start' : 'items-start']">
       <!-- Avatar (only if showing author) -->
-      <div v-if="showAuthor" class="flex-shrink-0 w-9">
+      <div v-if="showAuthor" class="flex-shrink-0 w-12">
         <div 
           :class="[
             'w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium',
@@ -82,10 +82,10 @@ const handleReaction = (emoji: string) => {
       </div>
       
       <!-- Spacer when no avatar (grouped messages) -->
-      <div v-else class="flex-shrink-0 w-9">
+      <div v-else class="flex-shrink-0 w-12">
         <!-- Timestamp on hover for grouped messages -->
         <span 
-          class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity leading-5 block text-right pr-1"
+          class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity leading-5 block text-right pr-1 whitespace-nowrap"
         >
           {{ formattedTime }}
         </span>
