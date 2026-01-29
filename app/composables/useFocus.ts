@@ -54,7 +54,7 @@ const LANE_ICONS: Record<FocusLane, string> = {
   MEETING: 'heroicons:users',
   ADMIN: 'heroicons:clipboard-document-list',
   LEARNING: 'heroicons:academic-cap',
-  BREAK: 'heroicons:cup-soda',
+  BREAK: 'heroicons:pause-circle',
 }
 
 export function useFocus() {
