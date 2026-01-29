@@ -22,9 +22,8 @@ const {
 // Modal states
 const showProjectPicker = ref(false)
 const showLanePicker = ref(false)
-const showCompletionModal = ref(false)
-const completionComment = ref('')
-const isCompletingTask = ref(true) // true = complete, false = just switch
+const showTaskActionModal = ref(false)
+const actionComment = ref('')
 
 // Available projects
 const projects = ref<{ id: string; title: string }[]>([])
@@ -91,32 +90,28 @@ const selectLane = async (lane: FocusLane) => {
   showLanePicker.value = false
 }
 
-// Open completion modal (completing task)
-const handleCompleteTask = () => {
-  isCompletingTask.value = true
-  showCompletionModal.value = true
+// Open task action modal
+const handleTaskAction = () => {
+  actionComment.value = ''
+  showTaskActionModal.value = true
 }
 
-// Open switch modal (just switching away from task, not completing)
-const handleSwitchFromTask = () => {
-  isCompletingTask.value = false
-  showCompletionModal.value = true
+// Complete task (mark as done)
+const handleComplete = async (nextLane?: FocusLane) => {
+  await completeTask(actionComment.value || undefined, true)
+  actionComment.value = ''
+  showTaskActionModal.value = false
+  if (nextLane) {
+    await switchToLane(nextLane)
+  }
 }
 
-const submitCompletion = async (startNext?: { type: 'task' | 'lane'; id?: string; lane?: FocusLane }) => {
-  if (isCompletingTask.value) {
-    // Complete the task and mark as done
-    await completeTask(completionComment.value || undefined, true)
-  } else {
-    // Just switch away - don't mark task as done
-    await completeTask(completionComment.value || undefined, false)
-  }
-  completionComment.value = ''
-  showCompletionModal.value = false
-  
-  if (startNext?.type === 'lane' && startNext.lane) {
-    await switchToLane(startNext.lane)
-  }
+// Switch away from task (don't mark as done)
+const handleSwitch = async (nextLane: FocusLane) => {
+  await completeTask(actionComment.value || undefined, false)
+  actionComment.value = ''
+  showTaskActionModal.value = false
+  await switchToLane(nextLane)
 }
 
 const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
@@ -135,16 +130,19 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         @click="showProjectPicker = true"
         class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-200"
         :class="hasProjectFocus 
-          ? 'bg-slate-100 text-slate-900' 
+          ? 'bg-blue-50 text-blue-900' 
           : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
       >
-        <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+        <div 
+          class="w-4 h-4 flex items-center justify-center flex-shrink-0"
+          :class="hasProjectFocus ? 'text-blue-500' : 'text-slate-400'"
+        >
           <Icon name="heroicons:folder" class="w-4 h-4" />
         </div>
         <span class="flex-1 text-left truncate">
           {{ focusState.project?.title || 'No project' }}
         </span>
-        <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+        <Icon name="heroicons:chevron-down" class="w-3 h-3 flex-shrink-0" :class="hasProjectFocus ? 'text-blue-400' : 'text-slate-400'" />
       </button>
 
       <!-- Task/Lane Focus -->
@@ -152,13 +150,13 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         v-if="hasProjectFocus"
         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs"
         :class="hasTaskFocus 
-          ? 'bg-amber-50 text-amber-900' 
+          ? 'bg-emerald-50 text-emerald-900' 
           : 'text-slate-500'"
       >
         <!-- Activity Icon -->
         <div 
           class="w-4 h-4 flex items-center justify-center flex-shrink-0"
-          :class="hasTaskFocus ? 'text-amber-500' : 'text-slate-400'"
+          :class="hasTaskFocus ? 'text-emerald-500' : 'text-slate-400'"
         >
           <Icon 
             :name="hasTaskFocus ? 'heroicons:bolt' : LANE_ICONS[focusState.lane?.type || 'GENERAL']" 
@@ -168,37 +166,26 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
 
         <!-- Activity Label -->
         <button
-          @click="hasTaskFocus ? null : showLanePicker = true"
-          class="flex-1 text-left truncate"
-          :class="!hasTaskFocus && 'hover:text-slate-700 cursor-pointer'"
+          @click="hasTaskFocus ? handleTaskAction() : showLanePicker = true"
+          class="flex-1 text-left truncate hover:opacity-80"
         >
           {{ activityLabel }}
         </button>
 
         <!-- Duration -->
-        <span class="text-[10px] text-slate-400 flex-shrink-0">{{ durationDisplay }}</span>
+        <span class="text-[10px] flex-shrink-0" :class="hasTaskFocus ? 'text-emerald-500' : 'text-slate-400'">
+          {{ durationDisplay }}
+        </span>
 
-        <!-- Task actions -->
-        <template v-if="hasTaskFocus">
-          <!-- Switch (pause task, go to lane) -->
-          <button
-            @click="handleSwitchFromTask"
-            class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-slate-600 flex-shrink-0"
-            title="Switch activity"
-          >
-            <Icon name="heroicons:arrows-right-left" class="w-3.5 h-3.5" />
-          </button>
-          <!-- Complete -->
-          <button
-            @click="handleCompleteTask"
-            class="w-4 h-4 flex items-center justify-center text-emerald-500 hover:text-emerald-600 flex-shrink-0"
-            title="Complete task"
-          >
-            <Icon name="heroicons:check" class="w-4 h-4" />
-          </button>
-        </template>
-
-        <!-- Lane picker (for lanes) -->
+        <!-- Single action button -->
+        <button
+          v-if="hasTaskFocus"
+          @click="handleTaskAction"
+          class="w-4 h-4 flex items-center justify-center text-emerald-500 hover:text-emerald-600 flex-shrink-0"
+          title="Task actions"
+        >
+          <Icon name="heroicons:ellipsis-vertical" class="w-4 h-4" />
+        </button>
         <button
           v-else
           @click="showLanePicker = true"
@@ -248,16 +235,16 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
               :key="project.id"
               @click="selectProject(project.id)"
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 text-left"
-              :class="focusState.project?.id === project.id && 'bg-slate-100'"
+              :class="focusState.project?.id === project.id && 'bg-blue-50'"
             >
-              <div class="w-6 h-6 rounded bg-slate-200 flex items-center justify-center flex-shrink-0">
-                <span class="text-xs text-slate-600 font-medium">{{ project.title.charAt(0) }}</span>
+              <div class="w-6 h-6 rounded bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-xs text-blue-600 font-medium">{{ project.title.charAt(0) }}</span>
               </div>
               <span class="text-sm text-slate-900 truncate">{{ project.title }}</span>
               <Icon 
                 v-if="focusState.project?.id === project.id"
                 name="heroicons:check" 
-                class="w-4 h-4 text-slate-600 ml-auto flex-shrink-0" 
+                class="w-4 h-4 text-blue-600 ml-auto flex-shrink-0" 
               />
             </button>
             <div v-if="!projects.length" class="px-3 py-6 text-sm text-slate-400 text-center">
@@ -298,39 +285,28 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
       </div>
     </Teleport>
 
-    <!-- Task Completion / Switch Modal -->
+    <!-- Task Action Modal (Switch or Complete) -->
     <Teleport to="body">
       <div
-        v-if="showCompletionModal"
+        v-if="showTaskActionModal"
         class="fixed inset-0 z-50 flex items-center justify-center"
-        @click.self="showCompletionModal = false"
+        @click.self="showTaskActionModal = false"
       >
-        <div class="absolute inset-0 bg-black/30" @click="showCompletionModal = false"></div>
+        <div class="absolute inset-0 bg-black/30" @click="showTaskActionModal = false"></div>
         <div class="relative bg-white rounded-2xl shadow-2xl w-[26rem] overflow-hidden">
           <!-- Header -->
-          <div 
-            class="p-5 text-center"
-            :class="isCompletingTask 
-              ? 'bg-gradient-to-br from-emerald-50 to-teal-50' 
-              : 'bg-gradient-to-br from-slate-50 to-gray-50'"
-          >
-            <div 
-              class="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center"
-              :class="isCompletingTask ? 'bg-emerald-100' : 'bg-slate-100'"
-            >
-              <Icon 
-                :name="isCompletingTask ? 'heroicons:check-circle' : 'heroicons:arrows-right-left'" 
-                class="w-7 h-7"
-                :class="isCompletingTask ? 'text-emerald-600' : 'text-slate-600'"
-              />
+          <div class="p-5 bg-gradient-to-br from-emerald-50 to-teal-50">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <Icon name="heroicons:bolt" class="w-5 h-5 text-emerald-600" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-slate-900 truncate">
+                  {{ focusState.task?.title }}
+                </p>
+                <p class="text-xs text-slate-500 mt-0.5">{{ durationDisplay }} focused</p>
+              </div>
             </div>
-            <h3 class="text-base font-semibold text-slate-900">
-              {{ isCompletingTask ? 'Well done! 🎉' : 'Switching task' }}
-            </h3>
-            <p class="text-sm text-slate-600 mt-1 truncate px-6">
-              {{ focusState.task?.title }}
-            </p>
-            <p class="text-xs text-slate-400 mt-0.5">{{ durationDisplay }}</p>
           </div>
 
           <!-- Comment -->
@@ -339,42 +315,62 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
               Quick note <span class="text-slate-400 font-normal">(optional)</span>
             </label>
             <textarea
-              v-model="completionComment"
-              :placeholder="isCompletingTask ? 'What did you accomplish?' : 'Why are you switching?'"
+              v-model="actionComment"
+              placeholder="What did you work on? Any blockers?"
               rows="2"
-              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
             ></textarea>
           </div>
 
-          <!-- What's next -->
-          <div class="px-4 pb-4">
-            <label class="block text-sm font-medium text-slate-700 mb-2">What's next?</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="lane in lanes.filter(l => l !== 'GENERAL')"
-                :key="lane"
-                @click="submitCompletion({ type: 'lane', lane })"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"
-              >
-                <Icon :name="LANE_ICONS[lane]" class="w-3.5 h-3.5" />
-                {{ LANE_LABELS[lane] }}
-              </button>
+          <!-- Actions -->
+          <div class="px-4 pb-4 space-y-3">
+            <!-- Complete Task -->
+            <div>
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Complete task</p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  @click="handleComplete()"
+                  class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
+                >
+                  <Icon name="heroicons:check" class="w-4 h-4" />
+                  Mark done
+                </button>
+                <button
+                  v-for="lane in lanes"
+                  :key="lane"
+                  @click="handleComplete(lane)"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700"
+                >
+                  <Icon :name="LANE_ICONS[lane]" class="w-3.5 h-3.5" />
+                  {{ LANE_LABELS[lane] }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Switch (pause task) -->
+            <div>
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Switch (pause task)</p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="lane in lanes"
+                  :key="lane"
+                  @click="handleSwitch(lane)"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"
+                >
+                  <Icon :name="LANE_ICONS[lane]" class="w-3.5 h-3.5" />
+                  {{ LANE_LABELS[lane] }}
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="p-4 border-t border-slate-100 flex gap-3">
+          <!-- Cancel -->
+          <div class="p-4 border-t border-slate-100">
             <button
-              @click="showCompletionModal = false"
-              class="flex-1 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg"
+              @click="showTaskActionModal = false"
+              class="w-full px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg"
             >
               Cancel
-            </button>
-            <button
-              @click="submitCompletion()"
-              class="flex-1 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg"
-            >
-              {{ isCompletingTask ? 'Complete' : 'Switch' }}
             </button>
           </div>
         </div>
