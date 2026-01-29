@@ -31,7 +31,8 @@ const isRootLevel = computed(() => !currentScope.value || currentScope.value.id 
 
 // Fetch all projects for sidebar (independent of current scope)
 const { data: allProjects } = useFetch('/api/items', {
-  query: { workspaceId: 'default' }, // TODO: use actual workspace
+  query: computed(() => ({ workspaceId: workspaceId.value, parentId: 'root' })),
+  watch: [workspaceId],
   default: () => []
 })
 

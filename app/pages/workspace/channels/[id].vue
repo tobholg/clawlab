@@ -22,12 +22,6 @@ const {
   channelTree,
 } = useChannels(workspaceId)
 
-// Fetch all channels for sidebar
-const { data: allProjects } = useFetch('/api/items', {
-  query: { workspaceId: 'default' },
-  default: () => []
-})
-
 // Fetch channel on mount/route change
 watch(channelId, async (id) => {
   if (id) {
@@ -86,9 +80,6 @@ const channelIcon = computed(() => {
   if (currentChannel.value.type === 'external') return 'heroicons:globe-alt'
   return 'heroicons:hashtag'
 })
-
-// Sidebar state
-const sidebarCollapsed = ref(false)
 
 // WebSocket setup
 const { 
@@ -190,176 +181,11 @@ const handleReaction = async (messageId: string, emoji: string) => {
 <template>
   <div class="flex h-screen bg-[#FAFAFA] font-sans text-slate-900 overflow-hidden">
     
-    <!-- Sidebar (shared with workspace) -->
-    <aside 
-      :class="[
-        'border-r border-slate-100 bg-white flex flex-col py-5 transition-all duration-300 ease-in-out',
-        sidebarCollapsed ? 'w-16' : 'w-56'
-      ]"
-    >
-      <!-- Logo + Toggle -->
-      <div :class="['mb-8 flex items-center', sidebarCollapsed ? 'flex-col gap-3' : 'px-5 justify-between']">
-        <NuxtLink to="/workspace" :class="['flex items-center gap-2.5', sidebarCollapsed ? 'justify-center w-full' : '']">
-          <div class="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-sm font-medium">R</span>
-          </div>
-          <span 
-            :class="[
-              'text-base font-medium tracking-tight transition-all duration-300 overflow-hidden whitespace-nowrap',
-              sidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
-            ]"
-          >
-            Relai
-          </span>
-        </NuxtLink>
-        <button 
-          @click="sidebarCollapsed = !sidebarCollapsed"
-          class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex items-center justify-center"
-        >
-          <Icon :name="sidebarCollapsed ? 'heroicons:chevron-right' : 'heroicons:chevron-left'" class="w-4 h-4" />
-        </button>
-      </div>
-
-      <!-- Navigation -->
-      <nav class="flex-1 px-3 overflow-y-auto">
-        <div class="space-y-0.5">
-          <!-- Projects link -->
-          <NuxtLink
-            to="/workspace"
-            :class="[
-              'w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200',
-              'text-slate-500 hover:text-slate-700 hover:bg-slate-50',
-              sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-            ]"
-          >
-            <Icon name="heroicons:folder" class="w-4 h-4 flex-shrink-0" />
-            <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Projects</span>
-          </NuxtLink>
-        </div>
-        
-        <!-- Channels Section -->
-        <div class="mt-6">
-          <h3 
-            :class="[
-              'mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap',
-              sidebarCollapsed ? 'px-0 text-center opacity-0 h-0' : 'px-3 opacity-100 h-auto'
-            ]"
-          >
-            Channels
-          </h3>
-          <div class="space-y-0.5">
-            <template v-for="channel in channelTree" :key="channel.id">
-              <!-- Parent channel -->
-              <NuxtLink 
-                :to="`/workspace/channels/${channel.id}`"
-                :class="[
-                  'w-full flex items-center rounded-lg text-sm font-normal transition-all duration-200',
-                  channelId === channel.id
-                    ? 'text-slate-900 bg-slate-100 font-medium'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50',
-                  sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-                ]"
-                :title="sidebarCollapsed ? channel.displayName : undefined"
-              >
-                <Icon 
-                  :name="channel.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'" 
-                  class="w-4 h-4 flex-shrink-0" 
-                />
-                <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap truncate', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">
-                  {{ channel.displayName }}
-                </span>
-                <span 
-                  v-if="channel.unreadCount && channel.unreadCount > 0 && !sidebarCollapsed"
-                  class="ml-auto text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full"
-                >
-                  {{ channel.unreadCount }}
-                </span>
-              </NuxtLink>
-              
-              <!-- Child channels (nested) -->
-              <div v-if="!sidebarCollapsed && channel.children?.length" class="ml-3 pl-3 border-l border-slate-100 space-y-0.5">
-                <NuxtLink 
-                  v-for="child in channel.children"
-                  :key="child.id"
-                  :to="`/workspace/channels/${child.id}`"
-                  :class="[
-                    'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200',
-                    channelId === child.id
-                      ? 'text-slate-900 bg-slate-100 font-medium'
-                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                  ]"
-                >
-                  <Icon 
-                    :name="child.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'" 
-                    class="w-3 h-3 flex-shrink-0" 
-                  />
-                  <span class="truncate">{{ child.displayName }}</span>
-                </NuxtLink>
-              </div>
-            </template>
-            
-            <!-- Empty state for channels -->
-            <div v-if="channelTree.length === 0 && !loading" class="px-3 py-4 text-xs text-slate-400 text-center">
-              No channels yet
-            </div>
-          </div>
-        </div>
-        
-        <!-- Team Section -->
-        <div class="mt-6">
-          <h3 
-            :class="[
-              'mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap',
-              sidebarCollapsed ? 'px-0 text-center opacity-0 h-0' : 'px-3 opacity-100 h-auto'
-            ]"
-          >
-            Team
-          </h3>
-          <div class="space-y-0.5">
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-            >
-              <Icon name="heroicons:users" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Members</span>
-            </button>
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-            >
-              <Icon name="heroicons:cog-6-tooth" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Settings</span>
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <!-- User -->
-      <div class="px-3 mt-auto">
-        <div 
-          :class="[
-            'flex items-center rounded-lg hover:bg-slate-50 cursor-pointer transition-all duration-200',
-            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-          ]"
-        >
-          <div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-            <span class="text-xs font-medium text-slate-600">T</span>
-          </div>
-          <div :class="['flex-1 min-w-0 transition-all duration-300 overflow-hidden', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">
-            <div class="text-sm font-normal text-slate-800 truncate">Tobias</div>
-          </div>
-          <Icon 
-            v-if="!sidebarCollapsed"
-            name="heroicons:chevron-up-down" 
-            class="w-4 h-4 text-slate-400 flex-shrink-0" 
-          />
-        </div>
-      </div>
-    </aside>
+    <!-- Shared Sidebar -->
+    <WorkspaceSidebar 
+      :workspace-id="workspaceId" 
+      :current-channel-id="channelId"
+    />
 
     <!-- Main Content - Channel View -->
     <main :class="['flex-1 flex min-w-0 min-h-0', activeThread ? 'flex-row' : 'flex-col']">
