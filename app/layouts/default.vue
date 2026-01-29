@@ -8,57 +8,27 @@ const navigation = [
 
 const route = useRoute()
 
-// Focus state
-const { currentFocus, clearFocus, focusDuration, loadCurrentFocus } = useFocus()
-
-// Load focus state on mount
-onMounted(() => {
-  loadCurrentFocus()
-})
-
-// Update duration every minute
-const durationDisplay = ref('')
-let durationInterval: ReturnType<typeof setInterval> | null = null
-
-watch(currentFocus, (focus) => {
-  if (durationInterval) clearInterval(durationInterval)
-  
-  if (focus) {
-    const updateDuration = () => {
-      const now = new Date()
-      const started = new Date(focus.startedAt)
-      const diffMs = now.getTime() - started.getTime()
-      const diffMins = Math.floor(diffMs / 60000)
-      
-      if (diffMins < 60) {
-        durationDisplay.value = `${diffMins}m`
-      } else {
-        const hours = Math.floor(diffMins / 60)
-        const mins = diffMins % 60
-        durationDisplay.value = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
-      }
-    }
-    updateDuration()
-    durationInterval = setInterval(updateDuration, 60000)
-  }
-}, { immediate: true })
-
-onUnmounted(() => {
-  if (durationInterval) clearInterval(durationInterval)
-})
+// Workspace ID (will come from route/state)
+const currentWorkspaceId = ref('demo-workspace')
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Sidebar -->
-    <aside class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
+    <aside class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col">
       <!-- Logo -->
-      <div class="flex items-center h-16 px-6 border-b border-gray-200">
+      <div class="flex items-center h-16 px-6 border-b border-gray-200 flex-shrink-0">
         <span class="text-xl font-bold text-relai-600">Relai</span>
       </div>
 
+      <!-- Focus Section -->
+      <FocusSidebar />
+      
+      <!-- Team Presence -->
+      <TeamPresence :workspace-id="currentWorkspaceId" />
+
       <!-- Navigation -->
-      <nav class="p-4 space-y-1">
+      <nav class="p-4 space-y-1 flex-shrink-0">
         <NuxtLink
           v-for="item in navigation"
           :key="item.name"
@@ -73,8 +43,11 @@ onUnmounted(() => {
         </NuxtLink>
       </nav>
 
-      <!-- Project selector (placeholder) -->
-      <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+      <!-- Spacer -->
+      <div class="flex-1"></div>
+
+      <!-- Workspace selector -->
+      <div class="p-4 border-t border-gray-200 flex-shrink-0">
         <button class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
           <div class="w-8 h-8 rounded-lg bg-relai-100 flex items-center justify-center">
             <span class="text-relai-600 font-medium">R</span>
@@ -99,28 +72,6 @@ onUnmounted(() => {
         </div>
 
         <div class="flex items-center gap-4">
-          <!-- Current Focus Indicator -->
-          <div 
-            v-if="currentFocus" 
-            class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full"
-          >
-            <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-            <span class="text-sm font-medium text-amber-700 max-w-[200px] truncate">
-              {{ currentFocus.itemTitle }}
-            </span>
-            <span class="text-xs text-amber-500">{{ durationDisplay }}</span>
-            <button 
-              @click="clearFocus"
-              class="p-0.5 rounded hover:bg-amber-100 text-amber-400 hover:text-amber-600 transition-colors"
-              title="End focus session"
-            >
-              <Icon name="heroicons:x-mark" class="w-4 h-4" />
-            </button>
-          </div>
-
           <!-- Search -->
           <div class="relative">
             <Icon name="heroicons:magnifying-glass" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

@@ -11,10 +11,16 @@ const emit = defineEmits<{
   openDetail: [item: ItemNode]
 }>()
 
-const { isFocusedOn } = useFocus()
+const { isFocusedOnTask, startTaskFocus, focusState } = useFocus()
 
 const hasChildren = computed(() => props.item.childrenCount > 0)
-const isCurrentlyFocused = computed(() => isFocusedOn(props.item.id))
+const isCurrentlyFocused = computed(() => isFocusedOnTask(props.item.id))
+
+// Focus action
+const handleFocusClick = async (e: Event) => {
+  e.stopPropagation()
+  await startTaskFocus(props.item.id)
+}
 
 // Avatar colors (deterministic based on id)
 const avatarColors = [
@@ -143,10 +149,22 @@ const handleCardClick = () => {
         </div>
       </div>
       
-      <!-- Menu button -->
-      <button class="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-1 -mt-0.5">
-        <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4 text-slate-300 hover:text-slate-500" />
-      </button>
+      <!-- Action buttons (on hover) -->
+      <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-1 -mt-0.5">
+        <!-- Focus button -->
+        <button 
+          v-if="!isCurrentlyFocused"
+          @click="handleFocusClick"
+          class="p-1 rounded hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors"
+          title="Focus on this"
+        >
+          <Icon name="heroicons:bolt" class="w-4 h-4" />
+        </button>
+        <!-- Menu button -->
+        <button class="p-1 rounded hover:bg-slate-50">
+          <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4 text-slate-300 hover:text-slate-500" />
+        </button>
+      </div>
     </div>
     
     <!-- Children indicator -->

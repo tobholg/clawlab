@@ -58,9 +58,15 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Current focus
-  currentFocusItemId    String?
-  currentFocusStartedAt DateTime?
+  // Two-layer focus system
+  // Layer 1: Project context (sticky)
+  currentProjectFocusId    String?   // The project they're working on
+  currentProjectFocusStart DateTime? // When they started this project focus
+  
+  // Layer 2: Activity (fluid) - either a task OR a lane
+  currentTaskFocusId       String?   // Current task (nullable)
+  currentLaneFocus         FocusLane? // Current lane if no task (general, meeting, admin, learning, break)
+  currentActivityStart     DateTime? // When current task/lane began
 
   // Relations
   ownedItems          Item[]               @relation("OwnedItems")
@@ -72,7 +78,8 @@ model User {
   organizationMembers OrganizationMember[]
   magicLinkTokens     MagicLinkToken[]
   focusSessions       FocusSession[]
-  currentFocusItem    Item?                @relation("CurrentFocus", fields: [currentFocusItemId], references: [id])
+  currentProjectFocus Item?                @relation("CurrentProjectFocus", fields: [currentProjectFocusId], references: [id])
+  currentTaskFocus    Item?                @relation("CurrentTaskFocus", fields: [currentTaskFocusId], references: [id])
   channelMembers      ChannelMember[]
   messages            Message[]
   reactions           Reaction[]
@@ -181,8 +188,11 @@ model Item {
   blocks         ItemDependency[]  @relation("BlockingItem")
   activities     Activity[]
   comments       Comment[]
-  focusSessions  FocusSession[]
-  currentFocusBy User[]            @relation("CurrentFocus")
+  // Focus relations
+  taskFocusSessions    FocusSession[] @relation("FocusSessionTask")
+  projectFocusSessions FocusSession[] @relation("FocusSessionProject")
+  currentProjectFocusBy User[]        @relation("CurrentProjectFocus")
+  currentTaskFocusBy    User[]        @relation("CurrentTaskFocus")
   channel        Channel?          // One project = one channel
 
   @@index([workspaceId])
@@ -242,18 +252,55 @@ enum ItemStatus {
 // FOCUS TRACKING
 // ============================================
 
+enum FocusLane {
+  GENERAL
+  MEETING
+  ADMIN
+  LEARNING
+  BREAK
+}
+
+enum FocusActivityType {
+  TASK
+  LANE
+}
+
+enum FocusEndReason {
+  COMPLETED    // Task was marked complete
+  SWITCHED     // Switched to another task/lane
+  MANUAL_EXIT  // User explicitly ended focus
+  DAY_END      // Auto-ended at day boundary
+}
+
 model FocusSession {
   id        String    @id @default(cuid())
   userId    String
-  itemId    String
   startedAt DateTime  @default(now())
   endedAt   DateTime?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  // What they were doing
+  activityType FocusActivityType
+  taskId       String?    // If activityType = TASK
+  lane         FocusLane? // If activityType = LANE
+  
+  // Context (inherited from sticky project)
+  projectId    String?
+  
+  // How it ended
+  endReason    FocusEndReason?
+  
+  // User annotation
+  comment      String?
+  commentedAt  DateTime?
+
+  // Relations
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task    Item? @relation("FocusSessionTask", fields: [taskId], references: [id], onDelete: SetNull)
+  project Item? @relation("FocusSessionProject", fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([userId])
-  @@index([itemId])
+  @@index([taskId])
+  @@index([projectId])
   @@index([startedAt])
   @@map("focus_sessions")
 }

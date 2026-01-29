@@ -14,7 +14,7 @@ const emit = defineEmits<{
 }>()
 
 // Focus management
-const { currentFocus, startFocus, clearFocus, isFocusedOn, isLoading: focusLoading, currentUserId } = useFocus()
+const { focusState, startTaskFocus, completeTask, isFocusedOnTask, isLoading: focusLoading, currentUserId } = useFocus()
 
 // Current item ID (allows in-modal navigation)
 const currentItemId = ref<string | null>(null)
@@ -569,22 +569,22 @@ const formatRelativeTime = (dateStr: string) => {
             <div class="flex items-center gap-2">
               <!-- Focus Button -->
               <button
-                v-if="!isFocusedOn(item.id)"
-                @click="startFocus(item.id, item.title)"
-                :disabled="focusLoading"
-                class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg text-xs font-medium hover:from-blue-600 hover:to-indigo-600 transition-all disabled:opacity-50 shadow-sm"
-              >
-                <Icon name="heroicons:bolt" class="w-3.5 h-3.5" />
-                Start Focus
-              </button>
-              <button
-                v-else
-                @click="clearFocus"
+                v-if="!isFocusedOnTask(item.id)"
+                @click="startTaskFocus(item.id)"
                 :disabled="focusLoading"
                 class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 shadow-sm"
               >
-                <Icon name="heroicons:bolt-slash" class="w-3.5 h-3.5" />
-                End Focus
+                <Icon name="heroicons:bolt" class="w-3.5 h-3.5" />
+                Focus
+              </button>
+              <button
+                v-else
+                @click="completeTask()"
+                :disabled="focusLoading"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-xs font-medium hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50 shadow-sm"
+              >
+                <Icon name="heroicons:check" class="w-3.5 h-3.5" />
+                Complete
               </button>
               
               <!-- Close button -->
