@@ -366,13 +366,6 @@ const handleReaction = async (messageId: string, emoji: string) => {
       <!-- Channel content -->
       <div :class="['flex flex-col relative min-h-0', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
       
-      <!-- Subtle vibrant gradient background (messages area only) -->
-      <div class="absolute inset-0 pointer-events-none overflow-hidden">
-        <div class="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-violet-200/30 via-fuchsia-200/20 to-transparent rounded-full blur-3xl" />
-        <div class="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-tr from-sky-200/30 via-cyan-200/20 to-transparent rounded-full blur-3xl" />
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 bg-gradient-to-r from-amber-200/10 via-rose-200/10 to-transparent rounded-full blur-3xl" />
-      </div>
-      
       <!-- Channel Header -->
       <header class="relative z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between bg-white">
         <div class="flex items-center gap-3">

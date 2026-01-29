@@ -370,13 +370,6 @@ onMounted(() => {
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden">
-      <!-- Subtle vibrant gradient background -->
-      <div class="absolute inset-0 pointer-events-none overflow-hidden">
-        <div class="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-violet-200/30 via-fuchsia-200/20 to-transparent rounded-full blur-3xl" />
-        <div class="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-tr from-sky-200/30 via-cyan-200/20 to-transparent rounded-full blur-3xl" />
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 bg-gradient-to-r from-amber-200/10 via-rose-200/10 to-transparent rounded-full blur-3xl" />
-      </div>
-      
       <!-- Header -->
       <header class="relative z-10 px-6 py-5 flex flex-col gap-4">
         <!-- Breadcrumbs -->
