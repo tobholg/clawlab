@@ -350,6 +350,18 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
           <div class="flex-1 overflow-y-auto p-4">
             <FocusTimeline />
           </div>
+
+          <!-- Footer -->
+          <div class="px-5 py-3 border-t border-slate-100 flex-shrink-0">
+            <NuxtLink 
+              to="/workspace/focus"
+              @click="showTimeline = false"
+              class="text-sm text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1"
+            >
+              View all
+              <Icon name="heroicons:arrow-right" class="w-4 h-4" />
+            </NuxtLink>
+          </div>
         </div>
       </div>
     </Teleport>
