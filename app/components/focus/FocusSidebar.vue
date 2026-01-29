@@ -137,7 +137,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         <span class="flex-1 text-left truncate">
           {{ focusState.project?.title || 'No project' }}
         </span>
-        <Icon name="heroicons:chevron-down" class="w-3 h-3 flex-shrink-0" :class="hasProjectFocus ? 'text-blue-400' : 'text-slate-400'" />
+        <Icon name="heroicons:chevron-right" class="w-3 h-3 flex-shrink-0" :class="hasProjectFocus ? 'text-blue-400' : 'text-slate-400'" />
       </button>
 
       <!-- Task/Lane Focus -->
@@ -165,7 +165,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
           {{ durationDisplay }}
         </span>
         <Icon 
-          :name="hasTaskFocus ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" 
+          name="heroicons:chevron-right" 
           class="w-3 h-3 flex-shrink-0" 
           :class="hasTaskFocus ? 'text-emerald-400' : 'text-slate-400'" 
         />
