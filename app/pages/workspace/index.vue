@@ -213,146 +213,113 @@ onMounted(() => {
       <!-- Focus Section -->
       <FocusSidebar v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
       
-      <!-- Team Presence -->
+      <!-- Team Section -->
       <TeamPresence v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
 
-      <!-- Navigation -->
-      <nav class="flex-1 px-3 overflow-y-auto">
-        <div class="space-y-0.5">
-          <!-- Projects (always active when in workspace/project context) -->
+      <!-- Projects Section -->
+      <div v-if="!sidebarCollapsed" class="px-3 mb-4">
+        <button 
+          @click="navigateTo('root'); activeView = 'dashboard'"
+          class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors flex items-center gap-1"
+        >
+          Projects
+          <Icon name="heroicons:squares-2x2" class="w-3 h-3" />
+        </button>
+        <div class="space-y-1">
           <button
-            @click="navigateTo('root'); activeView = 'dashboard'"
-            :class="[
-              'w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200',
-              'text-slate-900 bg-slate-100',
-              sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-            ]"
-            :title="sidebarCollapsed ? 'Projects' : undefined"
+            v-for="project in recentProjects.slice(0, 5)"
+            :key="project.id"
+            @click="navigateTo(project.id)"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-200"
+            :class="currentScope?.id === project.id
+              ? 'bg-slate-100 text-slate-900'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
           >
-            <Icon name="heroicons:folder" class="w-4 h-4 flex-shrink-0" />
-            <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Projects</span>
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <div 
+                class="w-2 h-2 rounded-full" 
+                :class="project.status === 'done' ? 'bg-emerald-400' : project.status === 'in_progress' ? 'bg-blue-400' : 'bg-slate-300'" 
+              />
+            </div>
+            <span class="flex-1 text-left truncate">{{ project.title }}</span>
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
           </button>
-          
-          <!-- Recent Projects (nested under Projects) -->
-          <div v-if="!sidebarCollapsed && recentProjects.length > 0" class="ml-3 pl-3 border-l border-slate-100 space-y-0.5">
-            <button
-              v-for="project in recentProjects"
-              :key="project.id"
-              @click="navigateTo(project.id)"
-              :class="[
-                'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200',
-                currentScope?.id === project.id
-                  ? 'text-slate-900 bg-slate-100 font-medium'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-              ]"
-            >
-              <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="project.status === 'done' ? 'bg-emerald-400' : project.status === 'in_progress' ? 'bg-blue-400' : 'bg-slate-300'" />
-              <span class="truncate">{{ project.title }}</span>
-            </button>
+          <div v-if="!recentProjects.length" class="px-3 py-2 text-[10px] text-slate-400 italic">
+            No projects yet
           </div>
         </div>
-        
-        <!-- Channels Section -->
-        <div class="mt-6">
-          <h3 
-            :class="[
-              'mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap',
-              sidebarCollapsed ? 'px-0 text-center opacity-0 h-0' : 'px-3 opacity-100 h-auto'
-            ]"
-          >
-            Channels
-          </h3>
-          <div class="space-y-0.5">
-            <template v-for="channel in channelTree" :key="channel.id">
-              <!-- Parent channel -->
-              <NuxtLink 
-                :to="`/workspace/channels/${channel.id}`"
-                :class="[
-                  'w-full flex items-center rounded-lg text-sm font-normal transition-all duration-200',
-                  'text-slate-500 hover:text-slate-700 hover:bg-slate-50',
-                  sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-                ]"
-                :title="sidebarCollapsed ? channel.displayName : undefined"
-              >
+      </div>
+
+      <!-- Channels Section -->
+      <div v-if="!sidebarCollapsed" class="px-3 mb-4">
+        <h3 class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+          Channels
+        </h3>
+        <div class="space-y-1">
+          <template v-for="channel in channelTree" :key="channel.id">
+            <NuxtLink 
+              :to="`/workspace/channels/${channel.id}`"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            >
+              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
                 <Icon 
                   :name="channel.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'" 
-                  class="w-4 h-4 flex-shrink-0" 
+                  class="w-4 h-4" 
                 />
-                <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap truncate', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">
-                  {{ channel.displayName }}
-                </span>
-                <span 
-                  v-if="channel.unreadCount && channel.unreadCount > 0 && !sidebarCollapsed"
-                  class="ml-auto text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full"
-                >
-                  {{ channel.unreadCount }}
-                </span>
-              </NuxtLink>
-              
-              <!-- Child channels (nested) -->
-              <div v-if="!sidebarCollapsed && channel.children?.length" class="ml-3 pl-3 border-l border-slate-100 space-y-0.5">
-                <NuxtLink 
-                  v-for="child in channel.children"
-                  :key="child.id"
-                  :to="`/workspace/channels/${child.id}`"
-                  :class="[
-                    'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200',
-                    'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                  ]"
-                >
-                  <Icon 
-                    :name="child.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'" 
-                    class="w-3 h-3 flex-shrink-0" 
-                  />
-                  <span class="truncate">{{ child.displayName }}</span>
-                </NuxtLink>
               </div>
-            </template>
+              <span class="flex-1 text-left truncate">{{ channel.displayName }}</span>
+              <span 
+                v-if="channel.unreadCount && channel.unreadCount > 0"
+                class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full"
+              >
+                {{ channel.unreadCount }}
+              </span>
+              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+            </NuxtLink>
             
-            <!-- Fallback when no channels -->
-            <div v-if="channelTree.length === 0 && !channelsLoading" class="px-3 py-2 text-xs text-slate-400">
-              No channels yet
+            <!-- Nested channels -->
+            <div v-if="channel.children?.length" class="ml-6 space-y-1">
+              <NuxtLink 
+                v-for="child in channel.children"
+                :key="child.id"
+                :to="`/workspace/channels/${child.id}`"
+                class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+              >
+                <Icon 
+                  :name="child.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'" 
+                  class="w-3 h-3" 
+                />
+                <span class="truncate">{{ child.displayName }}</span>
+              </NuxtLink>
             </div>
+          </template>
+          <div v-if="!channelTree.length && !channelsLoading" class="px-3 py-2 text-[10px] text-slate-400 italic">
+            No channels yet
           </div>
         </div>
-        
-        <!-- Team Section -->
-        <div class="mt-6">
-          <h3 
-            :class="[
-              'mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider transition-all duration-300 overflow-hidden whitespace-nowrap',
-              sidebarCollapsed ? 'px-0 text-center opacity-0 h-0' : 'px-3 opacity-100 h-auto'
-            ]"
-          >
-            Team
-          </h3>
-          <div class="space-y-0.5">
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-              :title="sidebarCollapsed ? 'Members' : undefined"
-            >
-              <Icon name="heroicons:users" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Members</span>
-            </button>
-            <button 
-              :class="[
-                'w-full flex items-center rounded-lg text-sm font-normal text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all duration-200',
-                sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
-              ]"
-              :title="sidebarCollapsed ? 'Settings' : undefined"
-            >
-              <Icon name="heroicons:cog-6-tooth" class="w-4 h-4 flex-shrink-0" />
-              <span :class="['transition-all duration-300 overflow-hidden whitespace-nowrap', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">Settings</span>
-            </button>
-          </div>
+      </div>
+
+      <!-- Settings Section -->
+      <div v-if="!sidebarCollapsed" class="px-3 mb-4">
+        <h3 class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+          Settings
+        </h3>
+        <div class="space-y-1">
+          <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <Icon name="heroicons:cog-6-tooth" class="w-4 h-4" />
+            </div>
+            <span class="flex-1 text-left">Workspace settings</span>
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+          </button>
         </div>
-      </nav>
+      </div>
+
+      <!-- Spacer -->
+      <div class="flex-1"></div>
 
       <!-- User -->
-      <div class="px-3 mt-auto">
+      <div class="px-3 mb-4">
         <div 
           :class="[
             'flex items-center rounded-lg hover:bg-slate-50 cursor-pointer transition-all duration-200',
