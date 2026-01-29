@@ -1,5 +1,5 @@
 // POST /api/focus/complete-task - Complete current task and end focus session
-import { prisma } from '~/server/utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)

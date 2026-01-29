@@ -1,5 +1,5 @@
 // POST /api/focus/session/[id]/comment - Add comment to a focus session
-import { prisma } from '~/server/utils/prisma'
+import { prisma } from '../../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const sessionId = getRouterParam(event, 'id')

@@ -1,5 +1,5 @@
 // GET /api/focus/current - Get current focus state for a user
-import { prisma } from '~/server/utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)

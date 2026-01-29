@@ -1,5 +1,5 @@
 // POST /api/focus/lane - Switch to a lane (general, meeting, admin, learning, break)
-import { prisma } from '~/server/utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 const VALID_LANES = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK'] as const
 

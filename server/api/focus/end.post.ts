@@ -1,5 +1,5 @@
 // POST /api/focus/end - End all focus (task/lane and optionally project)
-import { prisma } from '~/server/utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)

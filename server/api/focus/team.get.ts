@@ -1,5 +1,5 @@
 // GET /api/focus/team - Get team focus presence for a workspace
-import { prisma } from '~/server/utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
