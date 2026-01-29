@@ -32,6 +32,9 @@ export default defineEventHandler(async (event) => {
     finalStartDate = now
   }
   
+  // Set first assignee as owner by default
+  const ownerId = body.ownerId ?? assigneeIds?.[0] ?? null
+  
   const item = await prisma.item.create({
     data: {
       workspaceId,
@@ -43,6 +46,7 @@ export default defineEventHandler(async (event) => {
       dueDate: dueDate ? new Date(dueDate) : null,
       startDate: finalStartDate,
       confidence: confidence ?? 70,
+      ownerId,
       assignees: assigneeIds?.length ? {
         create: assigneeIds.map((userId: string) => ({ userId }))
       } : undefined,
@@ -51,6 +55,7 @@ export default defineEventHandler(async (event) => {
       } : undefined,
     },
     include: {
+      owner: true,
       assignees: { include: { user: true } },
       stakeholders: { include: { user: true } },
     }

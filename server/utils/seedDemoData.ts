@@ -297,7 +297,7 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
       }
     })
 
-    // Assign 2-3 random people to project
+    // Assign 2-3 random people to project, first one is owner
     const projectAssignees = shuffleArray(allAssignees).slice(0, 2 + Math.floor(Math.random() * 2))
     await Promise.all(
       projectAssignees.map(userId =>
@@ -306,6 +306,11 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
         })
       )
     )
+    // Set first assignee as owner
+    await prisma.item.update({
+      where: { id: project.id },
+      data: { ownerId: projectAssignees[0] }
+    })
 
     // Create top-level items (sections)
     for (const sectionConfig of projectConfig.items) {
@@ -326,7 +331,7 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
         }
       })
 
-      // Assign 1-2 random people to section
+      // Assign 1-2 random people to section, first one is owner
       const sectionAssignees = shuffleArray(allAssignees).slice(0, 1 + Math.floor(Math.random() * 2))
       await Promise.all(
         sectionAssignees.map(userId =>
@@ -335,6 +340,11 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
           })
         )
       )
+      // Set first assignee as owner
+      await prisma.item.update({
+        where: { id: section.id },
+        data: { ownerId: sectionAssignees[0] }
+      })
 
       // Create child tasks
       if (sectionConfig.children) {
@@ -356,10 +366,15 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
             }
           })
 
-          // Assign 1 random person to task
+          // Assign 1 random person to task and set as owner
           const taskAssignee = shuffleArray(allAssignees)[0]
           await prisma.itemAssignment.create({
             data: { itemId: task.id, userId: taskAssignee }
+          })
+          // Set owner
+          await prisma.item.update({
+            where: { id: task.id },
+            data: { ownerId: taskAssignee }
           })
 
           // Add some comments to in-progress tasks
@@ -411,6 +426,169 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
   if (dbMigration && etlPipeline) {
     await prisma.itemDependency.create({
       data: { blockedItemId: etlPipeline.id, blockingItemId: dbMigration.id }
+    })
+  }
+
+  // === CREATE CHANNELS WITH MESSAGES AND THREADS ===
+  
+  // Find or create general channel (may already exist from onboarding)
+  let generalChannel = await prisma.channel.findFirst({
+    where: { workspaceId, name: 'general' }
+  })
+  
+  if (!generalChannel) {
+    generalChannel = await prisma.channel.create({
+      data: {
+        workspaceId,
+        name: 'general',
+        displayName: 'General',
+        description: 'Company-wide announcements and discussions',
+        type: 'WORKSPACE',
+        visibility: 'PUBLIC',
+        members: {
+          create: allAssignees.map(userId => ({
+            userId,
+            role: userId === ownerId ? 'OWNER' : 'MEMBER',
+          }))
+        }
+      }
+    })
+  } else {
+    // Add team members to existing channel
+    for (const userId of allAssignees) {
+      await prisma.channelMember.upsert({
+        where: { channelId_userId: { channelId: generalChannel.id, userId } },
+        update: {},
+        create: { channelId: generalChannel.id, userId, role: userId === ownerId ? 'OWNER' : 'MEMBER' }
+      })
+    }
+  }
+
+  // Find or create off-topic/watercooler channel
+  let randomChannel = await prisma.channel.findFirst({
+    where: { workspaceId, name: { in: ['off-topic', 'watercooler'] } }
+  })
+  
+  if (!randomChannel) {
+    randomChannel = await prisma.channel.create({
+      data: {
+        workspaceId,
+        name: 'watercooler',
+        displayName: 'Watercooler',
+        description: 'Off-topic chat and random fun',
+        type: 'WORKSPACE',
+        visibility: 'PUBLIC',
+        members: {
+          create: allAssignees.map(userId => ({
+            userId,
+            role: userId === ownerId ? 'OWNER' : 'MEMBER',
+          }))
+        }
+      }
+    })
+  } else {
+    // Add team members to existing channel
+    for (const userId of allAssignees) {
+      await prisma.channelMember.upsert({
+        where: { channelId_userId: { channelId: randomChannel.id, userId } },
+        update: {},
+        create: { channelId: randomChannel.id, userId, role: 'MEMBER' }
+      })
+    }
+  }
+
+  // Sample messages for general channel
+  const generalMessages = [
+    { content: "Hey team! Quick reminder that we have our weekly standup tomorrow at 10am. Please come prepared with your updates.", userId: ownerId },
+    { content: "Thanks for the heads up! I'll have the API documentation ready to share.", userId: teamMembers[0].id },
+    { content: "Can we also discuss the timeline for the mobile app? I have some concerns about the current estimates.", userId: teamMembers[1].id },
+    { content: "Good point @Elena. Let's add that to the agenda.", userId: ownerId },
+    { content: "Just pushed the new design system components to staging. Would love some feedback! 🎨", userId: teamMembers[2].id },
+    { content: "These look great! The new color palette is much more consistent.", userId: teamMembers[3].id },
+    { content: "Agreed, nice work! The button hover states are 👌", userId: teamMembers[0].id },
+    { content: "Quick update: the database migration is complete. All tests passing ✅", userId: teamMembers[4].id },
+    { content: "Awesome! That unblocks the ETL pipeline work. I'll start on that today.", userId: teamMembers[1].id },
+    { content: "FYI - I'll be OOO Friday for a dentist appointment. Back online by 2pm.", userId: teamMembers[5].id },
+  ]
+
+  // Create messages with some time spread
+  const createdMessages: any[] = []
+  for (let i = 0; i < generalMessages.length; i++) {
+    const msg = generalMessages[i]
+    const message = await prisma.message.create({
+      data: {
+        channelId: generalChannel.id,
+        userId: msg.userId,
+        content: msg.content,
+        createdAt: new Date(Date.now() - (generalMessages.length - i) * 3600000), // Spread over hours
+      }
+    })
+    createdMessages.push(message)
+  }
+
+  // Add a thread to one of the messages (the design system one)
+  const designMessage = createdMessages[4] // "Just pushed the new design system..."
+  const threadReplies = [
+    { content: "I particularly like the new card components. Very clean!", userId: teamMembers[0].id },
+    { content: "Thanks! I spent extra time on the shadows and spacing.", userId: teamMembers[2].id },
+    { content: "Should we document these in Storybook?", userId: teamMembers[1].id },
+    { content: "Already on it! Should be up by EOD.", userId: teamMembers[2].id },
+    { content: "Perfect 🙌", userId: ownerId },
+  ]
+
+  for (let i = 0; i < threadReplies.length; i++) {
+    const reply = threadReplies[i]
+    await prisma.message.create({
+      data: {
+        channelId: generalChannel.id,
+        userId: reply.userId,
+        content: reply.content,
+        parentId: designMessage.id,
+        createdAt: new Date(Date.now() - (threadReplies.length - i) * 600000), // Spread over minutes
+      }
+    })
+  }
+
+  // Add some reactions
+  await prisma.reaction.create({
+    data: { messageId: createdMessages[4].id, userId: teamMembers[0].id, emoji: '🎨' }
+  })
+  await prisma.reaction.create({
+    data: { messageId: createdMessages[4].id, userId: teamMembers[3].id, emoji: '👍' }
+  })
+  await prisma.reaction.create({
+    data: { messageId: createdMessages[4].id, userId: ownerId, emoji: '🔥' }
+  })
+  await prisma.reaction.create({
+    data: { messageId: createdMessages[7].id, userId: teamMembers[0].id, emoji: '🎉' }
+  })
+  await prisma.reaction.create({
+    data: { messageId: createdMessages[7].id, userId: teamMembers[2].id, emoji: '✅' }
+  })
+
+  // Watercooler messages
+  const watercoolerMessages = [
+    { content: "Anyone else watching the new season of that sci-fi show? No spoilers but WOW 🤯", userId: teamMembers[3].id },
+    { content: "YES! The plot twist in episode 3 was insane", userId: teamMembers[5].id },
+    { content: "I'm still on episode 1, please no spoilers! 😅", userId: teamMembers[0].id },
+    { content: "My lips are sealed 🤐", userId: teamMembers[3].id },
+    { content: "Lunch recommendation: the new Thai place on 5th is amazing", userId: teamMembers[1].id },
+    { content: "Ooh good to know! I've been looking for good Thai food around here", userId: ownerId },
+    { content: "Their pad see ew is incredible. Trust me.", userId: teamMembers[1].id },
+    { content: "Friday team trivia is back! Who's in? 🧠", userId: teamMembers[4].id },
+    { content: "Count me in!", userId: teamMembers[2].id },
+    { content: "Same! Let's defend our title 🏆", userId: teamMembers[0].id },
+  ]
+
+  for (let i = 0; i < watercoolerMessages.length; i++) {
+    const msg = watercoolerMessages[i]
+    await prisma.message.create({
+      data: {
+        channelId: randomChannel.id,
+        userId: msg.userId,
+        content: msg.content,
+        createdAt: new Date(Date.now() - (watercoolerMessages.length - i) * 7200000),
+      }
     })
   }
 }

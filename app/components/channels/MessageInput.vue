@@ -101,10 +101,10 @@ defineExpose({ focus })
 
 <template>
   <div class="border-t border-slate-100 bg-white px-4 py-3">
-    <div class="flex items-end gap-2">
+    <div class="flex items-center gap-2">
       <!-- Attachment button -->
       <button 
-        class="flex-shrink-0 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+        class="flex-shrink-0 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center"
         title="Attach file (coming soon)"
         disabled
       >
@@ -112,7 +112,7 @@ defineExpose({ focus })
       </button>
 
       <!-- Input area -->
-      <div class="flex-1 relative">
+      <div class="flex-1 relative flex items-center">
         <textarea
           ref="textareaRef"
           v-model="content"
@@ -127,7 +127,7 @@ defineExpose({ focus })
       <!-- Send button -->
       <button 
         :disabled="!content.trim() || sending || disabled"
-        class="flex-shrink-0 p-1 text-slate-900 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        class="flex-shrink-0 p-2 text-slate-900 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
         title="Send message"
         @click="sendMessage"
       >

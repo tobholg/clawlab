@@ -385,7 +385,7 @@ const handleReaction = async (messageId: string, emoji: string) => {
           <ChannelsPresenceIndicator :users="channelPresence" />
           
           <!-- Settings -->
-          <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center">
             <Icon name="heroicons:cog-6-tooth" class="w-5 h-5" />
           </button>
         </div>

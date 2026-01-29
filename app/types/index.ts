@@ -11,7 +11,8 @@ export interface Item {
   confidence: number  // 0-100, certainty of estimates
   dueDate: string | null
   startDate: string | null
-  assigneeId: string | null
+  ownerId: string | null  // Single owner responsible for the item
+  assigneeId: string | null  // Legacy - use ownerId
   stakeholderIds: string[]
   dependencyIds: string[]  // items this is blocked by
   category?: string
@@ -29,7 +30,9 @@ export interface Person {
 // Computed tree node (Item + resolved relations)
 export interface ItemNode extends Item {
   children: ItemNode[]
-  assignee: Person | null
+  owner: Person | null  // Primary owner responsible for the item
+  assignee: Person | null  // Legacy - same as owner for backwards compatibility
+  assignees: Person[]  // All people working on this item
   stakeholders: Person[]
   dependencies: ItemNode[]
   depth: number

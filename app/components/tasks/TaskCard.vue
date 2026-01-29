@@ -20,6 +20,27 @@ const confidenceColors: Record<string, string> = {
   'medium': 'text-yellow-500',
   'high': 'text-green-500',
 }
+
+// Avatar colors (deterministic based on id)
+const avatarColors = [
+  'bg-blue-500',
+  'bg-emerald-500', 
+  'bg-violet-500',
+  'bg-rose-500',
+  'bg-amber-500',
+  'bg-cyan-500',
+  'bg-pink-500',
+  'bg-indigo-500',
+]
+
+const getAvatarColor = (id: string) => {
+  const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return avatarColors[hash % avatarColors.length]
+}
+
+const getInitials = (name: string) => {
+  return name.split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || '?'
+}
 </script>
 
 <template>
@@ -71,25 +92,27 @@ const confidenceColors: Record<string, string> = {
       </span>
     </div>
 
-    <!-- Assignees -->
+    <!-- Assignees + Estimated completion -->
     <div class="flex items-center justify-between">
-      <div class="flex -space-x-2">
+      <div class="flex -space-x-1.5">
         <div 
           v-for="assignee in task.assignees.slice(0, 3)" 
           :key="assignee.id"
-          class="w-6 h-6 rounded-full bg-relai-500 border-2 border-white flex items-center justify-center"
+          :class="[
+            'w-6 h-6 rounded-full border-2 border-white flex items-center justify-center',
+            getAvatarColor(assignee.id)
+          ]"
           :title="assignee.name"
         >
-          <span v-if="!assignee.avatar" class="text-xs text-white font-medium">
-            {{ assignee.name.charAt(0) }}
+          <span class="text-[10px] text-white font-medium">
+            {{ getInitials(assignee.name) }}
           </span>
-          <img v-else :src="assignee.avatar" :alt="assignee.name" class="w-full h-full rounded-full" />
         </div>
         <div 
           v-if="task.assignees.length > 3"
-          class="w-6 h-6 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center"
+          class="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center"
         >
-          <span class="text-xs text-gray-600 font-medium">+{{ task.assignees.length - 3 }}</span>
+          <span class="text-[10px] text-slate-600 font-medium">+{{ task.assignees.length - 3 }}</span>
         </div>
       </div>
 

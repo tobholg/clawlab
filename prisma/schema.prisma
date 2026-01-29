@@ -63,6 +63,7 @@ model User {
   currentFocusStartedAt DateTime?
 
   // Relations
+  ownedItems          Item[]               @relation("OwnedItems")
   assignedItems       ItemAssignment[]
   stakeholderItems    ItemStakeholder[]
   activities          Activity[]
@@ -145,6 +146,7 @@ model Item {
   id          String   @id @default(cuid())
   workspaceId String
   parentId    String?  // null = root item (project level)
+  ownerId     String?  // Single owner responsible for the item
   
   // Core fields
   title       String
@@ -172,6 +174,7 @@ model Item {
   workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   parent         Item?             @relation("ItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children       Item[]            @relation("ItemHierarchy")
+  owner          User?             @relation("OwnedItems", fields: [ownerId], references: [id])
   assignees      ItemAssignment[]
   stakeholders   ItemStakeholder[]
   blockedBy      ItemDependency[]  @relation("BlockedItem")
@@ -184,6 +187,7 @@ model Item {
 
   @@index([workspaceId])
   @@index([parentId])
+  @@index([ownerId])
   @@index([status])
   @@index([lastActivityAt])
   @@map("items")

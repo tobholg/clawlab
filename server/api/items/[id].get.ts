@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
   const item = await prisma.item.findUnique({
     where: { id },
     include: {
+      owner: true,
       assignees: { include: { user: true } },
       stakeholders: { include: { user: true } },
       blockedBy: { include: { blockingItem: true } },
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
       parent: true,
       children: {
         include: {
+          owner: true,
           assignees: { include: { user: true } },
           children: true,
           blockedBy: true,
@@ -61,10 +63,16 @@ export default defineEventHandler(async (event) => {
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
     lastActivityAt: item.lastActivityAt.toISOString(),
-    assignee: item.assignees[0]?.user ? {
-      id: item.assignees[0].user.id,
-      name: item.assignees[0].user.name,
-      avatar: item.assignees[0].user.avatar,
+    owner: item.owner ? {
+      id: item.owner.id,
+      name: item.owner.name,
+      avatar: item.owner.avatar,
+    } : null,
+    // Legacy assignee field - use owner instead
+    assignee: item.owner ? {
+      id: item.owner.id,
+      name: item.owner.name,
+      avatar: item.owner.avatar,
     } : null,
     assignees: item.assignees.map(a => ({
       id: a.user.id,
@@ -92,10 +100,15 @@ export default defineEventHandler(async (event) => {
       progress: child.progress,
       confidence: child.confidence,
       dueDate: child.dueDate?.toISOString() ?? null,
-      assignee: child.assignees[0]?.user ? {
-        id: child.assignees[0].user.id,
-        name: child.assignees[0].user.name,
-        avatar: child.assignees[0].user.avatar,
+      owner: child.owner ? {
+        id: child.owner.id,
+        name: child.owner.name,
+        avatar: child.owner.avatar,
+      } : null,
+      assignee: child.owner ? {
+        id: child.owner.id,
+        name: child.owner.name,
+        avatar: child.owner.avatar,
       } : null,
       childrenCount: child.children.length,
       isBlocked: child.blockedBy.length > 0,

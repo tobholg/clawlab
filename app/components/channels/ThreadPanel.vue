@@ -87,7 +87,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
         <p class="text-xs text-slate-500">#{{ channelName }}</p>
       </div>
       <button 
-        class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+        class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center"
         @click="emit('close')"
       >
         <Icon name="heroicons:x-mark" class="w-5 h-5" />
@@ -97,7 +97,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
     <!-- Thread content -->
     <div ref="scrollContainer" class="flex-1 overflow-y-auto">
       <!-- Parent message -->
-      <div class="px-4 py-4 border-b border-slate-100 bg-slate-50/50">
+      <div class="py-3 border-b border-slate-100 bg-slate-50/50">
         <ChannelsMessageItem
           :message="parentMessage"
           :show-author="true"
@@ -107,7 +107,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
 
       <!-- Replies section header -->
       <div class="px-4 py-2 border-b border-slate-100">
-        <span class="text-xs font-medium text-slate-500">
+        <span class="text-xs font-medium text-blue-600">
           {{ replies.length }} {{ replies.length === 1 ? 'reply' : 'replies' }}
         </span>
       </div>

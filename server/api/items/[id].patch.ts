@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
     startDate,
     confidence,
     progress,
+    ownerId,
   } = body
   
   // Get current item to check if we need to auto-set startDate
@@ -89,10 +90,14 @@ export default defineEventHandler(async (event) => {
   if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null
   if (confidence !== undefined) updateData.confidence = confidence
   if (progress !== undefined) updateData.progress = progress
+  if (ownerId !== undefined) updateData.ownerId = ownerId || null
   
   const item = await prisma.item.update({
     where: { id },
     data: updateData,
+    include: {
+      owner: true,
+    }
   })
   
   return {
@@ -102,5 +107,10 @@ export default defineEventHandler(async (event) => {
     subStatus: item.subStatus ?? null,
     startDate: item.startDate?.toISOString() ?? null,
     updatedAt: item.updatedAt.toISOString(),
+    owner: item.owner ? {
+      id: item.owner.id,
+      name: item.owner.name,
+      avatar: item.owner.avatar,
+    } : null,
   }
 })

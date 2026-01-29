@@ -54,7 +54,6 @@ const displayItems = computed<DisplayItem[]>(() => {
   sortedItems.forEach(item => {
     result.push({ ...item, isSubtask: false, depth: 0 })
     
-    // If expanded and has children, add them
     if (expandedItems.value.has(item.id) && item.children?.length) {
       item.children
         .filter(c => c.status !== 'done')
@@ -149,12 +148,6 @@ const timeColumns = computed(() => {
   return columns
 })
 
-// Calculate total days in range
-const totalDays = computed(() => {
-  const { start, end } = timelineRange.value
-  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-})
-
 // Column width in pixels based on zoom level
 const columnWidth = computed(() => {
   switch (zoomLevel.value) {
@@ -186,6 +179,8 @@ const getEstimatedCompletion = (item: ItemNode | DisplayItem) => {
       dueDate,
       isOverdue: false,
       daysOverdue: 0,
+      remainingDays: 0,
+      bandDays: 0,
     }
   }
   
@@ -234,31 +229,24 @@ const pixelsPerDay = computed(() => {
 const getItemStyle = (item: ItemNode | DisplayItem) => {
   const rangeStart = visibleStartDate.value
   const ppd = pixelsPerDay.value
-  
   const est = getEstimatedCompletion(item)
   
   const startOffset = (est.startDate.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24)
   const duration = Math.max(1, (est.latestEnd.getTime() - est.startDate.getTime()) / (1000 * 60 * 60 * 24))
   
-  const left = startOffset * ppd
-  const width = duration * ppd
-  
   return {
-    left: `${left}px`,
-    width: `${Math.max(20, width)}px`,
+    left: `${startOffset * ppd}px`,
+    width: `${Math.max(20, duration * ppd)}px`,
   }
 }
 
 // Get due date marker position relative to bar start
 const getDueDatePosition = (item: ItemNode | DisplayItem) => {
   if (!item.dueDate) return null
-  
   const ppd = pixelsPerDay.value
   const est = getEstimatedCompletion(item)
-  const startDate = est.startDate
   const dueDate = new Date(item.dueDate)
-  
-  const offsetFromStart = (dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  const offsetFromStart = (dueDate.getTime() - est.startDate.getTime()) / (1000 * 60 * 60 * 24)
   return offsetFromStart * ppd
 }
 
@@ -266,7 +254,6 @@ const getDueDatePosition = (item: ItemNode | DisplayItem) => {
 const getOverdueWidth = (item: ItemNode | DisplayItem) => {
   const est = getEstimatedCompletion(item)
   if (!est.isOverdue || !est.dueDate) return 0
-  
   const ppd = pixelsPerDay.value
   const overdueDays = (est.latestEnd.getTime() - est.dueDate.getTime()) / (1000 * 60 * 60 * 24)
   return Math.max(0, overdueDays * ppd)
@@ -299,8 +286,8 @@ const todayPosition = computed(() => {
   const today = new Date()
   const totalVisibleDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
   const offset = (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-  const pixelsPerDay = totalWidth.value / totalVisibleDays
-  return `${Math.max(0, offset * pixelsPerDay)}px`
+  const ppd = totalWidth.value / totalVisibleDays
+  return `${Math.max(0, offset * ppd)}px`
 })
 
 // Category color mapping
@@ -318,15 +305,31 @@ const categoryColors: Record<string, { bar: string; bg: string }> = {
 const getBarColor = (item: ItemNode | DisplayItem) => {
   if (item.status === 'done') return 'from-emerald-400 to-emerald-500'
   if (item.status === 'blocked') return 'from-rose-400 to-rose-500'
-  const category = item.category || 'default'
-  return categoryColors[category]?.bar || categoryColors.default.bar
+  return categoryColors[item.category || 'default']?.bar || categoryColors.default.bar
 }
 
 const getBgColor = (item: ItemNode | DisplayItem) => {
   if (item.status === 'done') return 'bg-emerald-100'
   if (item.status === 'blocked') return 'bg-rose-100'
-  const category = item.category || 'default'
-  return categoryColors[category]?.bg || categoryColors.default.bg
+  return categoryColors[item.category || 'default']?.bg || categoryColors.default.bg
+}
+
+// Scroll sync refs
+const headerScrollRef = ref<HTMLElement | null>(null)
+const timelineScrollRef = ref<HTMLElement | null>(null)
+
+function syncTimelineScroll(event: Event) {
+  const target = event.target as HTMLElement
+  if (headerScrollRef.value) {
+    headerScrollRef.value.scrollLeft = target.scrollLeft
+  }
+}
+
+function syncHeaderScroll(event: Event) {
+  const target = event.target as HTMLElement
+  if (timelineScrollRef.value) {
+    timelineScrollRef.value.scrollLeft = target.scrollLeft
+  }
 }
 </script>
 
@@ -357,19 +360,51 @@ const getBgColor = (item: ItemNode | DisplayItem) => {
     </div>
     
     <!-- Timeline -->
-    <div class="flex-1 bg-white rounded-xl border border-slate-100 overflow-hidden">
-      <div class="h-full flex">
-        <!-- Sticky row labels column -->
-        <div class="w-52 flex-shrink-0 border-r border-slate-100 bg-white z-20 flex flex-col">
-          <!-- Header -->
-          <div class="h-10 px-4 flex items-center border-b border-slate-100 bg-slate-50/80">
-            <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">
-              {{ isRootLevel ? 'Projects' : 'Tasks' }}
-            </span>
+    <div class="flex-1 bg-white rounded-xl border border-slate-100 overflow-hidden flex flex-col">
+      <!-- Fixed headers row -->
+      <div class="flex flex-shrink-0 border-b border-slate-100">
+        <!-- Tasks column header -->
+        <div class="w-52 flex-shrink-0 h-10 px-4 flex items-center border-r border-slate-100 bg-slate-50/80">
+          <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+            {{ isRootLevel ? 'Projects' : 'Tasks' }}
+          </span>
+        </div>
+        
+        <!-- Time header (scrolls horizontally with timeline) -->
+        <div 
+          ref="headerScrollRef"
+          class="flex-1 overflow-x-auto scrollbar-hide"
+          @scroll="syncHeaderScroll"
+        >
+          <div class="h-10 bg-slate-50/80 flex" :style="{ width: `${totalWidth}px`, minWidth: '100%' }">
+            <div 
+              v-for="(col, i) in timeColumns" 
+              :key="i"
+              :class="[
+                'flex-shrink-0 px-1 flex items-center justify-center border-r border-slate-100 last:border-r-0',
+                zoomLevel === 'days' ? 'w-14' : 
+                zoomLevel === 'weeks' ? 'w-20' : 
+                zoomLevel === 'months' ? 'w-24' : 'w-32'
+              ]"
+            >
+              <span 
+                :class="[
+                  'text-[10px] font-medium whitespace-nowrap',
+                  col.isToday ? 'text-blue-600' : 'text-slate-500'
+                ]"
+              >
+                {{ col.label }}
+              </span>
+            </div>
           </div>
-          
-          <!-- Row labels (scrolls with timeline) -->
-          <div class="flex-1 overflow-y-auto overflow-x-hidden">
+        </div>
+      </div>
+      
+      <!-- Scrollable body (tasks + timeline scroll together vertically) -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="flex min-h-full">
+          <!-- Sticky row labels column -->
+          <div class="w-52 flex-shrink-0 border-r border-slate-100 bg-white sticky left-0 z-10">
             <div 
               v-for="item in displayItems" 
               :key="item.id + '-label'"
@@ -421,7 +456,7 @@ const getBgColor = (item: ItemNode | DisplayItem) => {
                   </div>
                 </div>
                 
-                <!-- Expand/collapse button on right side -->
+                <!-- Expand/collapse button -->
                 <button
                   v-if="!item.isSubtask && item.children && item.children.length > 0"
                   class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 transition-colors"
@@ -436,40 +471,14 @@ const getBgColor = (item: ItemNode | DisplayItem) => {
               </div>
             </div>
           </div>
-        </div>
-        
-        <!-- Scrollable timeline area -->
-        <div class="flex-1 overflow-auto">
-          <div :style="{ width: `${totalWidth}px`, minWidth: '100%' }">
-            <!-- Time header -->
-            <div class="sticky top-0 z-10 h-10 border-b border-slate-100 bg-slate-50/80 backdrop-blur-sm">
-              <div class="relative h-full" :style="{ width: `${totalWidth}px` }">
-                <div class="flex h-full">
-                  <div 
-                    v-for="(col, i) in timeColumns" 
-                    :key="i"
-                    :class="[
-                      'flex-shrink-0 px-1 flex items-center justify-center border-r border-slate-100 last:border-r-0',
-                      zoomLevel === 'days' ? 'w-14' : 
-                      zoomLevel === 'weeks' ? 'w-20' : 
-                      zoomLevel === 'months' ? 'w-24' : 'w-32'
-                    ]"
-                  >
-                    <span 
-                      :class="[
-                        'text-[10px] font-medium whitespace-nowrap',
-                        col.isToday ? 'text-blue-600' : 'text-slate-500'
-                      ]"
-                    >
-                      {{ col.label }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Timeline rows -->
-            <div class="relative">
+          
+          <!-- Scrollable timeline area (horizontal scroll) -->
+          <div 
+            ref="timelineScrollRef"
+            class="flex-1 overflow-x-auto"
+            @scroll="syncTimelineScroll"
+          >
+            <div class="relative" :style="{ width: `${totalWidth}px`, minWidth: '100%' }">
               <!-- Today marker -->
               <div 
                 class="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-10 pointer-events-none"
@@ -482,132 +491,84 @@ const getBgColor = (item: ItemNode | DisplayItem) => {
               <div 
                 v-for="item in displayItems" 
                 :key="item.id"
-                class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
+                class="relative border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
                 :class="item.isSubtask ? 'h-10' : 'h-12'"
               >
-                <!-- Timeline bar area -->
-                <div class="relative h-full" :style="{ width: `${totalWidth}px` }">
-                  <!-- Grid lines -->
-                  <div class="absolute inset-0 flex pointer-events-none">
-                    <div 
-                      v-for="(col, i) in timeColumns" 
-                      :key="i"
-                      :class="[
-                        'flex-shrink-0 border-r',
-                        col.isWeekend ? 'bg-slate-50/50 border-slate-100' : 'border-slate-50',
-                        zoomLevel === 'days' ? 'w-14' : 
-                        zoomLevel === 'weeks' ? 'w-20' : 
-                        zoomLevel === 'months' ? 'w-24' : 'w-32'
-                      ]"
-                    />
-                  </div>
-                  
-                  <!-- Item bar -->
+                <!-- Grid lines -->
+                <div class="absolute inset-0 flex pointer-events-none">
                   <div 
-                    class="absolute top-1/2 -translate-y-1/2 rounded-lg cursor-pointer transition-all hover:scale-y-110 group/bar overflow-hidden"
+                    v-for="(col, i) in timeColumns" 
+                    :key="i"
                     :class="[
-                      getBgColor(item),
-                      item.isSubtask ? 'h-5' : 'h-7'
+                      'flex-shrink-0 border-r',
+                      col.isWeekend ? 'bg-slate-50/50 border-slate-100' : 'border-slate-50',
+                      zoomLevel === 'days' ? 'w-14' : 
+                      zoomLevel === 'weeks' ? 'w-20' : 
+                      zoomLevel === 'months' ? 'w-24' : 'w-32'
                     ]"
-                    :style="getItemStyle(item)"
-                    @click="emit('openDetail', item)"
-                  >
-                    <!-- Progress fill -->
-                    <div 
-                      class="absolute inset-y-0 left-0 rounded-l-lg bg-gradient-to-r transition-all"
-                      :class="getBarColor(item)"
-                      :style="{ width: `${item.progress || 0}%` }"
-                    />
-                    
-                    <!-- Uncertainty fade (only when NOT overdue) - fades bar to transparent -->
-                    <div 
-                      v-if="getUncertaintyWidth(item) > 0 && !getEstimatedCompletion(item).isOverdue"
-                      class="absolute inset-y-0 right-0 rounded-r-lg"
-                      :style="{ 
-                        width: `${getUncertaintyWidth(item)}px`,
-                        background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
-                      }"
-                    />
-                    
-                    <!-- Overdue section: orange tint fading to transparent -->
-                    <div 
-                      v-if="getOverdueWidth(item) > 0 && getDueDatePosition(item)"
-                      class="absolute inset-y-0 rounded-r-lg"
-                      :style="{ 
-                        left: `${getDueDatePosition(item)}px`,
-                        right: '0',
-                        background: 'linear-gradient(to right, rgba(251, 146, 60, 0.45), transparent)'
-                      }"
-                    />
-                    <!-- White fade overlay for overdue uncertainty -->
-                    <div 
-                      v-if="getOverdueWidth(item) > 0 && getDueDatePosition(item)"
-                      class="absolute inset-y-0 right-0 rounded-r-lg"
-                      :style="{ 
-                        width: `${getUncertaintyWidth(item)}px`,
-                        background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
-                      }"
-                    />
-                    
-                    <!-- Due date line marker (orange vertical line) -->
-                    <div 
-                      v-if="item.dueDate && getDueDatePosition(item)"
-                      class="absolute inset-y-0 w-0.5 z-10"
-                      :class="getEstimatedCompletion(item).isOverdue ? 'bg-orange-500' : 'bg-slate-400'"
-                      :style="{ left: `${getDueDatePosition(item)}px` }"
-                    />
-                    
-                    <!-- Rich Tooltip -->
-                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover/bar:opacity-100 transition-opacity pointer-events-none z-20 min-w-[200px]">
-                      <div class="font-semibold text-sm mb-2">
-                        <span v-if="item.isSubtask" class="text-slate-400 mr-1">↳</span>
-                        {{ item.title }}
+                  />
+                </div>
+                
+                <!-- Item bar -->
+                <div 
+                  class="absolute top-1/2 -translate-y-1/2 rounded-lg cursor-pointer transition-all hover:scale-y-110 group/bar overflow-hidden"
+                  :class="[getBgColor(item), item.isSubtask ? 'h-5' : 'h-7']"
+                  :style="getItemStyle(item)"
+                  @click="emit('openDetail', item)"
+                >
+                  <!-- Progress fill -->
+                  <div 
+                    class="absolute inset-y-0 left-0 rounded-l-lg bg-gradient-to-r transition-all"
+                    :class="getBarColor(item)"
+                    :style="{ width: `${item.progress || 0}%` }"
+                  />
+                  
+                  <!-- Uncertainty fade -->
+                  <div 
+                    v-if="getUncertaintyWidth(item) > 0 && !getEstimatedCompletion(item).isOverdue"
+                    class="absolute inset-y-0 right-0 rounded-r-lg"
+                    :style="{ 
+                      width: `${getUncertaintyWidth(item)}px`,
+                      background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
+                    }"
+                  />
+                  
+                  <!-- Overdue section -->
+                  <div 
+                    v-if="getOverdueWidth(item) > 0 && getDueDatePosition(item)"
+                    class="absolute inset-y-0 rounded-r-lg"
+                    :style="{ 
+                      left: `${getDueDatePosition(item)}px`,
+                      right: '0',
+                      background: 'linear-gradient(to right, rgba(251, 146, 60, 0.45), transparent)'
+                    }"
+                  />
+                  
+                  <!-- Due date marker -->
+                  <div 
+                    v-if="item.dueDate && getDueDatePosition(item)"
+                    class="absolute inset-y-0 w-0.5 z-10"
+                    :class="getEstimatedCompletion(item).isOverdue ? 'bg-orange-500' : 'bg-slate-400'"
+                    :style="{ left: `${getDueDatePosition(item)}px` }"
+                  />
+                  
+                  <!-- Tooltip -->
+                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover/bar:opacity-100 transition-opacity pointer-events-none z-20 min-w-[200px]">
+                    <div class="font-semibold text-sm mb-2">{{ item.title }}</div>
+                    <div class="space-y-1.5 text-slate-300">
+                      <div class="flex items-center justify-between">
+                        <span>Progress</span>
+                        <span class="font-medium text-white">{{ item.progress || 0 }}%</span>
                       </div>
-                      
-                      <div class="space-y-1.5 text-slate-300">
-                        <div class="flex items-center justify-between">
-                          <span>Progress</span>
-                          <span class="font-medium text-white">{{ item.progress || 0 }}%</span>
-                        </div>
-                        
-                        <div class="flex items-center justify-between">
-                          <span>Confidence</span>
-                          <span class="font-medium text-white">{{ item.confidence || 70 }}%</span>
-                        </div>
-                        
-                        <div v-if="item.startDate" class="flex items-center justify-between">
-                          <span>Started</span>
-                          <span class="font-medium text-white">{{ new Date(item.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
-                        </div>
-                        
-                        <div v-if="item.dueDate" class="flex items-center justify-between">
-                          <span>Due</span>
-                          <span :class="getEstimatedCompletion(item).isOverdue ? 'font-medium text-amber-400' : 'font-medium text-white'">
-                            {{ new Date(item.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
-                          </span>
-                        </div>
-                        
-                        <div class="flex items-center justify-between pt-1 border-t border-slate-700">
-                          <span>Est. completion</span>
-                          <span class="font-medium text-emerald-400">
-                            {{ getEstimatedCompletion(item).earliestEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
-                            <template v-if="getEstimatedCompletion(item).bandDays > 1">
-                              – {{ getEstimatedCompletion(item).latestEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
-                            </template>
-                          </span>
-                        </div>
-                        
-                        <div v-if="getEstimatedCompletion(item).isOverdue" class="flex items-center gap-1.5 pt-1 text-amber-400">
-                          <Icon name="heroicons:exclamation-triangle" class="w-3.5 h-3.5" />
-                          <span>~{{ getEstimatedCompletion(item).daysOverdue }} days over due date</span>
-                        </div>
+                      <div class="flex items-center justify-between">
+                        <span>Confidence</span>
+                        <span class="font-medium text-white">{{ item.confidence || 70 }}%</span>
                       </div>
-                      
-                      <div v-if="item.assignee" class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-700">
-                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                          <span class="text-[9px] text-white font-medium">{{ item.assignee.name?.[0] }}</span>
-                        </div>
-                        <span class="text-slate-300">{{ item.assignee.name }}</span>
+                      <div v-if="item.dueDate" class="flex items-center justify-between">
+                        <span>Due</span>
+                        <span :class="getEstimatedCompletion(item).isOverdue ? 'text-amber-400' : 'text-white'">
+                          {{ new Date(item.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -641,10 +602,6 @@ const getBgColor = (item: ItemNode | DisplayItem) => {
         Uncertainty
       </span>
       <span class="flex items-center gap-1.5">
-        <div class="w-6 h-2 rounded bg-orange-300" style="mask-image: linear-gradient(to right, black, transparent); -webkit-mask-image: linear-gradient(to right, black, transparent);" />
-        Past Due
-      </span>
-      <span class="flex items-center gap-1.5">
         <div class="w-0.5 h-3 bg-orange-500" />
         Due Date
       </span>
@@ -655,3 +612,13 @@ const getBgColor = (item: ItemNode | DisplayItem) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+</style>

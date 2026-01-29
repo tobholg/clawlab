@@ -118,6 +118,7 @@ const availableSubStatuses = computed(() => {
 })
 
 // UI state
+const showOwnerDropdown = ref(false)
 const showAssigneeDropdown = ref(false)
 const newComment = ref('')
 const replyingTo = ref<string | null>(null)
@@ -126,6 +127,9 @@ const isSaving = ref(false)
 const saveTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const hasUnsavedChanges = ref(false)
 const isInitializing = ref(true) // Prevent auto-save during initial load
+
+// Owner editing
+const editedOwnerId = ref<string | null>(null)
 
 // Load form data from itemDetail (full API data) when it loads
 watch(itemDetail, (detail) => {
@@ -140,6 +144,7 @@ watch(itemDetail, (detail) => {
     editedConfidence.value = detail.confidence ?? 70
     editedDueDate.value = detail.dueDate?.split('T')[0] ?? ''
     editedStartDate.value = detail.startDate?.split('T')[0] ?? ''
+    editedOwnerId.value = detail.owner?.id ?? null
     // Allow auto-save after a tick
     nextTick(() => {
       isInitializing.value = false
@@ -251,6 +256,7 @@ const saveChanges = async () => {
     confidence: editedConfidence.value,
     dueDate: editedDueDate.value || null,
     startDate: editedStartDate.value || null,
+    ownerId: editedOwnerId.value,
   }
   
   try {
@@ -453,10 +459,14 @@ onMounted(() => {
   onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 })
 
-// Close dropdown when clicking outside
+// Close dropdowns when clicking outside
+const ownerDropdownRef = ref<HTMLElement | null>(null)
 const assigneeDropdownRef = ref<HTMLElement | null>(null)
 onMounted(() => {
   const handleClickOutside = (e: MouseEvent) => {
+    if (ownerDropdownRef.value && !ownerDropdownRef.value.contains(e.target as Node)) {
+      showOwnerDropdown.value = false
+    }
     if (assigneeDropdownRef.value && !assigneeDropdownRef.value.contains(e.target as Node)) {
       showAssigneeDropdown.value = false
     }
@@ -464,6 +474,14 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 })
+
+// Update owner
+const updateOwner = async (userId: string | null) => {
+  editedOwnerId.value = userId
+  showOwnerDropdown.value = false
+  await immediateSave()
+  await refreshItem()
+}
 
 // Format relative time for comments
 const formatRelativeTime = (dateStr: string) => {
@@ -621,61 +639,122 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
             </div>
             
-            <!-- Assignees (full row) -->
-            <div>
-              <label class="block text-xs font-medium text-slate-500 mb-2">Assigned To</label>
-              <div class="flex flex-wrap gap-2">
-                <template v-if="itemDetail?.assignees?.length">
-                  <div 
-                    v-for="assignee in itemDetail.assignees" 
-                    :key="assignee.id"
-                    class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-full text-xs"
-                  >
-                    <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                      <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
-                    </div>
-                    <span>{{ assignee.name }}</span>
-                    <button 
-                      @click="removeAssignee(assignee.id)"
-                      class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-all"
-                    >
-                      <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
-                    </button>
-                  </div>
-                </template>
-                
-                <!-- Add button with dropdown -->
-                <div class="relative" ref="assigneeDropdownRef">
+            <!-- Owner & Assignees Row -->
+            <div class="grid grid-cols-2 gap-6">
+              <!-- Owner -->
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-2">Owner</label>
+                <div class="relative" ref="ownerDropdownRef">
                   <button 
-                    @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
-                    class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors"
+                    @click.stop="showOwnerDropdown = !showOwnerDropdown"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
                   >
-                    <Icon name="heroicons:plus" class="w-3 h-3" />
-                    Add
+                    <template v-if="itemDetail?.owner">
+                      <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                        <span class="text-[10px] text-white font-medium">{{ itemDetail.owner.name?.[0] ?? 'U' }}</span>
+                      </div>
+                      <span class="flex-1 text-left text-slate-700">{{ itemDetail.owner.name }}</span>
+                    </template>
+                    <template v-else>
+                      <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+                        <Icon name="heroicons:user" class="w-3.5 h-3.5 text-slate-400" />
+                      </div>
+                      <span class="flex-1 text-left text-slate-400">No owner</span>
+                    </template>
+                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
                   </button>
                   
-                  <!-- Dropdown -->
+                  <!-- Owner Dropdown -->
                   <Transition name="dropdown">
                     <div 
-                      v-if="showAssigneeDropdown"
-                      class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10"
+                      v-if="showOwnerDropdown"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
                     >
-                      <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400">
-                        No more users to add
-                      </div>
+                      <!-- Clear owner option -->
                       <button
-                        v-for="user in unassignedUsers"
-                        :key="user.id"
-                        @click="assignUser(user.id)"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        v-if="itemDetail?.owner"
+                        @click="updateOwner(null)"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors"
                       >
-                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                        <Icon name="heroicons:x-mark" class="w-5 h-5 text-slate-400" />
+                        <span>Remove owner</span>
+                      </button>
+                      <div v-if="itemDetail?.owner" class="border-t border-slate-100 my-1" />
+                      
+                      <button
+                        v-for="user in availableUsers"
+                        :key="user.id"
+                        @click="updateOwner(user.id)"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        :class="{ 'bg-amber-50': user.id === editedOwnerId }"
+                      >
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
                           <span class="text-[10px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
                         </div>
                         <span>{{ user.name }}</span>
+                        <Icon v-if="user.id === editedOwnerId" name="heroicons:check" class="w-4 h-4 text-amber-500 ml-auto" />
                       </button>
                     </div>
                   </Transition>
+                </div>
+              </div>
+              
+              <!-- Assignees -->
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-2">Assignees</label>
+                <div class="flex flex-wrap gap-2">
+                  <template v-if="itemDetail?.assignees?.length">
+                    <div 
+                      v-for="assignee in itemDetail.assignees" 
+                      :key="assignee.id"
+                      class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-full text-xs"
+                    >
+                      <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                        <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
+                      </div>
+                      <span>{{ assignee.name }}</span>
+                      <button 
+                        @click="removeAssignee(assignee.id)"
+                        class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-all"
+                      >
+                        <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
+                      </button>
+                    </div>
+                  </template>
+                  
+                  <!-- Add button with dropdown -->
+                  <div class="relative" ref="assigneeDropdownRef">
+                    <button 
+                      @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
+                      class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors"
+                    >
+                      <Icon name="heroicons:plus" class="w-3 h-3" />
+                      Add
+                    </button>
+                    
+                    <!-- Dropdown -->
+                    <Transition name="dropdown">
+                      <div 
+                        v-if="showAssigneeDropdown"
+                        class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10"
+                      >
+                        <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400">
+                          No more users to add
+                        </div>
+                        <button
+                          v-for="user in unassignedUsers"
+                          :key="user.id"
+                          @click="assignUser(user.id)"
+                          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                            <span class="text-[10px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
+                          </div>
+                          <span>{{ user.name }}</span>
+                        </button>
+                      </div>
+                    </Transition>
+                  </div>
                 </div>
               </div>
             </div>
@@ -744,29 +823,15 @@ const formatRelativeTime = (dateStr: string) => {
               ]"
             >
               <div class="flex items-start justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <div 
-                    class="p-1.5 bg-white/80 rounded-lg shadow-sm"
-                  >
-                    <Icon 
-                      :name="estimatedCompletion.missProb > 66 ? 'heroicons:exclamation-triangle' : estimatedCompletion.missProb > 33 ? 'heroicons:clock' : 'heroicons:sparkles'" 
-                      class="w-4 h-4"
-                      :class="[
-                        estimatedCompletion.missProb > 66 ? 'text-rose-500' : 
-                        estimatedCompletion.missProb > 33 ? 'text-amber-500' : 'text-emerald-500'
-                      ]"
-                    />
-                  </div>
-                  <span 
-                    class="text-sm font-medium"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-800' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-800' : 'text-emerald-800'
-                    ]"
-                  >
-                    Estimated Completion
-                  </span>
-                </div>
+                <span 
+                  class="text-sm font-medium"
+                  :class="[
+                    estimatedCompletion.missProb > 66 ? 'text-rose-800' : 
+                    estimatedCompletion.missProb > 33 ? 'text-amber-800' : 'text-emerald-800'
+                  ]"
+                >
+                  Estimated Completion
+                </span>
                 <div v-if="!estimatedCompletion.complete" class="text-right">
                   <div 
                     class="text-lg font-semibold"

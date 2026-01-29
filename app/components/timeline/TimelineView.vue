@@ -245,6 +245,23 @@ const statusBarColors: Record<string, string> = {
   done: 'bg-emerald-500',
 }
 
+// Scroll refs for sync
+const headerScrollRef = ref<HTMLElement | null>(null)
+const bodyScrollRef = ref<HTMLElement | null>(null)
+const timelineScrollRef = ref<HTMLElement | null>(null)
+
+// Sync horizontal scroll between header and timeline
+function handleTimelineScroll(event: Event) {
+  const target = event.target as HTMLElement
+  if (headerScrollRef.value) {
+    headerScrollRef.value.scrollLeft = target.scrollLeft
+  }
+}
+
+function handleBodyScroll(event: Event) {
+  // Body scroll handles vertical sync automatically since tasks column is inside
+}
+
 // Hover state
 const hoveredTask = ref<TaskWithMetrics | null>(null)
 const hoverPosition = ref({ x: 0, y: 0 })
@@ -313,16 +330,56 @@ function formatDays(days: number): string {
     </div>
 
     <!-- Timeline body -->
-    <div class="flex flex-1 min-h-0 overflow-hidden">
-      <!-- Sticky task names column -->
-      <div class="w-56 flex-shrink-0 bg-white border-r border-gray-200 z-20">
-        <!-- Header spacer -->
-        <div class="h-12 border-b border-gray-200 bg-gray-50 px-3 flex items-center">
+    <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <!-- Fixed headers row -->
+      <div class="flex flex-shrink-0">
+        <!-- Tasks column header -->
+        <div class="w-56 flex-shrink-0 h-12 border-b border-r border-gray-200 bg-gray-50 px-3 flex items-center z-20">
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tasks</span>
         </div>
         
-        <!-- Task rows -->
-        <div class="overflow-y-auto" style="max-height: calc(100% - 48px);">
+        <!-- Timeline header (scrolls horizontally with content) -->
+        <div 
+          ref="headerScrollRef"
+          class="flex-1 overflow-x-auto scrollbar-hide"
+        >
+          <div 
+            class="h-12 border-b border-gray-200 bg-gray-50 relative"
+            :style="{ width: `${timelineWidth}px`, minWidth: '100%' }"
+          >
+            <!-- Date labels -->
+            <div class="absolute inset-0">
+              <div
+                v-for="label in headerLabels"
+                :key="label.date.toISOString()"
+                class="absolute top-0 h-full flex items-center text-xs font-medium text-gray-600 border-l border-gray-200 px-2"
+                :style="{ left: `${label.position}px` }"
+              >
+                {{ label.label }}
+              </div>
+            </div>
+            
+            <!-- Today marker -->
+            <div
+              class="absolute top-0 h-full w-0.5 bg-relai-500 z-20"
+              :style="{ left: `${dateToPosition(today)}px` }"
+            >
+              <span class="absolute -top-0 left-1/2 -translate-x-1/2 text-[10px] font-bold text-relai-600 bg-relai-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+                TODAY
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Scrollable body (tasks + timeline scroll together vertically) -->
+      <div 
+        ref="bodyScrollRef"
+        class="flex flex-1 min-h-0 overflow-y-auto"
+        @scroll="handleBodyScroll"
+      >
+        <!-- Sticky task names column -->
+        <div class="w-56 flex-shrink-0 bg-white border-r border-gray-200 sticky left-0 z-10">
           <div
             v-for="task in activeTasks"
             :key="task.id + '-label'"
@@ -411,154 +468,134 @@ function formatDays(days: number): string {
             No active tasks
           </div>
         </div>
-      </div>
 
-      <!-- Scrollable timeline area -->
-      <div class="flex-1 overflow-x-auto overflow-y-auto timeline-scroll-container relative">
-        <div :style="{ width: `${timelineWidth}px`, minWidth: '100%' }">
-          <!-- Header with date labels -->
-          <div class="h-12 border-b border-gray-200 bg-gray-50 relative sticky top-0 z-10">
-            <!-- Date labels -->
-            <div class="absolute inset-0">
-              <div
-                v-for="label in headerLabels"
-                :key="label.date.toISOString()"
-                class="absolute top-0 h-full flex items-center text-xs font-medium text-gray-600 border-l border-gray-200 px-2"
-                :style="{ left: `${label.position}px` }"
-              >
-                {{ label.label }}
+        <!-- Scrollable timeline area (horizontal only here, vertical shared with tasks) -->
+        <div 
+          ref="timelineScrollRef"
+          class="flex-1 overflow-x-auto timeline-scroll-container relative"
+          @scroll="handleTimelineScroll"
+        >
+          <div :style="{ width: `${timelineWidth}px`, minWidth: '100%' }">
+            <!-- Task rows with bars -->
+            <div class="relative">
+              <!-- Grid lines -->
+              <div class="absolute inset-0 pointer-events-none">
+                <div
+                  v-for="(day, index) in dayMarkers"
+                  :key="'grid-' + index"
+                  class="absolute top-0 h-full border-l"
+                  :class="[
+                    day.isToday ? 'border-relai-200 border-l-2' :
+                    day.isMonthStart ? 'border-gray-200' :
+                    day.isWeekStart ? 'border-gray-100' : 
+                    'border-gray-50'
+                  ]"
+                  :style="{ left: `${index * dayWidth}px` }"
+                />
               </div>
-            </div>
-            
-            <!-- Today marker -->
-            <div
-              class="absolute top-0 h-full w-0.5 bg-relai-500 z-20"
-              :style="{ left: `${dateToPosition(today)}px` }"
-            >
-              <span class="absolute -top-0 left-1/2 -translate-x-1/2 text-[10px] font-bold text-relai-600 bg-relai-100 px-1.5 py-0.5 rounded whitespace-nowrap">
-                TODAY
-              </span>
-            </div>
-          </div>
 
-          <!-- Task rows with bars -->
-          <div class="relative">
-            <!-- Grid lines -->
-            <div class="absolute inset-0 pointer-events-none">
+              <!-- Task bars -->
               <div
-                v-for="(day, index) in dayMarkers"
-                :key="'grid-' + index"
-                class="absolute top-0 h-full border-l"
-                :class="[
-                  day.isToday ? 'border-relai-200 border-l-2' :
-                  day.isMonthStart ? 'border-gray-200' :
-                  day.isWeekStart ? 'border-gray-100' : 
-                  'border-gray-50'
-                ]"
-                :style="{ left: `${index * dayWidth}px` }"
-              />
-            </div>
-
-            <!-- Task bars -->
-            <div
-              v-for="task in activeTasks"
-              :key="task.id + '-bar'"
-              class="relative border-b border-gray-100 flex items-center"
-              :class="task.isSubtask ? 'h-10 bg-gray-50/30' : 'h-14'"
-            >
-              <div
-                class="absolute group cursor-pointer"
-                :class="task.isSubtask ? 'h-5' : 'h-8'"
-                :style="{
-                  left: `${getTaskBarData(task).left}px`,
-                  width: `${getTaskBarData(task).width}px`
-                }"
-                @mouseenter="handleMouseEnter(task, $event)"
-                @mousemove="handleMouseMove"
-                @mouseleave="handleMouseLeave"
-                @click="emit('taskClick', task)"
+                v-for="task in activeTasks"
+                :key="task.id + '-bar'"
+                class="relative border-b border-gray-100 flex items-center"
+                :class="task.isSubtask ? 'h-10 bg-gray-50/30' : 'h-14'"
               >
-                <!-- Base bar (uncertainty range) -->
-                <div 
-                  class="absolute inset-0 bg-gray-100 border border-gray-200 overflow-hidden"
-                  :class="task.isSubtask ? 'rounded' : 'rounded-lg'"
+                <div
+                  class="absolute group cursor-pointer"
+                  :class="task.isSubtask ? 'h-5' : 'h-8'"
+                  :style="{
+                    left: `${getTaskBarData(task).left}px`,
+                    width: `${getTaskBarData(task).width}px`
+                  }"
+                  @mouseenter="handleMouseEnter(task, $event)"
+                  @mousemove="handleMouseMove"
+                  @mouseleave="handleMouseLeave"
+                  @click="emit('taskClick', task)"
                 >
-                  <!-- Solid progress portion -->
+                  <!-- Base bar (uncertainty range) -->
+                  <div 
+                    class="absolute inset-0 bg-gray-100 border border-gray-200 overflow-hidden"
+                    :class="task.isSubtask ? 'rounded' : 'rounded-lg'"
+                  >
+                    <!-- Solid progress portion -->
+                    <div
+                      class="absolute inset-y-0 left-0 transition-all"
+                      :class="[
+                        statusBarColors[task.status],
+                        task.isSubtask ? 'rounded-l' : 'rounded-l-lg'
+                      ]"
+                      :style="{ width: `${getTaskBarData(task).progressWidth}px`, opacity: task.isSubtask ? 0.7 : 0.85 }"
+                    />
+                    
+                    <!-- Remaining certain portion (expected completion) marker -->
+                    <div
+                      class="absolute inset-y-0 left-0 border-r-2 border-gray-400"
+                      :style="{ width: `${getTaskBarData(task).certainWidth}px` }"
+                    />
+                    
+                    <!-- Uncertainty fade zone (only when NOT overdue) - fades to transparent -->
+                    <div
+                      v-if="getTaskBarData(task).fadeWidth > 0 && !getTaskBarData(task).isOverdue"
+                      class="absolute inset-y-0 right-0 rounded-r-lg"
+                      :style="{
+                        width: `${getTaskBarData(task).fadeWidth}px`,
+                        background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
+                      }"
+                    />
+                    
+                    <!-- Overdue warning zone - orange tint fading to transparent -->
+                    <div
+                      v-if="getTaskBarData(task).overdueWidth > 0"
+                      class="absolute inset-y-0 rounded-r-lg"
+                      :style="{
+                        left: `${getTaskBarData(task).overdueStart}px`,
+                        right: '0',
+                        background: 'linear-gradient(to right, rgba(251, 146, 60, 0.45), transparent)'
+                      }"
+                    />
+                    <!-- White fade overlay for overdue uncertainty -->
+                    <div
+                      v-if="getTaskBarData(task).overdueWidth > 0"
+                      class="absolute inset-y-0 right-0 rounded-r-lg"
+                      :style="{
+                        width: `${getTaskBarData(task).fadeWidth}px`,
+                        background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
+                      }"
+                    />
+                  </div>
+
+                  <!-- Due date line marker (orange vertical line) -->
                   <div
-                    class="absolute inset-y-0 left-0 transition-all"
-                    :class="[
-                      statusBarColors[task.status],
-                      task.isSubtask ? 'rounded-l' : 'rounded-l-lg'
-                    ]"
-                    :style="{ width: `${getTaskBarData(task).progressWidth}px`, opacity: task.isSubtask ? 0.7 : 0.85 }"
+                    v-if="getTaskBarData(task).dueDateOffset !== null"
+                    class="absolute inset-y-0 w-0.5 z-10"
+                    :class="task.metrics.isOverdue ? 'bg-orange-500' : 'bg-slate-400'"
+                    :style="{ left: `${getTaskBarData(task).dueDateOffset}px` }"
+                    :title="`Due: ${formatDate(task.metrics.dueDate)}`"
                   />
-                  
-                  <!-- Remaining certain portion (expected completion) marker -->
-                  <div
-                    class="absolute inset-y-0 left-0 border-r-2 border-gray-400"
-                    :style="{ width: `${getTaskBarData(task).certainWidth}px` }"
-                  />
-                  
-                  <!-- Uncertainty fade zone (only when NOT overdue) - fades to transparent -->
-                  <div
-                    v-if="getTaskBarData(task).fadeWidth > 0 && !getTaskBarData(task).isOverdue"
-                    class="absolute inset-y-0 right-0 rounded-r-lg"
-                    :style="{
-                      width: `${getTaskBarData(task).fadeWidth}px`,
-                      background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
-                    }"
-                  />
-                  
-                  <!-- Overdue warning zone - orange tint fading to transparent -->
-                  <div
-                    v-if="getTaskBarData(task).overdueWidth > 0"
-                    class="absolute inset-y-0 rounded-r-lg"
-                    :style="{
-                      left: `${getTaskBarData(task).overdueStart}px`,
-                      right: '0',
-                      background: 'linear-gradient(to right, rgba(251, 146, 60, 0.45), transparent)'
-                    }"
-                  />
-                  <!-- White fade overlay for overdue uncertainty -->
-                  <div
-                    v-if="getTaskBarData(task).overdueWidth > 0"
-                    class="absolute inset-y-0 right-0 rounded-r-lg"
-                    :style="{
-                      width: `${getTaskBarData(task).fadeWidth}px`,
-                      background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
-                    }"
+
+                  <!-- Hover highlight -->
+                  <div 
+                    class="absolute inset-0 ring-2 ring-relai-500 ring-opacity-0 group-hover:ring-opacity-100 transition-all pointer-events-none"
+                    :class="task.isSubtask ? 'rounded' : 'rounded-lg'"
                   />
                 </div>
-
-                <!-- Due date line marker (orange vertical line) -->
-                <div
-                  v-if="getTaskBarData(task).dueDateOffset !== null"
-                  class="absolute inset-y-0 w-0.5 z-10"
-                  :class="task.metrics.isOverdue ? 'bg-orange-500' : 'bg-slate-400'"
-                  :style="{ left: `${getTaskBarData(task).dueDateOffset}px` }"
-                  :title="`Due: ${formatDate(task.metrics.dueDate)}`"
-                />
-
-                <!-- Hover highlight -->
-                <div 
-                  class="absolute inset-0 ring-2 ring-relai-500 ring-opacity-0 group-hover:ring-opacity-100 transition-all pointer-events-none"
-                  :class="task.isSubtask ? 'rounded' : 'rounded-lg'"
-                />
               </div>
-            </div>
 
-            <!-- Empty state placeholder -->
-            <div 
-              v-if="activeTasks.length === 0"
-              class="h-64 flex items-center justify-center text-gray-400"
-            >
-              No active tasks to display
+              <!-- Empty state placeholder -->
+              <div 
+                v-if="activeTasks.length === 0"
+                class="h-64 flex items-center justify-center text-gray-400"
+              >
+                No active tasks to display
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Hover tooltip -->
-        <Teleport to="body">
+      <!-- Hover tooltip -->
+      <Teleport to="body">
           <Transition name="fade">
             <div
               v-if="hoveredTask"
@@ -654,7 +691,6 @@ function formatDays(days: number): string {
             </div>
           </Transition>
         </Teleport>
-      </div>
     </div>
 
     <!-- Legend -->
@@ -697,5 +733,14 @@ function formatDays(days: number): string {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 </style>

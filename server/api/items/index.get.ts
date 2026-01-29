@@ -3,18 +3,22 @@ import { calculateTemperature } from '../../utils/temperature'
 
 // Deep include for children up to 4 levels
 const childrenInclude = {
+  owner: true,
   assignees: { include: { user: true } },
   blockedBy: true,
   children: {
     include: {
+      owner: true,
       assignees: { include: { user: true } },
       blockedBy: true,
       children: {
         include: {
+          owner: true,
           assignees: { include: { user: true } },
           blockedBy: true,
           children: {
             include: {
+              owner: true,
               assignees: { include: { user: true } },
               blockedBy: true,
             }
@@ -41,6 +45,7 @@ export default defineEventHandler(async (event) => {
       parentId: parentId === 'root' ? null : parentId ?? null,
     },
     include: {
+      owner: true,
       assignees: {
         include: { user: true }
       },
@@ -77,11 +82,17 @@ export default defineEventHandler(async (event) => {
       createdAt: item.createdAt?.toISOString() ?? null,
       updatedAt: item.updatedAt?.toISOString() ?? null,
       lastActivityAt: item.lastActivityAt?.toISOString() ?? null,
-      // Owner (first assignee) - the primary responsible person
-      assignee: item.assignees?.[0]?.user ? {
-        id: item.assignees[0].user.id,
-        name: item.assignees[0].user.name,
-        avatar: item.assignees[0].user.avatar,
+      // Owner - the primary responsible person
+      owner: item.owner ? {
+        id: item.owner.id,
+        name: item.owner.name,
+        avatar: item.owner.avatar,
+      } : null,
+      // Legacy assignee field (for backwards compatibility)
+      assignee: item.owner ? {
+        id: item.owner.id,
+        name: item.owner.name,
+        avatar: item.owner.avatar,
         role: 'owner',
       } : null,
       // All assignees

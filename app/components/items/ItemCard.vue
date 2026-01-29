@@ -16,6 +16,27 @@ const { isFocusedOn } = useFocus()
 const hasChildren = computed(() => props.item.childrenCount > 0)
 const isCurrentlyFocused = computed(() => isFocusedOn(props.item.id))
 
+// Avatar colors (deterministic based on id)
+const avatarColors = [
+  'bg-blue-500',
+  'bg-emerald-500', 
+  'bg-violet-500',
+  'bg-rose-500',
+  'bg-amber-500',
+  'bg-cyan-500',
+  'bg-pink-500',
+  'bg-indigo-500',
+]
+
+const getAvatarColor = (id: string) => {
+  const hash = (id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return avatarColors[hash % avatarColors.length]
+}
+
+const getInitials = (name: string) => {
+  return (name || '').split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || '?'
+}
+
 // Calculate estimated completion date range
 const estimatedCompletion = computed(() => {
   const progress = props.item.progress ?? 0
@@ -146,20 +167,45 @@ const handleCardClick = () => {
     
     <!-- Footer -->
     <div class="flex items-center justify-between pt-3 border-t border-slate-50">
-      <div class="flex items-center gap-2">
-        <!-- Assignee -->
-        <img 
-          v-if="item.assignee"
-          :src="item.assignee.avatar" 
-          :alt="item.assignee.name"
-          :title="item.assignee.name"
-          class="w-5 h-5 rounded-full border border-slate-100"
-        />
+      <div class="flex items-center gap-1">
+        <!-- Owner -->
+        <div 
+          v-if="item.owner"
+          :class="[
+            'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0',
+            getAvatarColor(item.owner.id)
+          ]"
+          :title="`Owner: ${item.owner.name}`"
+        >
+          <span class="text-[9px] text-white font-medium">
+            {{ getInitials(item.owner.name) }}
+          </span>
+        </div>
         
         <!-- Stakeholders -->
-        <template v-if="item.stakeholders.length > 0">
-          <div class="w-px h-3 bg-slate-200" />
-          <UiAvatarStack :people="item.stakeholders" :max="2" />
+        <template v-if="item.stakeholders && item.stakeholders.length > 0">
+          <div class="w-px h-3 bg-slate-200 mx-1" />
+          <div class="flex -space-x-1">
+            <div 
+              v-for="person in item.stakeholders.slice(0, 2)" 
+              :key="person.id"
+              :class="[
+                'w-5 h-5 rounded-full flex items-center justify-center border border-white flex-shrink-0',
+                getAvatarColor(person.id)
+              ]"
+              :title="person.name"
+            >
+              <span class="text-[9px] text-white font-medium">
+                {{ getInitials(person.name) }}
+              </span>
+            </div>
+            <div 
+              v-if="item.stakeholders.length > 2"
+              class="w-5 h-5 rounded-full bg-slate-200 border border-white flex items-center justify-center flex-shrink-0"
+            >
+              <span class="text-[9px] text-slate-600 font-medium">+{{ item.stakeholders.length - 2 }}</span>
+            </div>
+          </div>
         </template>
       </div>
       
