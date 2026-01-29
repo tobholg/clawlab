@@ -79,9 +79,9 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-white border-l border-slate-200 w-full">
+  <div class="flex flex-col h-full bg-white border-l border-slate-100 w-full">
     <!-- Header -->
-    <header class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+    <header class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
       <div>
         <h2 class="text-sm font-medium text-slate-900">Thread</h2>
         <p class="text-xs text-slate-500">#{{ channelName }}</p>

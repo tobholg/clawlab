@@ -100,7 +100,7 @@ defineExpose({ focus })
 </script>
 
 <template>
-  <div class="border-t border-slate-200 bg-white px-4 py-3">
+  <div class="border-t border-slate-100 bg-white px-4 py-3">
     <div class="flex items-end gap-2">
       <!-- Attachment button -->
       <button 

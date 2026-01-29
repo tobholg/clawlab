@@ -228,7 +228,7 @@ onMounted(() => {
           </button>
           
           <!-- Recent Projects (nested under Projects) -->
-          <div v-if="!sidebarCollapsed && recentProjects.length > 0" class="ml-3 pl-3 border-l border-slate-200 space-y-0.5">
+          <div v-if="!sidebarCollapsed && recentProjects.length > 0" class="ml-3 pl-3 border-l border-slate-100 space-y-0.5">
             <button
               v-for="project in recentProjects"
               :key="project.id"
@@ -284,7 +284,7 @@ onMounted(() => {
               </NuxtLink>
               
               <!-- Child channels (nested) -->
-              <div v-if="!sidebarCollapsed && channel.children?.length" class="ml-3 pl-3 border-l border-slate-200 space-y-0.5">
+              <div v-if="!sidebarCollapsed && channel.children?.length" class="ml-3 pl-3 border-l border-slate-100 space-y-0.5">
                 <NuxtLink 
                   v-for="child in channel.children"
                   :key="child.id"

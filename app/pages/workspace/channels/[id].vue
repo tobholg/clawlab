@@ -277,7 +277,7 @@ const handleReaction = async (messageId: string, emoji: string) => {
               </NuxtLink>
               
               <!-- Child channels (nested) -->
-              <div v-if="!sidebarCollapsed && channel.children?.length" class="ml-3 pl-3 border-l border-slate-200 space-y-0.5">
+              <div v-if="!sidebarCollapsed && channel.children?.length" class="ml-3 pl-3 border-l border-slate-100 space-y-0.5">
                 <NuxtLink 
                   v-for="child in channel.children"
                   :key="child.id"
@@ -367,7 +367,7 @@ const handleReaction = async (messageId: string, emoji: string) => {
       <div :class="['flex flex-col relative min-h-0', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
       
       <!-- Channel Header -->
-      <header class="relative z-10 border-b border-slate-200 px-6 py-4 flex items-center justify-between bg-white">
+      <header class="relative z-10 border-b border-slate-100 px-6 py-4 flex items-center justify-between bg-white">
         <div class="flex items-center gap-3">
           <Icon :name="channelIcon" class="w-5 h-5 text-slate-400" />
           <div>
