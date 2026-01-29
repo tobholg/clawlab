@@ -66,11 +66,10 @@ export interface MessagesResponse {
 }
 
 export function useChannels(workspaceId: MaybeRef<string | null>) {
-  // Use global state for channels list (persists across navigations)
-  const channels = useState<Channel[]>('channels', () => [])
-  const channelsFetched = useState<boolean>('channelsFetched', () => false)
+  // Channel list (local ref - will refetch on mount)
+  const channels = ref<Channel[]>([])
   
-  // Per-channel state (can be local)
+  // Per-channel state
   const currentChannel = ref<Channel | null>(null)
   const messages = ref<ChannelMessage[]>([])
   const loading = ref(false)
@@ -79,12 +78,9 @@ export function useChannels(workspaceId: MaybeRef<string | null>) {
   const nextCursor = ref<string | null>(null)
 
   // Fetch all channels for a workspace
-  const fetchChannels = async (force = false) => {
+  const fetchChannels = async () => {
     const wsId = toValue(workspaceId)
-    if (!wsId) return
-
-    // Skip if already fetched (unless forced)
-    if (channelsFetched.value && !force) return
+    if (!wsId || loading.value) return
 
     loading.value = true
     try {
@@ -92,7 +88,6 @@ export function useChannels(workspaceId: MaybeRef<string | null>) {
         query: { workspaceId: wsId },
       })
       channels.value = data
-      channelsFetched.value = true
     } catch (error) {
       console.error('Failed to fetch channels:', error)
     } finally {
