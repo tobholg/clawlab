@@ -1,29 +1,36 @@
 import type { Item, ItemNode } from '~/types'
 
 export function useItems() {
-  // Current workspace (hardcoded for now, will come from auth/route later)
+  // Global state - shared across all components using this composable
   const workspaceId = useState<string | null>('workspaceId', () => null)
   const currentScopeId = useState<string | null>('currentScope', () => null)
   const currentScopeData = useState<any>('currentScopeData', () => null)
-  
+  const itemsData = useState<any[]>('itemsData', () => [])
+  const loading = useState('itemsLoading', () => false)
+
+  // Current user ID (shared with useFocus)
+  const currentUserId = useState<string>('currentUserId', () => 'demo-user')
+
+  // Request counter to handle race conditions - ignore stale responses
+  const fetchCounter = useState('fetchCounter', () => 0)
+
   // Fetch workspace on mount
   const { data: workspaces } = useFetch('/api/workspaces')
-  
+
   // Set workspace when loaded
   watch(workspaces, (ws) => {
     if (ws?.length && !workspaceId.value) {
       workspaceId.value = ws[0].id
     }
   }, { immediate: true })
-  
-  // Items data
-  const itemsData = ref<any[]>([])
-  const loading = ref(false)
-  
+
   // Fetch items for current scope
-  const refreshItems = async () => {
+  const refreshItems = async (force = false) => {
     if (!workspaceId.value) return
-    
+
+    // Increment counter and capture current request ID
+    const requestId = ++fetchCounter.value
+
     loading.value = true
     try {
       const data = await $fetch('/api/items', {
@@ -32,56 +39,74 @@ export function useItems() {
           parentId: currentScopeId.value ?? 'root',
         }
       })
-      itemsData.value = data as any[]
+
+      // Only update if this is still the latest request (ignore stale responses)
+      if (requestId === fetchCounter.value) {
+        itemsData.value = data as any[]
+      }
     } catch (e) {
       console.error('Failed to fetch items:', e)
+      // Only clear on error if this is still the latest request
+      if (requestId === fetchCounter.value) {
+        itemsData.value = []
+      }
     } finally {
-      loading.value = false
+      // Only update loading if this is still the latest request
+      if (requestId === fetchCounter.value) {
+        loading.value = false
+      }
     }
   }
-  
+
   // Fetch scope details when scope changes
-  const fetchScopeDetails = async () => {
-    if (!currentScopeId.value) {
-      currentScopeData.value = null
-      return
-    }
+  const fetchScopeDetails = async (scopeId: string) => {
     try {
-      const data = await $fetch(`/api/items/${currentScopeId.value}`)
-      currentScopeData.value = data
+      const data = await $fetch(`/api/items/${scopeId}`)
+      // Only update if scope hasn't changed while we were fetching
+      if (currentScopeId.value === scopeId) {
+        currentScopeData.value = data
+      }
     } catch (e) {
       console.error('Failed to fetch scope details:', e)
-      currentScopeData.value = null
+      if (currentScopeId.value === scopeId) {
+        currentScopeData.value = null
+      }
     }
   }
-  
+
   // Watch for scope changes and fetch
   watch(currentScopeId, (scopeId) => {
     if (workspaceId.value) {
       refreshItems()
-      if (scopeId) fetchScopeDetails()
-      else currentScopeData.value = null
+      if (scopeId) {
+        fetchScopeDetails(scopeId)
+      } else {
+        currentScopeData.value = null
+      }
     }
   })
-  
-  // Fetch when workspace becomes available
-  watch(workspaceId, (wsId) => {
-    if (wsId) {
+
+  // Fetch when workspace becomes available (only once)
+  watch(workspaceId, (wsId, oldWsId) => {
+    // Only fetch if workspace just became available or changed
+    if (wsId && wsId !== oldWsId) {
       refreshItems()
-      if (currentScopeId.value) fetchScopeDetails()
+      if (currentScopeId.value) {
+        fetchScopeDetails(currentScopeId.value)
+      }
     }
   }, { immediate: true })
-  
+
   // Transform API data to ItemNode format
   const scopedItems = computed((): ItemNode[] => {
     if (!itemsData.value) return []
     return itemsData.value.map((item: any) => ({
       ...item,
-      children: item.children ?? [], // Include children from API
+      children: item.children ?? [],
       depth: 0,
     }))
   })
-  
+
   // Current scope info
   const currentScope = computed(() => {
     if (!currentScopeId.value) {
@@ -96,40 +121,48 @@ export function useItems() {
     }
     return currentScopeData.value ?? null
   })
-  
+
   // Breadcrumbs from current scope
   const breadcrumbs = computed(() => {
     const root = { id: 'root', title: 'Projects' }
-    
+
     if (!currentScopeData.value?.breadcrumbs) {
       return [root]
     }
     return [root, ...currentScopeData.value.breadcrumbs]
   })
-  
+
   // Navigate to an item (drill down)
   const navigateTo = (itemId: string | null) => {
-    if (itemId === 'root') {
-      currentScopeId.value = null
-    } else {
-      currentScopeId.value = itemId
+    const targetId = itemId === 'root' ? null : itemId
+
+    // If already at this scope, just refresh
+    if (currentScopeId.value === targetId) {
+      refreshItems()
+      return
     }
+
+    // Clear items immediately to avoid showing stale data
+    itemsData.value = []
+
+    // Update scope - this triggers the watcher which calls refreshItems
+    currentScopeId.value = targetId
   }
-  
+
   // Go up one level
   const navigateUp = () => {
     if (currentScopeData.value?.parentId) {
-      currentScopeId.value = currentScopeData.value.parentId
+      navigateTo(currentScopeData.value.parentId)
     } else {
-      currentScopeId.value = null
+      navigateTo('root')
     }
   }
-  
+
   // Get items by status (for Kanban columns)
   const getItemsByStatus = (status: string) => {
     return scopedItems.value.filter(item => item.status === status)
   }
-  
+
   // Create a new item
   const createItem = async (data: Partial<Item>) => {
     await $fetch('/api/items', {
@@ -142,23 +175,19 @@ export function useItems() {
     })
     await refreshItems()
   }
-  
+
   // Update an item
   const updateItem = async (id: string, data: Partial<Item>) => {
     await $fetch(`/api/items/${id}`, {
       method: 'PATCH',
-      body: data,
+      body: {
+        ...data,
+        userId: currentUserId.value,
+      },
     })
     await refreshItems()
   }
-  
-  // Initial load
-  watch(workspaceId, (id) => {
-    if (id) {
-      refreshItems()
-    }
-  }, { immediate: true })
-  
+
   return {
     workspaceId,
     currentScope,

@@ -99,6 +99,7 @@ export default defineEventHandler(async (event) => {
       userId: msg.userId,
       parentId: msg.parentId,
       content: msg.content,
+      attachments: msg.attachments,
       createdAt: msg.createdAt.toISOString(),
       updatedAt: msg.updatedAt.toISOString(),
       editedAt: msg.editedAt?.toISOString() ?? null,

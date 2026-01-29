@@ -16,7 +16,7 @@ export interface ChannelMessage {
   userId: string
   parentId: string | null
   content: string
-  attachments: unknown[]
+  attachments: unknown[] | null
   createdAt: string
   updatedAt: string
   editedAt: string | null

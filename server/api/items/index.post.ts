@@ -34,11 +34,23 @@ export default defineEventHandler(async (event) => {
   
   // Set first assignee as owner by default
   const ownerId = body.ownerId ?? assigneeIds?.[0] ?? null
-  
+
+  // Determine projectId (root project) for efficient queries
+  let projectId: string | null = null
+  if (parentId) {
+    const parent = await prisma.item.findUnique({
+      where: { id: parentId },
+      select: { projectId: true }
+    })
+    // If parent has a projectId, use it. Otherwise, parent IS the root project
+    projectId = parent?.projectId ?? parentId
+  }
+
   const item = await prisma.item.create({
     data: {
       workspaceId,
       parentId: parentId || null,
+      projectId,
       title,
       description,
       category,

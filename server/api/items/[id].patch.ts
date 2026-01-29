@@ -79,6 +79,13 @@ export default defineEventHandler(async (event) => {
     if (newStatus === 'IN_PROGRESS' && currentItem.status !== 'IN_PROGRESS' && !currentItem.startDate) {
       updateData.startDate = now
     }
+
+    // Set completedAt when moving TO done, clear when moving away from done
+    if (newStatus === 'DONE' && oldStatus !== 'DONE') {
+      updateData.completedAt = now
+    } else if (newStatus !== 'DONE' && oldStatus === 'DONE') {
+      updateData.completedAt = null
+    }
   }
   
   // Handle subStatus change
@@ -99,7 +106,23 @@ export default defineEventHandler(async (event) => {
       owner: true,
     }
   })
-  
+
+  // Create Activity record for status changes
+  if (status !== undefined && status.toUpperCase() !== currentItem.status) {
+    // TODO: Get actual userId from auth context - using placeholder for now
+    const userId = body.userId || 'system'
+
+    await prisma.activity.create({
+      data: {
+        itemId: id,
+        userId,
+        type: 'STATUS_CHANGE',
+        oldValue: currentItem.status.toLowerCase(),
+        newValue: status.toLowerCase(),
+      }
+    })
+  }
+
   return {
     id: item.id,
     title: item.title,

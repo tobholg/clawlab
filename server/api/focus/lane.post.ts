@@ -32,6 +32,17 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date()
 
+  // If already on this lane (and no task), do nothing - avoid duplicates
+  if (user?.currentLaneFocus === upperLane && !user?.currentTaskFocusId) {
+    return {
+      success: true,
+      lane: upperLane,
+      projectId: user?.currentProjectFocusId,
+      activityStart: user?.currentActivityStart ?? now,
+      alreadyActive: true,
+    }
+  }
+
   // End current task session if any
   if (user?.currentTaskFocusId) {
     await prisma.focusSession.updateMany({

@@ -306,14 +306,19 @@ function getEstimatedCompletion(item: ItemNode) {
   
   if (progress >= 100) return { complete: true, daysRemaining: 0 }
   
-  const totalEstimate = daysSpent / (progress / 100)
-  const remainingDays = Math.max(0, totalEstimate - daysSpent)
-  
-  const baseDate = new Date(now.getTime() + remainingDays * 24 * 60 * 60 * 1000)
-  const bandDays = remainingDays * (1 - confidence / 100)
-  
-  const earliest = new Date(baseDate.getTime() - bandDays * 12 * 60 * 60 * 1000)
-  const latest = new Date(baseDate.getTime() + bandDays * 12 * 60 * 60 * 1000)
+  const totalEstimate = Math.round(daysSpent / (progress / 100))
+  const remainingDays = Math.max(1, totalEstimate - daysSpent)
+
+  const baseDate = new Date()
+  baseDate.setDate(baseDate.getDate() + remainingDays)
+
+  // Uncertainty band based on confidence (matches ItemDetailModal)
+  const bandDays = Math.ceil(remainingDays * (1 - confidence / 100) * 2)
+
+  const earliest = new Date(baseDate)
+  earliest.setDate(earliest.getDate() - Math.floor(bandDays / 2))
+  const latest = new Date(baseDate)
+  latest.setDate(latest.getDate() + Math.ceil(bandDays / 2))
   
   return {
     complete: false,

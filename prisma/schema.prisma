@@ -153,25 +153,27 @@ model Item {
   id          String   @id @default(cuid())
   workspaceId String
   parentId    String?  // null = root item (project level)
+  projectId   String?  // Root project ID for efficient queries (null for root projects themselves)
   ownerId     String?  // Single owner responsible for the item
-  
+
   // Core fields
   title       String
   description String?
   category    String?  // Engineering, Design, Marketing, etc.
-  
+
   // Status & Progress
   status      ItemStatus @default(TODO)
   subStatus   String?    // Sub-state within status (e.g., 'scoping', 'review')
   progress    Int        @default(0) // 0-100
-  
+
   // Scheduling
   dueDate     DateTime?
   startDate   DateTime?
-  
+  completedAt DateTime?  // When status changed to DONE
+
   // AI-assisted fields
   confidence  Int        @default(70) // 0-100, AI-estimated completion likelihood
-  
+
   // Timestamps for temperature calculation
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -197,9 +199,11 @@ model Item {
 
   @@index([workspaceId])
   @@index([parentId])
+  @@index([projectId])
   @@index([ownerId])
   @@index([status])
   @@index([lastActivityAt])
+  @@index([completedAt])
   @@map("items")
 }
 

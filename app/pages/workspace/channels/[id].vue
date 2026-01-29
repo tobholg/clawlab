@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: false,
+  layout: 'workspace',
 })
 
 const route = useRoute()
@@ -10,8 +10,8 @@ const channelId = computed(() => route.params.id as string)
 const { workspaceId } = useItems()
 
 // Channel state
-const { 
-  currentChannel, 
+const {
+  currentChannel,
   messages,
   loading,
   messagesLoading,
@@ -19,8 +19,20 @@ const {
   fetchChannel,
   loadMoreMessages,
   sendMessage,
-  channelTree,
 } = useChannels(workspaceId)
+
+const AI_TRIGGER = /\B@ai\b/i
+const extractAiPrompt = (content: string) => {
+  const withoutTag = content.replace(/\B@ai\b/gi, ' ')
+  const cleaned = withoutTag.replace(/\s+/g, ' ').trim()
+  return cleaned.length > 0 ? cleaned : 'Respond to the conversation so far.'
+}
+
+const aiPending = ref(false)
+
+watch(aiPending, () => {
+  nextTick(() => messageListRef.value?.scrollToBottom(true))
+})
 
 // Fetch channel on mount/route change
 watch(channelId, async (id) => {
@@ -34,6 +46,19 @@ const handleSendMessage = async (content: string) => {
   if (!channelId.value) return
   try {
     await sendMessage(channelId.value, content)
+    nextTick(() => messageListRef.value?.scrollToBottom(true))
+    if (AI_TRIGGER.test(content)) {
+      const prompt = extractAiPrompt(content)
+      aiPending.value = true
+      try {
+        await $fetch(`/api/channels/${channelId.value}/ai`, {
+          method: 'POST',
+          body: { prompt },
+        })
+      } finally {
+        aiPending.value = false
+      }
+    }
   } catch (error) {
     console.error('Failed to send message:', error)
   }
@@ -67,7 +92,6 @@ const handleThreadReplySent = (parentId: string) => {
   if (parentMessage) {
     parentMessage.replyCount = (parentMessage.replyCount || 0) + 1
   }
-  // Also update activeThread if it matches
   if (activeThread.value?.id === parentId) {
     activeThread.value.replyCount = (activeThread.value.replyCount || 0) + 1
   }
@@ -82,19 +106,17 @@ const channelIcon = computed(() => {
 })
 
 // WebSocket setup
-const { 
-  authenticate, 
-  subscribe, 
-  unsubscribe, 
-  sendTyping, 
+const {
+  authenticate,
+  subscribe,
+  unsubscribe,
+  sendTyping,
   sendStopTyping,
   getPresence,
   getTyping,
-  presence,
-  typing,
 } = useWebSocket()
 
-// Get current user from auth (for now using a mock - integrate with actual auth later)
+// Get current user from auth
 const { user: currentUser } = useAuth()
 
 // Authenticate WebSocket on mount
@@ -114,22 +136,18 @@ watch([channelId, currentChannel], ([id, channel], [oldId]) => {
   if (oldId && oldId !== id) {
     unsubscribe(oldId)
   }
-  
+
   // Subscribe to new channel
   if (id && channel) {
     subscribe(id, {
       channelName: channel.displayName,
       onMessage: (message) => {
-        // Only add to messages if not from current user (they already see their own)
-        // and if it's a top-level message (not a thread reply)
         if (message.userId !== currentUser.value?.id && !message.parentId) {
           messages.value = [...messages.value, message]
-          // Scroll to bottom
           nextTick(() => messageListRef.value?.scrollToBottom(true))
         }
       },
       onReaction: (messageId, reactions) => {
-        // Update reactions on the message
         const message = messages.value.find(m => m.id === messageId)
         if (message) {
           message.reactions = reactions
@@ -179,19 +197,11 @@ const handleReaction = async (messageId: string, emoji: string) => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-[#FAFAFA] font-sans text-slate-900 overflow-hidden">
-    
-    <!-- Shared Sidebar -->
-    <WorkspaceSidebar 
-      :workspace-id="workspaceId" 
-      :current-channel-id="channelId"
-    />
+  <!-- Main Content - Channel View (uses full width since layout provides sidebar) -->
+  <div :class="['flex-1 flex min-w-0 min-h-0', activeThread ? 'flex-row' : 'flex-col']">
+    <!-- Channel content -->
+    <div :class="['flex flex-col relative min-h-0', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
 
-    <!-- Main Content - Channel View -->
-    <main :class="['flex-1 flex min-w-0 min-h-0', activeThread ? 'flex-row' : 'flex-col']">
-      <!-- Channel content -->
-      <div :class="['flex flex-col relative min-h-0', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
-      
       <!-- Channel Header -->
       <header class="relative z-10 border-b border-slate-100 px-6 py-4 flex items-center justify-between bg-white">
         <div class="flex items-center gap-3">
@@ -205,11 +215,11 @@ const handleReaction = async (messageId: string, emoji: string) => {
             </p>
           </div>
         </div>
-        
+
         <div class="flex items-center gap-4">
           <!-- Online presence -->
           <ChannelsPresenceIndicator :users="channelPresence" />
-          
+
           <!-- Settings -->
           <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center">
             <Icon name="heroicons:cog-6-tooth" class="w-5 h-5" />
@@ -232,6 +242,9 @@ const handleReaction = async (messageId: string, emoji: string) => {
       <!-- Typing indicator -->
       <ChannelsTypingIndicator :users="channelTyping" />
 
+      <!-- AI waiting state -->
+      <ChannelsAiWaitingIndicator :pending="aiPending" />
+
       <!-- Message Input -->
       <div class="relative z-10">
         <ChannelsMessageInput
@@ -243,27 +256,26 @@ const handleReaction = async (messageId: string, emoji: string) => {
           @stop-typing="handleStopTyping"
         />
       </div>
-      </div>
+    </div>
 
-      <!-- Thread Panel -->
-      <Transition
-        enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0 translate-x-4"
-        enter-to-class="opacity-100 translate-x-0"
-        leave-active-class="transition-all duration-150 ease-in"
-        leave-from-class="opacity-100 translate-x-0"
-        leave-to-class="opacity-0 translate-x-4"
-      >
-        <div v-if="activeThread && currentChannel" class="w-96 2xl:w-[480px] flex-shrink-0">
-          <ChannelsThreadPanel
-            :parent-message="activeThread"
-            :channel-id="currentChannel.id"
-            :channel-name="currentChannel.displayName"
-            @close="handleCloseThread"
-            @reply-sent="handleThreadReplySent"
-          />
-        </div>
-      </Transition>
-    </main>
+    <!-- Thread Panel -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 translate-x-4"
+      enter-to-class="opacity-100 translate-x-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-x-0"
+      leave-to-class="opacity-0 translate-x-4"
+    >
+      <div v-if="activeThread && currentChannel" class="w-96 2xl:w-[480px] flex-shrink-0">
+        <ChannelsThreadPanel
+          :parent-message="activeThread"
+          :channel-id="currentChannel.id"
+          :channel-name="currentChannel.displayName"
+          @close="handleCloseThread"
+          @reply-sent="handleThreadReplySent"
+        />
+      </div>
+    </Transition>
   </div>
 </template>

@@ -54,6 +54,19 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date()
 
+  // If already focused on this task, do nothing - avoid duplicates
+  if (user?.currentTaskFocusId === taskId) {
+    return {
+      success: true,
+      taskId,
+      taskTitle: task.title,
+      projectId,
+      projectTitle: null, // We'd need another query to get this, but it's not critical for early return
+      activityStart: user?.currentActivityStart ?? now,
+      alreadyActive: true,
+    }
+  }
+
   // End current task session if any
   if (user?.currentTaskFocusId) {
     await prisma.focusSession.updateMany({

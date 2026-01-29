@@ -503,21 +503,21 @@ const formatRelativeTime = (dateStr: string) => {
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div 
-        v-if="open && item" 
-        class="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] pb-[5vh] overflow-y-auto"
+      <div
+        v-if="open && item"
+        class="fixed inset-0 z-50 flex justify-end"
       >
         <!-- Backdrop -->
-        <div 
-          class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm"
+        <div
+          class="fixed inset-0 bg-black/40"
           @click="handleClose"
         />
-        
-        <!-- Modal -->
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+
+        <!-- Slide-in Panel -->
+        <div class="panel relative bg-white shadow-2xl w-full max-w-xl h-full flex flex-col">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
               <!-- Back button (when navigated within modal) -->
               <button
                 v-if="navigationHistory.length > 0"
@@ -527,43 +527,141 @@ const formatRelativeTime = (dateStr: string) => {
                 <Icon name="heroicons:arrow-left" class="w-3.5 h-3.5" />
                 Back
               </button>
-              
-              <!-- Category -->
-              <select
-                v-model="editedCategory"
-                class="text-xs font-normal px-2 py-1 rounded-full border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
-              >
-                <option value="">No category</option>
-                <option v-for="cat in categoryOptions" :key="cat" :value="cat">
-                  {{ cat }}
-                </option>
-              </select>
-              
-              <!-- Status -->
-              <select
-                v-model="editedStatus"
-                class="text-xs font-normal px-2 py-1 rounded-full border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
-              >
-                <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              
-              <!-- Sub-Status (if available for current status) -->
-              <select
-                v-if="Object.keys(availableSubStatuses).length > 0"
-                v-model="editedSubStatus"
-                class="text-xs font-normal px-2 py-1 rounded-full border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
-              >
-                <option :value="null">— Stage —</option>
-                <option 
-                  v-for="(config, key) in availableSubStatuses" 
-                  :key="key" 
-                  :value="key"
-                >
-                  {{ config.label }}
-                </option>
-              </select>
+
+              <!-- Status Pill -->
+              <div class="group/status relative">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/status:border-slate-300 group-hover/status:shadow-sm">
+                  <div
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="{
+                      'bg-slate-400': editedStatus === 'todo',
+                      'bg-blue-500': editedStatus === 'in_progress',
+                      'bg-rose-500': editedStatus === 'blocked',
+                      'bg-amber-500': editedStatus === 'paused',
+                      'bg-emerald-500': editedStatus === 'done',
+                    }"
+                  />
+                  <span class="text-xs font-normal text-slate-600">{{ STATUS_CONFIG[editedStatus as keyof typeof STATUS_CONFIG]?.label || 'Status' }}</span>
+                  <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/status:rotate-180" />
+                </div>
+                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/status:opacity-100 group-hover/status:visible group-hover/status:translate-y-0 min-w-[120px]">
+                  <div class="py-1">
+                    <button
+                      v-for="opt in statusOptions"
+                      :key="opt.value"
+                      @click="editedStatus = opt.value"
+                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                      :class="editedStatus === opt.value
+                        ? 'bg-slate-100 text-slate-900 font-medium'
+                        : 'text-slate-600 hover:bg-slate-50'"
+                    >
+                      <div
+                        class="w-1.5 h-1.5 rounded-full"
+                        :class="{
+                          'bg-slate-400': opt.value === 'todo',
+                          'bg-blue-500': opt.value === 'in_progress',
+                          'bg-rose-500': opt.value === 'blocked',
+                          'bg-amber-500': opt.value === 'paused',
+                          'bg-emerald-500': opt.value === 'done',
+                        }"
+                      />
+                      <span>{{ opt.label }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stage Pill -->
+              <div v-if="Object.keys(availableSubStatuses).length > 0" class="group/stage relative">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/stage:border-slate-300 group-hover/stage:shadow-sm">
+                  <Icon
+                    v-if="editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus]"
+                    :name="SUB_STATUS_CONFIG[editedSubStatus].icon"
+                    class="w-3 h-3 text-slate-500"
+                  />
+                  <div v-else class="w-3 h-3 rounded-full border border-dashed border-slate-300" />
+                  <span class="text-xs font-normal text-slate-600">{{ editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus] ? SUB_STATUS_CONFIG[editedSubStatus].label : 'Stage' }}</span>
+                  <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/stage:rotate-180" />
+                </div>
+                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/stage:opacity-100 group-hover/stage:visible group-hover/stage:translate-y-0 min-w-[130px]">
+                  <div class="py-1">
+                    <button
+                      @click="editedSubStatus = null"
+                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                      :class="!editedSubStatus
+                        ? 'bg-slate-100 text-slate-900 font-medium'
+                        : 'text-slate-600 hover:bg-slate-50'"
+                    >
+                      <div class="w-3 h-3 rounded-full border border-dashed border-slate-300" />
+                      <span>None</span>
+                    </button>
+                    <button
+                      v-for="(config, key) in availableSubStatuses"
+                      :key="key"
+                      @click="editedSubStatus = key as string"
+                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                      :class="editedSubStatus === key
+                        ? 'bg-slate-100 text-slate-900 font-medium'
+                        : 'text-slate-600 hover:bg-slate-50'"
+                    >
+                      <Icon :name="config.icon" class="w-3 h-3 text-slate-500" />
+                      <span>{{ config.label }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Category Pill -->
+              <div class="group/cat relative">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/cat:border-slate-300 group-hover/cat:shadow-sm">
+                  <div
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="{
+                      'bg-blue-500': editedCategory === 'Engineering',
+                      'bg-violet-500': editedCategory === 'Design',
+                      'bg-pink-500': editedCategory === 'Marketing',
+                      'bg-slate-400': editedCategory === 'Product' || !editedCategory,
+                    }"
+                  />
+                  <span class="text-xs font-normal text-slate-600">{{ editedCategory || 'Category' }}</span>
+                  <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/cat:rotate-180" />
+                </div>
+                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/cat:opacity-100 group-hover/cat:visible group-hover/cat:translate-y-0 min-w-[140px]">
+                  <div class="py-1">
+                    <button
+                      @click="editedCategory = ''"
+                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                      :class="!editedCategory
+                        ? 'bg-slate-100 text-slate-900 font-medium'
+                        : 'text-slate-600 hover:bg-slate-50'"
+                    >
+                      <div class="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                      <span>No category</span>
+                    </button>
+                    <button
+                      v-for="cat in categoryOptions"
+                      :key="cat"
+                      @click="editedCategory = cat"
+                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                      :class="editedCategory === cat
+                        ? 'bg-slate-100 text-slate-900 font-medium'
+                        : 'text-slate-600 hover:bg-slate-50'"
+                    >
+                      <div
+                        class="w-1.5 h-1.5 rounded-full"
+                        :class="{
+                          'bg-blue-500': cat === 'Engineering',
+                          'bg-violet-500': cat === 'Design',
+                          'bg-pink-500': cat === 'Marketing',
+                          'bg-slate-400': cat === 'Product',
+                        }"
+                      />
+                      <span>{{ cat }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
             
             <div class="flex items-center gap-2">
@@ -588,9 +686,9 @@ const formatRelativeTime = (dateStr: string) => {
               </button>
               
               <!-- Close button -->
-              <button 
+              <button
                 @click="handleClose"
-                class="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <Icon name="heroicons:x-mark" class="w-5 h-5" />
               </button>
@@ -598,7 +696,7 @@ const formatRelativeTime = (dateStr: string) => {
           </div>
           
           <!-- Content -->
-          <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          <div class="p-6 space-y-6 flex-1 overflow-y-auto">
             <!-- Title -->
             <input
               v-model="editedTitle"
@@ -614,7 +712,7 @@ const formatRelativeTime = (dateStr: string) => {
               class="w-full text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-slate-200 resize-none placeholder-slate-400"
               placeholder="Add a description..."
             />
-            
+
             <!-- Dates Row -->
             <div class="grid grid-cols-2 gap-6">
               <!-- Start Date -->
@@ -1303,9 +1401,10 @@ const formatRelativeTime = (dateStr: string) => {
 </template>
 
 <style scoped>
+/* Backdrop fade */
 .modal-enter-active,
 .modal-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 
 .modal-enter-from,
@@ -1313,14 +1412,15 @@ const formatRelativeTime = (dateStr: string) => {
   opacity: 0;
 }
 
-.modal-enter-active > div:last-child,
-.modal-leave-active > div:last-child {
-  transition: transform 0.2s ease;
+/* Panel slide-in from right */
+.modal-enter-active .panel,
+.modal-leave-active .panel {
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.modal-enter-from > div:last-child,
-.modal-leave-to > div:last-child {
-  transform: scale(0.95) translateY(-10px);
+.modal-enter-from .panel,
+.modal-leave-to .panel {
+  transform: translateX(100%);
 }
 
 .dropdown-enter-active,

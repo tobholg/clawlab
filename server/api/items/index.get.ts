@@ -65,7 +65,8 @@ export default defineEventHandler(async (event) => {
     const childrenCount = countAllChildren(item)
     const hotCount = countByTemperature(item, ['hot', 'critical'])
     const blockedCount = countByStatus(item, 'BLOCKED')
-    
+    const atRiskCount = countAtRisk(item)
+
     return {
       id: item.id,
       title: item.title,
@@ -108,9 +109,10 @@ export default defineEventHandler(async (event) => {
       childrenCount,
       hotChildrenCount: hotCount,
       blockedChildrenCount: blockedCount,
+      atRiskChildrenCount: atRiskCount,
       hasChildren: (item.children?.length ?? 0) > 0,
       // Recursive children (up to 4 levels)
-      children: depth < 4 && item.children?.length 
+      children: depth < 4 && item.children?.length
         ? item.children.map((child: any) => transformItem(child, depth + 1))
         : [],
     }
@@ -150,6 +152,38 @@ function countByStatus(item: any, status: string): number {
   for (const child of item.children) {
     if (child.status === status) count++
     count += countByStatus(child, status)
+  }
+  return count
+}
+
+// Count children at risk of missing their due date (estimated completion > due date)
+function countAtRisk(item: any): number {
+  if (!item.children?.length) return 0
+  let count = 0
+  const now = new Date()
+
+  for (const child of item.children) {
+    // Only check items that have both a due date and are in progress with some progress
+    if (
+      child.dueDate &&
+      child.startDate &&
+      child.status === 'IN_PROGRESS' &&
+      (child.progress ?? 0) > 0
+    ) {
+      const dueDate = new Date(child.dueDate)
+      const startDate = new Date(child.startDate)
+      const progress = child.progress ?? 0
+
+      const daysSpent = Math.max(1, (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+      const totalEstimate = daysSpent / (progress / 100)
+      const remainingDays = Math.max(0, totalEstimate - daysSpent)
+      const estimatedCompletion = new Date(now.getTime() + remainingDays * 24 * 60 * 60 * 1000)
+
+      if (estimatedCompletion > dueDate) {
+        count++
+      }
+    }
+    count += countAtRisk(child)
   }
   return count
 }

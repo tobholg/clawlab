@@ -34,6 +34,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     jwtSecret: process.env.JWT_SECRET,
+    openaiApiKey: process.env.OPENAI_API_KEY,
+    openaiModel: process.env.OPENAI_MODEL || 'gpt-5-mini',
+    openaiBaseUrl: process.env.OPENAI_BASE_URL,
     public: {
       appName: 'Relai',
       appUrl: process.env.APP_URL || 'http://localhost:3000'

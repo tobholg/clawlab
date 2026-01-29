@@ -44,6 +44,10 @@ const isSectionCollapsed = (sectionKey: string) => {
 }
 
 const getItemsByStatus = (status: Item['status']) => {
+  // Paused items appear in the "In Progress" column with a visual indicator
+  if (status === 'in_progress') {
+    return props.items.filter(item => item.status === 'in_progress' || item.status === 'paused')
+  }
   return props.items.filter(item => item.status === status)
 }
 

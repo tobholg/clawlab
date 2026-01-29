@@ -15,6 +15,7 @@ const { isFocusedOnTask, startTaskFocus, focusState } = useFocus()
 
 const hasChildren = computed(() => props.item.childrenCount > 0)
 const isCurrentlyFocused = computed(() => isFocusedOnTask(props.item.id))
+const isPaused = computed(() => props.item.status === 'paused')
 
 // Focus action
 const handleFocusClick = async (e: Event) => {
@@ -111,15 +112,20 @@ const handleCardClick = () => {
 </script>
 
 <template>
-  <div 
-    class="group bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer"
-    :class="isCurrentlyFocused 
-      ? 'border-amber-300 ring-2 ring-amber-100 shadow-sm' 
-      : 'border-slate-100 hover:border-slate-200 hover:shadow-sm'"
+  <div
+    class="group p-4 rounded-xl border transition-all duration-200 cursor-pointer"
+    :class="[
+      isPaused
+        ? 'bg-slate-50 border-slate-200 opacity-75'
+        : 'bg-white',
+      isCurrentlyFocused
+        ? 'border-amber-300 ring-2 ring-amber-100 shadow-sm'
+        : !isPaused && 'border-slate-100 hover:border-slate-200 hover:shadow-sm'
+    ]"
     @click="handleCardClick"
   >
     <!-- Title row with category dot -->
-    <div class="flex items-start gap-2 mb-2">
+    <div class="flex items-start gap-2 mb-1">
       <!-- Category color dot -->
       <div 
         class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
@@ -130,11 +136,22 @@ const handleCardClick = () => {
       <!-- Title + Focus indicator -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5">
-          <h3 class="text-sm font-medium text-slate-800 leading-snug truncate">
+          <h3
+            class="text-sm font-medium leading-snug truncate"
+            :class="isPaused ? 'text-slate-500' : 'text-slate-800'"
+          >
             {{ item.title }}
           </h3>
+          <!-- Paused badge -->
+          <span
+            v-if="isPaused"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded text-[10px] font-medium flex-shrink-0"
+          >
+            <Icon name="heroicons:pause" class="w-3 h-3" />
+            Paused
+          </span>
           <!-- Focus indicator (compact) -->
-          <span v-if="isCurrentlyFocused" class="relative flex h-2 w-2 flex-shrink-0">
+          <span v-else-if="isCurrentlyFocused" class="relative flex h-2 w-2 flex-shrink-0">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
@@ -149,28 +166,21 @@ const handleCardClick = () => {
         </div>
       </div>
       
-      <!-- Action buttons (on hover) -->
-      <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <!-- Focus button -->
-        <button 
-          v-if="!isCurrentlyFocused"
-          @click="handleFocusClick"
-          class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors"
-          title="Focus on this"
-        >
-          <Icon name="heroicons:bolt" class="w-4 h-4" />
-        </button>
-        <!-- Menu button -->
-        <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-slate-50 text-slate-300 hover:text-slate-500">
-          <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
-        </button>
-      </div>
+      <!-- Focus button (on hover) -->
+      <button
+        v-if="!isCurrentlyFocused"
+        @click="handleFocusClick"
+        class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+        title="Focus on this"
+      >
+        <Icon name="heroicons:bolt" class="w-4 h-4" />
+      </button>
     </div>
     
     <!-- Children indicator -->
     <button
       v-if="hasChildren"
-      class="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-600 mb-3 transition-colors"
+      class="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-600 mb-1.5 transition-colors"
       @click.stop="emit('drillDown', item)"
     >
       <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
@@ -184,7 +194,7 @@ const handleCardClick = () => {
     </button>
     
     <!-- Footer -->
-    <div class="flex items-center justify-between pt-3 border-t border-slate-50">
+    <div class="flex items-center justify-between pt-2">
       <div class="flex items-center gap-1">
         <!-- Owner -->
         <div 

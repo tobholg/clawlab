@@ -18,6 +18,7 @@ export interface Item {
   category?: string
   createdAt: string
   updatedAt: string
+  lastActivityAt?: string | null
 }
 
 export interface Person {
@@ -40,6 +41,7 @@ export interface ItemNode extends Item {
   childrenCount: number
   hotChildrenCount: number
   blockedChildrenCount: number
+  atRiskChildrenCount: number
 }
 
 // Temperature config

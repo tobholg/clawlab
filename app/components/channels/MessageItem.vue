@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ChannelMessage } from '~/composables/useChannels'
+import type { TaskProposal } from '~/types/ai'
 
 const props = defineProps<{
   message: ChannelMessage
@@ -23,14 +24,21 @@ const formattedTime = computed(() => {
   })
 })
 
+const isAiMessage = computed(() => {
+  const name = props.message.user?.name?.trim().toLowerCase()
+  return name === 'relai ai'
+})
+
 // User initials for avatar
 const initials = computed(() => {
+  if (isAiMessage.value) return 'R'
   const name = props.message.user?.name || 'U'
   return name.split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || 'U'
 })
 
 // Avatar background color (deterministic based on user id)
 const avatarColor = computed(() => {
+  if (isAiMessage.value) return 'bg-black'
   const colors = [
     'bg-blue-500',
     'bg-emerald-500', 
@@ -56,6 +64,12 @@ const handleReaction = (emoji: string) => {
   emit('react', props.message.id, emoji)
   showEmojiPicker.value = false
 }
+
+const taskProposal = computed<TaskProposal | null>(() => {
+  const attachments = Array.isArray(props.message.attachments) ? props.message.attachments : []
+  const match = attachments.find((attachment: any) => attachment?.type === 'task_proposal' && attachment?.proposal)
+  return (match?.proposal as TaskProposal) || null
+})
 </script>
 
 <template>
@@ -192,6 +206,12 @@ const handleReaction = (emoji: string) => {
             </button>
           </div>
         </div>
+
+        <ChannelsMessageTaskProposal
+          v-if="taskProposal && !isThread"
+          :proposal="taskProposal"
+          :channel-id="message.channelId"
+        />
 
         <!-- Reactions display -->
         <ChannelsMessageReactions
