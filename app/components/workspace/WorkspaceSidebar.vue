@@ -5,7 +5,7 @@ const props = defineProps<{
   currentChannelId?: string | null
 }>()
 
-const { navigateTo } = useItems()
+const router = useRouter()
 const { channelTree, loading: channelsLoading } = useChannels(toRef(props, 'workspaceId'))
 
 // Fetch projects
@@ -29,11 +29,11 @@ const recentProjects = computed(() => {
 const sidebarCollapsed = ref(false)
 
 const handleProjectClick = (projectId: string) => {
-  navigateTo(projectId)
+  router.push(`/workspace?project=${projectId}`)
 }
 
 const handleProjectsClick = () => {
-  navigateTo('root')
+  router.push('/workspace')
 }
 </script>
 

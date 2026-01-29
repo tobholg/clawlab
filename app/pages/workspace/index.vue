@@ -4,6 +4,9 @@ definePageMeta({
   // middleware: ['auth']  // TODO: re-enable
 })
 
+const route = useRoute()
+const router = useRouter()
+
 const { 
   scopedItems, 
   currentScope, 
@@ -15,6 +18,15 @@ const {
   refreshItems,
   workspaceId,
 } = useItems()
+
+// Handle project query param (when navigating from other pages)
+watch(() => route.query.project, (projectId) => {
+  if (projectId && typeof projectId === 'string') {
+    navigateTo(projectId)
+    // Clear the query param
+    router.replace({ query: {} })
+  }
+}, { immediate: true })
 
 // Fetch channels for sidebar
 const { channelTree, loading: channelsLoading } = useChannels(workspaceId)
