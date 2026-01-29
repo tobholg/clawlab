@@ -98,13 +98,22 @@ export default defineEventHandler(async (event) => {
   // If task has a project and it's different from current, switch project too
   const isNewProject = projectId && user?.currentProjectFocusId !== projectId
 
-  await prisma.user.update({
+  await prisma.user.upsert({
     where: { id: userId },
-    data: {
+    update: {
       currentProjectFocusId: projectId,
       currentProjectFocusStart: isNewProject ? now : undefined,
       currentTaskFocusId: taskId,
       currentLaneFocus: null, // Clear lane when focusing on task
+      currentActivityStart: now,
+    },
+    create: {
+      id: userId,
+      email: `${userId}@demo.local`,
+      currentProjectFocusId: projectId,
+      currentProjectFocusStart: now,
+      currentTaskFocusId: taskId,
+      currentLaneFocus: null,
       currentActivityStart: now,
     }
   })

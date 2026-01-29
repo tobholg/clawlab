@@ -56,10 +56,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // Switch to GENERAL lane (stay in project context)
-  await prisma.user.update({
+  await prisma.user.upsert({
     where: { id: userId },
-    data: {
+    update: {
       currentTaskFocusId: null,
+      currentLaneFocus: 'GENERAL',
+      currentActivityStart: now,
+    },
+    create: {
+      id: userId,
+      email: `${userId}@demo.local`,
       currentLaneFocus: 'GENERAL',
       currentActivityStart: now,
     }

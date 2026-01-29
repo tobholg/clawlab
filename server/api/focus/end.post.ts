@@ -60,22 +60,32 @@ export default defineEventHandler(async (event) => {
   // Update user state
   if (endProject) {
     // End everything - back to unfocused state
-    await prisma.user.update({
+    await prisma.user.upsert({
       where: { id: userId },
-      data: {
+      update: {
         currentProjectFocusId: null,
         currentProjectFocusStart: null,
         currentTaskFocusId: null,
         currentLaneFocus: null,
         currentActivityStart: null,
+      },
+      create: {
+        id: userId,
+        email: `${userId}@demo.local`,
       }
     })
   } else {
     // Just end activity, keep project context, go to GENERAL
-    await prisma.user.update({
+    await prisma.user.upsert({
       where: { id: userId },
-      data: {
+      update: {
         currentTaskFocusId: null,
+        currentLaneFocus: 'GENERAL',
+        currentActivityStart: now,
+      },
+      create: {
+        id: userId,
+        email: `${userId}@demo.local`,
         currentLaneFocus: 'GENERAL',
         currentActivityStart: now,
       }

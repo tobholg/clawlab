@@ -63,10 +63,17 @@ export default defineEventHandler(async (event) => {
   }
 
   // Update user focus state
-  await prisma.user.update({
+  await prisma.user.upsert({
     where: { id: userId },
-    data: {
+    update: {
       currentTaskFocusId: null, // Clear task
+      currentLaneFocus: upperLane as any,
+      currentActivityStart: now,
+    },
+    create: {
+      id: userId,
+      email: `${userId}@demo.local`,
+      currentTaskFocusId: null,
       currentLaneFocus: upperLane as any,
       currentActivityStart: now,
     }

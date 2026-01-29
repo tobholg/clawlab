@@ -55,14 +55,18 @@ export default defineEventHandler(async (event) => {
 
   // If projectId is null, we're clearing project focus entirely
   if (!projectId) {
-    await prisma.user.update({
+    await prisma.user.upsert({
       where: { id: userId },
-      data: {
+      update: {
         currentProjectFocusId: null,
         currentProjectFocusStart: null,
         currentTaskFocusId: null,
         currentLaneFocus: null,
         currentActivityStart: null,
+      },
+      create: {
+        id: userId,
+        email: `${userId}@demo.local`,
       }
     })
     return { success: true, projectId: null }
@@ -81,12 +85,21 @@ export default defineEventHandler(async (event) => {
   // Start new project focus with GENERAL lane
   const isNewProject = user?.currentProjectFocusId !== projectId
 
-  await prisma.user.update({
+  await prisma.user.upsert({
     where: { id: userId },
-    data: {
+    update: {
       currentProjectFocusId: projectId,
       currentProjectFocusStart: isNewProject ? now : undefined,
       currentTaskFocusId: null, // Clear task when switching projects
+      currentLaneFocus: 'GENERAL',
+      currentActivityStart: now,
+    },
+    create: {
+      id: userId,
+      email: `${userId}@demo.local`,
+      currentProjectFocusId: projectId,
+      currentProjectFocusStart: now,
+      currentTaskFocusId: null,
       currentLaneFocus: 'GENERAL',
       currentActivityStart: now,
     }
