@@ -8,16 +8,30 @@ const props = defineProps<{
 const router = useRouter()
 const { channelTree, loading: channelsLoading } = useChannels(toRef(props, 'workspaceId'))
 
-// Fetch projects
-const { data: allProjects } = useFetch('/api/items', {
-  query: computed(() => ({ workspaceId: props.workspaceId, parentId: 'root' })),
-  watch: [() => props.workspaceId],
-  default: () => []
-})
+// Use global state for sidebar projects (prevents refetch on navigation)
+const sidebarProjects = useState<any[]>('sidebarProjects', () => [])
+const projectsFetched = useState<boolean>('sidebarProjectsFetched', () => false)
+
+// Fetch projects when workspace changes
+watch(() => props.workspaceId, async (wsId) => {
+  if (wsId && !projectsFetched.value) {
+    try {
+      const data = await $fetch('/api/items', {
+        query: { workspaceId: wsId, parentId: 'root' }
+      })
+      if (Array.isArray(data)) {
+        sidebarProjects.value = data
+        projectsFetched.value = true
+      }
+    } catch (e) {
+      console.error('Failed to fetch projects:', e)
+    }
+  }
+}, { immediate: true })
 
 const recentProjects = computed(() => {
-  if (!allProjects.value || !Array.isArray(allProjects.value)) return []
-  return [...allProjects.value]
+  if (!sidebarProjects.value?.length) return []
+  return [...sidebarProjects.value]
     .sort((a: any, b: any) => {
       const aTime = new Date(a.lastActivityAt || a.updatedAt || a.createdAt).getTime()
       const bTime = new Date(b.lastActivityAt || b.updatedAt || b.createdAt).getTime()

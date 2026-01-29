@@ -20,8 +20,9 @@ const {
 } = useItems()
 
 // Handle project query param (when navigating from other pages)
-watch(() => route.query.project, (projectId) => {
-  if (projectId && typeof projectId === 'string') {
+// Wait for workspace to be loaded first
+watch([() => route.query.project, workspaceId], ([projectId, wsId]) => {
+  if (projectId && typeof projectId === 'string' && wsId) {
     navigateTo(projectId)
     // Clear the query param
     router.replace({ query: {} })
