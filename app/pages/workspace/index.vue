@@ -31,6 +31,13 @@ watch([() => route.query.project, workspaceId], async ([projectId, wsId]) => {
   }
 }, { immediate: true })
 
+// Always refresh items when page mounts (handles back navigation)
+onMounted(async () => {
+  if (workspaceId.value) {
+    await refreshItems()
+  }
+})
+
 // Fetch channels for sidebar
 const { channelTree, loading: channelsLoading } = useChannels(workspaceId)
 

@@ -55,20 +55,20 @@ export function useItems() {
     }
   }
   
-  // Watch for scope/workspace changes and fetch
-  watch([workspaceId, currentScopeId], ([wsId, scopeId], [oldWsId, oldScopeId]) => {
-    // Only fetch if values actually changed and workspace is set
-    if (wsId && (wsId !== oldWsId || scopeId !== oldScopeId)) {
+  // Watch for scope changes and fetch
+  watch(currentScopeId, (scopeId) => {
+    if (workspaceId.value) {
       refreshItems()
       if (scopeId) fetchScopeDetails()
       else currentScopeData.value = null
     }
   })
   
-  // Initial fetch when workspace becomes available
+  // Fetch when workspace becomes available
   watch(workspaceId, (wsId) => {
     if (wsId) {
       refreshItems()
+      if (currentScopeId.value) fetchScopeDetails()
     }
   }, { immediate: true })
   
