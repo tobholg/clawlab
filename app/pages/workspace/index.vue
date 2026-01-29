@@ -188,7 +188,7 @@ onMounted(() => {
       ]"
     >
       <!-- Logo + Toggle -->
-      <div :class="['mb-8 flex items-center', sidebarCollapsed ? 'flex-col gap-3' : 'px-5 justify-between']">
+      <div :class="['mb-4 flex items-center', sidebarCollapsed ? 'flex-col gap-3' : 'px-5 justify-between']">
         <div :class="['flex items-center gap-2.5', sidebarCollapsed ? 'justify-center w-full' : '']">
           <div class="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0">
             <span class="text-white text-sm font-medium">R</span>
@@ -209,6 +209,12 @@ onMounted(() => {
           <Icon :name="sidebarCollapsed ? 'heroicons:chevron-right' : 'heroicons:chevron-left'" class="w-4 h-4" />
         </button>
       </div>
+
+      <!-- Focus Section -->
+      <FocusSidebar v-if="!sidebarCollapsed" />
+      
+      <!-- Team Presence -->
+      <TeamPresence v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
 
       <!-- Navigation -->
       <nav class="flex-1 px-3 overflow-y-auto">

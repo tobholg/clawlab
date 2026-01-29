@@ -29,10 +29,16 @@ const projects = ref<{ id: string; title: string }[]>([])
 // Load on mount
 onMounted(async () => {
   await loadFocusState()
-  // TODO: Load projects from API
-  const { data } = await useFetch('/api/items?rootOnly=true')
-  if (data.value) {
-    projects.value = (data.value as any[]).map(p => ({ id: p.id, title: p.title }))
+  // Load root-level projects (parentId = null)
+  try {
+    const data = await $fetch('/api/items', {
+      query: { workspaceId: 'default', parentId: 'root' }
+    })
+    if (data && Array.isArray(data)) {
+      projects.value = data.map((p: any) => ({ id: p.id, title: p.title }))
+    }
+  } catch (e) {
+    console.error('Failed to load projects:', e)
   }
 })
 
