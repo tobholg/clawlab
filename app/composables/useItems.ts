@@ -16,19 +16,13 @@ export function useItems() {
     }
   }, { immediate: true })
   
-  // Items data (use useState to persist across navigations)
-  const itemsData = useState<any[]>('scopedItems', () => [])
+  // Items data
+  const itemsData = ref<any[]>([])
   const loading = ref(false)
-  const lastFetchKey = useState<string>('lastItemsFetchKey', () => '')
   
   // Fetch items for current scope
-  const refreshItems = async (force = false) => {
+  const refreshItems = async () => {
     if (!workspaceId.value) return
-    
-    const fetchKey = `${workspaceId.value}:${currentScopeId.value ?? 'root'}`
-    
-    // Skip if already fetched this exact scope (unless forced)
-    if (!force && lastFetchKey.value === fetchKey && itemsData.value.length > 0) return
     
     loading.value = true
     try {
@@ -39,7 +33,6 @@ export function useItems() {
         }
       })
       itemsData.value = data as any[]
-      lastFetchKey.value = fetchKey
     } catch (e) {
       console.error('Failed to fetch items:', e)
     } finally {
@@ -63,9 +56,20 @@ export function useItems() {
   }
   
   // Watch for scope/workspace changes and fetch
-  watch([workspaceId, currentScopeId], () => {
-    refreshItems()
-    fetchScopeDetails()
+  watch([workspaceId, currentScopeId], ([wsId, scopeId], [oldWsId, oldScopeId]) => {
+    // Only fetch if values actually changed and workspace is set
+    if (wsId && (wsId !== oldWsId || scopeId !== oldScopeId)) {
+      refreshItems()
+      if (scopeId) fetchScopeDetails()
+      else currentScopeData.value = null
+    }
+  })
+  
+  // Initial fetch when workspace becomes available
+  watch(workspaceId, (wsId) => {
+    if (wsId) {
+      refreshItems()
+    }
   }, { immediate: true })
   
   // Transform API data to ItemNode format

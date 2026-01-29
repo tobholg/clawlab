@@ -8,26 +8,37 @@ const props = defineProps<{
 const router = useRouter()
 const { channelTree, loading: channelsLoading } = useChannels(toRef(props, 'workspaceId'))
 
-// Use global state for sidebar projects (prevents refetch on navigation)
-const sidebarProjects = useState<any[]>('sidebarProjects', () => [])
-const projectsFetched = useState<boolean>('sidebarProjectsFetched', () => false)
+// Projects for sidebar
+const sidebarProjects = ref<any[]>([])
+const projectsLoading = ref(false)
 
-// Fetch projects when workspace changes
-watch(() => props.workspaceId, async (wsId) => {
-  if (wsId && !projectsFetched.value) {
-    try {
-      const data = await $fetch('/api/items', {
-        query: { workspaceId: wsId, parentId: 'root' }
-      })
-      if (Array.isArray(data)) {
-        sidebarProjects.value = data
-        projectsFetched.value = true
-      }
-    } catch (e) {
-      console.error('Failed to fetch projects:', e)
+// Fetch projects when workspace is available
+const fetchProjects = async () => {
+  if (!props.workspaceId || projectsLoading.value) return
+  
+  projectsLoading.value = true
+  try {
+    const data = await $fetch('/api/items', {
+      query: { workspaceId: props.workspaceId, parentId: 'root' }
+    })
+    if (Array.isArray(data)) {
+      sidebarProjects.value = data
     }
+  } catch (e) {
+    console.error('Failed to fetch projects:', e)
+  } finally {
+    projectsLoading.value = false
   }
-}, { immediate: true })
+}
+
+// Fetch on mount and when workspaceId changes
+onMounted(() => {
+  fetchProjects()
+})
+
+watch(() => props.workspaceId, () => {
+  fetchProjects()
+})
 
 const recentProjects = computed(() => {
   if (!sidebarProjects.value?.length) return []

@@ -21,9 +21,11 @@ const {
 
 // Handle project query param (when navigating from other pages)
 // Wait for workspace to be loaded first
-watch([() => route.query.project, workspaceId], ([projectId, wsId]) => {
+watch([() => route.query.project, workspaceId], async ([projectId, wsId]) => {
   if (projectId && typeof projectId === 'string' && wsId) {
     navigateTo(projectId)
+    // Force refresh items for the new scope
+    await refreshItems()
     // Clear the query param
     router.replace({ query: {} })
   }
