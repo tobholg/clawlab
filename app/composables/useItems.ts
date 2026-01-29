@@ -16,19 +16,36 @@ export function useItems() {
     }
   }, { immediate: true })
   
-  // Fetch items at current scope
-  const { 
-    data: itemsData, 
-    refresh: refreshItems,
-    pending: loading,
-  } = useFetch('/api/items', {
-    query: computed(() => ({
-      workspaceId: workspaceId.value,
-      parentId: currentScopeId.value ?? 'root',
-    })),
-    watch: [workspaceId, currentScopeId],
-    immediate: false,
-  })
+  // Items data (use useState to persist across navigations)
+  const itemsData = useState<any[]>('scopedItems', () => [])
+  const loading = ref(false)
+  const lastFetchKey = useState<string>('lastItemsFetchKey', () => '')
+  
+  // Fetch items for current scope
+  const refreshItems = async (force = false) => {
+    if (!workspaceId.value) return
+    
+    const fetchKey = `${workspaceId.value}:${currentScopeId.value ?? 'root'}`
+    
+    // Skip if already fetched this exact scope (unless forced)
+    if (!force && lastFetchKey.value === fetchKey && itemsData.value.length > 0) return
+    
+    loading.value = true
+    try {
+      const data = await $fetch('/api/items', {
+        query: {
+          workspaceId: workspaceId.value,
+          parentId: currentScopeId.value ?? 'root',
+        }
+      })
+      itemsData.value = data as any[]
+      lastFetchKey.value = fetchKey
+    } catch (e) {
+      console.error('Failed to fetch items:', e)
+    } finally {
+      loading.value = false
+    }
+  }
   
   // Fetch scope details when scope changes
   const fetchScopeDetails = async () => {
@@ -45,8 +62,9 @@ export function useItems() {
     }
   }
   
-  // Watch for scope changes
-  watch(currentScopeId, () => {
+  // Watch for scope/workspace changes and fetch
+  watch([workspaceId, currentScopeId], () => {
+    refreshItems()
     fetchScopeDetails()
   }, { immediate: true })
   

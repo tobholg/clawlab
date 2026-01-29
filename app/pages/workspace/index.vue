@@ -107,7 +107,7 @@ const handleOpenDetail = (item: any) => {
 // Handle item update from modal (modal already saved, just refresh list)
 const handleUpdateItem = async (_id: string, data: any) => {
   // Modal already saved the data, just refresh the items list
-  await refreshItems()
+  await refreshItems(true) // Force refresh after update
   // Only close if explicitly requested (not on auto-save)
   if (data?._close) {
     showDetailModal.value = false
@@ -160,7 +160,7 @@ const saveProjectChanges = async () => {
         description: editedProjectDescription.value,
       }
     })
-    await refreshItems()
+    await refreshItems(true) // Force refresh after save
   } catch (e) {
     console.error('Failed to save project:', e)
   }
