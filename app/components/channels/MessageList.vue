@@ -146,8 +146,8 @@ defineExpose({ scrollToBottom })
       @scroll="handleScroll"
     >
     <!-- Load more indicator -->
-    <div v-if="hasMore" class="py-4 text-center">
-      <button 
+    <div v-if="hasMore" class="py-4 text-center max-w-3xl mx-auto">
+      <button
         v-if="!loading"
         class="text-sm text-slate-500 hover:text-slate-700"
         @click="emit('loadMore')"
@@ -160,36 +160,38 @@ defineExpose({ scrollToBottom })
       </div>
     </div>
 
-    <!-- Messages -->
-    <TransitionGroup 
-      tag="div" 
-      class="py-4"
-      enter-active-class="message-enter-active"
-      enter-from-class="message-enter-from"
-      enter-to-class="message-enter-to"
-      move-class="message-move"
-    >
-      <template v-for="group in groupedMessages" :key="group.type === 'date' ? group.date : group.message?.id">
-        <!-- Date separator -->
-        <div v-if="group.type === 'date'" class="flex items-center px-4 py-3">
-          <div class="flex-1 h-px bg-slate-200" />
-          <span class="px-4 text-xs font-medium text-slate-500">
-            {{ group.date }}
-          </span>
-          <div class="flex-1 h-px bg-slate-200" />
-        </div>
+    <!-- Messages - centered container -->
+    <div class="max-w-3xl mx-auto">
+      <TransitionGroup
+        tag="div"
+        class="py-4"
+        enter-active-class="message-enter-active"
+        enter-from-class="message-enter-from"
+        enter-to-class="message-enter-to"
+        move-class="message-move"
+      >
+        <template v-for="group in groupedMessages" :key="group.type === 'date' ? group.date : group.message?.id">
+          <!-- Date separator -->
+          <div v-if="group.type === 'date'" class="flex items-center px-4 py-3">
+            <div class="flex-1 h-px bg-slate-200" />
+            <span class="px-4 text-xs font-medium text-slate-500">
+              {{ group.date }}
+            </span>
+            <div class="flex-1 h-px bg-slate-200" />
+          </div>
 
-        <!-- Message -->
-        <ChannelsMessageItem 
-          v-else-if="group.message"
-          :message="group.message"
-          :show-author="group.showAuthor"
-          :current-user-id="currentUserId"
-          @reply="(msg) => emit('reply', msg)"
-          @react="(msgId, emoji) => emit('react', msgId, emoji)"
-        />
-      </template>
-    </TransitionGroup>
+          <!-- Message -->
+          <ChannelsMessageItem
+            v-else-if="group.message"
+            :message="group.message"
+            :show-author="group.showAuthor"
+            :current-user-id="currentUserId"
+            @reply="(msg) => emit('reply', msg)"
+            @react="(msgId, emoji) => emit('react', msgId, emoji)"
+          />
+        </template>
+      </TransitionGroup>
+    </div>
 
     <!-- Empty state -->
     <div 

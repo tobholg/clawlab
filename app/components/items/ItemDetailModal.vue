@@ -72,6 +72,36 @@ const isParentProject = computed(() => {
   return parentDetail.value && !parentDetail.value.parentId
 })
 
+// Can promote if item has a parent (is not at root level)
+const canPromote = computed(() => {
+  return parentDetail.value !== null
+})
+
+// Get the grandparent ID (parent's parent) for promotion target
+const promoteTargetId = computed(() => {
+  return parentDetail.value?.parentId ?? null // null means promote to root level
+})
+
+// Promote item up one level (become sibling of current parent)
+const promoteItem = async () => {
+  if (!currentItemId.value || !canPromote.value) return
+
+  try {
+    await $fetch(`/api/items/${currentItemId.value}`, {
+      method: 'PATCH',
+      body: { parentId: promoteTargetId.value }
+    })
+
+    // Emit update to refresh parent list
+    emit('update', currentItemId.value, { _saved: true, _close: false })
+
+    // Refresh the item detail to show new parent
+    await refreshItem()
+  } catch (e) {
+    console.error('Failed to promote item:', e)
+  }
+}
+
 // Fetch when item changes OR modal opens
 watch([() => props.item?.id, () => props.open], ([id, isOpen]) => {
   if (id && isOpen) {
@@ -1057,9 +1087,21 @@ const formatRelativeTime = (dateStr: string) => {
             
             <!-- Parent Section -->
             <div v-if="parentDetail" class="mb-6">
-              <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-                {{ isParentProject ? 'Parent Project' : 'Parent Task' }}
-              </h3>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  {{ isParentProject ? 'Parent Project' : 'Parent Task' }}
+                </h3>
+                <!-- Promote Button -->
+                <button
+                  v-if="canPromote"
+                  @click.stop="promoteItem"
+                  class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                  title="Move up one level (become sibling of parent)"
+                >
+                  <Icon name="heroicons:arrow-up-on-square" class="w-3.5 h-3.5" />
+                  Promote
+                </button>
+              </div>
               <div 
                 class="group flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer"
                 :class="isParentProject 

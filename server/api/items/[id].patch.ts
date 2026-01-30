@@ -1,16 +1,47 @@
 import { prisma } from '../../utils/prisma'
 
+// Helper: Check if targetId is a descendant of itemId (prevent circular refs)
+async function isDescendant(itemId: string, targetId: string): Promise<boolean> {
+  const children = await prisma.item.findMany({
+    where: { parentId: itemId },
+    select: { id: true }
+  })
+
+  for (const child of children) {
+    if (child.id === targetId) return true
+    if (await isDescendant(child.id, targetId)) return true
+  }
+
+  return false
+}
+
+// Helper: Recursively update projectId for all descendants
+async function updateDescendantsProjectId(itemId: string, newProjectId: string | null): Promise<void> {
+  const children = await prisma.item.findMany({
+    where: { parentId: itemId },
+    select: { id: true }
+  })
+
+  for (const child of children) {
+    await prisma.item.update({
+      where: { id: child.id },
+      data: { projectId: newProjectId }
+    })
+    await updateDescendantsProjectId(child.id, newProjectId)
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const body = await readBody(event)
-  
+
   if (!id) {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
-  
-  const { 
-    title, 
-    description, 
+
+  const {
+    title,
+    description,
     category,
     status,
     subStatus,
@@ -19,14 +50,15 @@ export default defineEventHandler(async (event) => {
     confidence,
     progress,
     ownerId,
+    parentId,
   } = body
-  
-  // Get current item to check if we need to auto-set startDate
+
+  // Get current item with hierarchy info
   const currentItem = await prisma.item.findUnique({
     where: { id },
-    select: { status: true, subStatus: true, startDate: true }
+    select: { status: true, subStatus: true, startDate: true, parentId: true, projectId: true, workspaceId: true }
   })
-  
+
   if (!currentItem) {
     throw createError({ statusCode: 404, message: 'Item not found' })
   }
@@ -98,7 +130,51 @@ export default defineEventHandler(async (event) => {
   if (confidence !== undefined) updateData.confidence = confidence
   if (progress !== undefined) updateData.progress = progress
   if (ownerId !== undefined) updateData.ownerId = ownerId || null
-  
+
+  // Handle parentId change (reparenting)
+  let needsDescendantUpdate = false
+  let newProjectId: string | null = null
+
+  if (parentId !== undefined && parentId !== currentItem.parentId) {
+    // Validate: cannot set parentId to self
+    if (parentId === id) {
+      throw createError({ statusCode: 400, message: 'Item cannot be its own parent' })
+    }
+
+    // Validate: cannot set parentId to a descendant (circular reference)
+    if (parentId !== null && await isDescendant(id, parentId)) {
+      throw createError({ statusCode: 400, message: 'Cannot move item under its own descendant' })
+    }
+
+    // If setting a new parent, validate it exists and is in same workspace
+    if (parentId !== null) {
+      const newParent = await prisma.item.findUnique({
+        where: { id: parentId },
+        select: { id: true, workspaceId: true, projectId: true }
+      })
+
+      if (!newParent) {
+        throw createError({ statusCode: 404, message: 'New parent item not found' })
+      }
+
+      if (newParent.workspaceId !== currentItem.workspaceId) {
+        throw createError({ statusCode: 400, message: 'Cannot move item to a different workspace' })
+      }
+
+      // Calculate new projectId:
+      // - If parent has projectId, use it (parent is nested)
+      // - If parent's projectId is null, parent IS the root project, so use parentId
+      newProjectId = newParent.projectId ?? parentId
+    } else {
+      // Moving to root level (no parent)
+      newProjectId = null
+    }
+
+    updateData.parentId = parentId
+    updateData.projectId = newProjectId
+    needsDescendantUpdate = true
+  }
+
   const item = await prisma.item.update({
     where: { id },
     data: updateData,
@@ -106,6 +182,11 @@ export default defineEventHandler(async (event) => {
       owner: true,
     }
   })
+
+  // Update all descendants' projectId if this item was reparented
+  if (needsDescendantUpdate) {
+    await updateDescendantsProjectId(id, newProjectId)
+  }
 
   // Create Activity record for status changes
   if (status !== undefined && status.toUpperCase() !== currentItem.status) {
@@ -128,6 +209,8 @@ export default defineEventHandler(async (event) => {
     title: item.title,
     status: item.status.toLowerCase(),
     subStatus: item.subStatus ?? null,
+    parentId: item.parentId ?? null,
+    projectId: item.projectId ?? null,
     startDate: item.startDate?.toISOString() ?? null,
     updatedAt: item.updatedAt.toISOString(),
     owner: item.owner ? {

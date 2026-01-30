@@ -12,6 +12,9 @@ const emit = defineEmits<{
   replySent: [parentId: string]
 }>()
 
+// Get current user
+const { user: currentUser } = useAuth()
+
 // Thread state
 const replies = ref<ChannelMessage[]>([])
 const loading = ref(true)
@@ -102,6 +105,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
           :message="parentMessage"
           :show-author="true"
           :is-thread="true"
+          :current-user-id="currentUser?.id"
         />
       </div>
 
@@ -125,6 +129,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
           :message="reply"
           :show-author="shouldShowAuthor(reply, index)"
           :is-thread="true"
+          :current-user-id="currentUser?.id"
         />
         
         <!-- Empty state -->

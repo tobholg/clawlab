@@ -101,7 +101,7 @@ defineExpose({ focus })
 
 <template>
   <div class="border-t border-slate-100 bg-white px-4 py-3">
-    <div class="flex items-center gap-2">
+    <div class="max-w-3xl mx-auto flex items-center gap-2">
       <!-- Attachment button -->
       <button 
         class="flex-shrink-0 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center"
@@ -139,9 +139,8 @@ defineExpose({ focus })
     </div>
 
     <!-- Helper text -->
-    <p v-if="!hideHelper" class="mt-1.5 text-xs text-slate-400 px-12">
-      Press <kbd class="px-1 py-0.5 bg-slate-100 rounded text-[10px] font-mono">Enter</kbd> to send, 
-      <kbd class="px-1 py-0.5 bg-slate-100 rounded text-[10px] font-mono">Shift+Enter</kbd> for new line
+    <p v-if="!hideHelper" class="mt-1.5 text-xs text-slate-400 max-w-3xl mx-auto px-12">
+      Type <kbd class="px-1 py-0.5 bg-slate-100 rounded text-[10px] font-mono">@ai</kbd> to get AI assistance
     </p>
   </div>
 </template>

@@ -15,7 +15,7 @@ const props = defineProps<{
     leave-to-class="opacity-0 -translate-y-1"
   >
     <div v-if="pending" class="px-4 py-1.5">
-      <div class="flex items-center gap-2 text-xs text-slate-500">
+      <div class="max-w-3xl mx-auto flex items-center gap-2 text-xs text-slate-500">
         <div class="w-5 h-5 rounded-full bg-black flex items-center justify-center text-[10px] font-semibold text-white">
           R
         </div>

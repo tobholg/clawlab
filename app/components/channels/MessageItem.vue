@@ -14,13 +14,16 @@ const emit = defineEmits<{
   react: [messageId: string, emoji: string]
 }>()
 
+// Check if this is the current user's message
+const isOwnMessage = computed(() => props.message.userId === props.currentUserId)
+
 // Format timestamp
 const formattedTime = computed(() => {
   const date = new Date(props.message.createdAt)
-  return date.toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: true 
+    hour12: true
   })
 })
 
@@ -29,25 +32,24 @@ const isAiMessage = computed(() => {
   return name === 'relai ai'
 })
 
-// User initials for avatar
-const initials = computed(() => {
-  if (isAiMessage.value) return 'R'
-  const name = props.message.user?.name || 'U'
-  return name.split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || 'U'
-})
-
-// Avatar background color (deterministic based on user id)
-const avatarColor = computed(() => {
-  if (isAiMessage.value) return 'bg-black'
+// Bubble background color (subtle, based on user id)
+const bubbleColor = computed(() => {
+  if (isOwnMessage.value) {
+    return 'bg-blue-100/70 text-slate-800'
+  }
+  if (isAiMessage.value) {
+    return 'bg-slate-100 text-slate-800'
+  }
+  // Subtle colors for other users (using -100 with reduced opacity for middle ground)
   const colors = [
-    'bg-blue-500',
-    'bg-emerald-500', 
-    'bg-violet-500',
-    'bg-rose-500',
-    'bg-amber-500',
-    'bg-cyan-500',
-    'bg-pink-500',
-    'bg-indigo-500',
+    'bg-emerald-100/70 text-slate-800',
+    'bg-violet-100/70 text-slate-800',
+    'bg-rose-100/70 text-slate-800',
+    'bg-amber-100/70 text-slate-800',
+    'bg-cyan-100/70 text-slate-800',
+    'bg-pink-100/70 text-slate-800',
+    'bg-indigo-100/70 text-slate-800',
+    'bg-slate-100 text-slate-800',
   ]
   const id = props.message.userId || props.message.id || 'default'
   const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
@@ -73,166 +75,125 @@ const taskProposal = computed<TaskProposal | null>(() => {
 </script>
 
 <template>
-  <div 
+  <div
     :class="[
-      'group relative px-4 py-0.5',
-      showAuthor ? 'pt-2' : '',
-      'hover:bg-slate-50/50 transition-colors'
+      'group relative px-4 py-1',
+      showAuthor ? 'pt-3' : '',
     ]"
     @mouseenter="showActions = true"
     @mouseleave="showActions = false"
   >
-    <div :class="['flex gap-3', showAuthor ? 'items-start' : 'items-start']">
-      <!-- Avatar (only if showing author) -->
-      <div v-if="showAuthor" class="flex-shrink-0 w-12">
-        <div 
+    <!-- Message row - flex direction based on own/other -->
+    <div :class="['flex items-center', isOwnMessage ? 'justify-end' : 'justify-start']">
+      <div class="max-w-[75%] min-w-0">
+        <!-- Author name (only for others, when showing author) -->
+        <div
+          v-if="showAuthor && !isOwnMessage"
+          class="text-xs font-medium text-slate-500 mb-1 ml-3"
+        >
+          {{ message.user?.name || 'Unknown User' }}
+        </div>
+
+        <!-- Bubble -->
+        <div
           :class="[
-            'w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium',
-            avatarColor
+            'relative px-3.5 py-2 rounded-2xl',
+            bubbleColor,
+            isOwnMessage ? 'rounded-br-md' : 'rounded-bl-md',
           ]"
         >
-          {{ initials }}
-        </div>
-      </div>
-      
-      <!-- Spacer when no avatar (grouped messages) -->
-      <div v-else class="flex-shrink-0 w-12">
-        <!-- Timestamp on hover for grouped messages -->
-        <span 
-          class="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity leading-5 block text-right pr-1 whitespace-nowrap"
-        >
-          {{ formattedTime }}
-        </span>
-      </div>
-
-      <!-- Message content -->
-      <div class="flex-1 min-w-0">
-        <!-- Author + timestamp + inline actions (only if showing author) -->
-        <div v-if="showAuthor" class="flex items-center gap-2 mb-0.5">
-          <span class="font-medium text-sm text-slate-900">
-            {{ message.user?.name || 'Unknown User' }}
-          </span>
-          <span class="text-xs text-slate-400">
-            {{ formattedTime }}
-          </span>
-          <span 
-            v-if="message.editedAt" 
-            class="text-xs text-slate-400"
-            title="Edited"
-          >
-            (edited)
-          </span>
-          <!-- Inline actions (right of timestamp) -->
-          <div 
-            v-if="!isThread"
-            :class="[
-              'flex items-center gap-0.5 ml-1 transition-opacity duration-150',
-              showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            ]"
-          >
-            <button 
-              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Reply in thread"
-              @click="emit('reply', message)"
-            >
-              <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
-            </button>
-            <div class="relative">
-              <button 
-                class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-                title="Add reaction"
-                @click.stop="showEmojiPicker = !showEmojiPicker"
-              >
-                <Icon name="heroicons:face-smile" class="w-4 h-4" />
-              </button>
-              <!-- Emoji picker (with author) -->
-              <div v-if="showEmojiPicker" class="absolute top-6 left-0 z-20">
-                <ChannelsEmojiPicker 
-                  @select="handleReaction" 
-                  @close="showEmojiPicker = false" 
-                />
-              </div>
-            </div>
-            <button 
-              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="More options"
-            >
-              <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Message text + inline actions for grouped messages -->
-        <div class="flex items-start gap-2">
-          <p class="text-sm text-slate-700 whitespace-pre-wrap break-words leading-relaxed flex-1">
+          <!-- Message text -->
+          <p class="text-sm whitespace-pre-wrap break-words leading-relaxed">
             {{ message.content }}
           </p>
-          <!-- Inline actions for grouped messages (no author row) -->
-          <div 
-            v-if="!showAuthor && !isThread"
-            :class="[
-              'flex items-center gap-0.5 flex-shrink-0 transition-opacity duration-150',
-              showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            ]"
-          >
-            <button 
-              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Reply in thread"
-              @click="emit('reply', message)"
+
+          <!-- Timestamp inside bubble -->
+          <div :class="[
+            'flex items-center gap-1 mt-1',
+            isOwnMessage ? 'justify-end' : 'justify-start'
+          ]">
+            <span class="text-[10px] text-slate-400">
+              {{ formattedTime }}
+            </span>
+            <span
+              v-if="message.editedAt"
+              class="text-[10px] text-slate-400"
             >
-              <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
-            </button>
-            <div class="relative">
-              <button 
-                class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-                title="Add reaction"
-                @click.stop="showEmojiPicker = !showEmojiPicker"
-              >
-                <Icon name="heroicons:face-smile" class="w-4 h-4" />
-              </button>
-              <!-- Emoji picker (grouped) -->
-              <div v-if="showEmojiPicker" class="absolute top-6 right-0 z-20">
-                <ChannelsEmojiPicker 
-                  @select="handleReaction" 
-                  @close="showEmojiPicker = false" 
-                />
-              </div>
-            </div>
-            <button 
-              class="p-0.5 text-slate-400 hover:text-slate-600 transition-colors"
-              title="More options"
-            >
-              <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
-            </button>
+              · edited
+            </span>
           </div>
         </div>
 
+        <!-- Task proposal (outside bubble) -->
         <ChannelsMessageTaskProposal
           v-if="taskProposal && !isThread"
           :proposal="taskProposal"
           :channel-id="message.channelId"
+          class="mt-2"
         />
 
         <!-- Reactions display -->
-        <ChannelsMessageReactions
-          v-if="message.reactions && message.reactions.length > 0"
-          :reactions="message.reactions"
-          :current-user-id="currentUserId"
-          @toggle="(emoji) => emit('react', message.id, emoji)"
-        />
+        <div :class="['mt-1', isOwnMessage ? 'flex justify-end' : '']">
+          <ChannelsMessageReactions
+            v-if="message.reactions && message.reactions.length > 0"
+            :reactions="message.reactions"
+            :current-user-id="currentUserId"
+            @toggle="(emoji) => emit('react', message.id, emoji)"
+          />
+        </div>
 
         <!-- Thread reply count -->
-        <button 
+        <button
           v-if="message.replyCount > 0 && !isThread"
-          class="mt-1 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+          :class="[
+            'mt-1 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 hover:underline',
+            isOwnMessage ? 'ml-auto' : ''
+          ]"
           @click="emit('reply', message)"
         >
           <Icon name="heroicons:chat-bubble-left" class="w-3.5 h-3.5" />
           {{ message.replyCount }} {{ message.replyCount === 1 ? 'reply' : 'replies' }}
         </button>
+      </div>
 
+      <!-- Hover actions (outside bubble) -->
+      <div
+        v-if="!isThread"
+        :class="[
+          'flex items-center gap-0.5 self-center mx-2 transition-opacity duration-150',
+          showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
+          isOwnMessage ? 'order-first' : ''
+        ]"
+      >
+        <button
+          class="p-1.5 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+          title="Reply in thread"
+          @click="emit('reply', message)"
+        >
+          <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
+        </button>
+        <div class="relative flex items-center">
+          <button
+            class="p-1.5 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            title="Add reaction"
+            @click.stop="showEmojiPicker = !showEmojiPicker"
+          >
+            <Icon name="heroicons:face-smile" class="w-4 h-4" />
+          </button>
+          <div v-if="showEmojiPicker" :class="['absolute top-8 z-20', isOwnMessage ? 'right-0' : 'left-0']">
+            <ChannelsEmojiPicker
+              @select="handleReaction"
+              @close="showEmojiPicker = false"
+            />
+          </div>
+        </div>
+        <button
+          class="p-1.5 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+          title="More options"
+        >
+          <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
+        </button>
       </div>
     </div>
-
   </div>
 </template>

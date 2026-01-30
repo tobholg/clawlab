@@ -11,6 +11,7 @@ const emit = defineEmits<{
   drillDown: [item: ItemNode]
   openDetail: [item: ItemNode]
   statusChange: [itemId: string, newStatus: string, newSubStatus?: string | null]
+  parentChange: [itemId: string, newParentId: string]
 }>()
 
 const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
@@ -164,6 +165,7 @@ const hasMultipleGroups = (status: Item['status']) => {
 const draggedItem = ref<ItemNode | null>(null)
 const dragOverColumn = ref<string | null>(null)
 const dragOverSubStatus = ref<string | null>(null)
+const dragOverCardId = ref<string | null>(null) // For card-on-card nesting
 
 const handleDragStart = (e: DragEvent, item: ItemNode) => {
   draggedItem.value = item
@@ -181,6 +183,7 @@ const handleDragEnd = (e: DragEvent) => {
   draggedItem.value = null
   dragOverColumn.value = null
   dragOverSubStatus.value = null
+  dragOverCardId.value = null
   const target = e.target as HTMLElement
   target.style.opacity = '1'
 }
@@ -206,16 +209,57 @@ const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string
   e.preventDefault()
   dragOverColumn.value = null
   dragOverSubStatus.value = null
-  
+
+  // Don't handle column drop if we're dropping on a card
+  if (dragOverCardId.value) return
+
   if (draggedItem.value) {
     const statusChanged = draggedItem.value.status !== targetStatus
     const subStatusChanged = draggedItem.value.subStatus !== targetSubStatus
-    
+
     if (statusChanged || subStatusChanged) {
       emit('statusChange', draggedItem.value.id, targetStatus, targetSubStatus)
     }
   }
   draggedItem.value = null
+}
+
+// Card-on-card drag handlers for nesting
+const handleCardDragOver = (e: DragEvent, targetItem: ItemNode) => {
+  if (!draggedItem.value) return
+
+  // Can only nest within same column
+  if (draggedItem.value.status !== targetItem.status) return
+
+  // Cannot drop on self
+  if (draggedItem.value.id === targetItem.id) return
+
+  e.preventDefault()
+  e.stopPropagation()
+  dragOverCardId.value = targetItem.id
+}
+
+const handleCardDragLeave = (e: DragEvent) => {
+  // Only clear if we're actually leaving the card
+  const relatedTarget = e.relatedTarget as HTMLElement
+  if (!relatedTarget || !relatedTarget.closest('[data-card-id]')) {
+    dragOverCardId.value = null
+  }
+}
+
+const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
+  e.preventDefault()
+  e.stopPropagation()
+
+  if (draggedItem.value && dragOverCardId.value === targetItem.id) {
+    // Emit parent change - dragged item becomes child of target
+    emit('parentChange', draggedItem.value.id, targetItem.id)
+  }
+
+  draggedItem.value = null
+  dragOverCardId.value = null
+  dragOverColumn.value = null
+  dragOverSubStatus.value = null
 }
 </script>
 
@@ -274,17 +318,24 @@ const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string
             </button>
             
             <!-- Items in this time group -->
-            <div 
+            <div
               v-show="!isSectionCollapsed(`done:${group.key}`)"
               class="flex flex-col gap-2"
             >
               <div
                 v-for="item in group.items"
                 :key="item.id"
+                :data-card-id="item.id"
                 draggable="true"
-                class="cursor-grab active:cursor-grabbing"
+                :class="[
+                  'cursor-grab active:cursor-grabbing transition-all duration-150',
+                  dragOverCardId === item.id ? 'ring-2 ring-emerald-400 ring-offset-2 rounded-xl' : ''
+                ]"
                 @dragstart="handleDragStart($event, item)"
                 @dragend="handleDragEnd"
+                @dragover="handleCardDragOver($event, item)"
+                @dragleave="handleCardDragLeave"
+                @drop="handleCardDrop($event, item)"
               >
                 <ItemsItemCard
                   :item="item"
@@ -348,10 +399,17 @@ const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string
               <div
                 v-for="item in group.items"
                 :key="item.id"
+                :data-card-id="item.id"
                 draggable="true"
-                class="cursor-grab active:cursor-grabbing"
+                :class="[
+                  'cursor-grab active:cursor-grabbing transition-all duration-150',
+                  dragOverCardId === item.id ? 'ring-2 ring-emerald-400 ring-offset-2 rounded-xl' : ''
+                ]"
                 @dragstart="handleDragStart($event, item)"
                 @dragend="handleDragEnd"
+                @dragover="handleCardDragOver($event, item)"
+                @dragleave="handleCardDragLeave"
+                @drop="handleCardDrop($event, item)"
               >
                 <ItemsItemCard
                   :item="item"
@@ -363,7 +421,7 @@ const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string
               </div>
             </div>
           </template>
-          
+
           <!-- Drop zone / Empty state -->
           <div 
             v-if="getItemsByStatus(status).length === 0"

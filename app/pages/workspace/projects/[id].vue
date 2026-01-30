@@ -139,6 +139,11 @@ const handleStatusChange = async (itemId: string, newStatus: string, newSubStatu
   await updateItem(itemId, updatePayload)
 }
 
+// Handle parent change from drag-and-drop nesting
+const handleParentChange = async (itemId: string, newParentId: string) => {
+  await updateItem(itemId, { parentId: newParentId })
+}
+
 // Handle breadcrumb navigation
 const handleBreadcrumbClick = (crumbId: string) => {
   if (crumbId === 'root') {
@@ -377,6 +382,7 @@ onMounted(() => {
       @drill-down="handleDrillDown"
       @open-detail="handleOpenDetail"
       @status-change="handleStatusChange"
+      @parent-change="handleParentChange"
     />
 
     <!-- Timeline View -->
