@@ -257,5 +257,9 @@ provide('refreshSidebarProjects', fetchProjects)
     <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden">
       <slot />
     </main>
+
+    <!-- Quick Chat -->
+    <QuickChatOrb />
+    <QuickChatBubble />
   </div>
 </template>
