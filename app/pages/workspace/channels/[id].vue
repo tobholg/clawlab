@@ -31,7 +31,7 @@ const extractAiPrompt = (content: string) => {
 const aiPending = ref(false)
 
 watch(aiPending, () => {
-  nextTick(() => messageListRef.value?.scrollToBottom(true))
+  nextTick(() => messageListRef.value?.scrollToBottom())
 })
 
 // Fetch channel on mount/route change
@@ -46,7 +46,7 @@ const handleSendMessage = async (content: string) => {
   if (!channelId.value) return
   try {
     await sendMessage(channelId.value, content)
-    nextTick(() => messageListRef.value?.scrollToBottom(true))
+    nextTick(() => messageListRef.value?.scrollToBottom())
     if (AI_TRIGGER.test(content)) {
       const prompt = extractAiPrompt(content)
       aiPending.value = true
@@ -144,7 +144,7 @@ watch([channelId, currentChannel], ([id, channel], [oldId]) => {
       onMessage: (message) => {
         if (message.userId !== currentUser.value?.id && !message.parentId) {
           messages.value = [...messages.value, message]
-          nextTick(() => messageListRef.value?.scrollToBottom(true))
+          nextTick(() => messageListRef.value?.scrollToBottom())
         }
       },
       onReaction: (messageId, reactions) => {
@@ -203,16 +203,16 @@ const handleReaction = async (messageId: string, emoji: string) => {
     <div :class="['flex flex-col relative min-h-0', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
 
       <!-- Channel Header -->
-      <header class="relative z-10 border-b border-slate-100 px-6 py-4 flex items-center justify-between bg-white">
-        <div class="flex items-center gap-3">
-          <Icon :name="channelIcon" class="w-5 h-5 text-slate-400" />
-          <div>
-            <h1 class="text-lg font-medium text-slate-900">
+      <header class="relative z-10 border-b border-slate-200 px-6 py-3 flex items-center justify-between bg-white">
+        <div class="flex items-center gap-2.5">
+          <Icon :name="channelIcon" class="w-4 h-4 text-slate-400" />
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-medium text-slate-900">
               {{ currentChannel?.displayName || 'Loading...' }}
             </h1>
-            <p v-if="currentChannel?.description" class="text-sm text-slate-500">
+            <span v-if="currentChannel?.description" class="text-sm text-slate-400">
               {{ currentChannel.description }}
-            </p>
+            </span>
           </div>
         </div>
 

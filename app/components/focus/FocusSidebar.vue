@@ -116,9 +116,9 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
 <template>
   <div class="px-3 mb-4">
     <!-- Section Title -->
-    <button 
+    <button
       @click="showTimeline = true"
-      class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider px-0 hover:text-slate-600 transition-colors flex items-center gap-1"
+      class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider px-0 hover:text-slate-700 transition-colors flex items-center gap-1"
     >
       Focus
       <Icon name="heroicons:clock" class="w-3 h-3" />
@@ -128,10 +128,10 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
       <!-- Project Focus -->
       <button
         @click="showProjectPicker = true"
-        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-200"
-        :class="hasProjectFocus 
-          ? 'bg-blue-50 text-blue-900' 
-          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
+        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-200"
+        :class="hasProjectFocus
+          ? 'bg-blue-50 text-blue-900'
+          : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
       >
         <div 
           class="w-4 h-4 flex items-center justify-center flex-shrink-0"
@@ -146,13 +146,13 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
       </button>
 
       <!-- Task/Lane Focus -->
-      <button 
+      <button
         v-if="hasProjectFocus"
         @click="hasTaskFocus ? handleTaskAction() : showLanePicker = true"
-        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-200"
-        :class="hasTaskFocus 
-          ? 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100' 
-          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
+        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-200"
+        :class="hasTaskFocus
+          ? 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100'
+          : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
       >
         <div 
           class="w-4 h-4 flex items-center justify-center flex-shrink-0"

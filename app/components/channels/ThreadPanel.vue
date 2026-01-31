@@ -82,9 +82,9 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-white border-l border-slate-100 w-full">
+  <div class="flex flex-col h-full bg-white border-l border-slate-200 w-full">
     <!-- Header -->
-    <header class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+    <header class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
       <div>
         <h2 class="text-sm font-medium text-slate-900">Thread</h2>
         <p class="text-xs text-slate-500">#{{ channelName }}</p>
@@ -100,7 +100,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
     <!-- Thread content -->
     <div ref="scrollContainer" class="flex-1 overflow-y-auto">
       <!-- Parent message -->
-      <div class="py-3 border-b border-slate-100 bg-slate-50/50">
+      <div class="py-3 border-b border-slate-200 bg-slate-50/50">
         <ChannelsMessageItem
           :message="parentMessage"
           :show-author="true"
@@ -110,7 +110,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
       </div>
 
       <!-- Replies section header -->
-      <div class="px-4 py-2 border-b border-slate-100">
+      <div class="px-4 py-2 border-b border-slate-200">
         <span class="text-xs font-medium text-blue-600">
           {{ replies.length }} {{ replies.length === 1 ? 'reply' : 'replies' }}
         </span>

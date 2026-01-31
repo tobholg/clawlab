@@ -18,11 +18,11 @@ const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
 
 // Subtle column styling
 const columnStyles: Record<Item['status'], { bg: string; headerColor: string; dropBg: string }> = {
-  todo: { bg: 'bg-slate-100', headerColor: 'text-slate-500', dropBg: 'bg-slate-200' },
-  in_progress: { bg: 'bg-blue-50', headerColor: 'text-blue-600', dropBg: 'bg-blue-100' },
-  blocked: { bg: 'bg-rose-50', headerColor: 'text-rose-500', dropBg: 'bg-rose-100' },
-  paused: { bg: 'bg-amber-50', headerColor: 'text-amber-600', dropBg: 'bg-amber-100' },
-  done: { bg: 'bg-emerald-50', headerColor: 'text-emerald-600', dropBg: 'bg-emerald-100' },
+  todo: { bg: 'bg-slate-100', headerColor: 'text-slate-600', dropBg: 'bg-slate-200' },
+  in_progress: { bg: 'bg-blue-100/50', headerColor: 'text-blue-600', dropBg: 'bg-blue-200' },
+  blocked: { bg: 'bg-rose-100/50', headerColor: 'text-rose-600', dropBg: 'bg-rose-200' },
+  paused: { bg: 'bg-amber-100/50', headerColor: 'text-amber-600', dropBg: 'bg-amber-200' },
+  done: { bg: 'bg-emerald-100/50', headerColor: 'text-emerald-600', dropBg: 'bg-emerald-200' },
 }
 
 // Track collapsed state for each section (key: "status:subStatus" or "done:timeGroup")
@@ -264,7 +264,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 h-full">
     <div 
       v-for="status in columns" 
       :key="status"

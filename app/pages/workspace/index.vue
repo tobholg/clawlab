@@ -72,7 +72,7 @@ const handleViewFull = (item: any) => {
       <div class="flex items-start gap-4 flex-1 min-w-0">
         <div class="flex-1 min-w-0 max-w-3xl">
           <h1 class="text-xl font-medium text-slate-900">{{ currentScope?.title || 'Projects' }}</h1>
-          <p class="text-sm text-slate-400 mt-0.5">
+          <p class="text-sm text-slate-500 mt-0.5">
             {{ scopedItems.length }} projects
           </p>
         </div>
@@ -80,7 +80,7 @@ const handleViewFull = (item: any) => {
 
       <div class="flex items-center gap-4">
         <!-- View toggle -->
-        <div class="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
+        <div class="flex items-center bg-white border border-slate-300 rounded-lg p-0.5">
           <button
             @click="activeView = 'dashboard'"
             :class="[
@@ -171,5 +171,6 @@ const handleViewFull = (item: any) => {
     @close="showDetailModal = false"
     @update="handleUpdateItem"
     @view-full="handleViewFull"
+    @deleted="showDetailModal = false; refreshItems(); refreshSidebar?.()"
   />
 </template>

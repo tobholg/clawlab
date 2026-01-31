@@ -8,8 +8,9 @@ export function useItems() {
   const itemsData = useState<any[]>('itemsData', () => [])
   const loading = useState('itemsLoading', () => false)
 
-  // Current user ID (shared with useFocus)
-  const currentUserId = useState<string>('currentUserId', () => 'demo-user')
+  // Get current user from auth
+  const { user } = useAuth()
+  const currentUserId = computed(() => user.value?.id ?? 'anonymous')
 
   // Request counter to handle race conditions - ignore stale responses
   const fetchCounter = useState('fetchCounter', () => 0)

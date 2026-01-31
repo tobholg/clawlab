@@ -100,10 +100,10 @@ defineExpose({ focus })
 </script>
 
 <template>
-  <div class="border-t border-slate-100 bg-white px-4 py-3">
+  <div class="border-t border-slate-200 bg-white px-4 py-3">
     <div class="max-w-3xl mx-auto flex items-center gap-2">
       <!-- Attachment button -->
-      <button 
+      <button
         class="flex-shrink-0 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center"
         title="Attach file (coming soon)"
         disabled
@@ -125,15 +125,15 @@ defineExpose({ focus })
       </div>
 
       <!-- Send button -->
-      <button 
+      <button
         :disabled="!content.trim() || sending || disabled"
         class="flex-shrink-0 p-2 text-slate-900 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
         title="Send message"
         @click="sendMessage"
       >
-        <Icon 
-          :name="sending ? 'heroicons:arrow-path' : 'heroicons:paper-airplane'" 
-          :class="['w-5 h-5', sending ? 'animate-spin' : '']" 
+        <Icon
+          :name="sending ? 'heroicons:arrow-path' : 'heroicons:paper-airplane'"
+          :class="['w-5 h-5', sending ? 'animate-spin' : '']"
         />
       </button>
     </div>

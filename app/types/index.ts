@@ -28,6 +28,35 @@ export interface Person {
   role?: string
 }
 
+export interface DocumentSummary {
+  id: string
+  itemId: string
+  projectId?: string | null
+  title: string
+  isLocked: boolean
+  createdAt: string
+  updatedAt: string
+  createdBy: Person | null
+  lastEditedBy: Person | null
+  versionCount: number
+}
+
+export interface DocumentDetail extends DocumentSummary {
+  content: string
+}
+
+export interface DocumentVersion {
+  id: string
+  documentId: string
+  title: string
+  content: string
+  label?: string | null
+  notes?: string | null
+  type: 'minor' | 'major'
+  createdAt: string
+  createdBy: Person | null
+}
+
 // Computed tree node (Item + resolved relations)
 export interface ItemNode extends Item {
   children: ItemNode[]

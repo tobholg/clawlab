@@ -29,11 +29,17 @@ watch(projectId, (id) => {
   }
 }, { immediate: true })
 
-const activeView = ref<'kanban' | 'timeline' | 'list'>('kanban')
+const activeView = ref<'kanban' | 'timeline' | 'list' | 'documents'>('kanban')
 const filterCategory = ref<string | null>(null)
 const showCreateModal = ref(false)
 const showDetailModal = ref(false)
 const selectedItem = ref<any>(null)
+const documentsSectionRef = ref<any>(null)
+
+const createDocumentFromHeader = async () => {
+  if (activeView.value !== 'documents') return
+  documentsSectionRef.value?.createDocument?.()
+}
 
 // Get sidebar refresh function from layout (must be called at top level)
 const refreshSidebar = inject<() => Promise<void>>('refreshSidebarProjects')
@@ -319,21 +325,41 @@ onMounted(() => {
           >
             <Icon name="heroicons:bars-3" class="w-4 h-4 block" />
           </button>
+          <button
+            @click="activeView = 'documents'"
+            :class="[
+              'flex items-center justify-center w-7 h-7 rounded transition-all',
+              activeView === 'documents' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'
+            ]"
+            title="Documents"
+          >
+            <Icon name="heroicons:document-text" class="w-4 h-4 block" />
+          </button>
         </div>
 
         <!-- New item button -->
         <button
+          v-if="activeView !== 'documents'"
           @click="showCreateModal = true"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
         >
           <Icon name="heroicons:plus" class="w-4 h-4" />
           <span>New</span>
         </button>
+
+        <button
+          v-else
+          @click="createDocumentFromHeader"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          <Icon name="heroicons:document-text" class="w-4 h-4" />
+          <span>New document</span>
+        </button>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="flex items-center gap-2">
+    <div v-if="activeView !== 'documents'" class="flex items-center gap-2">
       <button
         @click="filterCategory = null"
         :class="[
@@ -375,6 +401,17 @@ onMounted(() => {
 
   <!-- Content -->
   <div class="flex-1 overflow-auto px-6 pb-8">
+    <!-- Documents View -->
+    <DocumentsSection
+      v-if="activeView === 'documents'"
+      ref="documentsSectionRef"
+      :item-id="currentScope?.id ?? null"
+      title="Documents"
+      :show-helper="false"
+      :new-button-label="'New document'"
+      :empty-message="'No documents yet.'"
+    />
+
     <!-- Kanban View -->
     <ViewsKanbanView
       v-if="activeView === 'kanban'"
@@ -420,5 +457,6 @@ onMounted(() => {
     @close="showDetailModal = false"
     @update="handleUpdateItem"
     @view-full="handleViewFull"
+    @deleted="showDetailModal = false; refreshItems()"
   />
 </template>

@@ -89,8 +89,8 @@ provide('refreshSidebarProjects', fetchProjects)
     <!-- Sidebar -->
     <aside
       :class="[
-        'border-r border-slate-100 bg-white flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
-        sidebarCollapsed ? 'w-16' : 'w-56'
+        'border-r border-slate-200 bg-white flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        sidebarCollapsed ? 'w-16' : 'w-60'
       ]"
     >
       <!-- Logo + Toggle -->
@@ -126,7 +126,7 @@ provide('refreshSidebarProjects', fetchProjects)
       <div v-if="!sidebarCollapsed" class="px-3 mb-4">
         <button
           @click="handleProjectsClick"
-          class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors flex items-center gap-1"
+          class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
         >
           Projects
           <Icon name="heroicons:squares-2x2" class="w-3 h-3" />
@@ -136,10 +136,10 @@ provide('refreshSidebarProjects', fetchProjects)
             v-for="project in recentProjects"
             :key="project.id"
             @click="handleProjectClick(project.id)"
-            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200"
             :class="currentProjectId === project.id
               ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
           >
             <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
               <div
@@ -150,7 +150,7 @@ provide('refreshSidebarProjects', fetchProjects)
             <span class="flex-1 text-left truncate">{{ project.title }}</span>
             <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
           </button>
-          <div v-if="!recentProjects.length" class="px-3 py-2 text-[10px] text-slate-400 italic">
+          <div v-if="!recentProjects.length" class="px-3 py-2 text-xs text-slate-500 italic">
             No projects yet
           </div>
         </div>
@@ -158,17 +158,17 @@ provide('refreshSidebarProjects', fetchProjects)
 
       <!-- Channels Section -->
       <div v-if="!sidebarCollapsed" class="px-3 mb-4">
-        <h3 class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+        <h3 class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
           Channels
         </h3>
         <div>
           <template v-for="channel in channelTree" :key="channel.id">
             <NuxtLink
               :to="`/workspace/channels/${channel.id}`"
-              class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200"
+              class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200"
               :class="currentChannelId === channel.id
                 ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
+                : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
             >
               <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
                 <Icon
@@ -192,10 +192,10 @@ provide('refreshSidebarProjects', fetchProjects)
                 v-for="child in channel.children"
                 :key="child.id"
                 :to="`/workspace/channels/${child.id}`"
-                class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200"
+                class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200"
                 :class="currentChannelId === child.id
                   ? 'bg-slate-100 text-slate-900'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
+                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
               >
                 <Icon
                   :name="child.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'"
@@ -205,7 +205,7 @@ provide('refreshSidebarProjects', fetchProjects)
               </NuxtLink>
             </div>
           </template>
-          <div v-if="!channelTree.length && !channelsLoading" class="px-3 py-2 text-[10px] text-slate-400 italic">
+          <div v-if="!channelTree.length && !channelsLoading" class="px-3 py-2 text-xs text-slate-500 italic">
             No channels yet
           </div>
         </div>
@@ -213,11 +213,11 @@ provide('refreshSidebarProjects', fetchProjects)
 
       <!-- Settings Section -->
       <div v-if="!sidebarCollapsed" class="px-3 mb-4">
-        <h3 class="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+        <h3 class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
           Settings
         </h3>
         <div>
-          <button class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+          <button class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100">
             <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
               <Icon name="heroicons:cog-6-tooth" class="w-4 h-4" />
             </div>

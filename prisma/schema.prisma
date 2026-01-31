@@ -83,6 +83,9 @@ model User {
   channelMembers      ChannelMember[]
   messages            Message[]
   reactions           Reaction[]
+  documentsCreated    Document[]           @relation("DocumentCreatedBy")
+  documentsEdited     Document[]           @relation("DocumentLastEditedBy")
+  documentVersions    DocumentVersion[]    @relation("DocumentVersionCreatedBy")
 
   @@map("users")
 }
@@ -196,6 +199,7 @@ model Item {
   currentProjectFocusBy User[]        @relation("CurrentProjectFocus")
   currentTaskFocusBy    User[]        @relation("CurrentTaskFocus")
   channel        Channel?          // One project = one channel
+  documents      Document[]
 
   @@index([workspaceId])
   @@index([parentId])
@@ -205,6 +209,55 @@ model Item {
   @@index([lastActivityAt])
   @@index([completedAt])
   @@map("items")
+}
+
+// ============================================
+// DOCUMENTS (Markdown + Soft Versioning)
+// ============================================
+
+model Document {
+  id             String   @id @default(cuid())
+  itemId         String
+  projectId      String?  // Root project ID for querying (item.id if root project)
+  title          String
+  content        String   @default("")
+  isLocked       Boolean  @default(false)
+  createdById    String
+  lastEditedById String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  item          Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdBy     User   @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  lastEditedBy  User?  @relation("DocumentLastEditedBy", fields: [lastEditedById], references: [id])
+  versions      DocumentVersion[]
+
+  @@index([itemId])
+  @@index([projectId])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id          String       @id @default(cuid())
+  documentId  String
+  title       String
+  content     String
+  label       String?
+  notes       String?
+  type        VersionType  @default(MINOR)
+  createdById String
+  createdAt   DateTime     @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy  User     @relation("DocumentVersionCreatedBy", fields: [createdById], references: [id])
+
+  @@index([documentId])
+  @@map("document_versions")
+}
+
+enum VersionType {
+  MINOR
+  MAJOR
 }
 
 model ItemAssignment {

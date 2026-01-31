@@ -11,6 +11,7 @@ const emit = defineEmits<{
   close: []
   update: [id: string, data: any]
   viewFull: [item: ItemNode]
+  deleted: [id: string]
 }>()
 
 // Focus management
@@ -150,6 +151,20 @@ const availableSubStatuses = computed(() => {
 // UI state
 const showOwnerDropdown = ref(false)
 const showAssigneeDropdown = ref(false)
+const descriptionRef = ref<HTMLTextAreaElement | null>(null)
+
+// Auto-resize description textarea
+const autoResizeDescription = () => {
+  if (descriptionRef.value) {
+    descriptionRef.value.style.height = 'auto'
+    descriptionRef.value.style.height = descriptionRef.value.scrollHeight + 'px'
+  }
+}
+
+// Trigger resize when description loads
+watch(editedDescription, () => {
+  nextTick(autoResizeDescription)
+})
 const newComment = ref('')
 const replyingTo = ref<string | null>(null)
 const replyText = ref('')
@@ -385,6 +400,35 @@ const handleClose = async () => {
   // Signal parent to close and refresh
   emit('update', props.item?.id ?? '', { _close: true })
   emit('close')
+}
+
+// Delete item
+const deleteItem = async () => {
+  if (!props.item) return
+
+  const hasChildren = itemDetail.value?.childrenCount > 0
+  const message = hasChildren
+    ? 'This item has children. Delete child items first.'
+    : 'Delete this item? This cannot be undone.'
+
+  if (hasChildren) {
+    window.alert(message)
+    return
+  }
+
+  const confirmed = window.confirm(message)
+  if (!confirmed) return
+
+  try {
+    await $fetch(`/api/items/${props.item.id}`, {
+      method: 'DELETE',
+    })
+    emit('deleted', props.item.id)
+    emit('close')
+  } catch (e: any) {
+    console.error('Failed to delete item:', e)
+    window.alert(e.data?.message || 'Failed to delete item')
+  }
 }
 
 // Assign user
@@ -714,7 +758,7 @@ const formatRelativeTime = (dateStr: string) => {
                 <Icon name="heroicons:check" class="w-3.5 h-3.5" />
                 Complete
               </button>
-              
+
               <!-- Close button -->
               <button
                 @click="handleClose"
@@ -737,10 +781,12 @@ const formatRelativeTime = (dateStr: string) => {
             
             <!-- Description -->
             <textarea
+              ref="descriptionRef"
               v-model="editedDescription"
-              rows="3"
-              class="w-full text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-slate-200 resize-none placeholder-slate-400"
+              rows="1"
+              class="w-full text-sm text-slate-600 bg-transparent px-0 py-1 border-0 focus:outline-none resize-none placeholder-slate-400"
               placeholder="Add a description..."
+              @input="autoResizeDescription"
             />
 
             <!-- Dates Row -->
@@ -973,8 +1019,8 @@ const formatRelativeTime = (dateStr: string) => {
                   <div 
                     class="text-[10px]"
                     :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600/60' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600/60' : 'text-emerald-600/60'
+                      estimatedCompletion.missProb > 66 ? 'text-rose-700' : 
+                      estimatedCompletion.missProb > 33 ? 'text-amber-700' : 'text-emerald-700'
                     ]"
                   >
                     {{ estimatedCompletion.isExact ? 'High confidence estimate ✓' : `±${Math.floor(estimatedCompletion.bandDays / 2)} days @ ${editedConfidence}% confidence` }}
@@ -992,8 +1038,8 @@ const formatRelativeTime = (dateStr: string) => {
                   <div 
                     class="text-[10px] uppercase tracking-wide"
                     :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600/70' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600/70' : 'text-emerald-600/70'
+                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
+                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-emerald-600'
                     ]"
                   >Days Spent</div>
                 </div>
@@ -1002,8 +1048,8 @@ const formatRelativeTime = (dateStr: string) => {
                   <div 
                     class="text-[10px] uppercase tracking-wide"
                     :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600/70' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600/70' : 'text-emerald-600/70'
+                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
+                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-emerald-600'
                     ]"
                   >Total Est.</div>
                 </div>
@@ -1018,8 +1064,8 @@ const formatRelativeTime = (dateStr: string) => {
                   <div 
                     class="text-[10px] uppercase tracking-wide"
                     :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600/70' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600/70' : 'text-emerald-600/70'
+                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
+                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-emerald-600'
                     ]"
                   >Days Left</div>
                 </div>
@@ -1059,20 +1105,20 @@ const formatRelativeTime = (dateStr: string) => {
                 <div 
                   class="text-[10px] mt-1"
                   :class="[
-                    estimatedCompletion.missProb > 66 ? 'text-rose-600/70' : 
-                    estimatedCompletion.missProb > 33 ? 'text-amber-600/70' : 'text-slate-500'
+                    estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
+                    estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-slate-500'
                   ]"
                 >
                   Due in {{ estimatedCompletion.daysUntilDue }} days, est. {{ estimatedCompletion.remainingDays }} days remaining
                 </div>
               </div>
               
-              <p 
-                v-if="!estimatedCompletion.complete" 
-                class="text-[10px] mt-3 text-center"
+              <p
+                v-if="!estimatedCompletion.complete"
+                class="text-xs mt-3 text-center"
                 :class="[
-                  estimatedCompletion.missProb > 66 ? 'text-rose-600/60' : 
-                  estimatedCompletion.missProb > 33 ? 'text-amber-600/60' : 'text-emerald-600/60'
+                  estimatedCompletion.missProb > 66 ? 'text-rose-700' : 
+                  estimatedCompletion.missProb > 33 ? 'text-amber-700' : 'text-emerald-700'
                 ]"
               >
                 {{ editedProgress }}% over {{ estimatedCompletion.daysSpent }} days = {{ estimatedCompletion.velocity }}%/day velocity {{ estimatedCompletion.missProb <= 33 ? '✨' : '' }}
@@ -1084,6 +1130,12 @@ const formatRelativeTime = (dateStr: string) => {
               <Icon name="heroicons:calculator" class="w-6 h-6 text-slate-300 mx-auto mb-2" />
               <p class="text-xs text-slate-400">Set a start date and progress to see estimated completion</p>
             </div>
+
+            <!-- Documents Section -->
+            <DocumentsSection
+              :item-id="itemDetail?.id ?? null"
+              compact
+            />
             
             <!-- Parent Section -->
             <div v-if="parentDetail" class="mb-6">
@@ -1417,8 +1469,19 @@ const formatRelativeTime = (dateStr: string) => {
                 <p class="text-xs">No comments yet. Start the conversation!</p>
               </div>
             </div>
+
+            <!-- Delete Item -->
+            <div class="pt-6 mt-6 border-t border-slate-100">
+              <button
+                @click="deleteItem"
+                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+              >
+                <Icon name="heroicons:trash" class="w-4 h-4" />
+                Delete this item
+              </button>
+            </div>
           </div>
-          
+
           <!-- Footer - View Full Board button -->
           <button
             @click="handleViewFull"

@@ -68,7 +68,7 @@ const formatRelativeTime = (dateStr: string | null | undefined) => {
       <div
         v-for="project in sortedProjects"
         :key="project.id"
-        class="group bg-white rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all duration-200 cursor-pointer"
+        class="group bg-white rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all duration-200 cursor-pointer"
         :class="{ 'opacity-60': project.status === 'done' }"
         @click="emit('openProject', project)"
       >
@@ -107,7 +107,7 @@ const formatRelativeTime = (dateStr: string | null | undefined) => {
           </div>
 
           <!-- Footer -->
-          <div class="flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center justify-between text-xs text-slate-500">
             <!-- Left: Owner -->
             <div class="flex items-center gap-2">
               <template v-if="project.owner">
@@ -117,15 +117,15 @@ const formatRelativeTime = (dateStr: string | null | undefined) => {
                 >
                   <span class="text-[9px] text-slate-500 font-medium">{{ project.owner.name?.[0] ?? '?' }}</span>
                 </div>
-                <span class="text-slate-500">{{ project.owner.name?.split(' ')[0] }}</span>
+                <span class="text-slate-600">{{ project.owner.name?.split(' ')[0] }}</span>
               </template>
-              <span v-else class="text-slate-300">No owner</span>
+              <span v-else class="text-slate-400">No owner</span>
             </div>
 
             <!-- Right: Meta -->
             <div class="flex items-center gap-3">
               <span v-if="project.lastActivityAt || project.updatedAt">{{ formatRelativeTime(project.lastActivityAt || project.updatedAt) }}</span>
-              <span v-if="project.childrenCount" class="text-slate-300">{{ project.childrenCount }} items</span>
+              <span v-if="project.childrenCount" class="text-slate-400">{{ project.childrenCount }} items</span>
             </div>
           </div>
         </div>
@@ -134,12 +134,12 @@ const formatRelativeTime = (dateStr: string | null | undefined) => {
       <!-- New Project Card -->
       <button
         @click="emit('createProject')"
-        class="flex flex-col items-center justify-center min-h-[180px] bg-slate-50/50 rounded-xl border border-dashed border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all group"
+        class="flex flex-col items-center justify-center min-h-[180px] bg-slate-50 rounded-xl border border-dashed border-slate-300 hover:border-slate-400 hover:bg-slate-100 transition-all group"
       >
-        <div class="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center mb-2 transition-colors">
-          <Icon name="heroicons:plus" class="w-5 h-5 text-slate-400 group-hover:text-slate-500" />
+        <div class="w-10 h-10 rounded-full bg-slate-200 group-hover:bg-slate-300 flex items-center justify-center mb-2 transition-colors">
+          <Icon name="heroicons:plus" class="w-5 h-5 text-slate-500 group-hover:text-slate-600" />
         </div>
-        <span class="text-sm text-slate-400 group-hover:text-slate-500">New Project</span>
+        <span class="text-sm text-slate-500 group-hover:text-slate-600">New Project</span>
       </button>
     </div>
   </div>

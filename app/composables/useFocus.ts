@@ -58,8 +58,11 @@ const LANE_ICONS: Record<FocusLane, string> = {
 }
 
 export function useFocus() {
-  // Current user ID (will come from auth)
-  const currentUserId = useState<string>('currentUserId', () => 'demo-user')
+  // Get current user from auth
+  const { user } = useAuth()
+
+  // Current user ID - derived from auth
+  const currentUserId = computed(() => user.value?.id ?? 'anonymous')
   
   // Focus state
   const focusState = useState<FocusState>('focusState', () => ({

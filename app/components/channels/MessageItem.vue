@@ -32,24 +32,33 @@ const isAiMessage = computed(() => {
   return name === 'relai ai'
 })
 
-// Bubble background color (subtle, based on user id)
+// Bubble background color - Telegram style
 const bubbleColor = computed(() => {
   if (isOwnMessage.value) {
-    return 'bg-blue-100/70 text-slate-800'
+    // Green for own messages (like Telegram)
+    return 'bg-emerald-100 text-slate-800'
+  }
+  // White for everyone else
+  return 'bg-white text-slate-800 shadow-sm border border-slate-100'
+})
+
+// Username colors for other users (hash-based)
+const usernameColor = computed(() => {
+  if (isOwnMessage.value) {
+    return 'text-emerald-600'
   }
   if (isAiMessage.value) {
-    return 'bg-slate-100 text-slate-800'
+    return 'text-violet-600'
   }
-  // Subtle colors for other users (using -100 with reduced opacity for middle ground)
   const colors = [
-    'bg-emerald-100/70 text-slate-800',
-    'bg-violet-100/70 text-slate-800',
-    'bg-rose-100/70 text-slate-800',
-    'bg-amber-100/70 text-slate-800',
-    'bg-cyan-100/70 text-slate-800',
-    'bg-pink-100/70 text-slate-800',
-    'bg-indigo-100/70 text-slate-800',
-    'bg-slate-100 text-slate-800',
+    'text-blue-600',
+    'text-rose-600',
+    'text-amber-600',
+    'text-cyan-600',
+    'text-pink-600',
+    'text-indigo-600',
+    'text-teal-600',
+    'text-orange-600',
   ]
   const id = props.message.userId || props.message.id || 'default'
   const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
@@ -83,18 +92,61 @@ const taskProposal = computed<TaskProposal | null>(() => {
     @mouseenter="showActions = true"
     @mouseleave="showActions = false"
   >
-    <!-- Message row - flex direction based on own/other -->
-    <div :class="['flex items-center', isOwnMessage ? 'justify-end' : 'justify-start']">
-      <div class="max-w-[75%] min-w-0">
-        <!-- Author name (only for others, when showing author) -->
-        <div
-          v-if="showAuthor && !isOwnMessage"
-          class="text-xs font-medium text-slate-500 mb-1 ml-3"
-        >
-          {{ message.user?.name || 'Unknown User' }}
-        </div>
+    <!-- Message container - aligned based on own/other -->
+    <div :class="['flex flex-col', isOwnMessage ? 'items-end' : 'items-start']">
+      <!-- Author row with actions -->
+      <div
+        v-if="showAuthor"
+        :class="[
+          'flex items-center gap-2 mb-1',
+          isOwnMessage ? 'flex-row-reverse mr-3' : 'ml-3'
+        ]"
+      >
+        <span :class="['text-xs font-medium', usernameColor]">
+          {{ isOwnMessage ? 'You' : (message.user?.name || 'Unknown User') }}
+        </span>
 
-        <!-- Bubble -->
+        <!-- Hover actions (next to username) -->
+        <div
+          v-if="!isThread"
+          :class="[
+            'flex items-center gap-0.5 transition-opacity duration-150',
+            showActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          ]"
+        >
+          <button
+            class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            title="Reply in thread"
+            @click="emit('reply', message)"
+          >
+            <Icon name="heroicons:chat-bubble-left" class="w-3.5 h-3.5" />
+          </button>
+          <div class="relative flex items-center">
+            <button
+              class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+              title="Add reaction"
+              @click.stop="showEmojiPicker = !showEmojiPicker"
+            >
+              <Icon name="heroicons:face-smile" class="w-3.5 h-3.5" />
+            </button>
+            <div v-if="showEmojiPicker" :class="['absolute top-6 z-20', isOwnMessage ? 'right-0' : 'left-0']">
+              <ChannelsEmojiPicker
+                @select="handleReaction"
+                @close="showEmojiPicker = false"
+              />
+            </div>
+          </div>
+          <button
+            class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            title="More options"
+          >
+            <Icon name="heroicons:ellipsis-horizontal" class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Bubble -->
+      <div class="max-w-[75%] min-w-0">
         <div
           :class="[
             'relative px-3.5 py-2 rounded-2xl',
@@ -153,45 +205,6 @@ const taskProposal = computed<TaskProposal | null>(() => {
         >
           <Icon name="heroicons:chat-bubble-left" class="w-3.5 h-3.5" />
           {{ message.replyCount }} {{ message.replyCount === 1 ? 'reply' : 'replies' }}
-        </button>
-      </div>
-
-      <!-- Hover actions (outside bubble) -->
-      <div
-        v-if="!isThread"
-        :class="[
-          'flex items-center gap-0.5 self-center mx-2 transition-opacity duration-150',
-          showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
-          isOwnMessage ? 'order-first' : ''
-        ]"
-      >
-        <button
-          class="p-1.5 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-          title="Reply in thread"
-          @click="emit('reply', message)"
-        >
-          <Icon name="heroicons:chat-bubble-left" class="w-4 h-4" />
-        </button>
-        <div class="relative flex items-center">
-          <button
-            class="p-1.5 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-            title="Add reaction"
-            @click.stop="showEmojiPicker = !showEmojiPicker"
-          >
-            <Icon name="heroicons:face-smile" class="w-4 h-4" />
-          </button>
-          <div v-if="showEmojiPicker" :class="['absolute top-8 z-20', isOwnMessage ? 'right-0' : 'left-0']">
-            <ChannelsEmojiPicker
-              @select="handleReaction"
-              @close="showEmojiPicker = false"
-            />
-          </div>
-        </div>
-        <button
-          class="p-1.5 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-          title="More options"
-        >
-          <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
         </button>
       </div>
     </div>
