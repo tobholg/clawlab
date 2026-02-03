@@ -3,204 +3,399 @@ definePageMeta({
   layout: false,
 })
 
-const features = [
+const outcomeBlocks = [
   {
-    icon: 'heroicons:sparkles',
-    title: 'AI-Powered Insights',
-    description: 'Intelligent progress tracking that predicts completion dates and identifies risks before they become blockers.',
+    title: 'Stakeholder updates that don’t drain your team',
+    body: 'Auto-curated summaries and decisions from the real work, not a separate status doc.',
   },
   {
-    icon: 'heroicons:calendar',
-    title: 'Smart Scheduling',
-    description: 'Automatic timeline adjustments based on team velocity, dependencies, and historical patterns.',
+    title: 'Recursive structure, zero spreadsheet rollups',
+    body: 'Every subtask rolls up cleanly so you always know how delivery really looks.',
   },
   {
-    icon: 'heroicons:users',
-    title: 'Team Coordination',
-    description: 'Keep everyone aligned with clear ownership, real-time updates, and stakeholder visibility.',
-  },
-  {
-    icon: 'heroicons:squares-2x2',
-    title: 'Recursive Tasks',
-    description: 'Break work down infinitely. Projects contain tasks contain subtasks — all with the same powerful features.',
+    title: 'Forecasts that show risk early',
+    body: 'Uncertainty ranges and blockers surface before you miss a due date.',
   },
 ]
+
+const capabilityCards = [
+  {
+    title: 'Stakeholder spaces that ship with the plan',
+    body: 'Curated views, requests, and responses mapped directly to the work.',
+  },
+  {
+    title: 'AI teammate that drafts weekly updates and flags risk',
+    body: 'Your team chat includes AI that summarizes progress, flags risk, and drafts updates.',
+  },
+  {
+    title: 'Dependency paths with live risk markers',
+    body: 'See what blocks what, and how changes ripple through delivery.',
+  },
+  {
+    title: 'Public roadmap + upvoted requests with curated release notes',
+    body: 'Publish customer-safe releases and let users submit and upvote requests.',
+  },
+]
+
+const navItems = [
+  { id: 'hero', label: 'Overview' },
+  { id: 'recursive', label: 'Recursive' },
+  { id: 'outcomes', label: 'Outcomes' },
+  { id: 'capabilities', label: 'Capabilities' },
+]
+
+const sectionRefs = reactive<Record<string, HTMLElement | null>>({
+  hero: null,
+  outcomes: null,
+  recursive: null,
+  capabilities: null,
+  cta: null,
+})
+
+const activeSection = ref('hero')
+const heroReady = ref(false)
+
+const scrollToSection = (id: string) => {
+  const target = sectionRefs[id]
+  if (!target) return
+
+  const top = target.getBoundingClientRect().top + window.scrollY
+  window.scrollTo({ top, behavior: 'smooth' })
+}
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    heroReady.value = true
+  })
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+      if (visible[0]?.target?.id) {
+        activeSection.value = visible[0].target.id
+      }
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible')
+        }
+      })
+    },
+    {
+      root: null,
+      rootMargin: '-20% 0px -55% 0px',
+      threshold: [0, 0.25, 0.5, 0.75, 1],
+    }
+  )
+
+  Object.values(sectionRefs).forEach((el) => {
+    if (el) observer.observe(el)
+  })
+
+  onUnmounted(() => observer.disconnect())
+})
 </script>
 
 <template>
-  <div class="min-h-screen bg-white">
-    <!-- Navigation -->
-    <nav class="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-sm border-b border-slate-100">
-      <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-            <span class="text-white text-sm font-semibold">R</span>
+  <div class="relai-landing min-h-screen bg-white text-slate-900 scroll-smooth" :class="{ 'is-ready': heroReady }">
+    <!-- Top nav -->
+    <nav data-landing-nav class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-100 intro" style="--d: 0ms">
+      <div class="w-full px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-8">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
+              <span class="text-white text-sm font-semibold">R</span>
+            </div>
+            <span class="text-lg font-semibold tracking-tight">Relai</span>
           </div>
-          <span class="text-lg font-semibold tracking-tight">Relai</span>
+          <div class="hidden md:flex items-center gap-6 text-sm text-slate-600">
+            <button
+              v-for="item in navItems"
+              :key="item.id"
+              class="transition-colors"
+              :class="activeSection === item.id ? 'text-slate-900 font-semibold' : 'hover:text-slate-900'"
+              @click="scrollToSection(item.id)"
+            >
+              {{ item.label }}
+            </button>
+          </div>
         </div>
-        
         <div class="flex items-center gap-4">
-          <NuxtLink 
-            to="/login" 
-            class="text-sm text-slate-600 hover:text-slate-900 transition-colors"
-          >
+          <NuxtLink to="/login" class="text-sm text-slate-600 hover:text-slate-900 transition-colors">
             Sign in
           </NuxtLink>
-          <NuxtLink 
-            to="/onboarding" 
+          <NuxtLink
+            to="/onboarding"
             class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
           >
-            Get Started
+            Get started free
           </NuxtLink>
         </div>
       </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="pt-32 pb-20 px-6">
-      <div class="max-w-4xl mx-auto text-center">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-50 to-blue-50 border border-violet-100 mb-8">
-          <Icon name="heroicons:sparkles" class="w-4 h-4 text-violet-500" />
-          <span class="text-sm font-medium text-violet-700">Powered by AI</span>
-        </div>
-        
-        <!-- Headline -->
-        <h1 class="text-5xl sm:text-6xl font-semibold text-slate-900 leading-tight tracking-tight mb-6">
-          Project management that
-          <span class="bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">thinks ahead</span>
-        </h1>
-        
-        <!-- Subheadline -->
-        <p class="text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-          AI-powered progress tracking, intelligent scheduling, and team coordination that actually works. 
-          Stop managing spreadsheets — start shipping.
-        </p>
-        
-        <!-- CTA Buttons -->
-        <div class="flex items-center justify-center gap-4">
-          <NuxtLink 
-            to="/onboarding"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all hover:scale-[1.02] shadow-lg shadow-slate-900/10"
-          >
-            <span>Get Started Free</span>
-            <Icon name="heroicons:arrow-right" class="w-4 h-4" />
-          </NuxtLink>
-          <a 
-            href="#features"
-            class="inline-flex items-center gap-2 px-6 py-3 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors"
-          >
-            <span>Learn More</span>
-          </a>
-        </div>
-      </div>
-    </section>
+    <!-- Hero -->
+    <section
+      id="hero"
+      :ref="(el) => (sectionRefs.hero = el as HTMLElement | null)"
+      class="hero-section relative min-h-screen pt-32 pb-20 px-6 overflow-hidden flex items-center scroll-mt-20"
+    >
 
-    <!-- Visual Preview -->
-    <section class="pb-20 px-6">
-      <div class="max-w-5xl mx-auto">
-        <div class="relative rounded-2xl overflow-hidden border border-slate-200 shadow-2xl shadow-slate-200/50 bg-gradient-to-br from-slate-50 to-white">
-          <!-- Browser Chrome -->
-          <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-100 bg-white/50">
-            <div class="flex gap-1.5">
-              <div class="w-3 h-3 rounded-full bg-rose-400" />
-              <div class="w-3 h-3 rounded-full bg-amber-400" />
-              <div class="w-3 h-3 rounded-full bg-emerald-400" />
-            </div>
-            <div class="flex-1 mx-8">
-              <div class="max-w-md mx-auto h-6 bg-slate-100 rounded-md" />
-            </div>
-          </div>
-          
-          <!-- App Preview Mockup -->
-          <div class="aspect-video bg-gradient-to-br from-slate-50 via-white to-slate-50 p-8">
-            <div class="h-full flex gap-6">
-              <!-- Sidebar Mock -->
-              <div class="w-48 bg-white rounded-xl border border-slate-100 p-4 space-y-3">
-                <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 bg-slate-900 rounded-md" />
-                  <div class="h-4 w-16 bg-slate-200 rounded" />
-                </div>
-                <div class="space-y-2 mt-6">
-                  <div class="h-8 bg-slate-100 rounded-lg" />
-                  <div class="h-8 bg-slate-50 rounded-lg" />
-                  <div class="h-8 bg-slate-50 rounded-lg" />
-                </div>
-              </div>
-              
-              <!-- Main Content Mock -->
-              <div class="flex-1 bg-white rounded-xl border border-slate-100 p-6">
-                <div class="flex items-center justify-between mb-6">
-                  <div class="h-6 w-32 bg-slate-200 rounded" />
-                  <div class="h-8 w-24 bg-slate-900 rounded-lg" />
-                </div>
-                
-                <!-- Kanban Mock -->
-                <div class="flex gap-4 h-[calc(100%-3rem)]">
-                  <div class="flex-1 bg-slate-50 rounded-lg p-3 space-y-2">
-                    <div class="h-4 w-16 bg-slate-200 rounded mb-3" />
-                    <div class="h-20 bg-white rounded-lg border border-slate-100" />
-                    <div class="h-16 bg-white rounded-lg border border-slate-100" />
-                  </div>
-                  <div class="flex-1 bg-blue-50/50 rounded-lg p-3 space-y-2">
-                    <div class="h-4 w-20 bg-blue-100 rounded mb-3" />
-                    <div class="h-24 bg-white rounded-lg border border-blue-100" />
-                  </div>
-                  <div class="flex-1 bg-emerald-50/50 rounded-lg p-3 space-y-2">
-                    <div class="h-4 w-12 bg-emerald-100 rounded mb-3" />
-                    <div class="h-16 bg-white rounded-lg border border-emerald-100" />
-                    <div class="h-20 bg-white rounded-lg border border-emerald-100" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="py-20 px-6 bg-gradient-to-b from-slate-50 to-white">
-      <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl font-semibold text-slate-900 mb-4">
-            Everything you need to ship faster
-          </h2>
-          <p class="text-lg text-slate-500 max-w-xl mx-auto">
-            Built for teams who care about execution, not ceremony.
+      <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.1fr,0.9fr] gap-10 items-center">
+        <div>
+          <h1 class="mt-2 text-4xl sm:text-5xl lg:text-6xl font-medium leading-tight tracking-tight">
+            <span class="word-animate" style="--d: 80ms">Ship</span>
+            <span class="word-animate" style="--d: 140ms">outcomes</span>
+            <span class="word-animate" style="--d: 200ms">faster,</span>
+            <br />
+            <span class="word-animate word-animate--accent" style="--d: 260ms">without</span>
+            <span class="word-animate word-animate--accent" style="--d: 320ms">the</span>
+            <span class="word-animate word-animate--accent" style="--d: 380ms">stakeholder</span>
+            <span class="word-animate word-animate--accent" style="--d: 440ms">chaos.</span>
+          </h1>
+          <p class="mt-6 text-lg text-slate-600 leading-relaxed max-w-xl intro" style="--d: 520ms">
+            Relai replaces status decks, stakeholder chasing, and brittle rollups with one recursive model, real forecast
+            ranges, and stakeholder spaces that keep everyone aligned.
           </p>
-        </div>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div 
-            v-for="feature in features"
-            :key="feature.title"
-            class="p-6 bg-white rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg hover:shadow-slate-100 transition-all"
+          <div class="mt-8 flex items-center gap-4 intro" style="--d: 620ms">
+            <NuxtLink
+              to="/onboarding"
+              class="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
+            >
+              Get started free
+              <Icon name="heroicons:arrow-right" class="w-4 h-4" />
+            </NuxtLink>
+            <a href="#capabilities" class="text-sm font-medium text-slate-600 hover:text-slate-900">
+              See how it works
+            </a>
+          </div>
+          <div
+            class="mt-10 grid grid-cols-1 sm:grid-cols-[max-content_max-content_max-content] sm:justify-start gap-8 max-w-2xl text-xs text-slate-500 intro"
+            style="--d: 720ms"
           >
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-blue-100 flex items-center justify-center mb-4">
-              <Icon :name="feature.icon" class="w-5 h-5 text-violet-600" />
+            <div>
+              <div class="text-base font-semibold text-slate-800">Recursive</div>
+              <div class="sm:whitespace-nowrap">One model for every depth</div>
             </div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ feature.title }}</h3>
-            <p class="text-slate-500 leading-relaxed">{{ feature.description }}</p>
+            <div>
+              <div class="text-base font-semibold text-slate-800">Forecasts</div>
+              <div class="sm:whitespace-nowrap">Visible uncertainty + risk</div>
+            </div>
+            <div>
+              <div class="text-base font-semibold text-slate-800">Stakeholders</div>
+              <div class="sm:whitespace-nowrap">Calm updates, fast answers</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero visual -->
+        <div class="relative">
+          <div class="hero-bubbles">
+            <div class="hero-bubble intro" style="--d: 520ms">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-semibold text-slate-700">Forecast</div>
+                <span class="pill pill--amber">At risk</span>
+              </div>
+              <div class="mt-2 text-sm font-medium text-slate-800">Est. finish: Feb 6-8</div>
+              <div class="mt-3 h-2 rounded-full bg-slate-100 relative overflow-hidden">
+                <div class="absolute inset-y-0 left-[35%] w-[40%] rounded-full bg-gradient-to-r from-amber-300 to-orange-400" />
+                <div class="absolute left-[55%] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow ring-1 ring-slate-400" />
+                <div class="absolute left-[72%] -top-1 w-[2px] h-4 bg-slate-600" />
+              </div>
+            </div>
+
+            <div class="hero-bubble intro" style="--d: 640ms">
+              <div class="text-xs font-semibold text-slate-700">Stakeholder update</div>
+              <div class="mt-2 text-xs text-slate-600">
+                Core API is in progress. Two dependencies resolved. Next: billing integration.
+              </div>
+              <div class="mt-3 flex items-center gap-2 text-[10px] text-slate-500">
+                <span class="pill pill--emerald">Published</span>
+                <span>3m ago</span>
+              </div>
+            </div>
+
+            <div class="hero-bubble intro" style="--d: 760ms">
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center">AI</div>
+                <div class="text-xs font-semibold text-slate-700">Team chat</div>
+              </div>
+              <div class="mt-2 text-xs text-slate-600">
+                Summarize what changed this week and list blockers.
+              </div>
+              <div class="mt-2 text-xs text-slate-500">AI: 2 blockers. ETA at risk by 2-3 days.</div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="py-20 px-6">
-      <div class="max-w-3xl mx-auto text-center">
-        <h2 class="text-3xl font-semibold text-slate-900 mb-4">
-          Ready to transform how you manage projects?
-        </h2>
-        <p class="text-lg text-slate-500 mb-8">
-          Get started in minutes. No credit card required.
-        </p>
-        <NuxtLink 
+    <!-- Recursive -->
+    <section
+      id="recursive"
+      :ref="(el) => (sectionRefs.recursive = el as HTMLElement | null)"
+      class="min-h-screen px-6 py-20 bg-white scroll-mt-20 flex items-center section-reveal"
+    >
+      <div class="max-w-6xl mx-auto w-full">
+        <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 w-full items-center">
+          <div class="scroll-reveal" style="--d: 0ms">
+            <div class="text-xs font-semibold text-sky-600 uppercase tracking-wide">Recursive model</div>
+            <h2 class="text-3xl sm:text-4xl font-semibold mt-4">One model for every depth</h2>
+            <p class="mt-4 text-lg text-slate-600 max-w-xl">
+              Projects, epics, tasks, and subtasks all behave the same. Updates roll up instantly, so every level knows
+              what is truly on track, at risk, or blocked.
+            </p>
+            <div class="mt-8 inline-flex items-center gap-3 text-sm text-slate-600">
+              <span class="pill pill--emerald">Rollup by default</span>
+              <span class="pill pill--amber">Risk travels upward</span>
+            </div>
+          </div>
+          <div class="recursive-stack scroll-reveal" style="--d: 120ms">
+            <div class="recursive-card recursive-card--root">
+              <div class="text-xs font-semibold text-slate-700">Project</div>
+              <div class="mt-1 text-sm font-medium text-slate-900">Launch platform</div>
+              <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                <span>4 epics</span>
+                <span class="pill pill--emerald">On track</span>
+              </div>
+            </div>
+            <div class="recursive-card" style="--level: 1">
+              <span class="recursive-connector" aria-hidden="true"></span>
+              <div class="text-xs font-semibold text-slate-700">Epic</div>
+              <div class="mt-1 text-sm font-medium text-slate-900">Billing &amp; payments</div>
+              <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                <span>6 tasks</span>
+                <span class="pill pill--amber">At risk</span>
+              </div>
+            </div>
+            <div class="recursive-card" style="--level: 2">
+              <span class="recursive-connector" aria-hidden="true"></span>
+              <div class="text-xs font-semibold text-slate-700">Task</div>
+              <div class="mt-1 text-sm font-medium text-slate-900">Core API integration</div>
+              <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                <span>3 subtasks</span>
+                <span class="pill pill--amber">At risk</span>
+              </div>
+            </div>
+            <div class="recursive-card" style="--level: 3">
+              <span class="recursive-connector" aria-hidden="true"></span>
+              <div class="text-xs font-semibold text-slate-700">Subtask</div>
+              <div class="mt-1 text-sm font-medium text-slate-900">Partner approval</div>
+              <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                <span class="text-rose-600 font-semibold">Blocked</span>
+                <span class="pill pill--amber">At risk</span>
+              </div>
+            </div>
+            <div class="recursive-rollup">
+              <div class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Rollup</div>
+              <div class="mt-2 text-sm text-slate-700">Risk from subtasks lifts into the epic forecast automatically.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Outcomes -->
+    <section
+      id="outcomes"
+      :ref="(el) => (sectionRefs.outcomes = el as HTMLElement | null)"
+      class="min-h-screen px-6 py-20 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
+    >
+      <div class="max-w-6xl mx-auto w-full">
+        <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 w-full items-center">
+          <div class="scroll-reveal" style="--d: 0ms">
+            <div class="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Outcomes</div>
+            <h2 class="text-3xl sm:text-4xl font-semibold mt-4">Stakeholder calm, built in</h2>
+            <p class="mt-4 text-lg text-slate-600 max-w-xl">
+              Outcome-first execution means fewer status meetings and more shipping. Everything stays aligned because the work is recursive and the updates are curated.
+            </p>
+            <div class="mt-8 space-y-6">
+              <div v-for="block in outcomeBlocks" :key="block.title" class="pl-5 border-l-[3px] border-slate-300">
+                <div class="text-sm font-semibold text-slate-900">{{ block.title }}</div>
+                <p class="mt-1 text-sm text-slate-600">{{ block.body }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-6 scroll-reveal" style="--d: 120ms">
+            <div class="rounded-3xl border border-slate-100 bg-white/95 p-6 shadow-xl shadow-slate-200/60">
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Stakeholder space</div>
+              <div class="mt-3 text-sm font-semibold text-slate-800">Weekly update</div>
+              <div class="mt-2 text-xs text-slate-600">
+                Billing integration in progress. Two blockers resolved. Forecast range tightened by 2 days.
+              </div>
+              <div class="mt-4 flex items-center gap-2 text-[10px] text-slate-500">
+                <span class="pill pill--emerald">Published</span>
+                <span>Updated today</span>
+              </div>
+            </div>
+            <div class="rounded-3xl border border-slate-100 bg-white/95 p-6 shadow-xl shadow-slate-200/40">
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Dependency path</div>
+              <div class="mt-3 h-2 rounded-full bg-slate-100 relative overflow-hidden">
+                <div class="absolute inset-y-0 left-[20%] w-[55%] rounded-full bg-gradient-to-r from-emerald-300 to-teal-400" />
+                <div class="absolute left-[45%] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow ring-1 ring-slate-400" />
+                <div class="absolute left-[70%] -top-1 w-[2px] h-4 bg-slate-600" />
+              </div>
+              <div class="mt-3 text-xs text-slate-500">Forecast confidence improving as blockers clear.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Capabilities -->
+    <section
+      id="capabilities"
+      :ref="(el) => (sectionRefs.capabilities = el as HTMLElement | null)"
+      class="min-h-screen px-6 py-20 bg-white scroll-mt-20 flex items-center section-reveal"
+    >
+      <div class="max-w-6xl mx-auto w-full">
+        <div class="grid lg:grid-cols-[0.95fr,1.05fr] gap-12 w-full items-center">
+          <div class="scroll-reveal" style="--d: 0ms">
+            <div class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Capabilities</div>
+            <h2 class="text-3xl sm:text-4xl font-semibold mt-4">Everything your product team needs</h2>
+            <p class="mt-4 text-lg text-slate-600 max-w-xl">
+              Designed to remove stakeholder noise while keeping the team in flow and execution transparent.
+            </p>
+            <div class="mt-8 inline-flex items-center gap-3 text-sm text-slate-600">
+              <span class="pill pill--amber">Live updates</span>
+              <span class="pill pill--emerald">AI teammate</span>
+            </div>
+          </div>
+          <div class="space-y-6 scroll-reveal" style="--d: 120ms">
+            <div
+              v-for="cap in capabilityCards"
+              :key="cap.title"
+              class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-6 pb-6 border-b border-slate-200 last:border-b-0"
+            >
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900 sm:whitespace-nowrap">{{ cap.title }}</h3>
+                <p class="mt-2 text-sm text-slate-600 sm:whitespace-nowrap">{{ cap.body }}</p>
+              </div>
+              <div class="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Live</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section
+      id="cta"
+      :ref="(el) => (sectionRefs.cta = el as HTMLElement | null)"
+      class="min-h-screen px-6 py-20 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
+    >
+      <div class="max-w-4xl mx-auto text-center w-full flex flex-col items-center justify-center scroll-reveal" style="--d: 0ms">
+        <h2 class="text-3xl sm:text-4xl font-semibold text-slate-900">Start a stakeholder-calm workspace</h2>
+        <p class="mt-4 text-lg text-slate-600">Get started free in minutes. No credit card required.</p>
+        <NuxtLink
           to="/onboarding"
-          class="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all hover:scale-[1.02] shadow-lg shadow-slate-900/10 text-lg"
+          class="mt-8 inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
         >
-          <span>Start Your Free Workspace</span>
+          Get started free
           <Icon name="heroicons:arrow-right" class="w-5 h-5" />
         </NuxtLink>
       </div>
@@ -213,7 +408,7 @@ const features = [
           <div class="w-6 h-6 bg-slate-900 rounded-md flex items-center justify-center">
             <span class="text-white text-xs font-semibold">R</span>
           </div>
-          <span class="text-sm text-slate-500">© 2025 Relai</span>
+          <span class="text-sm text-slate-500">(c) 2026 Relai</span>
         </div>
         <div class="flex items-center gap-6 text-sm text-slate-500">
           <a href="#" class="hover:text-slate-900 transition-colors">Privacy</a>
@@ -224,3 +419,168 @@ const features = [
     </footer>
   </div>
 </template>
+
+<style scoped>
+.hero-section {
+  background-image:
+    radial-gradient(55% 45% at 85% 20%, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0)),
+    linear-gradient(120deg, rgba(16, 185, 129, 0.24) 0%, rgba(255, 255, 255, 0.96) 45%),
+    linear-gradient(300deg, rgba(56, 189, 248, 0.2) 0%, rgba(255, 255, 255, 0.96) 55%),
+    linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+}
+
+.hero-bubbles {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hero-bubble {
+  border-radius: 24px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.14),
+    0 6px 18px rgba(15, 23, 42, 0.08);
+  padding: 22px 24px;
+  backdrop-filter: blur(10px);
+  width: 100%;
+}
+
+.recursive-stack {
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.9), white);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.1);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recursive-card {
+  position: relative;
+  margin-left: calc(var(--level, 0) * 18px);
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: white;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.recursive-card--root {
+  margin-left: 0;
+}
+
+.recursive-connector {
+  position: absolute;
+  left: -14px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.6), rgba(148, 163, 184, 0.15));
+}
+
+.recursive-rollup {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pill--amber {
+  background: rgba(251, 191, 36, 0.2);
+  color: #b45309;
+}
+
+.pill--emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.intro {
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(8px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--d, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+.is-ready .intro {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.word-animate {
+  display: inline-block;
+  margin-right: 0.3em;
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(8px);
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out,
+    filter 0.6s ease-out;
+  transition-delay: var(--d, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+.word-animate--accent {
+  background-image: linear-gradient(120deg, #64748b, #94a3b8, #64748b);
+  background-clip: text;
+  color: transparent;
+}
+
+.is-ready .word-animate {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.section-reveal .scroll-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(8px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--d, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+.section-reveal.is-visible .scroll-reveal {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+@media (max-width: 640px) {
+  .hero-bubble {
+    padding: 18px 20px;
+  }
+
+  .recursive-stack {
+    padding: 18px;
+  }
+
+  .recursive-card {
+    margin-left: calc(var(--level, 0) * 10px);
+  }
+}
+
+</style>
