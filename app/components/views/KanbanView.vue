@@ -12,6 +12,7 @@ const emit = defineEmits<{
   openDetail: [item: ItemNode]
   statusChange: [itemId: string, newStatus: string, newSubStatus?: string | null]
   parentChange: [itemId: string, newParentId: string]
+  openAttention: [item: ItemNode, mode: 'at-risk' | 'blocked']
 }>()
 
 const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
@@ -264,7 +265,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 h-full">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 h-full">
     <div 
       v-for="status in columns" 
       :key="status"
@@ -343,6 +344,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                   @click="emit('itemClick', item)"
                   @drill-down="emit('drillDown', item)"
                   @open-detail="emit('openDetail', item)"
+                  @open-attention="(target, mode) => emit('openAttention', target, mode)"
                 />
               </div>
             </div>
@@ -417,6 +419,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                   @click="emit('itemClick', item)"
                   @drill-down="emit('drillDown', item)"
                   @open-detail="emit('openDetail', item)"
+                  @open-attention="(target, mode) => emit('openAttention', target, mode)"
                 />
               </div>
             </div>

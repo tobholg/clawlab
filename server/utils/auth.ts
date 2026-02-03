@@ -80,9 +80,13 @@ export const buildAppBaseUrl = (event: H3Event) => {
   return `${url.protocol}//${url.host}`
 }
 
-export const buildMagicLinkUrl = (event: H3Event, token: string) => {
+export const buildMagicLinkUrl = (event: H3Event, token: string, redirect?: string) => {
   const base = buildAppBaseUrl(event)
-  return `${base}/auth/confirm?token=${encodeURIComponent(token)}`
+  let url = `${base}/auth/confirm?token=${encodeURIComponent(token)}`
+  if (redirect) {
+    url += `&redirect=${encodeURIComponent(redirect)}`
+  }
+  return url
 }
 
 export const consumeMagicLink = async (token: string) => {

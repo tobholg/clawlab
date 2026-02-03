@@ -60,13 +60,13 @@ model User {
 
   // Two-layer focus system
   // Layer 1: Project context (sticky)
-  currentProjectFocusId    String?   // The project they're working on
+  currentProjectFocusId    String? // The project they're working on
   currentProjectFocusStart DateTime? // When they started this project focus
-  
+
   // Layer 2: Activity (fluid) - either a task OR a lane
-  currentTaskFocusId       String?   // Current task (nullable)
-  currentLaneFocus         FocusLane? // Current lane if no task (general, meeting, admin, learning, break)
-  currentActivityStart     DateTime? // When current task/lane began
+  currentTaskFocusId   String? // Current task (nullable)
+  currentLaneFocus     FocusLane? // Current lane if no task (general, meeting, admin, learning, break)
+  currentActivityStart DateTime? // When current task/lane began
 
   // Relations
   ownedItems          Item[]               @relation("OwnedItems")
@@ -86,6 +86,15 @@ model User {
   documentsCreated    Document[]           @relation("DocumentCreatedBy")
   documentsEdited     Document[]           @relation("DocumentLastEditedBy")
   documentVersions    DocumentVersion[]    @relation("DocumentVersionCreatedBy")
+
+  // External stakeholder relations
+  stakeholderAccess   StakeholderAccess[] // Spaces this user is a stakeholder in
+  stakeholderInvites  StakeholderAccess[]  @relation("StakeholderInviter") // Invites sent
+  informationRequests InformationRequest[] @relation("IRCreatedBy")
+  irResponses         InformationRequest[] @relation("IRRespondedBy")
+  externalTasks       ExternalTask[]
+  externalComments    ExternalComment[]
+  aiContextDocs       AIContextDoc[]
 
   @@map("users")
 }
@@ -153,53 +162,59 @@ enum WorkspaceRole {
 // ============================================
 
 model Item {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   workspaceId String
-  parentId    String?  // null = root item (project level)
-  projectId   String?  // Root project ID for efficient queries (null for root projects themselves)
-  ownerId     String?  // Single owner responsible for the item
+  parentId    String? // null = root item (project level)
+  projectId   String? // Root project ID for efficient queries (null for root projects themselves)
+  ownerId     String? // Single owner responsible for the item
 
   // Core fields
   title       String
   description String?
-  category    String?  // Engineering, Design, Marketing, etc.
+  category    String? // Engineering, Design, Marketing, etc.
 
   // Status & Progress
-  status      ItemStatus @default(TODO)
-  subStatus   String?    // Sub-state within status (e.g., 'scoping', 'review')
-  progress    Int        @default(0) // 0-100
+  status    ItemStatus @default(TODO)
+  subStatus String? // Sub-state within status (e.g., 'scoping', 'review')
+  progress  Int        @default(0) // 0-100
 
   // Scheduling
   dueDate     DateTime?
   startDate   DateTime?
-  completedAt DateTime?  // When status changed to DONE
+  completedAt DateTime? // When status changed to DONE
 
   // AI-assisted fields
-  confidence  Int        @default(70) // 0-100, AI-estimated completion likelihood
+  confidence Int @default(70) // 0-100, AI-estimated completion likelihood
 
   // Timestamps for temperature calculation
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   lastActivityAt DateTime @default(now())
-  
+
   // Relations
-  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent         Item?             @relation("ItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children       Item[]            @relation("ItemHierarchy")
-  owner          User?             @relation("OwnedItems", fields: [ownerId], references: [id])
-  assignees      ItemAssignment[]
-  stakeholders   ItemStakeholder[]
-  blockedBy      ItemDependency[]  @relation("BlockedItem")
-  blocks         ItemDependency[]  @relation("BlockingItem")
-  activities     Activity[]
-  comments       Comment[]
+  workspace             Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent                Item?             @relation("ItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children              Item[]            @relation("ItemHierarchy")
+  owner                 User?             @relation("OwnedItems", fields: [ownerId], references: [id])
+  assignees             ItemAssignment[]
+  stakeholders          ItemStakeholder[]
+  blockedBy             ItemDependency[]  @relation("BlockedItem")
+  blocks                ItemDependency[]  @relation("BlockingItem")
+  activities            Activity[]
+  comments              Comment[]
   // Focus relations
-  taskFocusSessions    FocusSession[] @relation("FocusSessionTask")
-  projectFocusSessions FocusSession[] @relation("FocusSessionProject")
-  currentProjectFocusBy User[]        @relation("CurrentProjectFocus")
-  currentTaskFocusBy    User[]        @relation("CurrentTaskFocus")
-  channel        Channel?          // One project = one channel
-  documents      Document[]
+  taskFocusSessions     FocusSession[]    @relation("FocusSessionTask")
+  projectFocusSessions  FocusSession[]    @relation("FocusSessionProject")
+  currentProjectFocusBy User[]            @relation("CurrentProjectFocus")
+  currentTaskFocusBy    User[]            @relation("CurrentTaskFocus")
+  channel               Channel? // One project = one channel
+  documents             Document[]
+
+  // External stakeholder relations (for root projects)
+  externalSpaces         ExternalSpace[]
+  convertedFromIR        InformationRequest? // If created from a suggestion
+  linkedFromExternalTask ExternalTask? // If created from external task
+  aiContextDocs          AIContextDoc[]
 
   @@index([workspaceId])
   @@index([parentId])
@@ -218,7 +233,7 @@ model Item {
 model Document {
   id             String   @id @default(cuid())
   itemId         String
-  projectId      String?  // Root project ID for querying (item.id if root project)
+  projectId      String? // Root project ID for querying (item.id if root project)
   title          String
   content        String   @default("")
   isLocked       Boolean  @default(false)
@@ -227,10 +242,10 @@ model Document {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  item          Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  createdBy     User   @relation("DocumentCreatedBy", fields: [createdById], references: [id])
-  lastEditedBy  User?  @relation("DocumentLastEditedBy", fields: [lastEditedById], references: [id])
-  versions      DocumentVersion[]
+  item         Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdBy    User              @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  lastEditedBy User?             @relation("DocumentLastEditedBy", fields: [lastEditedById], references: [id])
+  versions     DocumentVersion[]
 
   @@index([itemId])
   @@index([projectId])
@@ -238,18 +253,18 @@ model Document {
 }
 
 model DocumentVersion {
-  id          String       @id @default(cuid())
+  id          String      @id @default(cuid())
   documentId  String
   title       String
   content     String
   label       String?
   notes       String?
-  type        VersionType  @default(MINOR)
+  type        VersionType @default(MINOR)
   createdById String
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime    @default(now())
 
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  createdBy  User     @relation("DocumentVersionCreatedBy", fields: [createdById], references: [id])
+  document  Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("DocumentVersionCreatedBy", fields: [createdById], references: [id])
 
   @@index([documentId])
   @@map("document_versions")
@@ -323,10 +338,10 @@ enum FocusActivityType {
 }
 
 enum FocusEndReason {
-  COMPLETED    // Task was marked complete
-  SWITCHED     // Switched to another task/lane
-  MANUAL_EXIT  // User explicitly ended focus
-  DAY_END      // Auto-ended at day boundary
+  COMPLETED // Task was marked complete
+  SWITCHED // Switched to another task/lane
+  MANUAL_EXIT // User explicitly ended focus
+  DAY_END // Auto-ended at day boundary
 }
 
 model FocusSession {
@@ -337,18 +352,18 @@ model FocusSession {
 
   // What they were doing
   activityType FocusActivityType
-  taskId       String?    // If activityType = TASK
+  taskId       String? // If activityType = TASK
   lane         FocusLane? // If activityType = LANE
-  
+
   // Context (inherited from sticky project)
-  projectId    String?
-  
+  projectId String?
+
   // How it ended
-  endReason    FocusEndReason?
-  
+  endReason FocusEndReason?
+
   // User annotation
-  comment      String?
-  commentedAt  DateTime?
+  comment     String?
+  commentedAt DateTime?
 
   // Relations
   user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -388,15 +403,15 @@ model Comment {
   id              String   @id @default(cuid())
   itemId          String
   userId          String
-  parentCommentId String?  // For nested replies
+  parentCommentId String? // For nested replies
   content         String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  item     Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
-  replies  Comment[] @relation("CommentReplies")
+  item    Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
 
   @@index([itemId])
   @@index([parentCommentId])
@@ -420,14 +435,14 @@ enum ActivityType {
 
 enum ChannelType {
   WORKSPACE // #general, #off-topic
-  PROJECT   // Auto-linked to project
-  EXTERNAL  // Has external stakeholders
-  CUSTOM    // User-created
+  PROJECT // Auto-linked to project
+  EXTERNAL // Has external stakeholders
+  CUSTOM // User-created
 }
 
 enum ChannelVisibility {
-  PUBLIC   // Anyone in workspace can join
-  PRIVATE  // Invite only
+  PUBLIC // Anyone in workspace can join
+  PRIVATE // Invite only
   EXTERNAL // Has external users
 }
 
@@ -439,12 +454,12 @@ enum ChannelRole {
 }
 
 model Channel {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   workspaceId String
   parentId    String? // For nested channels
   projectId   String? @unique // If linked to a project (one project = one channel)
 
-  name        String  // Slug: "general", "q4-product-launch"
+  name        String // Slug: "general", "q4-product-launch"
   displayName String? // Pretty name override
   description String?
   type        ChannelType       @default(CUSTOM)
@@ -490,10 +505,10 @@ model ChannelMember {
 }
 
 model Message {
-  id          String  @id @default(cuid())
-  channelId   String
-  userId      String
-  parentId    String? // For threads
+  id        String  @id @default(cuid())
+  channelId String
+  userId    String
+  parentId  String? // For threads
 
   content     String
   attachments Json? // Future: file attachments
@@ -519,7 +534,7 @@ model Reaction {
   id        String   @id @default(cuid())
   messageId String
   userId    String
-  emoji     String   // e.g., "👍", "❤️", "😂"
+  emoji     String // e.g., "👍", "❤️", "😂"
   createdAt DateTime @default(now())
 
   // Relations
@@ -530,4 +545,193 @@ model Reaction {
   @@unique([messageId, userId, emoji])
   @@index([messageId])
   @@map("reactions")
+}
+
+// ============================================
+// EXTERNAL STAKEHOLDERS
+// ============================================
+
+// Isolated portal for a specific stakeholder group (clients, investors, etc.)
+model ExternalSpace {
+  id          String  @id @default(cuid())
+  projectId   String // Root project this space is for
+  name        String // "Protencon", "Investors"
+  slug        String // URL-safe identifier
+  description String? // Shown to stakeholders
+
+  // Defaults for stakeholders in this space
+  maxIRsPer24h        Int     @default(10)
+  allowTaskSubmission Boolean @default(false)
+
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project             Item                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stakeholderAccess   StakeholderAccess[]
+  informationRequests InformationRequest[]
+  externalTasks       ExternalTask[]
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+  @@map("external_spaces")
+}
+
+// Links a user to an external space with permissions
+model StakeholderAccess {
+  id              String @id @default(cuid())
+  userId          String
+  externalSpaceId String
+
+  // Per-stakeholder overrides (null = use space defaults)
+  canSubmitTasks Boolean? // Override space.allowTaskSubmission
+  maxIRsPer24h   Int? // Override space.maxIRsPer24h
+
+  // How they appear in this space
+  displayName String? // Custom display name for this space
+  position    String? // Job title: "CTO", "Product Lead"
+
+  invitedAt DateTime @default(now())
+  invitedBy String // User ID of who invited them
+
+  // Relations
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalSpace ExternalSpace @relation(fields: [externalSpaceId], references: [id], onDelete: Cascade)
+  inviter       User          @relation("StakeholderInviter", fields: [invitedBy], references: [id])
+
+  @@unique([userId, externalSpaceId])
+  @@index([externalSpaceId])
+  @@index([userId])
+  @@map("stakeholder_access")
+}
+
+// Questions/suggestions from stakeholders
+model InformationRequest {
+  id              String @id @default(cuid())
+  externalSpaceId String
+  createdById     String // Stakeholder user ID
+
+  type    IRType // question or suggestion
+  content String // AI-drafted or stakeholder-written
+  status  IRStatus @default(PENDING)
+
+  // Response from team
+  response      String?
+  respondedById String? // Team member who responded
+  respondedAt   DateTime?
+
+  // Voting - stored as JSON array of user IDs for simplicity
+  votes Json @default("[]") // String[] of user IDs who upvoted
+
+  // Conversion
+  convertedToTaskId String? @unique // If suggestion → accepted as task
+  addedToAIContext  Boolean @default(false) // Owner flagged for AI to learn
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  externalSpace    ExternalSpace     @relation(fields: [externalSpaceId], references: [id], onDelete: Cascade)
+  createdBy        User              @relation("IRCreatedBy", fields: [createdById], references: [id])
+  respondedBy      User?             @relation("IRRespondedBy", fields: [respondedById], references: [id])
+  convertedToTask  Item?             @relation(fields: [convertedToTaskId], references: [id])
+  externalComments ExternalComment[]
+
+  @@index([externalSpaceId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@map("information_requests")
+}
+
+enum IRType {
+  QUESTION
+  SUGGESTION
+}
+
+enum IRStatus {
+  PENDING
+  ANSWERED
+  ACCEPTED // For suggestions converted to tasks
+  DECLINED
+}
+
+// Tasks submitted by stakeholders (pending review)
+model ExternalTask {
+  id              String @id @default(cuid())
+  externalSpaceId String
+  submittedById   String // Stakeholder user ID
+
+  title       String
+  description String
+
+  status          ExternalTaskStatus @default(PENDING)
+  rejectionReason String? // If rejected, why
+  linkedTaskId    String?            @unique // When accepted, points to real task
+  internalNotes   String? // Team-only, not visible to stakeholder
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  externalSpace    ExternalSpace     @relation(fields: [externalSpaceId], references: [id], onDelete: Cascade)
+  submittedBy      User              @relation(fields: [submittedById], references: [id])
+  linkedTask       Item?             @relation(fields: [linkedTaskId], references: [id])
+  externalComments ExternalComment[]
+
+  @@index([externalSpaceId])
+  @@index([submittedById])
+  @@index([status])
+  @@index([createdAt])
+  @@map("external_tasks")
+}
+
+enum ExternalTaskStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  NEEDS_INFO
+}
+
+// Comments on external tasks and information requests (from stakeholders AND team)
+model ExternalComment {
+  id                   String  @id @default(cuid())
+  externalTaskId       String?
+  informationRequestId String?
+  authorId             String // Can be stakeholder OR team member
+  isTeamMember         Boolean @default(false) // true if author is a team member
+
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  externalTask       ExternalTask?       @relation(fields: [externalTaskId], references: [id], onDelete: Cascade)
+  informationRequest InformationRequest? @relation(fields: [informationRequestId], references: [id], onDelete: Cascade)
+  author             User                @relation(fields: [authorId], references: [id])
+
+  @@index([externalTaskId])
+  @@index([informationRequestId])
+  @@index([authorId])
+  @@map("external_comments")
+}
+
+// Owner-curated documents for AI context in stakeholder interactions
+model AIContextDoc {
+  id        String @id @default(cuid())
+  projectId String // Root project this doc is for
+
+  title   String
+  content String
+
+  addedAt   DateTime @default(now())
+  addedById String // User who added this doc
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project Item @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  addedBy User @relation(fields: [addedById], references: [id])
+
+  @@index([projectId])
+  @@map("ai_context_docs")
 }

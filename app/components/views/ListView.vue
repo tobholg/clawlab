@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
+import { getItemEstimateMeta } from '~/utils/itemRisk'
 import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, getSubStatusesForStatus } from '~/types'
 
 const props = defineProps<{
@@ -59,7 +60,7 @@ function applyPreset(preset: string) {
       riskFilter.value = ['high', 'medium']
       break
     case 'at-risk':
-      riskFilter.value = ['high']
+      riskFilter.value = ['high', 'medium']
       break
     case 'due-this-week':
       // Will be handled in filter logic
@@ -158,6 +159,7 @@ interface FlatItem extends ItemNode {
   isExpanded: boolean
   hasChildren: boolean
   riskLevel: 'low' | 'medium' | 'high' | null
+  needsEstimate: boolean
 }
 
 // Check if an item matches current filters
@@ -271,12 +273,15 @@ const flattenedItems = computed<FlatItem[]>(() => {
       const hasChildren = (item.children?.length ?? 0) > 0 || (item.childrenCount ?? 0) > 0
       const isExpanded = expandedIds.value.has(item.id)
       
+      const meta = getItemEstimateMeta(item)
+
       result.push({
         ...item,
         depth,
         isExpanded,
         hasChildren,
         riskLevel: getRiskLevel(item),
+        needsEstimate: meta.needsEstimate,
       })
       
       if (isExpanded && item.children?.length) {
@@ -334,17 +339,12 @@ function getRiskLevel(item: ItemNode): 'low' | 'medium' | 'high' | null {
   if (item.status === 'done') return null
   if (item.status === 'blocked') return 'high'
   
-  const est = getEstimatedCompletion(item)
-  if (!est || est.complete) return 'low'
-  
-  if (!item.dueDate) return null
-  
-  const dueDate = new Date(item.dueDate)
-  const now = new Date()
-  const daysUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  
-  if (est.daysRemaining > daysUntilDue * 1.5) return 'high'
-  if (est.daysRemaining > daysUntilDue) return 'medium'
+  const meta = getItemEstimateMeta(item)
+  if (!item.dueDate || meta.needsEstimate) return null
+
+  if (meta.isAtRisk) {
+    return meta.missProb >= 66 ? 'high' : 'medium'
+  }
   return 'low'
 }
 
@@ -746,8 +746,8 @@ function handleRowClick(item: FlatItem) {
         </div>
         
         <!-- Est. Completion -->
-        <div class="text-xs text-slate-600">
-          {{ formatDateRange(getEstimatedCompletion(item)) }}
+        <div class="text-xs" :class="item.needsEstimate ? 'text-slate-400' : 'text-slate-600'">
+          {{ item.needsEstimate ? 'Needs estimate' : formatDateRange(getEstimatedCompletion(item)) }}
         </div>
         
         <!-- Due Date -->

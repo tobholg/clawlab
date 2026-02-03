@@ -10,6 +10,7 @@ const loading = ref(true)
 const error = ref('')
 
 const token = computed(() => route.query.token as string | undefined)
+const redirect = computed(() => route.query.redirect as string | undefined)
 
 onMounted(async () => {
   if (!token.value) {
@@ -20,8 +21,14 @@ onMounted(async () => {
 
   try {
     await confirmMagicLink(token.value)
-    // Redirect to workspace on success
-    navigateTo('/workspace')
+    // Redirect to specified page or workspace on success
+    const redirectTo = redirect.value || '/workspace'
+    // Validate redirect is a local path (security)
+    if (redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+      navigateTo(redirectTo)
+    } else {
+      navigateTo('/workspace')
+    }
   } catch (e: any) {
     error.value = e.data?.message || 'Invalid or expired magic link'
   } finally {

@@ -16,10 +16,17 @@ export const useAuth = () => {
     }
   }
 
-  const requestMagicLink = async (email: string) => {
+  const requestMagicLink = async (email: string, options?: {
+    inviteToken?: string
+    displayName?: string
+    position?: string
+  }) => {
     const response = await $fetch('/api/auth/request-magic-link', {
       method: 'POST',
-      body: { email }
+      body: { 
+        email,
+        ...options
+      }
     })
     return response
   }

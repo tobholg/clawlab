@@ -71,6 +71,7 @@ export interface ItemNode extends Item {
   hotChildrenCount: number
   blockedChildrenCount: number
   atRiskChildrenCount: number
+  needsEstimateChildrenCount: number
 }
 
 // Temperature config

@@ -213,6 +213,70 @@ watch(() => props.open, (isOpen) => {
   }
 })
 
+const showForecastDetails = ref(false)
+
+const formatShortDate = (dateStr?: string | null) => {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const riskLevel = computed(() => {
+  if (!estimatedCompletion.value || estimatedCompletion.value.complete) return 'low'
+  if (estimatedCompletion.value.missProb > 66) return 'high'
+  if (estimatedCompletion.value.missProb > 33) return 'medium'
+  return 'low'
+})
+
+const riskLabel = computed(() => {
+  if (riskLevel.value === 'high') return 'High risk'
+  if (riskLevel.value === 'medium') return 'At risk'
+  return 'Low risk'
+})
+
+const riskClasses = computed(() => {
+  if (riskLevel.value === 'high') return 'bg-rose-100 text-rose-700'
+  if (riskLevel.value === 'medium') return 'bg-amber-100 text-amber-700'
+  return 'bg-emerald-100 text-emerald-700'
+})
+
+const rangeClasses = computed(() => {
+  if (riskLevel.value === 'high') return 'from-rose-400/70 to-red-500/70'
+  if (riskLevel.value === 'medium') return 'from-amber-400/70 to-orange-400/70'
+  return 'from-emerald-400/70 to-teal-400/70'
+})
+
+const dueMarkerClasses = computed(() => {
+  return 'bg-slate-600'
+})
+
+const forecastBar = computed(() => {
+  if (!estimatedCompletion.value || estimatedCompletion.value.complete) return null
+  const earliest = estimatedCompletion.value.earliestRaw
+  const latest = estimatedCompletion.value.latestRaw
+  if (!earliest || !latest) return null
+
+  const now = new Date()
+  const due = editedDueDate.value ? new Date(editedDueDate.value) : null
+  let end = latest
+  if (due && due > end) end = due
+  if (end <= now) end = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+
+  const total = end.getTime() - now.getTime()
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+  const toPct = (date: Date) => clamp(((date.getTime() - now.getTime()) / total) * 100, 0, 100)
+
+  const rangeLeft = toPct(earliest)
+  const rangeRight = toPct(latest)
+  let rangeWidth = Math.max(6, rangeRight - rangeLeft)
+  if (rangeLeft + rangeWidth > 100) rangeWidth = 100 - rangeLeft
+
+  const basePos = toPct(estimatedCompletion.value.baseDateRaw ?? latest)
+  const duePos = due ? toPct(due) : null
+
+  return { rangeLeft, rangeWidth, basePos, duePos }
+})
+
 // Calculate estimated completion date range with full breakdown + probability of missing due date
 const estimatedCompletion = computed(() => {
   const progress = editedProgress.value
@@ -277,7 +341,9 @@ const estimatedCompletion = computed(() => {
     baseDate: formatDate(baseDate),
     baseDateRaw: baseDate,
     earliest: formatDate(earliest),
+    earliestRaw: earliest,
     latest: formatDate(latest),
+    latestRaw: latest,
     bandDays,
     isExact: confidence >= 95,
     velocity: Math.round(progress / daysSpent * 10) / 10,
@@ -982,153 +1048,112 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
             </div>
             
-            <!-- Estimated Completion Card -->
-            <div 
-              v-if="estimatedCompletion" 
-              class="rounded-xl p-4 border transition-colors"
-              :class="[
-                estimatedCompletion.complete 
-                  ? 'bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border-emerald-100/50'
-                  : estimatedCompletion.missProb > 66 
-                    ? 'bg-gradient-to-br from-rose-50 via-red-50 to-orange-50 border-rose-200/50'
-                    : estimatedCompletion.missProb > 33 
-                      ? 'bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 border-amber-200/50'
-                      : 'bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border-emerald-100/50'
-              ]"
-            >
-              <div class="flex items-start justify-between mb-3">
-                <span 
-                  class="text-sm font-medium"
-                  :class="[
-                    estimatedCompletion.missProb > 66 ? 'text-rose-800' : 
-                    estimatedCompletion.missProb > 33 ? 'text-amber-800' : 'text-emerald-800'
-                  ]"
-                >
-                  Estimated Completion
-                </span>
-                <div v-if="!estimatedCompletion.complete" class="text-right">
-                  <div 
-                    class="text-lg font-semibold"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-700' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-700' : 'text-emerald-700'
-                    ]"
-                  >
-                    {{ estimatedCompletion.isExact ? estimatedCompletion.baseDate : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` }}
-                  </div>
-                  <div 
-                    class="text-[10px]"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-700' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-700' : 'text-emerald-700'
-                    ]"
-                  >
-                    {{ estimatedCompletion.isExact ? 'High confidence estimate ✓' : `±${Math.floor(estimatedCompletion.bandDays / 2)} days @ ${editedConfidence}% confidence` }}
-                  </div>
+            <!-- Forecast Card -->
+            <div v-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 bg-white">
+              <div v-if="estimatedCompletion.complete" class="flex items-center justify-between">
+                <div>
+                  <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
+                  <div class="text-sm font-medium text-emerald-700">Complete</div>
                 </div>
-                <div v-else class="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
                   <Icon name="heroicons:check-circle" class="w-3.5 h-3.5" />
-                  Complete
+                  Done
                 </div>
               </div>
-              
-              <div v-if="!estimatedCompletion.complete" class="grid grid-cols-3 gap-3 text-center">
-                <div class="bg-white/70 backdrop-blur-sm rounded-lg p-2">
-                  <div class="text-lg font-semibold text-slate-700">{{ estimatedCompletion.daysSpent }}</div>
-                  <div 
-                    class="text-[10px] uppercase tracking-wide"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-emerald-600'
-                    ]"
-                  >Days Spent</div>
-                </div>
-                <div class="bg-white/70 backdrop-blur-sm rounded-lg p-2">
-                  <div class="text-lg font-semibold text-slate-700">{{ estimatedCompletion.totalEstimate }}</div>
-                  <div 
-                    class="text-[10px] uppercase tracking-wide"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-emerald-600'
-                    ]"
-                  >Total Est.</div>
-                </div>
-                <div class="bg-white/70 backdrop-blur-sm rounded-lg p-2">
-                  <div 
-                    class="text-lg font-semibold"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-emerald-600'
-                    ]"
-                  >{{ estimatedCompletion.remainingDays }}</div>
-                  <div 
-                    class="text-[10px] uppercase tracking-wide"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-emerald-600'
-                    ]"
-                  >Days Left</div>
-                </div>
-              </div>
-              
-              <!-- Probability of missing due date -->
-              <div 
-                v-if="!estimatedCompletion.complete && editedDueDate && estimatedCompletion.missProb > 0" 
-                class="mt-3 p-2 rounded-lg text-center"
-                :class="[
-                  estimatedCompletion.missProb > 66 
-                    ? 'bg-rose-100/80' 
-                    : estimatedCompletion.missProb > 33 
-                      ? 'bg-amber-100/80' 
-                      : 'bg-white/50'
-                ]"
-              >
-                <div class="flex items-center justify-center gap-2">
-                  <Icon 
-                    :name="estimatedCompletion.missProb > 66 ? 'heroicons:exclamation-circle' : 'heroicons:information-circle'" 
-                    class="w-4 h-4"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-slate-500'
-                    ]"
-                  />
-                  <span 
-                    class="text-xs font-medium"
-                    :class="[
-                      estimatedCompletion.missProb > 66 ? 'text-rose-700' : 
-                      estimatedCompletion.missProb > 33 ? 'text-amber-700' : 'text-slate-600'
-                    ]"
+
+              <template v-else>
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
+                    <div class="text-sm font-medium text-slate-800">
+                      Est. finish: {{ estimatedCompletion.isExact ? estimatedCompletion.baseDate : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` }}
+                    </div>
+                    <div class="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                      <span v-if="editedDueDate">Due {{ formatShortDate(editedDueDate) }}</span>
+                      <span v-if="editedDueDate">•</span>
+                      <span :class="['px-2 py-0.5 rounded-full text-[10px] font-medium', riskClasses]">
+                        {{ riskLabel }}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    class="text-xs text-slate-500 hover:text-slate-700 transition-colors"
+                    @click="showForecastDetails = !showForecastDetails"
                   >
-                    {{ estimatedCompletion.missProb }}% chance of missing due date
-                  </span>
+                    {{ showForecastDetails ? 'Hide details' : 'Details' }}
+                  </button>
                 </div>
-                <div 
-                  class="text-[10px] mt-1"
-                  :class="[
-                    estimatedCompletion.missProb > 66 ? 'text-rose-600' : 
-                    estimatedCompletion.missProb > 33 ? 'text-amber-600' : 'text-slate-500'
-                  ]"
-                >
-                  Due in {{ estimatedCompletion.daysUntilDue }} days, est. {{ estimatedCompletion.remainingDays }} days remaining
+
+                <div class="mt-4">
+                  <div class="relative h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      v-if="forecastBar"
+                      class="absolute inset-y-0 rounded-full bg-gradient-to-r"
+                      :class="rangeClasses"
+                      :style="{ left: `${forecastBar.rangeLeft}%`, width: `${forecastBar.rangeWidth}%` }"
+                    />
+                    <div
+                      v-if="forecastBar"
+                      class="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-700 shadow"
+                      :style="{ left: `calc(${forecastBar.basePos}% - 4px)` }"
+                    />
+                    <div
+                      v-if="forecastBar && forecastBar.duePos !== null"
+                      class="absolute -top-1 w-[2px] h-4"
+                      :class="dueMarkerClasses"
+                      :style="{ left: `calc(${forecastBar.duePos}% - 1px)` }"
+                    />
+                  </div>
+                  <div class="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Now</span>
+                    <span v-if="editedDueDate">Due {{ formatShortDate(editedDueDate) }}</span>
+                    <span v-else>—</span>
+                  </div>
                 </div>
-              </div>
-              
-              <p
-                v-if="!estimatedCompletion.complete"
-                class="text-xs mt-3 text-center"
-                :class="[
-                  estimatedCompletion.missProb > 66 ? 'text-rose-700' : 
-                  estimatedCompletion.missProb > 33 ? 'text-amber-700' : 'text-emerald-700'
-                ]"
-              >
-                {{ editedProgress }}% over {{ estimatedCompletion.daysSpent }} days = {{ estimatedCompletion.velocity }}%/day velocity {{ estimatedCompletion.missProb <= 33 ? '✨' : '' }}
-              </p>
+
+                <div v-if="showForecastDetails" class="mt-4 space-y-3">
+                  <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-slate-50 rounded-lg p-2">
+                      <div class="text-sm font-semibold text-slate-700">{{ estimatedCompletion.daysSpent }}</div>
+                      <div class="text-[10px] uppercase tracking-wide text-slate-400">Spent</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-2">
+                      <div class="text-sm font-semibold text-slate-700">{{ estimatedCompletion.totalEstimate }}</div>
+                      <div class="text-[10px] uppercase tracking-wide text-slate-400">Total</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-2">
+                      <div class="text-sm font-semibold text-slate-700">{{ estimatedCompletion.remainingDays }}</div>
+                      <div class="text-[10px] uppercase tracking-wide text-slate-400">Left</div>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                    <span v-if="!estimatedCompletion.isExact">
+                      ±{{ Math.floor(estimatedCompletion.bandDays / 2) }}d @ {{ editedConfidence }}% confidence
+                    </span>
+                    <span>•</span>
+                    <span>Miss risk {{ estimatedCompletion.missProb }}%</span>
+                  </div>
+
+                  <div v-if="editedDueDate" class="text-[11px] text-slate-500">
+                    Due in {{ estimatedCompletion.daysUntilDue }} days, est. {{ estimatedCompletion.remainingDays }} days remaining
+                  </div>
+
+                  <div class="text-[11px] text-slate-500">
+                    {{ editedProgress }}% over {{ estimatedCompletion.daysSpent }} days = {{ estimatedCompletion.velocity }}%/day velocity {{ estimatedCompletion.missProb <= 33 ? '✨' : '' }}
+                  </div>
+                </div>
+              </template>
             </div>
             
             <!-- No estimate message -->
-            <div v-else-if="editedProgress === 0" class="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-200 text-center">
+            <div v-else-if="editedDueDate" class="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-200 text-center">
               <Icon name="heroicons:calculator" class="w-6 h-6 text-slate-300 mx-auto mb-2" />
-              <p class="text-xs text-slate-400">Set a start date and progress to see estimated completion</p>
+              <p class="text-xs text-slate-400">Needs estimate. Add a start date and progress to see completion.</p>
+            </div>
+            <div v-else class="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-200 text-center">
+              <Icon name="heroicons:calculator" class="w-6 h-6 text-slate-300 mx-auto mb-2" />
+              <p class="text-xs text-slate-400">Add a start date and progress to see a forecast.</p>
             </div>
 
             <!-- Documents Section -->

@@ -11,6 +11,32 @@ const emit = defineEmits<{
   openDetail: [item: ItemNode]
 }>()
 
+const hoveredForecast = ref<{ item: ItemNode | DisplayItem; est: EstimateMeta } | null>(null)
+const forecastHoverPos = ref({ x: 0, y: 0 })
+const forecastShowBelow = ref(false)
+
+const updateForecastHoverPos = (event: MouseEvent) => {
+  const tooltipHeight = 180
+  forecastShowBelow.value = event.clientY < tooltipHeight
+  forecastHoverPos.value = {
+    x: event.clientX,
+    y: event.clientY + (forecastShowBelow.value ? 20 : -10),
+  }
+}
+
+const handleForecastEnter = (item: ItemNode | DisplayItem, event: MouseEvent) => {
+  hoveredForecast.value = { item, est: getEstimatedCompletion(item) }
+  updateForecastHoverPos(event)
+}
+
+const handleForecastMove = (event: MouseEvent) => {
+  updateForecastHoverPos(event)
+}
+
+const handleForecastLeave = () => {
+  hoveredForecast.value = null
+}
+
 // Zoom levels
 type ZoomLevel = 'days' | 'weeks' | 'months' | 'quarters'
 const zoomLevel = ref<ZoomLevel>('weeks')
@@ -40,6 +66,20 @@ interface DisplayItem extends ItemNode {
   isSubtask?: boolean
   parentId?: string | null
   depth?: number
+}
+
+interface EstimateMeta {
+  startDate: Date
+  estimatedEnd: Date
+  earliestEnd: Date
+  latestEnd: Date
+  dueDate: Date | null
+  isOverdue: boolean
+  daysOverdue: number
+  remainingDays: number
+  bandDays: number
+  missProb: number
+  daysUntilDue: number
 }
 
 const displayItems = computed<DisplayItem[]>(() => {
@@ -93,13 +133,52 @@ const timelineRange = computed(() => {
   
   earliest.setDate(earliest.getDate() - 7)
   latest.setDate(latest.getDate() + 14)
+
+  // Normalize to start of day for consistent positioning
+  earliest = new Date(earliest.getFullYear(), earliest.getMonth(), earliest.getDate())
+  latest = new Date(latest.getFullYear(), latest.getMonth(), latest.getDate())
   
   return { start: earliest, end: latest }
 })
 
+const alignStartForZoom = (date: Date, zoom: ZoomLevel) => {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  if (zoom === 'weeks') {
+    const day = d.getDay() // 0 = Sun
+    const diff = (day + 6) % 7 // days since Monday
+    d.setDate(d.getDate() - diff)
+  } else if (zoom === 'months') {
+    d.setDate(1)
+  } else if (zoom === 'quarters') {
+    const qStartMonth = Math.floor(d.getMonth() / 3) * 3
+    d.setMonth(qStartMonth, 1)
+  }
+  return d
+}
+
+const alignEndForZoom = (date: Date, zoom: ZoomLevel) => {
+  const d = alignStartForZoom(date, zoom)
+  if (zoom === 'weeks') {
+    d.setDate(d.getDate() + 7)
+  } else if (zoom === 'months') {
+    d.setMonth(d.getMonth() + 1, 1)
+  } else if (zoom === 'quarters') {
+    d.setMonth(d.getMonth() + 3, 1)
+  } else {
+    d.setDate(d.getDate() + 1)
+  }
+  return d
+}
+
+const alignedRange = computed(() => {
+  const start = alignStartForZoom(timelineRange.value.start, zoomLevel.value)
+  const end = alignEndForZoom(timelineRange.value.end, zoomLevel.value)
+  return { start, end }
+})
+
 // Generate time columns based on zoom level
 const timeColumns = computed(() => {
-  const { start, end } = timelineRange.value
+  const { start, end } = alignedRange.value
   const columns: { date: Date; label: string; isToday: boolean; isWeekend: boolean }[] = []
   const current = new Date(start)
   const today = new Date()
@@ -163,7 +242,7 @@ const columnWidth = computed(() => {
 const totalWidth = computed(() => timeColumns.value.length * columnWidth.value)
 
 // Calculate estimated completion data for an item
-const getEstimatedCompletion = (item: ItemNode | DisplayItem) => {
+const getEstimatedCompletion = (item: ItemNode | DisplayItem): EstimateMeta => {
   const today = new Date()
   const startDate = item.startDate ? new Date(item.startDate) : today
   const progress = item.progress ?? 0
@@ -181,6 +260,8 @@ const getEstimatedCompletion = (item: ItemNode | DisplayItem) => {
       daysOverdue: 0,
       remainingDays: 0,
       bandDays: 0,
+      missProb: 0,
+      daysUntilDue: 0,
     }
   }
   
@@ -204,6 +285,17 @@ const getEstimatedCompletion = (item: ItemNode | DisplayItem) => {
   const isOverdue = dueDate && estimatedEnd > dueDate
   const daysOverdue = isOverdue ? Math.ceil((estimatedEnd.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0
   
+  let missProb = 0
+  let daysUntilDue = 0
+  if (dueDate) {
+    daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    const stdDev = Math.max(1, bandDays / 4)
+    const zScore = (daysUntilDue - remainingDays) / stdDev
+    const cdf = 1 / (1 + Math.exp(-1.702 * zScore))
+    missProb = Math.round((1 - cdf) * 100)
+    missProb = Math.max(0, Math.min(100, missProb))
+  }
+
   return {
     startDate,
     estimatedEnd,
@@ -214,6 +306,8 @@ const getEstimatedCompletion = (item: ItemNode | DisplayItem) => {
     daysOverdue,
     remainingDays,
     bandDays,
+    missProb,
+    daysUntilDue,
   }
 }
 
@@ -240,50 +334,50 @@ const getItemStyle = (item: ItemNode | DisplayItem) => {
   }
 }
 
-// Get due date marker position relative to bar start
-const getDueDatePosition = (item: ItemNode | DisplayItem) => {
-  if (!item.dueDate) return null
-  const ppd = pixelsPerDay.value
+// Forecast range styles within a bar
+const getForecastRange = (item: ItemNode | DisplayItem) => {
   const est = getEstimatedCompletion(item)
-  const dueDate = new Date(item.dueDate)
-  const offsetFromStart = (dueDate.getTime() - est.startDate.getTime()) / (1000 * 60 * 60 * 24)
-  return offsetFromStart * ppd
-}
+  if (!est || item.status === 'done') return null
 
-// Get the overdue portion width
-const getOverdueWidth = (item: ItemNode | DisplayItem) => {
-  const est = getEstimatedCompletion(item)
-  if (!est.isOverdue || !est.dueDate) return 0
   const ppd = pixelsPerDay.value
-  const overdueDays = (est.latestEnd.getTime() - est.dueDate.getTime()) / (1000 * 60 * 60 * 24)
-  return Math.max(0, overdueDays * ppd)
-}
+  const dayMs = 1000 * 60 * 60 * 24
+  const rangeLeft = Math.max(0, (est.earliestEnd.getTime() - est.startDate.getTime()) / dayMs * ppd)
+  const rangeRight = Math.max(0, (est.latestEnd.getTime() - est.startDate.getTime()) / dayMs * ppd)
+  const rangeWidth = Math.max(6, rangeRight - rangeLeft)
+  const baseLeft = Math.max(0, (est.estimatedEnd.getTime() - est.startDate.getTime()) / dayMs * ppd)
+  const dueLeft = est.dueDate
+    ? Math.max(0, (est.dueDate.getTime() - est.startDate.getTime()) / dayMs * ppd)
+    : null
 
-// Get uncertainty fade width
-const getUncertaintyWidth = (item: ItemNode | DisplayItem) => {
-  const ppd = pixelsPerDay.value
-  const est = getEstimatedCompletion(item)
-  const uncertaintyDays = (est.latestEnd.getTime() - est.earliestEnd.getTime()) / (1000 * 60 * 60 * 24)
-  return uncertaintyDays * ppd
+  return {
+    rangeLeft,
+    rangeWidth,
+    baseLeft,
+    dueLeft,
+    isOverdue: est.isOverdue,
+  }
 }
 
 const visibleStartDate = computed(() => {
-  return timeColumns.value.length > 0 ? timeColumns.value[0].date : timelineRange.value.start
+  const base = timeColumns.value.length > 0 ? timeColumns.value[0].date : alignedRange.value.start
+  return alignStartForZoom(base, zoomLevel.value)
 })
 
 const visibleEndDate = computed(() => {
-  if (timeColumns.value.length === 0) return timelineRange.value.end
+  if (timeColumns.value.length === 0) return alignedRange.value.end
   const lastCol = timeColumns.value[timeColumns.value.length - 1].date
   const daysPerColumn = zoomLevel.value === 'days' ? 1 : 
                         zoomLevel.value === 'weeks' ? 7 : 
                         zoomLevel.value === 'months' ? 30 : 90
-  return new Date(lastCol.getTime() + daysPerColumn * 24 * 60 * 60 * 1000)
+  const end = new Date(lastCol.getTime() + daysPerColumn * 24 * 60 * 60 * 1000)
+  return new Date(end.getFullYear(), end.getMonth(), end.getDate())
 })
 
 const todayPosition = computed(() => {
   const start = visibleStartDate.value
   const end = visibleEndDate.value
-  const today = new Date()
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const totalVisibleDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
   const offset = (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
   const ppd = totalWidth.value / totalVisibleDays
@@ -312,6 +406,23 @@ const getBgColor = (item: ItemNode | DisplayItem) => {
   if (item.status === 'done') return 'bg-emerald-100'
   if (item.status === 'blocked') return 'bg-rose-100'
   return categoryColors[item.category || 'default']?.bg || categoryColors.default.bg
+}
+
+const getRangeColor = (item: ItemNode | DisplayItem) => {
+  const est = getEstimatedCompletion(item)
+  if (est.isOverdue) return 'from-amber-400 to-orange-500'
+  return getBarColor(item)
+}
+
+const formatShortDate = (d: Date | null) => {
+  if (!d) return '—'
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const getRiskTextClass = (missProb: number) => {
+  if (missProb > 66) return 'text-rose-400'
+  if (missProb > 33) return 'text-amber-400'
+  return 'text-emerald-400'
 }
 
 // Scroll sync refs
@@ -522,34 +633,33 @@ function syncHeaderScroll(event: Event) {
                     :class="getBarColor(item)"
                     :style="{ width: `${item.progress || 0}%` }"
                   />
-                  
-                  <!-- Uncertainty fade -->
-                  <div 
-                    v-if="getUncertaintyWidth(item) > 0 && !getEstimatedCompletion(item).isOverdue"
-                    class="absolute inset-y-0 right-0 rounded-r-lg"
-                    :style="{ 
-                      width: `${getUncertaintyWidth(item)}px`,
-                      background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.95))'
+
+                  <!-- Forecast range capsule -->
+                  <div
+                    v-if="getForecastRange(item)"
+                    class="absolute top-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r opacity-70"
+                    :class="[getRangeColor(item), item.isSubtask ? 'h-2.5' : 'h-3']"
+                    :style="{
+                      left: `${getForecastRange(item)?.rangeLeft}px`,
+                      width: `${getForecastRange(item)?.rangeWidth}px`
                     }"
+                    @mouseenter="handleForecastEnter(item, $event)"
+                    @mousemove="handleForecastMove"
+                    @mouseleave="handleForecastLeave"
                   />
-                  
-                  <!-- Overdue section -->
-                  <div 
-                    v-if="getOverdueWidth(item) > 0 && getDueDatePosition(item)"
-                    class="absolute inset-y-0 rounded-r-lg"
-                    :style="{ 
-                      left: `${getDueDatePosition(item)}px`,
-                      right: '0',
-                      background: 'linear-gradient(to right, rgba(251, 146, 60, 0.45), transparent)'
-                    }"
+
+                  <!-- Base estimate marker -->
+                  <div
+                    v-if="getForecastRange(item)"
+                    class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white shadow ring-1 ring-slate-400"
+                    :style="{ left: `${getForecastRange(item)?.baseLeft}px` }"
                   />
-                  
+
                   <!-- Due date marker -->
                   <div 
-                    v-if="item.dueDate && getDueDatePosition(item)"
-                    class="absolute inset-y-0 w-0.5 z-10"
-                    :class="getEstimatedCompletion(item).isOverdue ? 'bg-orange-500' : 'bg-slate-400'"
-                    :style="{ left: `${getDueDatePosition(item)}px` }"
+                    v-if="item.dueDate && getForecastRange(item)?.dueLeft !== null"
+                    class="absolute inset-y-0 w-[2px] bg-slate-600"
+                    :style="{ left: `calc(${getForecastRange(item)?.dueLeft}px - 1px)` }"
                   />
                   
                   <!-- Tooltip -->
@@ -598,11 +708,13 @@ function syncHeaderScroll(event: Event) {
         Progress
       </span>
       <span class="flex items-center gap-1.5">
-        <div class="w-6 h-2 rounded-l bg-slate-200" style="mask-image: linear-gradient(to right, black, transparent); -webkit-mask-image: linear-gradient(to right, black, transparent);" />
-        Uncertainty
+        <div class="relative w-6 h-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 opacity-70">
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white shadow ring-1 ring-slate-400"></div>
+        </div>
+        Estimate range
       </span>
       <span class="flex items-center gap-1.5">
-        <div class="w-0.5 h-3 bg-orange-500" />
+        <div class="w-0.5 h-3 bg-slate-600" />
         Due Date
       </span>
       <span class="flex items-center gap-1.5">
@@ -610,6 +722,63 @@ function syncHeaderScroll(event: Event) {
         Today
       </span>
     </div>
+
+    <!-- Forecast tooltip -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-150"
+        leave-active-class="transition-opacity duration-100"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="hoveredForecast"
+          class="fixed z-50 pointer-events-none"
+          :style="{
+            left: `${forecastHoverPos.x}px`,
+            top: `${forecastHoverPos.y}px`,
+            transform: forecastShowBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
+          }"
+        >
+          <div class="bg-slate-900 text-white rounded-lg shadow-xl px-3 py-2 max-w-xs relative text-xs">
+            <div class="text-[10px] font-medium text-slate-300 mb-1.5 pb-1.5 border-b border-slate-700">
+              Forecast window
+              <span
+                v-if="hoveredForecast.est.missProb > 0"
+                :class="['ml-2', getRiskTextClass(hoveredForecast.est.missProb)]"
+              >
+                {{ hoveredForecast.est.missProb }}% risk
+              </span>
+            </div>
+            <div class="space-y-1.5 text-slate-300">
+              <div class="flex items-center justify-between gap-4">
+                <span>Range</span>
+                <span class="text-white">
+                  {{ formatShortDate(hoveredForecast.est.earliestEnd) }} – {{ formatShortDate(hoveredForecast.est.latestEnd) }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <span>Most likely</span>
+                <span class="text-white">{{ formatShortDate(hoveredForecast.est.estimatedEnd) }}</span>
+              </div>
+              <div v-if="hoveredForecast.est.dueDate" class="flex items-center justify-between gap-4">
+                <span>Due</span>
+                <span class="text-white">{{ formatShortDate(hoveredForecast.est.dueDate) }}</span>
+              </div>
+            </div>
+
+            <div
+              v-if="forecastShowBelow"
+              class="absolute left-1/2 -top-1.5 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45"
+            />
+            <div
+              v-else
+              class="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45"
+            />
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 

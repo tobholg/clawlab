@@ -1,5 +1,6 @@
 import { prisma } from '../../utils/prisma'
 import { calculateTemperature } from '../../utils/temperature'
+import { getEstimateMeta } from '../../utils/estimate'
 
 // Deep include for children up to 4 levels
 const childrenInclude = {
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
     const hotCount = countByTemperature(item, ['hot', 'critical'])
     const blockedCount = countByStatus(item, 'BLOCKED')
     const atRiskCount = countAtRisk(item)
+    const needsEstimateCount = countNeedsEstimate(item)
 
     return {
       id: item.id,
@@ -110,6 +112,7 @@ export default defineEventHandler(async (event) => {
       hotChildrenCount: hotCount,
       blockedChildrenCount: blockedCount,
       atRiskChildrenCount: atRiskCount,
+      needsEstimateChildrenCount: needsEstimateCount,
       hasChildren: (item.children?.length ?? 0) > 0,
       // Recursive children (up to 4 levels)
       children: depth < 4 && item.children?.length
@@ -156,34 +159,28 @@ function countByStatus(item: any, status: string): number {
   return count
 }
 
-// Count children at risk of missing their due date (estimated completion > due date)
+// Count children at risk of missing their due date (miss probability >= threshold)
 function countAtRisk(item: any): number {
   if (!item.children?.length) return 0
   let count = 0
-  const now = new Date()
 
   for (const child of item.children) {
-    // Only check items that have both a due date and are in progress with some progress
-    if (
-      child.dueDate &&
-      child.startDate &&
-      child.status === 'IN_PROGRESS' &&
-      (child.progress ?? 0) > 0
-    ) {
-      const dueDate = new Date(child.dueDate)
-      const startDate = new Date(child.startDate)
-      const progress = child.progress ?? 0
-
-      const daysSpent = Math.max(1, (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-      const totalEstimate = daysSpent / (progress / 100)
-      const remainingDays = Math.max(0, totalEstimate - daysSpent)
-      const estimatedCompletion = new Date(now.getTime() + remainingDays * 24 * 60 * 60 * 1000)
-
-      if (estimatedCompletion > dueDate) {
-        count++
-      }
-    }
+    const meta = getEstimateMeta(child)
+    if (meta.isAtRisk) count++
     count += countAtRisk(child)
+  }
+  return count
+}
+
+// Count children that need estimate inputs (due date set but no start/progress)
+function countNeedsEstimate(item: any): number {
+  if (!item.children?.length) return 0
+  let count = 0
+
+  for (const child of item.children) {
+    const meta = getEstimateMeta(child)
+    if (meta.needsEstimate) count++
+    count += countNeedsEstimate(child)
   }
   return count
 }

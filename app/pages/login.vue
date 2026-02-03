@@ -3,12 +3,24 @@ definePageMeta({
   layout: false
 })
 
+const route = useRoute()
 const { requestMagicLink } = useAuth()
 
 const email = ref('')
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
+
+// Get redirect URL from query params (used by invite flow)
+const redirect = computed(() => route.query.redirect as string | undefined)
+
+// Extract invite token if redirect is to an invite page
+const inviteToken = computed(() => {
+  if (redirect.value?.startsWith('/invite/')) {
+    return redirect.value.replace('/invite/', '')
+  }
+  return undefined
+})
 
 const handleSubmit = async () => {
   if (!email.value) return
@@ -17,7 +29,9 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    const response = await requestMagicLink(email.value)
+    const response = await requestMagicLink(email.value, {
+      inviteToken: inviteToken.value
+    })
     if (response.ok) {
       success.value = true
       // In development, log the link for easy testing

@@ -3,7 +3,12 @@ import { prisma } from '../../utils/prisma'
 import { buildMagicLinkUrl } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ email?: string }>(event)
+  const body = await readBody<{ 
+    email?: string
+    inviteToken?: string
+    displayName?: string
+    position?: string
+  }>(event)
   const email = body.email?.toLowerCase().trim()
 
   if (!email) {
@@ -11,10 +16,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Upsert user - create if doesn't exist
+  // If displayName provided (from invite flow), update it
   const user = await prisma.user.upsert({
     where: { email },
-    update: {},
-    create: { email }
+    update: body.displayName ? { name: body.displayName } : {},
+    create: { 
+      email,
+      name: body.displayName || null
+    }
   })
 
   // Generate magic link token
@@ -29,7 +38,13 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const link = buildMagicLinkUrl(event, token)
+  // Build redirect URL if invite token provided
+  let redirect: string | undefined
+  if (body.inviteToken) {
+    redirect = `/invite/${body.inviteToken}`
+  }
+
+  const link = buildMagicLinkUrl(event, token, redirect)
 
   // TODO: Send email with magic link
   // For now, log it in development

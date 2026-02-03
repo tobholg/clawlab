@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
+import { getItemEstimateMeta } from '~/utils/itemRisk'
 
 const props = defineProps<{
   item: ItemNode
@@ -9,6 +10,7 @@ const emit = defineEmits<{
   click: [item: ItemNode]
   drillDown: [item: ItemNode]
   openDetail: [item: ItemNode]
+  openAttention: [item: ItemNode, mode: 'at-risk' | 'blocked']
 }>()
 
 const { isFocusedOnTask, startTaskFocus, focusState } = useFocus()
@@ -16,6 +18,8 @@ const { isFocusedOnTask, startTaskFocus, focusState } = useFocus()
 const hasChildren = computed(() => props.item.childrenCount > 0)
 const isCurrentlyFocused = computed(() => isFocusedOnTask(props.item.id))
 const isPaused = computed(() => props.item.status === 'paused')
+const estimateMeta = computed(() => getItemEstimateMeta(props.item))
+const needsEstimate = computed(() => estimateMeta.value.needsEstimate)
 
 // Focus action
 const handleFocusClick = async (e: Event) => {
@@ -178,20 +182,29 @@ const handleCardClick = () => {
     </div>
     
     <!-- Children indicator -->
-    <button
-      v-if="hasChildren"
-      class="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-600 mb-1.5 transition-colors"
-      @click.stop="emit('drillDown', item)"
-    >
-      <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
-      <span>{{ item.childrenCount }} items</span>
-      <span v-if="item.hotChildrenCount > 0" class="text-orange-500">
-        · {{ item.hotChildrenCount }} hot
-      </span>
-      <span v-if="item.blockedChildrenCount > 0" class="text-rose-500">
-        · {{ item.blockedChildrenCount }} blocked
-      </span>
-    </button>
+    <div v-if="hasChildren" class="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 mb-1.5">
+      <button
+        class="flex items-center gap-1.5 hover:text-slate-600 transition-colors"
+        @click.stop="emit('drillDown', item)"
+      >
+        <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
+        <span>{{ item.childrenCount }} items</span>
+      </button>
+      <button
+        v-if="(item.atRiskChildrenCount ?? 0) > 0"
+        class="text-amber-600 hover:text-amber-700 transition-colors"
+        @click.stop="emit('openAttention', item, 'at-risk')"
+      >
+        {{ item.atRiskChildrenCount }} at risk
+      </button>
+      <button
+        v-if="(item.blockedChildrenCount ?? 0) > 0"
+        class="text-rose-500 hover:text-rose-600 transition-colors"
+        @click.stop="emit('openAttention', item, 'blocked')"
+      >
+        {{ item.blockedChildrenCount }} blocked
+      </button>
+    </div>
     
     <!-- Footer -->
     <div class="flex items-center justify-between pt-2">
@@ -244,6 +257,9 @@ const handleCardClick = () => {
         </span>
         <span v-else-if="item.dueDate" class="text-[10px] font-normal text-slate-400">
           {{ new Date(item.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+        </span>
+        <span v-if="needsEstimate" class="text-[10px] font-normal text-slate-400">
+          • Needs estimate
         </span>
         
         <!-- Progress Ring -->

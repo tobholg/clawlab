@@ -64,6 +64,8 @@ const currentChannelId = computed(() => {
   return null
 })
 
+const isWorkspaceHome = computed(() => route.path === '/workspace')
+
 // Handle project click - navigate to project page
 const handleProjectClick = (projectId: string) => {
   router.push(`/workspace/projects/${projectId}`)
@@ -254,7 +256,12 @@ provide('refreshSidebarProjects', fetchProjects)
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden">
+    <main
+      :class="[
+        'flex-1 flex flex-col min-w-0 relative overflow-hidden',
+        isWorkspaceHome ? 'workspace-home-bg' : 'bg-[#FAFAFA]'
+      ]"
+    >
       <slot />
     </main>
 
@@ -263,3 +270,13 @@ provide('refreshSidebarProjects', fetchProjects)
     <QuickChatBubble />
   </div>
 </template>
+
+<style scoped>
+.workspace-home-bg {
+  background:
+    radial-gradient(60% 35% at 50% 0%, rgba(16, 185, 129, 0.18), transparent 70%),
+    radial-gradient(45% 35% at 85% 10%, rgba(56, 189, 248, 0.12), transparent 70%),
+    radial-gradient(40% 35% at 15% 90%, rgba(45, 212, 191, 0.1), transparent 70%),
+    linear-gradient(180deg, rgba(236, 253, 245, 0.8) 0%, #ffffff 55%, #ffffff 100%);
+}
+</style>

@@ -9,6 +9,7 @@ const emit = defineEmits<{
   openProject: [project: ItemNode]
   openDetail: [project: ItemNode]
   createProject: []
+  openAttention: [project: ItemNode, mode: 'at-risk' | 'blocked']
 }>()
 
 // Sort projects: those needing attention first, then by progress
@@ -92,14 +93,22 @@ const formatRelativeTime = (dateStr: string | null | undefined) => {
           </div>
 
           <!-- Status row -->
-          <div class="flex items-center gap-3 mb-3 text-xs">
+          <div class="flex flex-wrap items-center gap-3 mb-3 text-xs">
             <template v-if="(project.blockedChildrenCount ?? 0) > 0 || (project.atRiskChildrenCount ?? 0) > 0">
-              <span v-if="(project.blockedChildrenCount ?? 0) > 0" class="text-rose-500">
+              <button
+                v-if="(project.blockedChildrenCount ?? 0) > 0"
+                class="text-rose-500 hover:text-rose-600 transition-colors"
+                @click.stop="emit('openAttention', project, 'blocked')"
+              >
                 {{ project.blockedChildrenCount }} blocked
-              </span>
-              <span v-if="(project.atRiskChildrenCount ?? 0) > 0" class="text-amber-500">
+              </button>
+              <button
+                v-if="(project.atRiskChildrenCount ?? 0) > 0"
+                class="text-amber-500 hover:text-amber-600 transition-colors"
+                @click.stop="emit('openAttention', project, 'at-risk')"
+              >
                 {{ project.atRiskChildrenCount }} at risk
-              </span>
+              </button>
             </template>
             <span v-else-if="project.status !== 'done' && project.status !== 'todo'" class="text-emerald-500">
               healthy
