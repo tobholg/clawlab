@@ -16,6 +16,8 @@ export interface Item {
   stakeholderIds: string[]
   dependencyIds: string[]  // items this is blocked by
   category?: string
+  complexity?: string | null
+  priority?: string | null
   createdAt: string
   updatedAt: string
   lastActivityAt?: string | null
@@ -172,10 +174,29 @@ export function getSubStatusesForStatus(status: string) {
 
 export const CATEGORY_COLORS: Record<string, string> = {
   Engineering: 'bg-blue-50 text-blue-600 border-blue-100',
+  Bug: 'bg-rose-50 text-rose-600 border-rose-100',
   Design: 'bg-violet-50 text-violet-600 border-violet-100',
+  Product: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+  QA: 'bg-amber-50 text-amber-600 border-amber-100',
+  Research: 'bg-cyan-50 text-cyan-600 border-cyan-100',
+  Operations: 'bg-orange-50 text-orange-600 border-orange-100',
   Marketing: 'bg-pink-50 text-pink-600 border-pink-100',
-  Product: 'bg-slate-50 text-slate-600 border-slate-100',
 }
+
+export const COMPLEXITY_OPTIONS = [
+  { value: 'TRIVIAL', label: 'Trivial' },
+  { value: 'SMALL', label: 'Small' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'LARGE', label: 'Large' },
+  { value: 'EPIC', label: 'Epic' },
+] as const
+
+export const PRIORITY_OPTIONS = [
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' },
+  { value: 'CRITICAL', label: 'Critical' },
+] as const
 
 // Calculate effective temperature (bubbles up from children)
 export function calculateEffectiveTemperature(item: ItemNode): Item['temperature'] {

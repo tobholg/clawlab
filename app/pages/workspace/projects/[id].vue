@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CATEGORY_COLORS, PRIORITY_OPTIONS, COMPLEXITY_OPTIONS } from '~/types'
+
 definePageMeta({
   layout: 'workspace',
 })
@@ -35,6 +37,9 @@ const inboundQueueRef = ref<any>(null)
 // Check if this is a root project (can have external spaces)
 const isRootProject = computed(() => breadcrumbs.value.length <= 2)
 const filterCategory = ref<string | null>(null)
+const filterPriority = ref<string | null>(null)
+const filterComplexity = ref<string | null>(null)
+const searchQuery = ref('')
 const showCreateModal = ref(false)
 const showDetailModal = ref(false)
 const selectedItem = ref<any>(null)
@@ -123,19 +128,86 @@ watch([editedProjectTitle, editedProjectDescription], () => {
 })
 
 // Get unique categories from current scope
+const baseCategories = Object.keys(CATEGORY_COLORS)
 const categories = computed(() => {
-  const cats = new Set(scopedItems.value.map(i => i.category).filter(Boolean))
-  return Array.from(cats)
+  const extra = new Set<string>()
+  scopedItems.value.forEach(item => {
+    if (item.category && !baseCategories.includes(item.category)) {
+      extra.add(item.category)
+    }
+  })
+  return [...baseCategories, ...Array.from(extra)]
+})
+
+const categoryDotColors: Record<string, string> = {
+  Engineering: 'bg-blue-500',
+  Bug: 'bg-rose-500',
+  Design: 'bg-violet-500',
+  Product: 'bg-indigo-500',
+  QA: 'bg-amber-500',
+  Research: 'bg-cyan-500',
+  Operations: 'bg-orange-500',
+  Marketing: 'bg-pink-500',
+}
+
+const priorityDotColors: Record<string, string> = {
+  LOW: 'bg-emerald-500',
+  MEDIUM: 'bg-amber-500',
+  HIGH: 'bg-orange-500',
+  CRITICAL: 'bg-rose-500',
+}
+
+const complexityDotColors: Record<string, string> = {
+  TRIVIAL: 'bg-emerald-500',
+  SMALL: 'bg-green-500',
+  MEDIUM: 'bg-amber-500',
+  LARGE: 'bg-orange-500',
+  EPIC: 'bg-rose-500',
+}
+
+const priorityLabel = computed(() => {
+  return PRIORITY_OPTIONS.find(opt => opt.value === filterPriority.value)?.label ?? 'Priority'
+})
+
+const complexityLabel = computed(() => {
+  if (!filterComplexity.value) return 'Complexity'
+  if (filterComplexity.value === 'NONE') return 'No complexity'
+  return COMPLEXITY_OPTIONS.find(opt => opt.value === filterComplexity.value)?.label ?? 'Complexity'
 })
 
 // Filter items
+const normalizeFilter = (value: string | null) => {
+  if (!value || value === 'null') return null
+  return value
+}
+
 const filteredItems = computed(() => {
-  if (!filterCategory.value) return scopedItems.value
-  return scopedItems.value.filter(i => i.category === filterCategory.value)
+  const query = searchQuery.value.trim().toLowerCase()
+  const categoryValue = normalizeFilter(filterCategory.value)
+  const priorityValue = normalizeFilter(filterPriority.value)
+  const complexityValue = normalizeFilter(filterComplexity.value)
+
+  return scopedItems.value.filter(item => {
+    if (categoryValue && item.category !== categoryValue) return false
+    if (priorityValue && (item.priority ?? 'MEDIUM') !== priorityValue) return false
+    if (complexityValue) {
+      if (complexityValue === 'NONE') {
+        if (item.complexity) return false
+      } else if (item.complexity !== complexityValue) {
+        return false
+      }
+    }
+    if (query) {
+      const title = item.title?.toLowerCase() ?? ''
+      const description = item.description?.toLowerCase() ?? ''
+      if (!title.includes(query) && !description.includes(query)) return false
+    }
+    return true
+  })
 })
 
 // Handle item creation
-const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string }) => {
+const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string }) => {
   await createItem(data)
   showCreateModal.value = false
 }
@@ -358,40 +430,143 @@ onMounted(() => {
 
     <!-- Filters -->
     <div v-if="activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'" class="flex items-center gap-2">
-      <button
-        @click="filterCategory = null"
-        :class="[
-          'px-2.5 py-1 rounded-full text-xs font-normal border transition-all',
-          filterCategory === null
-            ? 'bg-slate-800 text-white border-slate-800'
-            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-        ]"
-      >
-        All
-      </button>
-      <button
-        v-for="cat in categories"
-        :key="cat"
-        @click="filterCategory = filterCategory === cat ? null : cat"
-        :class="[
-          'px-2.5 py-1 rounded-full text-xs font-normal border transition-all',
-          filterCategory === cat
-            ? 'bg-slate-800 text-white border-slate-800'
-            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-        ]"
-      >
-        {{ cat }}
-      </button>
+      <!-- Category -->
+      <div class="group/category relative">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 group-hover/category:shadow-sm">
+          <div
+            class="w-1.5 h-1.5 rounded-full"
+            :class="filterCategory ? (categoryDotColors[filterCategory] || 'bg-slate-400') : 'bg-slate-300'"
+          />
+          <span class="text-xs font-normal text-slate-600">{{ filterCategory || 'Category' }}</span>
+          <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/category:rotate-180" />
+        </div>
+        <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/category:opacity-100 group-hover/category:visible group-hover/category:translate-y-0">
+          <div class="py-1">
+            <button
+              @click="filterCategory = null"
+              class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
+              :class="!filterCategory
+                ? 'bg-slate-100 text-slate-900 font-medium'
+                : 'text-slate-600 hover:bg-slate-50'"
+            >
+              <div class="w-2 h-2 rounded-full bg-slate-300" />
+              <span>All categories</span>
+            </button>
+            <div class="border-t border-slate-100 my-1" />
+            <button
+              v-for="cat in categories"
+              :key="cat"
+              @click="filterCategory = cat"
+              class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
+              :class="filterCategory === cat
+                ? 'bg-slate-100 text-slate-900 font-medium'
+                : 'text-slate-600 hover:bg-slate-50'"
+            >
+              <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400'" />
+              <span>{{ cat }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-      <div class="h-4 w-px bg-slate-200 mx-1" />
+      <!-- Priority -->
+      <div class="group/priority relative">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/priority:border-slate-300 group-hover/priority:shadow-sm">
+          <div
+            class="w-1.5 h-1.5 rounded-full"
+            :class="filterPriority ? (priorityDotColors[filterPriority] || 'bg-slate-400') : 'bg-slate-300'"
+          />
+          <span class="text-xs font-normal text-slate-600">{{ priorityLabel }}</span>
+          <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/priority:rotate-180" />
+        </div>
+        <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/priority:opacity-100 group-hover/priority:visible group-hover/priority:translate-y-0">
+          <div class="py-1">
+            <button
+              @click="filterPriority = null"
+              class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
+              :class="!filterPriority
+                ? 'bg-slate-100 text-slate-900 font-medium'
+                : 'text-slate-600 hover:bg-slate-50'"
+            >
+              <div class="w-2 h-2 rounded-full bg-slate-300" />
+              <span>All priorities</span>
+            </button>
+            <div class="border-t border-slate-100 my-1" />
+            <button
+              v-for="opt in PRIORITY_OPTIONS"
+              :key="opt.value"
+              @click="filterPriority = opt.value"
+              class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
+              :class="filterPriority === opt.value
+                ? 'bg-slate-100 text-slate-900 font-medium'
+                : 'text-slate-600 hover:bg-slate-50'"
+            >
+              <div class="w-2 h-2 rounded-full" :class="priorityDotColors[opt.value] || 'bg-slate-400'" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Complexity -->
+      <div class="group/complexity relative">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/complexity:border-slate-300 group-hover/complexity:shadow-sm">
+          <div
+            class="w-1.5 h-1.5 rounded-full"
+            :class="filterComplexity && filterComplexity !== 'NONE' ? (complexityDotColors[filterComplexity] || 'bg-slate-400') : 'bg-slate-300'"
+          />
+          <span class="text-xs font-normal text-slate-600">{{ complexityLabel }}</span>
+          <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/complexity:rotate-180" />
+        </div>
+        <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/complexity:opacity-100 group-hover/complexity:visible group-hover/complexity:translate-y-0">
+          <div class="py-1">
+            <button
+              @click="filterComplexity = null"
+              class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
+              :class="!filterComplexity
+                ? 'bg-slate-100 text-slate-900 font-medium'
+                : 'text-slate-600 hover:bg-slate-50'"
+            >
+              <div class="w-2 h-2 rounded-full bg-slate-300" />
+              <span>All complexity</span>
+            </button>
+            <button
+              @click="filterComplexity = 'NONE'"
+              class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
+              :class="filterComplexity === 'NONE'
+                ? 'bg-slate-100 text-slate-900 font-medium'
+                : 'text-slate-600 hover:bg-slate-50'"
+            >
+              <div class="w-2 h-2 rounded-full bg-slate-300" />
+              <span>No complexity</span>
+            </button>
+            <div class="border-t border-slate-100 my-1" />
+            <button
+              v-for="opt in COMPLEXITY_OPTIONS"
+              :key="opt.value"
+              @click="filterComplexity = opt.value"
+              class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
+              :class="filterComplexity === opt.value
+                ? 'bg-slate-100 text-slate-900 font-medium'
+                : 'text-slate-600 hover:bg-slate-50'"
+            >
+              <div class="w-2 h-2 rounded-full" :class="complexityDotColors[opt.value] || 'bg-slate-400'" />
+              <span>{{ opt.label }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1" />
 
       <!-- Search -->
       <div class="relative">
         <Icon name="heroicons:magnifying-glass" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
         <input
+          v-model="searchQuery"
           type="text"
           placeholder="Search..."
-          class="pl-8 pr-3 py-1 text-xs bg-white border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 w-40 transition-all"
+          class="pl-8 pr-3 py-1 text-xs bg-white border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 w-48 transition-all"
         />
       </div>
     </div>
@@ -459,6 +634,7 @@ onMounted(() => {
     :open="showCreateModal"
     :parent-title="currentScope?.title"
     :is-project="false"
+    :workspace-id="workspaceId"
     @close="showCreateModal = false"
     @create="handleCreateItem"
   />

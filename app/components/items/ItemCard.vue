@@ -99,12 +99,13 @@ const progressColor = computed(() => {
 const categoryDotColor = computed(() => {
   const colors: Record<string, string> = {
     'Engineering': 'bg-blue-500',
+    'Bug': 'bg-rose-500',
     'Design': 'bg-violet-500',
-    'Marketing': 'bg-pink-500',
     'Product': 'bg-indigo-500',
+    'QA': 'bg-amber-500',
     'Research': 'bg-cyan-500',
     'Operations': 'bg-orange-500',
-    'Sales': 'bg-green-500',
+    'Marketing': 'bg-pink-500',
   }
   return colors[props.item.category ?? ''] ?? 'bg-slate-300'
 })

@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
     dueDate,
     startDate,
     confidence,
+    complexity,
+    priority,
     assigneeIds,
     stakeholderIds,
   } = body
@@ -58,6 +60,8 @@ export default defineEventHandler(async (event) => {
       dueDate: dueDate ? new Date(dueDate) : null,
       startDate: finalStartDate,
       confidence: confidence ?? 70,
+      complexity: complexity ?? null,
+      priority: priority ?? undefined,
       ownerId,
       assignees: assigneeIds?.length ? {
         create: assigneeIds.map((userId: string) => ({ userId }))

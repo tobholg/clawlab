@@ -77,6 +77,8 @@ export default defineEventHandler(async (event) => {
       status: item.status.toLowerCase(),
       subStatus: item.subStatus ?? null,
       category: item.category,
+      complexity: item.complexity ?? null,
+      priority: item.priority ?? null,
       dueDate: item.dueDate?.toISOString() ?? null,
       startDate: item.startDate?.toISOString() ?? null,
       progress: item.progress ?? 0,

@@ -18,7 +18,9 @@ export default defineEventHandler(async (event) => {
           name: true,
           email: true,
           avatar: true,
-          currentFocusItemId: true,
+          currentProjectFocusId: true,
+          currentTaskFocusId: true,
+          currentLaneFocus: true,
         },
         orderBy: { name: 'asc' }
       })
@@ -28,7 +30,9 @@ export default defineEventHandler(async (event) => {
           name: true,
           email: true,
           avatar: true,
-          currentFocusItemId: true,
+          currentProjectFocusId: true,
+          currentTaskFocusId: true,
+          currentLaneFocus: true,
         },
         orderBy: { name: 'asc' }
       })
@@ -38,6 +42,6 @@ export default defineEventHandler(async (event) => {
     name: u.name ?? u.email.split('@')[0],
     email: u.email,
     avatar: u.avatar,
-    hasFocus: !!u.currentFocusItemId,
+    hasFocus: !!(u.currentTaskFocusId || u.currentLaneFocus || u.currentProjectFocusId),
   }))
 })

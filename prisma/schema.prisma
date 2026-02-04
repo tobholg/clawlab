@@ -185,6 +185,8 @@ model Item {
 
   // AI-assisted fields
   confidence Int @default(70) // 0-100, AI-estimated completion likelihood
+  complexity ItemComplexity?
+  priority   ItemPriority? @default(MEDIUM)
 
   // Timestamps for temperature calculation
   createdAt      DateTime @default(now())
@@ -318,6 +320,21 @@ enum ItemStatus {
   BLOCKED
   PAUSED
   DONE
+}
+
+enum ItemComplexity {
+  TRIVIAL
+  SMALL
+  MEDIUM
+  LARGE
+  EPIC
+}
+
+enum ItemPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 // ============================================

@@ -49,6 +49,8 @@ export default defineEventHandler(async (event) => {
     startDate,
     confidence,
     progress,
+    complexity,
+    priority,
     ownerId,
     parentId,
   } = body
@@ -71,6 +73,8 @@ export default defineEventHandler(async (event) => {
   if (title !== undefined) updateData.title = title
   if (description !== undefined) updateData.description = description
   if (category !== undefined) updateData.category = category
+  if (complexity !== undefined) updateData.complexity = complexity
+  if (priority !== undefined) updateData.priority = priority || null
   
   // Valid sub-statuses per status
   const validSubStatuses: Record<string, string[]> = {

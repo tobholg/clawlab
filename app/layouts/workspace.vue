@@ -9,6 +9,16 @@ const { channelTree, loading: channelsLoading } = useChannels(workspaceId)
 
 const sidebarCollapsed = ref(false)
 
+const { data: membership, refresh: refreshMembership } = useFetch('/api/workspaces/membership', {
+  query: computed(() => ({ workspaceId: workspaceId.value })),
+  immediate: false,
+})
+
+const isWorkspaceAdmin = computed(() => {
+  const role = membership.value?.role
+  return role === 'OWNER' || role === 'ADMIN'
+})
+
 // Fetch all projects for sidebar
 const sidebarProjects = ref<any[]>([])
 const projectsLoading = ref(false)
@@ -34,6 +44,9 @@ const fetchProjects = async () => {
 // Fetch on mount and when workspaceId changes
 onMounted(fetchProjects)
 watch(workspaceId, fetchProjects)
+watch(workspaceId, (id) => {
+  if (id) refreshMembership()
+}, { immediate: true })
 
 // Recent projects for sidebar (top 5 by last activity)
 const recentProjects = computed(() => {
@@ -65,6 +78,7 @@ const currentChannelId = computed(() => {
 })
 
 const isWorkspaceHome = computed(() => route.path === '/workspace')
+const isTeamFocus = computed(() => route.path === '/workspace/team')
 
 // Handle project click - navigate to project page
 const handleProjectClick = (projectId: string) => {
@@ -92,7 +106,7 @@ provide('refreshSidebarProjects', fetchProjects)
     <aside
       :class="[
         'border-r border-slate-200 bg-white flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
-        sidebarCollapsed ? 'w-16' : 'w-60'
+        sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
       ]"
     >
       <!-- Logo + Toggle -->
@@ -120,6 +134,28 @@ provide('refreshSidebarProjects', fetchProjects)
 
       <!-- Focus Section -->
       <FocusSidebar v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
+
+      <div v-if="!sidebarCollapsed && isWorkspaceAdmin" class="px-3 mb-4 -mt-3">
+        <NuxtLink
+          to="/workspace/team"
+          :class="[
+            'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200',
+            isTeamFocus
+              ? 'bg-slate-100 text-slate-900'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+          ]"
+        >
+          <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <Icon :name="'heroicons:users'" class="w-4 h-4" :class="isTeamFocus ? 'text-slate-700' : ''" />
+          </div>
+          <span class="flex-1 text-left">Team focus</span>
+          <Icon
+            name="heroicons:chevron-right"
+            class="w-3 h-3 flex-shrink-0"
+            :class="isTeamFocus ? 'text-slate-500' : 'text-slate-400'"
+          />
+        </NuxtLink>
+      </div>
 
       <!-- Team Section -->
       <TeamPresence v-if="!sidebarCollapsed" :workspace-id="workspaceId" />

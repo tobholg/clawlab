@@ -46,7 +46,7 @@ const activeViewOption = computed(() => {
 const refreshSidebar = inject<() => Promise<void>>('refreshSidebarProjects')
 
 // Handle item creation
-const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string }) => {
+const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string }) => {
   await createItem(data)
   showCreateModal.value = false
   // Refresh sidebar projects
@@ -184,6 +184,7 @@ const handleViewFull = (item: any) => {
     :open="showCreateModal"
     :parent-title="null"
     :is-project="true"
+    :workspace-id="workspaceId"
     @close="showCreateModal = false"
     @create="handleCreateItem"
   />

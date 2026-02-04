@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
-import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, getSubStatusesForStatus } from '~/types'
+import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, getSubStatusesForStatus, COMPLEXITY_OPTIONS, PRIORITY_OPTIONS } from '~/types'
 
 const props = defineProps<{
   open: boolean
@@ -142,6 +142,8 @@ const editedProgress = ref(0)
 const editedConfidence = ref(70)
 const editedDueDate = ref('')
 const editedStartDate = ref('')
+const editedComplexity = ref('')
+const editedPriority = ref('')
 
 // Available sub-statuses for current status
 const availableSubStatuses = computed(() => {
@@ -151,6 +153,8 @@ const availableSubStatuses = computed(() => {
 // UI state
 const showOwnerDropdown = ref(false)
 const showAssigneeDropdown = ref(false)
+const showComplexityDropdown = ref(false)
+const showPriorityDropdown = ref(false)
 const descriptionRef = ref<HTMLTextAreaElement | null>(null)
 
 // Auto-resize description textarea
@@ -185,6 +189,8 @@ watch(itemDetail, (detail) => {
     editedStatus.value = detail.status ?? 'todo'
     editedSubStatus.value = detail.subStatus ?? null
     editedCategory.value = detail.category ?? ''
+    editedComplexity.value = detail.complexity ?? ''
+    editedPriority.value = detail.priority ?? 'MEDIUM'
     editedProgress.value = detail.progress ?? 0
     editedConfidence.value = detail.confidence ?? 70
     editedDueDate.value = detail.dueDate?.split('T')[0] ?? ''
@@ -206,6 +212,8 @@ watch(() => props.open, (isOpen) => {
     editedDescription.value = props.item.description ?? ''
     editedStatus.value = props.item.status ?? 'todo'
     editedCategory.value = props.item.category ?? ''
+    editedComplexity.value = props.item.complexity ?? ''
+    editedPriority.value = props.item.priority ?? 'MEDIUM'
     editedProgress.value = props.item.progress ?? 0
     editedConfidence.value = props.item.confidence ?? 70
     editedDueDate.value = props.item.dueDate?.split('T')[0] ?? ''
@@ -363,6 +371,8 @@ const saveChanges = async () => {
     status: editedStatus.value,
     subStatus: editedSubStatus.value,
     category: editedCategory.value,
+    complexity: editedComplexity.value || null,
+    priority: editedPriority.value || null,
     progress: editedProgress.value,
     confidence: editedConfidence.value,
     dueDate: editedDueDate.value || null,
@@ -439,7 +449,7 @@ watch(editedSubStatus, () => {
 })
 
 // Watch all fields for auto-save (debounced)
-watch([editedTitle, editedDescription, editedCategory, editedDueDate, editedStartDate], () => {
+watch([editedTitle, editedDescription, editedCategory, editedComplexity, editedPriority, editedDueDate, editedStartDate], () => {
   if (props.open && itemDetail.value && !isInitializing.value) {
     debouncedSave()
   }
@@ -587,6 +597,42 @@ const statusOptions = Object.entries(STATUS_CONFIG).map(([key, config]) => ({
 
 // Category options
 const categoryOptions = Object.keys(CATEGORY_COLORS)
+const complexityOptions = COMPLEXITY_OPTIONS
+const priorityOptions = PRIORITY_OPTIONS
+
+const categoryDotColors: Record<string, string> = {
+  Engineering: 'bg-blue-500',
+  Bug: 'bg-rose-500',
+  Design: 'bg-violet-500',
+  Product: 'bg-indigo-500',
+  QA: 'bg-amber-500',
+  Research: 'bg-cyan-500',
+  Operations: 'bg-orange-500',
+  Marketing: 'bg-pink-500',
+}
+
+const complexityDotColors: Record<string, string> = {
+  TRIVIAL: 'bg-emerald-500',
+  SMALL: 'bg-green-500',
+  MEDIUM: 'bg-amber-500',
+  LARGE: 'bg-orange-500',
+  EPIC: 'bg-rose-500',
+}
+
+const complexityLabel = computed(() => {
+  return complexityOptions.find(opt => opt.value === editedComplexity.value)?.label ?? 'No complexity'
+})
+
+const priorityDotColors: Record<string, string> = {
+  LOW: 'bg-emerald-500',
+  MEDIUM: 'bg-amber-500',
+  HIGH: 'bg-orange-500',
+  CRITICAL: 'bg-rose-500',
+}
+
+const priorityLabel = computed(() => {
+  return priorityOptions.find(opt => opt.value === editedPriority.value)?.label ?? 'Medium'
+})
 
 // Close on escape
 onMounted(() => {
@@ -602,6 +648,8 @@ onMounted(() => {
 // Close dropdowns when clicking outside
 const ownerDropdownRef = ref<HTMLElement | null>(null)
 const assigneeDropdownRef = ref<HTMLElement | null>(null)
+const complexityDropdownRef = ref<HTMLElement | null>(null)
+const priorityDropdownRef = ref<HTMLElement | null>(null)
 onMounted(() => {
   const handleClickOutside = (e: MouseEvent) => {
     if (ownerDropdownRef.value && !ownerDropdownRef.value.contains(e.target as Node)) {
@@ -609,6 +657,12 @@ onMounted(() => {
     }
     if (assigneeDropdownRef.value && !assigneeDropdownRef.value.contains(e.target as Node)) {
       showAssigneeDropdown.value = false
+    }
+    if (complexityDropdownRef.value && !complexityDropdownRef.value.contains(e.target as Node)) {
+      showComplexityDropdown.value = false
+    }
+    if (priorityDropdownRef.value && !priorityDropdownRef.value.contains(e.target as Node)) {
+      showPriorityDropdown.value = false
     }
   }
   document.addEventListener('click', handleClickOutside)
@@ -654,7 +708,7 @@ const formatRelativeTime = (dateStr: string) => {
         />
 
         <!-- Slide-in Panel -->
-        <div class="panel relative bg-white shadow-2xl w-full max-w-xl h-full flex flex-col">
+        <div class="panel relative bg-white shadow-2xl w-full max-w-xl 2xl:max-w-3xl h-full flex flex-col">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -752,50 +806,40 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
 
               <!-- Category Pill -->
-              <div class="group/cat relative">
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/cat:border-slate-300 group-hover/cat:shadow-sm">
+              <div class="group/category relative">
+                <div
+                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 group-hover/category:shadow-sm"
+                >
                   <div
                     class="w-1.5 h-1.5 rounded-full"
-                    :class="{
-                      'bg-blue-500': editedCategory === 'Engineering',
-                      'bg-violet-500': editedCategory === 'Design',
-                      'bg-pink-500': editedCategory === 'Marketing',
-                      'bg-slate-400': editedCategory === 'Product' || !editedCategory,
-                    }"
+                    :class="editedCategory ? (categoryDotColors[editedCategory] || 'bg-slate-400') : 'bg-slate-300'"
                   />
                   <span class="text-xs font-normal text-slate-600">{{ editedCategory || 'Category' }}</span>
-                  <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/cat:rotate-180" />
+                  <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/category:rotate-180" />
                 </div>
-                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/cat:opacity-100 group-hover/cat:visible group-hover/cat:translate-y-0 min-w-[140px]">
+                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/category:opacity-100 group-hover/category:visible group-hover/category:translate-y-0">
                   <div class="py-1">
                     <button
                       @click="editedCategory = ''"
-                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
                       :class="!editedCategory
                         ? 'bg-slate-100 text-slate-900 font-medium'
                         : 'text-slate-600 hover:bg-slate-50'"
                     >
-                      <div class="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                      <div class="w-2 h-2 rounded-full bg-slate-300" />
                       <span>No category</span>
                     </button>
+                    <div class="border-t border-slate-100 my-1" />
                     <button
                       v-for="cat in categoryOptions"
                       :key="cat"
                       @click="editedCategory = cat"
-                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
                       :class="editedCategory === cat
                         ? 'bg-slate-100 text-slate-900 font-medium'
                         : 'text-slate-600 hover:bg-slate-50'"
                     >
-                      <div
-                        class="w-1.5 h-1.5 rounded-full"
-                        :class="{
-                          'bg-blue-500': cat === 'Engineering',
-                          'bg-violet-500': cat === 'Design',
-                          'bg-pink-500': cat === 'Marketing',
-                          'bg-slate-400': cat === 'Product',
-                        }"
-                      />
+                      <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400'" />
                       <span>{{ cat }}</span>
                     </button>
                   </div>
@@ -878,6 +922,90 @@ const formatRelativeTime = (dateStr: string) => {
                 />
               </div>
             </div>
+
+            <!-- Priority & Complexity Row -->
+            <div class="grid grid-cols-2 gap-6">
+              <!-- Priority -->
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-2">Priority</label>
+                <div class="relative" ref="priorityDropdownRef">
+                  <button
+                    @click.stop="showPriorityDropdown = !showPriorityDropdown"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                  >
+                    <div
+                      class="w-2 h-2 rounded-full"
+                      :class="priorityDotColors[editedPriority] || 'bg-slate-300'"
+                    />
+                    <span class="flex-1 text-left text-slate-700">{{ priorityLabel }}</span>
+                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                  </button>
+
+                  <Transition name="dropdown">
+                    <div
+                      v-if="showPriorityDropdown"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                    >
+                      <button
+                        v-for="opt in priorityOptions"
+                        :key="opt.value"
+                        @click="editedPriority = opt.value; showPriorityDropdown = false"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        :class="editedPriority === opt.value ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                      >
+                        <div class="w-2 h-2 rounded-full" :class="priorityDotColors[opt.value] || 'bg-slate-400'" />
+                        <span>{{ opt.label }}</span>
+                      </button>
+                    </div>
+                  </Transition>
+                </div>
+              </div>
+
+              <!-- Complexity -->
+              <div>
+                <label class="block text-xs font-medium text-slate-500 mb-2">Complexity</label>
+                <div class="relative" ref="complexityDropdownRef">
+                  <button
+                    @click.stop="showComplexityDropdown = !showComplexityDropdown"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                  >
+                    <div
+                      class="w-2 h-2 rounded-full"
+                      :class="editedComplexity ? (complexityDotColors[editedComplexity] || 'bg-slate-400') : 'bg-slate-300'"
+                    />
+                    <span class="flex-1 text-left text-slate-700">{{ complexityLabel }}</span>
+                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                  </button>
+
+                  <Transition name="dropdown">
+                    <div
+                      v-if="showComplexityDropdown"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                    >
+                      <button
+                        @click="editedComplexity = ''; showComplexityDropdown = false"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+                        :class="!editedComplexity ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                      >
+                        <div class="w-2 h-2 rounded-full bg-slate-300" />
+                        <span>No complexity</span>
+                      </button>
+                      <div class="border-t border-slate-100 my-1" />
+                      <button
+                        v-for="opt in complexityOptions"
+                        :key="opt.value"
+                        @click="editedComplexity = opt.value; showComplexityDropdown = false"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        :class="editedComplexity === opt.value ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                      >
+                        <div class="w-2 h-2 rounded-full" :class="complexityDotColors[opt.value] || 'bg-slate-400'" />
+                        <span>{{ opt.label }}</span>
+                      </button>
+                    </div>
+                  </Transition>
+                </div>
+              </div>
+            </div>
             
             <!-- Owner & Assignees Row -->
             <div class="grid grid-cols-2 gap-6">
@@ -943,24 +1071,26 @@ const formatRelativeTime = (dateStr: string) => {
               <div>
                 <label class="block text-xs font-medium text-slate-500 mb-2">Assignees</label>
                 <div class="flex flex-wrap gap-2">
-                  <template v-if="itemDetail?.assignees?.length">
-                    <div 
-                      v-for="assignee in itemDetail.assignees" 
-                      :key="assignee.id"
-                      class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-full text-xs"
-                    >
-                      <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                        <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
-                      </div>
-                      <span>{{ assignee.name }}</span>
-                      <button 
-                        @click="removeAssignee(assignee.id)"
-                        class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-all"
+                  <div class="max-h-24 overflow-y-auto pr-1 flex flex-wrap gap-2">
+                    <template v-if="itemDetail?.assignees?.length">
+                      <div 
+                        v-for="assignee in itemDetail.assignees" 
+                        :key="assignee.id"
+                        class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-full text-xs"
                       >
-                        <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
-                      </button>
-                    </div>
-                  </template>
+                        <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                          <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
+                        </div>
+                        <span>{{ assignee.name }}</span>
+                        <button 
+                          @click="removeAssignee(assignee.id)"
+                          class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-all"
+                        >
+                          <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
+                        </button>
+                      </div>
+                    </template>
+                  </div>
                   
                   <!-- Add button with dropdown -->
                   <div class="relative" ref="assigneeDropdownRef">

@@ -387,12 +387,13 @@ const todayPosition = computed(() => {
 // Category color mapping
 const categoryColors: Record<string, { bar: string; bg: string }> = {
   'Engineering': { bar: 'from-blue-400 to-blue-500', bg: 'bg-blue-100' },
-  'Design': { bar: 'from-purple-400 to-purple-500', bg: 'bg-purple-100' },
-  'Marketing': { bar: 'from-pink-400 to-pink-500', bg: 'bg-pink-100' },
+  'Bug': { bar: 'from-rose-400 to-rose-500', bg: 'bg-rose-100' },
+  'Design': { bar: 'from-violet-400 to-violet-500', bg: 'bg-violet-100' },
   'Product': { bar: 'from-indigo-400 to-indigo-500', bg: 'bg-indigo-100' },
+  'QA': { bar: 'from-amber-400 to-amber-500', bg: 'bg-amber-100' },
   'Research': { bar: 'from-cyan-400 to-cyan-500', bg: 'bg-cyan-100' },
   'Operations': { bar: 'from-orange-400 to-orange-500', bg: 'bg-orange-100' },
-  'Sales': { bar: 'from-green-400 to-green-500', bg: 'bg-green-100' },
+  'Marketing': { bar: 'from-pink-400 to-pink-500', bg: 'bg-pink-100' },
   'default': { bar: 'from-slate-400 to-slate-500', bg: 'bg-slate-100' },
 }
 

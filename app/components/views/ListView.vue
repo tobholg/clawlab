@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
 import { getItemEstimateMeta } from '~/utils/itemRisk'
-import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, getSubStatusesForStatus } from '~/types'
+import { STATUS_CONFIG, SUB_STATUS_CONFIG, PRIORITY_OPTIONS } from '~/types'
 
 const props = defineProps<{
   items: ItemNode[]
@@ -90,7 +90,7 @@ const hasActiveFilters = computed(() =>
 )
 
 // ===== SORTING =====
-type SortColumn = 'title' | 'status' | 'progress' | 'confidence' | 'estCompletion' | 'dueDate' | 'risk' | 'assignee' | 'category'
+type SortColumn = 'title' | 'status' | 'progress' | 'confidence' | 'estCompletion' | 'dueDate' | 'priority' | 'risk' | 'assignee' | 'category'
 const sortColumn = ref<SortColumn | null>(null)
 const sortDirection = ref<'asc' | 'desc'>('asc')
 
@@ -246,6 +246,12 @@ function sortItems(items: FlatItem[]): FlatItem[] {
         const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
         comparison = aDate - bDate
         break
+      case 'priority':
+        const priorityOrder: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 }
+        const aPriority = priorityOrder[a.priority ?? 'MEDIUM'] ?? 1
+        const bPriority = priorityOrder[b.priority ?? 'MEDIUM'] ?? 1
+        comparison = aPriority - bPriority
+        break
       case 'risk':
         const riskOrder = { high: 0, medium: 1, low: 2 }
         comparison = (riskOrder[a.riskLevel ?? 'low'] ?? 3) - (riskOrder[b.riskLevel ?? 'low'] ?? 3)
@@ -365,13 +371,25 @@ function formatDateRange(est: ReturnType<typeof getEstimatedCompletion>): string
 // Category colors
 const categoryDotColors: Record<string, string> = {
   'Engineering': 'bg-blue-500',
+  'Bug': 'bg-rose-500',
   'Design': 'bg-violet-500',
-  'Marketing': 'bg-pink-500',
   'Product': 'bg-indigo-500',
+  'QA': 'bg-amber-500',
   'Research': 'bg-cyan-500',
   'Operations': 'bg-orange-500',
-  'Sales': 'bg-green-500',
+  'Marketing': 'bg-pink-500',
 }
+
+const priorityDotColors: Record<string, string> = {
+  LOW: 'bg-emerald-500',
+  MEDIUM: 'bg-amber-500',
+  HIGH: 'bg-orange-500',
+  CRITICAL: 'bg-rose-500',
+}
+
+const priorityLabelMap: Record<string, string> = Object.fromEntries(
+  PRIORITY_OPTIONS.map(opt => [opt.value, opt.label])
+)
 
 // Depth-based styling
 function getDepthIcon(depth: number, isProject: boolean) {
@@ -598,7 +616,7 @@ function handleRowClick(item: FlatItem) {
     </div>
     
     <!-- Table Header (Sortable) -->
-    <div class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,50px,110px,100px] gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
+    <div class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,90px,50px,110px,100px] gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
       <button @click="toggleSort('title')" class="pl-2 text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
         Task
         <Icon v-if="sortColumn === 'title'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
@@ -621,6 +639,10 @@ function handleRowClick(item: FlatItem) {
         Due
         <Icon v-if="sortColumn === 'dueDate'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
+      <button @click="toggleSort('priority')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+        Priority
+        <Icon v-if="sortColumn === 'priority'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
+      </button>
       <button @click="toggleSort('risk')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
         Risk
         <Icon v-if="sortColumn === 'risk'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
@@ -640,7 +662,7 @@ function handleRowClick(item: FlatItem) {
       <div
         v-for="item in flattenedItems"
         :key="item.id"
-        class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,50px,110px,100px] gap-3 px-4 py-2.5 border-b border-slate-50 hover:bg-slate-50/80 cursor-pointer transition-colors items-center group"
+        class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,90px,50px,110px,100px] gap-3 px-4 py-2.5 border-b border-slate-50 hover:bg-slate-50/80 cursor-pointer transition-colors items-center group"
         :class="[
           item.status === 'done' ? 'opacity-60' : '',
           item.status === 'blocked' ? 'border-l-2 border-l-rose-400' : '',
@@ -760,6 +782,17 @@ function handleRowClick(item: FlatItem) {
           ]"
         >
           {{ formatDate(item.dueDate) }}
+        </div>
+
+        <!-- Priority -->
+        <div class="flex items-center gap-1.5">
+          <div
+            class="w-2 h-2 rounded-full flex-shrink-0"
+            :class="priorityDotColors[item.priority ?? 'MEDIUM'] || 'bg-slate-300'"
+          />
+          <span class="text-xs text-slate-600 truncate">
+            {{ priorityLabelMap[item.priority ?? 'MEDIUM'] ?? 'Medium' }}
+          </span>
         </div>
         
         <!-- Risk -->
