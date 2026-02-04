@@ -5,35 +5,35 @@ definePageMeta({
 
 const outcomeBlocks = [
   {
-    title: 'Stakeholder updates that don’t drain your team',
-    body: 'Auto-curated summaries and decisions from the real work, not a separate status doc.',
+    title: 'Stakeholder updates that run themselves',
+    body: 'Auto-curated summaries and decisions, straight from the work.',
   },
   {
-    title: 'Recursive structure, zero spreadsheet rollups',
-    body: 'Every subtask rolls up cleanly so you always know how delivery really looks.',
+    title: 'Recursive structure, no rollups',
+    body: 'Every subtask rolls up instantly at every level.',
   },
   {
-    title: 'Forecasts that show risk early',
-    body: 'Uncertainty ranges and blockers surface before you miss a due date.',
+    title: 'Risk that surfaces early',
+    body: 'Forecast ranges and blockers appear before dates slip.',
   },
 ]
 
 const capabilityCards = [
   {
-    title: 'Stakeholder spaces that ship with the plan',
-    body: 'Curated views, requests, and responses mapped directly to the work.',
+    title: 'Stakeholder spaces, built in',
+    body: 'Curated views and requests mapped to the work.',
   },
   {
-    title: 'AI teammate that drafts weekly updates and flags risk',
-    body: 'Your team chat includes AI that summarizes progress, flags risk, and drafts updates.',
+    title: 'AI teammate for weekly updates',
+    body: 'Summaries, risk flags, and draft comms.',
   },
   {
-    title: 'Dependency paths with live risk markers',
-    body: 'See what blocks what, and how changes ripple through delivery.',
+    title: 'Dependency paths with live risk',
+    body: 'See what blocks what, instantly.',
   },
   {
-    title: 'Public roadmap + upvoted requests with curated release notes',
-    body: 'Publish customer-safe releases and let users submit and upvote requests.',
+    title: 'Public roadmap + upvoted requests',
+    body: 'Customer-safe updates with built-in feedback.',
   },
 ]
 
@@ -54,6 +54,23 @@ const sectionRefs = reactive<Record<string, HTMLElement | null>>({
 
 const activeSection = ref('hero')
 const heroReady = ref(false)
+const accentLineRef = ref<HTMLElement | null>(null)
+
+const updateAccentGradient = () => {
+  const line = accentLineRef.value
+  if (!line) return
+
+  const rect = line.getBoundingClientRect()
+  if (!rect.width) return
+
+  const words = line.querySelectorAll<HTMLElement>('.word-animate--accent')
+  words.forEach((word) => {
+    const wordRect = word.getBoundingClientRect()
+    const offset = wordRect.left - rect.left
+    word.style.setProperty('--accent-width', `${rect.width}px`)
+    word.style.setProperty('--accent-x', `${-offset}px`)
+  })
+}
 
 const scrollToSection = (id: string) => {
   const target = sectionRefs[id]
@@ -66,7 +83,15 @@ const scrollToSection = (id: string) => {
 onMounted(() => {
   requestAnimationFrame(() => {
     heroReady.value = true
+    updateAccentGradient()
   })
+
+  let resizeRaf = 0
+  const handleResize = () => {
+    if (resizeRaf) cancelAnimationFrame(resizeRaf)
+    resizeRaf = requestAnimationFrame(() => updateAccentGradient())
+  }
+  window.addEventListener('resize', handleResize)
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -93,7 +118,10 @@ onMounted(() => {
     if (el) observer.observe(el)
   })
 
-  onUnmounted(() => observer.disconnect())
+  onUnmounted(() => {
+    observer.disconnect()
+    window.removeEventListener('resize', handleResize)
+  })
 })
 </script>
 
@@ -139,24 +167,24 @@ onMounted(() => {
     <section
       id="hero"
       :ref="(el) => (sectionRefs.hero = el as HTMLElement | null)"
-      class="hero-section relative min-h-screen pt-32 pb-20 px-6 overflow-hidden flex items-center scroll-mt-20"
+      class="hero-section relative min-h-screen pt-32 pb-20 px-6 xl:pt-36 xl:pb-28 2xl:pt-40 2xl:pb-32 2xl:px-12 overflow-hidden flex items-center scroll-mt-20"
     >
 
-      <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.1fr,0.9fr] gap-10 items-center">
+      <div class="max-w-6xl 2xl:max-w-[88rem] mx-auto grid lg:grid-cols-[1.15fr,0.85fr] xl:grid-cols-[1.2fr,0.8fr] 2xl:grid-cols-[1.25fr,0.75fr] gap-10 xl:gap-14 2xl:gap-16 items-center">
         <div>
-          <h1 class="mt-2 text-4xl sm:text-5xl lg:text-6xl font-medium leading-tight tracking-tight">
+          <h1 class="mt-2 text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-medium leading-tight tracking-tight">
             <span class="word-animate" style="--d: 80ms">Ship</span>
             <span class="word-animate" style="--d: 140ms">outcomes</span>
             <span class="word-animate" style="--d: 200ms">faster,</span>
             <br />
-            <span class="word-animate word-animate--accent" style="--d: 260ms">without</span>
-            <span class="word-animate word-animate--accent" style="--d: 320ms">the</span>
-            <span class="word-animate word-animate--accent" style="--d: 380ms">stakeholder</span>
-            <span class="word-animate word-animate--accent" style="--d: 440ms">chaos.</span>
+            <span ref="accentLineRef" class="accent-line">
+              <span class="word-animate word-animate--accent" style="--d: 260ms">with</span>
+              <span class="word-animate word-animate--accent" style="--d: 320ms">stakeholder</span>
+              <span class="word-animate word-animate--accent" style="--d: 380ms">calm.</span>
+            </span>
           </h1>
-          <p class="mt-6 text-lg text-slate-600 leading-relaxed max-w-xl intro" style="--d: 520ms">
-            Relai replaces status decks, stakeholder chasing, and brittle rollups with one recursive model, real forecast
-            ranges, and stakeholder spaces that keep everyone aligned.
+          <p class="mt-6 text-lg xl:text-xl text-slate-600 leading-relaxed max-w-xl xl:max-w-2xl intro" style="--d: 520ms">
+            One recursive model. Real forecast ranges. Stakeholder spaces that publish the right updates automatically.
           </p>
           <div class="mt-8 flex items-center gap-4 intro" style="--d: 620ms">
             <NuxtLink
@@ -166,12 +194,16 @@ onMounted(() => {
               Get started free
               <Icon name="heroicons:arrow-right" class="w-4 h-4" />
             </NuxtLink>
-            <a href="#capabilities" class="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <button
+              type="button"
+              class="text-sm font-medium text-slate-600 hover:text-slate-900"
+              @click="scrollToSection('recursive')"
+            >
               See how it works
-            </a>
+            </button>
           </div>
           <div
-            class="mt-10 grid grid-cols-1 sm:grid-cols-[max-content_max-content_max-content] sm:justify-start gap-8 max-w-2xl text-xs text-slate-500 intro"
+            class="mt-10 grid grid-cols-1 sm:grid-cols-[max-content_max-content_max-content] sm:justify-start gap-8 xl:gap-10 max-w-2xl text-xs text-slate-500 intro"
             style="--d: 720ms"
           >
             <div>
@@ -235,16 +267,16 @@ onMounted(() => {
     <section
       id="recursive"
       :ref="(el) => (sectionRefs.recursive = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 bg-white scroll-mt-20 flex items-center section-reveal"
+      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-white scroll-mt-20 flex items-center section-reveal"
     >
-      <div class="max-w-6xl mx-auto w-full">
-        <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 w-full items-center">
+      <div class="max-w-6xl 2xl:max-w-7xl mx-auto w-full">
+        <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 xl:gap-16 w-full items-center">
           <div class="scroll-reveal" style="--d: 0ms">
             <div class="text-xs font-semibold text-sky-600 uppercase tracking-wide">Recursive model</div>
-            <h2 class="text-3xl sm:text-4xl font-semibold mt-4">One model for every depth</h2>
-            <p class="mt-4 text-lg text-slate-600 max-w-xl">
-              Projects, epics, tasks, and subtasks all behave the same. Updates roll up instantly, so every level knows
-              what is truly on track, at risk, or blocked.
+            <h2 class="text-3xl sm:text-4xl xl:text-5xl font-semibold mt-4">One model for every depth</h2>
+            <p class="mt-4 text-lg xl:text-xl text-slate-600 max-w-xl xl:max-w-2xl">
+              Projects, epics, tasks, subtasks — one model at every depth. Updates roll up instantly, so every level knows
+              what is on track, at risk, or blocked.
             </p>
             <div class="mt-8 inline-flex items-center gap-3 text-sm text-slate-600">
               <span class="pill pill--emerald">Rollup by default</span>
@@ -300,15 +332,15 @@ onMounted(() => {
     <section
       id="outcomes"
       :ref="(el) => (sectionRefs.outcomes = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
+      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
     >
-      <div class="max-w-6xl mx-auto w-full">
-        <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 w-full items-center">
+      <div class="max-w-6xl 2xl:max-w-7xl mx-auto w-full">
+        <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 xl:gap-16 w-full items-center">
           <div class="scroll-reveal" style="--d: 0ms">
             <div class="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Outcomes</div>
-            <h2 class="text-3xl sm:text-4xl font-semibold mt-4">Stakeholder calm, built in</h2>
-            <p class="mt-4 text-lg text-slate-600 max-w-xl">
-              Outcome-first execution means fewer status meetings and more shipping. Everything stays aligned because the work is recursive and the updates are curated.
+            <h2 class="text-3xl sm:text-4xl xl:text-5xl font-semibold mt-4">Stakeholder calm, built in</h2>
+            <p class="mt-4 text-lg xl:text-xl text-slate-600 max-w-xl xl:max-w-2xl">
+              Fewer status meetings. More shipping. Updates are curated from the work, not a separate doc.
             </p>
             <div class="mt-8 space-y-6">
               <div v-for="block in outcomeBlocks" :key="block.title" class="pl-5 border-l-[3px] border-slate-300">
@@ -347,22 +379,22 @@ onMounted(() => {
     <section
       id="capabilities"
       :ref="(el) => (sectionRefs.capabilities = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 bg-white scroll-mt-20 flex items-center section-reveal"
+      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-white scroll-mt-20 flex items-center section-reveal"
     >
-      <div class="max-w-6xl mx-auto w-full">
-        <div class="grid lg:grid-cols-[0.95fr,1.05fr] gap-12 w-full items-center">
+      <div class="max-w-6xl 2xl:max-w-7xl mx-auto w-full">
+        <div class="grid lg:grid-cols-[0.95fr,1.05fr] gap-12 xl:gap-16 w-full items-center">
           <div class="scroll-reveal" style="--d: 0ms">
             <div class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Capabilities</div>
-            <h2 class="text-3xl sm:text-4xl font-semibold mt-4">Everything your product team needs</h2>
-            <p class="mt-4 text-lg text-slate-600 max-w-xl">
-              Designed to remove stakeholder noise while keeping the team in flow and execution transparent.
+            <h2 class="text-3xl sm:text-4xl xl:text-5xl font-semibold mt-4">Everything your product team needs</h2>
+            <p class="mt-4 text-lg xl:text-xl text-slate-600 max-w-xl xl:max-w-2xl">
+              Built to remove stakeholder noise while keeping execution clear.
             </p>
             <div class="mt-8 inline-flex items-center gap-3 text-sm text-slate-600">
               <span class="pill pill--amber">Live updates</span>
               <span class="pill pill--emerald">AI teammate</span>
             </div>
           </div>
-          <div class="space-y-6 scroll-reveal" style="--d: 120ms">
+          <div class="space-y-6 xl:space-y-8 scroll-reveal" style="--d: 120ms">
             <div
               v-for="cap in capabilityCards"
               :key="cap.title"
@@ -386,11 +418,11 @@ onMounted(() => {
     <section
       id="cta"
       :ref="(el) => (sectionRefs.cta = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
+      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
     >
-      <div class="max-w-4xl mx-auto text-center w-full flex flex-col items-center justify-center scroll-reveal" style="--d: 0ms">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-slate-900">Start a stakeholder-calm workspace</h2>
-        <p class="mt-4 text-lg text-slate-600">Get started free in minutes. No credit card required.</p>
+      <div class="max-w-4xl 2xl:max-w-5xl mx-auto text-center w-full flex flex-col items-center justify-center scroll-reveal" style="--d: 0ms">
+        <h2 class="text-3xl sm:text-4xl xl:text-5xl font-semibold text-slate-900">Start a stakeholder-calm workspace</h2>
+        <p class="mt-4 text-lg xl:text-xl text-slate-600">Get started free in minutes. No credit card required.</p>
         <NuxtLink
           to="/onboarding"
           class="mt-8 inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
@@ -540,9 +572,13 @@ onMounted(() => {
 }
 
 .word-animate--accent {
-  background-image: linear-gradient(120deg, #64748b, #94a3b8, #64748b);
+  background-image: linear-gradient(120deg, #64748b, #94a3b8, #4ade80);
   background-clip: text;
+  -webkit-background-clip: text;
   color: transparent;
+  -webkit-text-fill-color: transparent;
+  background-size: var(--accent-width, 100%) 100%;
+  background-position: var(--accent-x, 0) 0;
 }
 
 .is-ready .word-animate {
@@ -580,6 +616,20 @@ onMounted(() => {
 
   .recursive-card {
     margin-left: calc(var(--level, 0) * 10px);
+  }
+}
+
+@media (min-width: 1536px) {
+  .hero-bubble {
+    padding: 26px 28px;
+  }
+
+  .recursive-stack {
+    padding: 26px;
+  }
+
+  .recursive-card {
+    padding: 16px 18px;
   }
 }
 

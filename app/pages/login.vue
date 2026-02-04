@@ -10,6 +10,7 @@ const email = ref('')
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
+const pageReady = ref(false)
 
 // Get redirect URL from query params (used by invite flow)
 const redirect = computed(() => route.query.redirect as string | undefined)
@@ -45,129 +46,279 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    pageReady.value = true
+  })
+})
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+  <div class="relai-auth min-h-screen text-slate-900" :class="{ 'is-ready': pageReady }">
     <!-- Navigation -->
-    <nav class="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-sm border-b border-slate-100">
-      <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <nav class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-100 intro" style="--d: 0ms">
+      <div class="w-full px-6 h-16 flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2.5">
           <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
             <span class="text-white text-sm font-semibold">R</span>
           </div>
           <span class="text-lg font-semibold tracking-tight">Relai</span>
         </NuxtLink>
-        
+
         <div class="flex items-center gap-4">
-          <span class="text-sm text-slate-500">Don't have an account?</span>
-          <NuxtLink 
-            to="/onboarding" 
-            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+          <NuxtLink
+            to="/"
+            class="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-slate-200 text-sm text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all bg-white/70"
           >
-            Get Started
+            <Icon name="heroicons:arrow-left" class="w-4 h-4" />
+            <span>Back to home</span>
+          </NuxtLink>
+          <div class="hidden sm:flex items-center gap-2 text-sm text-slate-500">
+            <span>New here?</span>
+            <NuxtLink
+              to="/onboarding"
+              class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              Get started
+            </NuxtLink>
+          </div>
+          <NuxtLink
+            to="/onboarding"
+            class="sm:hidden px-3 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            Get started
           </NuxtLink>
         </div>
       </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="min-h-screen flex items-center justify-center px-6 pt-16">
-      <div class="w-full max-w-md">
-        <!-- Header -->
-        <div class="text-center mb-8">
-          <h1 class="text-3xl font-semibold text-slate-900 tracking-tight mb-3">
-            Welcome back
-          </h1>
-          <p class="text-slate-500">
-            Sign in to your workspace
-          </p>
-        </div>
-
-        <!-- Card -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-8">
-          <form class="space-y-5" @submit.prevent="handleSubmit">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-2">
-                Email address
-              </label>
-              <input
-                v-model="email"
-                type="email"
-                name="email"
-                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 outline-none bg-white text-slate-900 placeholder-slate-400 transition-all"
-                placeholder="you@company.com"
-                required
-                :disabled="success"
-              />
-            </div>
-
-            <button
-              type="submit"
-              class="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 px-4 rounded-xl font-medium hover:bg-slate-800 transition-all hover:scale-[1.01] shadow-lg shadow-slate-900/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              :disabled="loading || success"
-            >
-              <Icon v-if="loading" name="heroicons:arrow-path" class="w-5 h-5 animate-spin" />
-              <template v-else-if="success">
-                <Icon name="heroicons:check-circle" class="w-5 h-5" />
-                <span>Check your email</span>
-              </template>
-              <template v-else>
-                <span>Continue with Email</span>
-                <Icon name="heroicons:arrow-right" class="w-5 h-5" />
-              </template>
-            </button>
-          </form>
-
-          <!-- Status messages -->
-          <Transition
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-          >
-            <div v-if="error" class="mt-5 p-4 bg-rose-50 border border-rose-100 rounded-xl">
-              <div class="flex items-start gap-3">
-                <Icon name="heroicons:exclamation-circle" class="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                <p class="text-sm text-rose-700">{{ error }}</p>
-              </div>
-            </div>
-            <div v-else-if="success" class="mt-5 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
-              <div class="flex items-start gap-3">
-                <Icon name="heroicons:sparkles" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p class="text-sm font-medium text-emerald-800">Magic link sent!</p>
-                  <p class="text-sm text-emerald-600 mt-1">Check your inbox for a link to sign in. It'll expire in 15 minutes.</p>
-                </div>
-              </div>
-            </div>
-          </Transition>
-
-          <!-- Divider -->
-          <div class="relative my-6">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-slate-100" />
-            </div>
-            <div class="relative flex justify-center text-xs">
-              <span class="px-3 bg-white text-slate-400">Passwordless sign in</span>
-            </div>
+    <main class="relative min-h-screen flex items-center px-6">
+      <div class="w-full py-16">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr,0.95fr] gap-10 xl:gap-14 items-center">
+        <!-- Left Copy -->
+        <section>
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-xs font-semibold text-slate-600 intro" style="--d: 120ms">
+            <span class="w-2 h-2 rounded-full bg-emerald-400" />
+            <span>Passwordless sign in</span>
           </div>
 
-          <!-- Info -->
-          <p class="text-center text-sm text-slate-500">
-            We'll send you a magic link to sign in instantly.
-            <br />
-            No password needed.
+          <h1 class="mt-6 text-4xl sm:text-5xl xl:text-6xl font-semibold leading-tight tracking-tight">
+            <span class="word-animate" style="--d: 180ms">Welcome</span>
+            <span class="word-animate" style="--d: 240ms">back</span>
+            <span class="word-animate word-animate--accent" style="--d: 300ms">to clarity.</span>
+          </h1>
+
+          <p class="mt-6 text-lg text-slate-600 max-w-xl intro" style="--d: 420ms">
+            Sign in to keep stakeholders calm and teams moving. We send a one-time magic link to keep
+            access fast and secure.
           </p>
-        </div>
+
+          <div class="mt-10 grid sm:grid-cols-2 gap-6 intro" style="--d: 520ms">
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-lg shadow-slate-200/40">
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Forecasts</div>
+              <div class="mt-2 text-sm font-semibold text-slate-900">Risk stays visible</div>
+              <p class="mt-2 text-sm text-slate-600">Surface blockers early with live forecast ranges.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-lg shadow-slate-200/40">
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Updates</div>
+              <div class="mt-2 text-sm font-semibold text-slate-900">Stakeholders stay aligned</div>
+              <p class="mt-2 text-sm text-slate-600">Auto-curated summaries straight from the work.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Form Card -->
+        <section class="relative lg:self-center">
+          <div class="auth-card intro" style="--d: 220ms">
+            <div class="text-center mb-8">
+              <h2 class="text-2xl font-semibold text-slate-900 tracking-tight mb-2">Sign in to Relai</h2>
+              <p class="text-slate-500">We will email you a secure magic link.</p>
+            </div>
+
+            <form class="space-y-5" @submit.prevent="handleSubmit">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Email address</label>
+                <input
+                  v-model="email"
+                  type="email"
+                  name="email"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 outline-none bg-white text-slate-900 placeholder-slate-400 transition-all"
+                  placeholder="you@company.com"
+                  required
+                  :disabled="success"
+                />
+              </div>
+
+              <button
+                type="submit"
+                class="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 px-4 rounded-xl font-medium hover:bg-slate-800 transition-all hover:scale-[1.01] shadow-lg shadow-slate-900/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                :disabled="loading || success"
+              >
+                <Icon v-if="loading" name="heroicons:arrow-path" class="w-5 h-5 animate-spin" />
+                <template v-else-if="success">
+                  <Icon name="heroicons:check-circle" class="w-5 h-5" />
+                  <span>Check your email</span>
+                </template>
+                <template v-else>
+                  <span>Continue with Email</span>
+                  <Icon name="heroicons:arrow-right" class="w-5 h-5" />
+                </template>
+              </button>
+            </form>
+
+            <!-- Status messages -->
+            <Transition
+              enter-active-class="transition-all duration-300 ease-out"
+              enter-from-class="opacity-0 translate-y-2"
+              enter-to-class="opacity-100 translate-y-0"
+            >
+              <div v-if="error" class="mt-5 p-4 bg-rose-50 border border-rose-100 rounded-xl">
+                <div class="flex items-start gap-3">
+                  <Icon name="heroicons:exclamation-circle" class="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                  <p class="text-sm text-rose-700">{{ error }}</p>
+                </div>
+              </div>
+              <div v-else-if="success" class="mt-5 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                <div class="flex items-start gap-3">
+                  <Icon name="heroicons:sparkles" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p class="text-sm font-medium text-emerald-800">Magic link sent!</p>
+                    <p class="text-sm text-emerald-600 mt-1">Check your inbox for a link to sign in. It'll expire in 15 minutes.</p>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+
+            <!-- Divider -->
+            <div class="relative my-6">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-slate-100" />
+              </div>
+              <div class="relative flex justify-center text-xs">
+                <span class="px-3 bg-white text-slate-400">Trusted by product teams</span>
+              </div>
+            </div>
+
+            <!-- Info -->
+            <p class="text-center text-sm text-slate-500">
+              We never store passwords. You are in control of every sign in.
+            </p>
+          </div>
+
+        </section>
+      </div>
 
         <!-- Footer -->
-        <p class="text-center text-sm text-slate-400 mt-8">
-          By signing in, you agree to our 
+        <p class="text-center text-sm text-slate-400 mt-12 intro" style="--d: 620ms">
+          By signing in, you agree to our
           <a href="#" class="text-slate-600 hover:text-slate-900 transition-colors">Terms</a>
-          and 
+          and
           <a href="#" class="text-slate-600 hover:text-slate-900 transition-colors">Privacy Policy</a>
         </p>
       </div>
-    </div>
+    </main>
   </div>
 </template>
+
+<style scoped>
+.relai-auth {
+  background-image:
+    radial-gradient(60% 60% at 85% 12%, rgba(56, 189, 248, 0.14), rgba(56, 189, 248, 0)),
+    linear-gradient(120deg, rgba(16, 185, 129, 0.18) 0%, rgba(255, 255, 255, 0.96) 45%),
+    linear-gradient(300deg, rgba(56, 189, 248, 0.16) 0%, rgba(255, 255, 255, 0.96) 55%),
+    linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+}
+
+.auth-card {
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12), 0 10px 30px rgba(15, 23, 42, 0.06);
+  padding: 32px;
+  backdrop-filter: blur(10px);
+}
+
+.auth-bubble {
+  position: absolute;
+  right: -12px;
+  bottom: -24px;
+  width: 240px;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  padding: 18px 20px;
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pill--emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.intro {
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(8px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--d, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+.is-ready .intro {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.word-animate {
+  display: inline-block;
+  margin-right: 0.3em;
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(8px);
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out,
+    filter 0.6s ease-out;
+  transition-delay: var(--d, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+.word-animate--accent {
+  background-image: linear-gradient(120deg, #64748b, #94a3b8, #4ade80);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.is-ready .word-animate {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 26px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .auth-card {
+    padding: 36px;
+  }
+}
+</style>
