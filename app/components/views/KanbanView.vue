@@ -13,6 +13,7 @@ const emit = defineEmits<{
   statusChange: [itemId: string, newStatus: string, newSubStatus?: string | null]
   parentChange: [itemId: string, newParentId: string]
   openAttention: [item: ItemNode, mode: 'at-risk' | 'blocked']
+  requestComplete: [item: ItemNode]
 }>()
 
 const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
@@ -113,8 +114,11 @@ const getDoneItemsByTimeGroup = () => {
 // Group items by sub-status within a column (for non-done columns)
 const getItemsGroupedBySubStatus = (status: Item['status']) => {
   const items = getItemsByStatus(status)
-  const subStatuses = getSubStatusesForStatus(status)
-  const subStatusKeys = Object.keys(subStatuses)
+  const baseSubStatuses = getSubStatusesForStatus(status)
+  const mergedSubStatuses = status === 'in_progress'
+    ? { ...baseSubStatuses, ...getSubStatusesForStatus('paused') }
+    : baseSubStatuses
+  const subStatusKeys = Object.keys(mergedSubStatuses)
   
   if (subStatusKeys.length === 0) {
     // No sub-statuses for this status, return all items in default group
@@ -132,15 +136,15 @@ const getItemsGroupedBySubStatus = (status: Item['status']) => {
   
   // Then, items with sub-status (sorted by order)
   const sortedSubStatuses = subStatusKeys.sort((a, b) => {
-    const configA = subStatuses[a as keyof typeof subStatuses]
-    const configB = subStatuses[b as keyof typeof subStatuses]
+    const configA = mergedSubStatuses[a as keyof typeof mergedSubStatuses]
+    const configB = mergedSubStatuses[b as keyof typeof mergedSubStatuses]
     return (configA?.order ?? 99) - (configB?.order ?? 99)
   })
   
   for (const ss of sortedSubStatuses) {
     const subStatusItems = items.filter(i => i.subStatus === ss)
     if (subStatusItems.length > 0) {
-      const config = subStatuses[ss as keyof typeof subStatuses]
+      const config = mergedSubStatuses[ss as keyof typeof mergedSubStatuses]
       groups.push({
         subStatus: ss,
         label: config?.label ?? ss,
@@ -189,6 +193,20 @@ const handleDragEnd = (e: DragEvent) => {
   target.style.opacity = '1'
 }
 
+const hasIncompleteChildren = (item: ItemNode) => {
+  if ((item.childrenCount ?? 0) > 0 && (!item.children || item.children.length === 0)) {
+    return true
+  }
+  const stack = [...(item.children ?? [])]
+  while (stack.length) {
+    const child = stack.pop()
+    if (!child) continue
+    if (child.status !== 'done') return true
+    if (child.children?.length) stack.push(...child.children)
+  }
+  return false
+}
+
 const handleDragOver = (e: DragEvent, status: string, subStatus?: string | null) => {
   e.preventDefault()
   if (e.dataTransfer) {
@@ -215,6 +233,12 @@ const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string
   if (dragOverCardId.value) return
 
   if (draggedItem.value) {
+    if (targetStatus === 'done' && draggedItem.value.status !== 'done') {
+      if (hasIncompleteChildren(draggedItem.value)) {
+        emit('requestComplete', draggedItem.value)
+        return
+      }
+    }
     const statusChanged = draggedItem.value.status !== targetStatus
     const subStatusChanged = draggedItem.value.subStatus !== targetSubStatus
 

@@ -26,6 +26,10 @@ const showTaskActionModal = ref(false)
 const showTimeline = ref(false)
 const actionComment = ref('')
 const selectedNextLane = ref<FocusLane>('GENERAL')
+const actionError = ref<string | null>(null)
+const showCompleteWithChildren = ref(false)
+const completeWithChildrenLoading = ref(false)
+const completeWithChildrenError = ref<string | null>(null)
 
 // Available projects
 const projects = ref<{ id: string; title: string }[]>([])
@@ -95,19 +99,54 @@ const selectLane = async (lane: FocusLane) => {
 const handleTaskAction = () => {
   actionComment.value = ''
   selectedNextLane.value = 'GENERAL'
+  actionError.value = null
   showTaskActionModal.value = true
 }
 
 const handleSwitch = async () => {
-  await completeTask(actionComment.value || undefined, false)
-  showTaskActionModal.value = false
-  await switchToLane(selectedNextLane.value)
+  try {
+    await completeTask(actionComment.value || undefined, false)
+    showTaskActionModal.value = false
+    await switchToLane(selectedNextLane.value)
+  } catch (e: any) {
+    actionError.value = e?.data?.message || e?.message || 'Unable to complete task.'
+  }
 }
 
 const handleComplete = async () => {
-  await completeTask(actionComment.value || undefined, true)
-  showTaskActionModal.value = false
-  await switchToLane(selectedNextLane.value)
+  try {
+    await completeTask(actionComment.value || undefined, true)
+    showTaskActionModal.value = false
+    await switchToLane(selectedNextLane.value)
+  } catch (e: any) {
+    const message = e?.data?.message || e?.message || 'Unable to complete task.'
+    if (message.includes('incomplete child')) {
+      showCompleteWithChildren.value = true
+      completeWithChildrenError.value = null
+    } else {
+      actionError.value = message
+    }
+  }
+}
+
+const handleCompleteWithChildren = async () => {
+  if (!focusState.value.task?.id) return
+  completeWithChildrenLoading.value = true
+  completeWithChildrenError.value = null
+  try {
+    await $fetch(`/api/items/${focusState.value.task.id}/complete`, {
+      method: 'POST',
+      body: { cascade: true, maxDepth: 5 },
+    })
+    await completeTask(actionComment.value || undefined, false)
+    showCompleteWithChildren.value = false
+    showTaskActionModal.value = false
+    await switchToLane(selectedNextLane.value)
+  } catch (e: any) {
+    completeWithChildrenError.value = e?.data?.message || e?.message || 'Unable to complete subtasks.'
+  } finally {
+    completeWithChildrenLoading.value = false
+  }
 }
 
 const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
@@ -285,6 +324,9 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
               placeholder="Add a note..."
               class="w-full px-0 py-2 text-sm border-0 border-b border-slate-200 focus:outline-none focus:border-slate-400 bg-transparent placeholder:text-slate-300"
             />
+            <p v-if="actionError" class="text-xs text-rose-600 mt-2">
+              {{ actionError }}
+            </p>
           </div>
 
           <!-- Next Lane Selection -->
@@ -325,6 +367,16 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         </div>
       </div>
     </Teleport>
+
+    <ItemsCompleteWithChildrenModal
+      :open="showCompleteWithChildren"
+      :title="focusState.task?.title"
+      :max-depth="5"
+      :loading="completeWithChildrenLoading"
+      :error="completeWithChildrenError"
+      @cancel="showCompleteWithChildren = false"
+      @confirm="handleCompleteWithChildren"
+    />
 
     <!-- Timeline Modal -->
     <Teleport to="body">

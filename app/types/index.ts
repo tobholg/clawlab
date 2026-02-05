@@ -70,6 +70,8 @@ export interface ItemNode extends Item {
   depth: number
   // Bubbled up from children
   childrenCount: number
+  activeChildrenCount?: number
+  completedChildrenCount?: number
   hotChildrenCount: number
   blockedChildrenCount: number
   atRiskChildrenCount: number

@@ -60,6 +60,15 @@ const formatRelativeTime = (dateStr: string | null | undefined) => {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
+
+const getActiveChildrenCount = (project: ItemNode) => {
+  if (typeof project.activeChildrenCount === 'number') return project.activeChildrenCount
+  return project.childrenCount ?? 0
+}
+
+const hasAllChildrenCompleted = (project: ItemNode) => {
+  return (project.childrenCount ?? 0) > 0 && getActiveChildrenCount(project) === 0
+}
 </script>
 
 <template>
@@ -134,7 +143,10 @@ const formatRelativeTime = (dateStr: string | null | undefined) => {
             <!-- Right: Meta -->
             <div class="flex items-center gap-3">
               <span v-if="project.lastActivityAt || project.updatedAt">{{ formatRelativeTime(project.lastActivityAt || project.updatedAt) }}</span>
-              <span v-if="project.childrenCount" class="text-slate-400">{{ project.childrenCount }} items</span>
+              <template v-if="(project.childrenCount ?? 0) > 0">
+                <span v-if="hasAllChildrenCompleted(project)" class="text-emerald-600">All items completed</span>
+                <span v-else class="text-slate-400">{{ getActiveChildrenCount(project) }} items</span>
+              </template>
             </div>
           </div>
         </div>

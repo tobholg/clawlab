@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
       date,
       sessions: sessions.sort((a, b) => 
         new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
-      ).reverse(), // Chronological within day
+      ),
     }))
 
   return { timeline }

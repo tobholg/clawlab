@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { countIncompleteDescendants } from '../../utils/itemCompletion'
 
 // Helper: Check if targetId is a descendant of itemId (prevent circular refs)
 async function isDescendant(itemId: string, targetId: string): Promise<boolean> {
@@ -89,6 +90,17 @@ export default defineEventHandler(async (event) => {
   if (status !== undefined) {
     const newStatus = status.toUpperCase()
     const oldStatus = currentItem.status
+
+    if (newStatus === 'DONE' && oldStatus !== 'DONE') {
+      const incompleteDescendants = await countIncompleteDescendants(prisma, id)
+      if (incompleteDescendants > 0) {
+        throw createError({
+          statusCode: 400,
+          message: 'Cannot mark this item as done while it has incomplete child tasks.',
+        })
+      }
+    }
+
     updateData.status = newStatus
     
     // Only clear subStatus if:

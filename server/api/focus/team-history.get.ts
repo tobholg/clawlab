@@ -102,8 +102,68 @@ export default defineEventHandler(async (event) => {
     orderBy: { startedAt: 'asc' },
   })
 
+  const activeItems = await prisma.item.findMany({
+    where: {
+      workspaceId,
+      parentId: { not: null },
+      status: { not: 'DONE' },
+      ...(projectId ? { projectId } : {}),
+      OR: [
+        { ownerId: { in: memberIds } },
+        { assignees: { some: { userId: { in: memberIds } } } },
+      ],
+    },
+    include: {
+      assignees: { select: { userId: true } },
+    },
+  })
+
+  const projectIds = new Set<string>()
+  activeItems.forEach((item) => {
+    const pid = item.projectId ?? item.parentId
+    if (pid) projectIds.add(pid)
+  })
+
+  const projects = projectIds.size
+    ? await prisma.item.findMany({
+        where: { id: { in: Array.from(projectIds) } },
+        select: { id: true, title: true, ownerId: true },
+      })
+    : []
+
+  const projectTitleById = new Map<string, string>()
+  const projectOwnerById = new Map<string, string | null>()
+  projects.forEach((project) => {
+    projectTitleById.set(project.id, project.title)
+    projectOwnerById.set(project.id, project.ownerId ?? null)
+  })
+
   const membersMap = new Map<string, any>()
   const now = new Date()
+
+  for (const member of workspaceMembers) {
+    const user = member.user
+    const userName = user.name ?? user.email?.split('@')[0] ?? 'User'
+    membersMap.set(member.userId, {
+      userId: member.userId,
+      name: userName,
+      avatar: user.avatar ?? null,
+      totals: {
+        totalMins: 0,
+        taskMins: 0,
+        meetingMins: 0,
+        generalMins: 0,
+        adminMins: 0,
+        learningMins: 0,
+        breakMins: 0,
+        sessions: 0,
+        completedTasks: 0,
+      },
+      timelineByDate: new Map<string, any[]>(),
+      isProjectAssignee: projectId ? projectAssigneeIds.has(member.userId) : null,
+      currentTasksById: new Map<string, any>(),
+    })
+  }
 
   for (const session of sessions) {
     const durationMs = session.endedAt
@@ -133,8 +193,15 @@ export default defineEventHandler(async (event) => {
 
     const entry = membersMap.get(userId)
     entry.totals.totalMins += durationMins
-    if (session.activityType === 'TASK') entry.totals.taskMins += durationMins
+    if (session.activityType === 'TASK') {
+      entry.totals.taskMins += durationMins
+      if (session.endReason === 'COMPLETED') entry.totals.completedTasks += 1
+    }
     if (session.lane === 'MEETING') entry.totals.meetingMins += durationMins
+    if (session.lane === 'GENERAL') entry.totals.generalMins += durationMins
+    if (session.lane === 'ADMIN') entry.totals.adminMins += durationMins
+    if (session.lane === 'LEARNING') entry.totals.learningMins += durationMins
+    if (session.lane === 'BREAK') entry.totals.breakMins += durationMins
     entry.totals.sessions += 1
 
     if (!entry.timelineByDate.has(dateKey)) {
@@ -157,13 +224,57 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  for (const item of activeItems) {
+    const resolvedProjectId = item.projectId ?? item.parentId ?? null
+    const taskEntry = {
+      id: item.id,
+      title: item.title,
+      status: item.status.toLowerCase(),
+      category: item.category,
+      dueDate: item.dueDate?.toISOString() ?? null,
+      startDate: item.startDate?.toISOString() ?? null,
+      progress: item.progress ?? 0,
+      confidence: item.confidence ?? 70,
+      priority: item.priority ?? null,
+      complexity: item.complexity ?? null,
+      projectId: resolvedProjectId,
+      projectTitle: resolvedProjectId
+        ? projectTitleById.get(resolvedProjectId) ?? 'Project'
+        : 'Project',
+      projectOwnerId: resolvedProjectId ? projectOwnerById.get(resolvedProjectId) ?? null : null,
+    }
+
+    const assigneeIds = new Set(item.assignees.map((a) => a.userId))
+
+    const addTaskForUser = (userId: string, role: 'owner' | 'assignee') => {
+      if (!membersMap.has(userId)) return
+      const member = membersMap.get(userId)
+      const existing = member.currentTasksById.get(taskEntry.id)
+      if (existing) {
+        if (role === 'owner') existing.isOwner = true
+        if (role === 'assignee') existing.isAssignee = true
+        return
+      }
+      member.currentTasksById.set(taskEntry.id, {
+        ...taskEntry,
+        isOwner: role === 'owner',
+        isAssignee: role === 'assignee',
+      })
+    }
+
+    if (item.ownerId) addTaskForUser(item.ownerId, 'owner')
+    for (const userId of assigneeIds) {
+      addTaskForUser(userId, 'assignee')
+    }
+  }
+
   const members = Array.from(membersMap.values()).map((member) => {
     const timeline = Array.from(member.timelineByDate.entries())
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([date, daySessions]) => ({
         date,
         sessions: daySessions
-          .sort((a: any, b: any) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()),
+          .sort((a: any, b: any) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()),
       }))
 
     return {
@@ -174,10 +285,16 @@ export default defineEventHandler(async (event) => {
         totalHours: roundHours(member.totals.totalMins),
         taskHours: roundHours(member.totals.taskMins),
         meetingHours: roundHours(member.totals.meetingMins),
+        generalHours: roundHours(member.totals.generalMins),
+        adminHours: roundHours(member.totals.adminMins),
+        learningHours: roundHours(member.totals.learningMins),
+        breakHours: roundHours(member.totals.breakMins),
         sessions: member.totals.sessions,
+        completedTasks: member.totals.completedTasks,
       },
       isProjectAssignee: member.isProjectAssignee,
       timeline,
+      currentTasks: Array.from(member.currentTasksById.values()),
     }
   })
 
@@ -189,19 +306,17 @@ export default defineEventHandler(async (event) => {
       acc.taskHours += member.totals.taskHours
       acc.meetingHours += member.totals.meetingHours
       acc.sessions += member.totals.sessions
+      if (member.totals.totalHours > 0) acc.activeMembers += 1
       return acc
     },
-    { totalHours: 0, taskHours: 0, meetingHours: 0, sessions: 0 }
+    { totalHours: 0, taskHours: 0, meetingHours: 0, sessions: 0, activeMembers: 0 }
   )
 
   return {
     workspaceId,
     project: projectId ? { id: projectId, title: projectTitle } : null,
     days,
-    stats: {
-      ...stats,
-      activeMembers: members.length,
-    },
+    stats,
     members,
   }
 })

@@ -1,5 +1,6 @@
 // POST /api/focus/complete-task - Complete current task and end focus session
 import { prisma } from '../../utils/prisma'
+import { countIncompleteDescendants } from '../../utils/itemCompletion'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -44,6 +45,14 @@ export default defineEventHandler(async (event) => {
 
   // Optionally mark the task as done
   if (markTaskDone) {
+    const incompleteDescendants = await countIncompleteDescendants(prisma, taskId)
+    if (incompleteDescendants > 0) {
+      throw createError({
+        statusCode: 400,
+        message: 'Cannot mark this item as done while it has incomplete child tasks.',
+      })
+    }
+
     await prisma.item.update({
       where: { id: taskId },
       data: {

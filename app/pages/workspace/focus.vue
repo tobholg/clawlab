@@ -14,6 +14,14 @@ const { data: historyData, refresh, pending } = useFetch('/api/focus/history', {
 })
 
 const timeline = computed(() => historyData.value?.timeline || [])
+const timelineSorted = computed(() => {
+  return timeline.value.map((day: any) => ({
+    ...day,
+    sessions: [...day.sessions].sort(
+      (a: any, b: any) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+    ),
+  }))
+})
 
 // Stats
 const stats = computed(() => {
@@ -81,6 +89,10 @@ const formatDuration = (mins: number) => {
   const h = Math.floor(mins / 60)
   const m = mins % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+const formatSummaryDuration = (mins: number) => {
+  return formatDuration(mins)
 }
 
 const formatDate = (dateStr: string) => {
@@ -181,14 +193,16 @@ const getActivityColor = (session: any) => {
 
       <!-- Timeline -->
       <div v-else class="space-y-8">
-        <div v-for="day in timeline" :key="day.date">
+        <div v-for="day in timelineSorted" :key="day.date">
           <!-- Date header -->
-          <h2 class="text-sm font-medium text-slate-900 mb-3 flex items-center gap-2">
-            {{ formatDate(day.date) }}
-            <span class="text-slate-400 font-normal">
-              · {{ day.sessions.reduce((sum: number, s: any) => sum + s.durationMins, 0) }} min
-            </span>
-          </h2>
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-medium text-slate-900">
+              {{ formatDate(day.date) }}
+            </h2>
+            <div class="text-xs text-slate-400 font-normal">
+              {{ formatSummaryDuration(day.sessions.reduce((sum: number, s: any) => sum + s.durationMins, 0)) }}
+            </div>
+          </div>
 
           <!-- Sessions -->
           <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">

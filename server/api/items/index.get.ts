@@ -66,6 +66,7 @@ export default defineEventHandler(async (event) => {
     const childrenCount = countAllChildren(item)
     const hotCount = countByTemperature(item, ['hot', 'critical'])
     const blockedCount = countByStatus(item, 'BLOCKED')
+    const completedCount = countByStatus(item, 'DONE')
     const atRiskCount = countAtRisk(item)
     const needsEstimateCount = countNeedsEstimate(item)
 
@@ -111,6 +112,8 @@ export default defineEventHandler(async (event) => {
       isBlocked: (item.blockedBy?.length ?? 0) > 0,
       // Children stats
       childrenCount,
+      completedChildrenCount: completedCount,
+      activeChildrenCount: Math.max(0, childrenCount - completedCount),
       hotChildrenCount: hotCount,
       blockedChildrenCount: blockedCount,
       atRiskChildrenCount: atRiskCount,

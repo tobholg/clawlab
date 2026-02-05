@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   // Delete related records in order (due to foreign key constraints)
   await prisma.$transaction(async (tx) => {
     // Delete assignees
-    await tx.itemAssignee.deleteMany({ where: { itemId: id } })
+    await tx.itemAssignment.deleteMany({ where: { itemId: id } })
 
     // Delete stakeholders
     await tx.itemStakeholder.deleteMany({ where: { itemId: id } })

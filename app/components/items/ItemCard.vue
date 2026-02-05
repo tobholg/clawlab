@@ -15,7 +15,12 @@ const emit = defineEmits<{
 
 const { isFocusedOnTask, startTaskFocus, focusState } = useFocus()
 
-const hasChildren = computed(() => props.item.childrenCount > 0)
+const hasChildren = computed(() => (props.item.childrenCount ?? 0) > 0)
+const activeChildrenCount = computed(() => {
+  if (typeof props.item.activeChildrenCount === 'number') return props.item.activeChildrenCount
+  return props.item.childrenCount ?? 0
+})
+const allChildrenCompleted = computed(() => hasChildren.value && activeChildrenCount.value === 0)
 const isCurrentlyFocused = computed(() => isFocusedOnTask(props.item.id))
 const isPaused = computed(() => props.item.status === 'paused')
 const estimateMeta = computed(() => getItemEstimateMeta(props.item))
@@ -183,13 +188,15 @@ const handleCardClick = () => {
     </div>
     
     <!-- Children indicator -->
-    <div v-if="hasChildren" class="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 mb-1.5">
+    <div v-if="hasChildren" class="flex flex-wrap items-center gap-2 text-[10px] mb-1.5">
       <button
-        class="flex items-center gap-1.5 hover:text-slate-600 transition-colors"
+        class="flex items-center gap-1.5 transition-colors"
+        :class="allChildrenCompleted ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'"
         @click.stop="emit('drillDown', item)"
       >
         <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
-        <span>{{ item.childrenCount }} items</span>
+        <span v-if="allChildrenCompleted">All items completed</span>
+        <span v-else>{{ activeChildrenCount }} items</span>
       </button>
       <button
         v-if="(item.atRiskChildrenCount ?? 0) > 0"

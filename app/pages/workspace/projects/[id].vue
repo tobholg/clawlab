@@ -40,6 +40,7 @@ const filterCategory = ref<string | null>(null)
 const filterPriority = ref<string | null>(null)
 const filterComplexity = ref<string | null>(null)
 const searchQuery = ref('')
+const showSuggestedWorkOrder = ref(false)
 const showCreateModal = ref(false)
 const showDetailModal = ref(false)
 const selectedItem = ref<any>(null)
@@ -47,6 +48,10 @@ const documentsSectionRef = ref<any>(null)
 const attentionPaneOpen = ref(false)
 const attentionPaneMode = ref<'at-risk' | 'blocked'>('at-risk')
 const attentionPaneRoot = ref<any>(null)
+const showCompleteWithChildren = ref(false)
+const completeWithChildrenLoading = ref(false)
+const completeWithChildrenError = ref<string | null>(null)
+const pendingCompleteItem = ref<any>(null)
 
 const createDocumentFromHeader = async () => {
   if (activeView.value !== 'documents') return
@@ -223,6 +228,36 @@ const handleOpenDetail = (item: any) => {
   selectedItem.value = item
   showDetailModal.value = true
   attentionPaneOpen.value = false
+}
+
+const handleRequestComplete = (item: any) => {
+  pendingCompleteItem.value = item
+  showCompleteWithChildren.value = true
+  completeWithChildrenError.value = null
+}
+
+const handleCompleteWithChildren = async () => {
+  if (!pendingCompleteItem.value?.id) return
+  completeWithChildrenLoading.value = true
+  completeWithChildrenError.value = null
+  try {
+    await $fetch(`/api/items/${pendingCompleteItem.value.id}/complete`, {
+      method: 'POST',
+      body: { cascade: true, maxDepth: 5 },
+    })
+    showCompleteWithChildren.value = false
+    pendingCompleteItem.value = null
+    await refreshItems()
+  } catch (e: any) {
+    completeWithChildrenError.value = e?.data?.message || e?.message || 'Unable to complete subtasks.'
+  } finally {
+    completeWithChildrenLoading.value = false
+  }
+}
+
+const handleSuggestedSelect = (item: any) => {
+  showSuggestedWorkOrder.value = false
+  handleOpenDetail(item)
 }
 
 const handleOpenAttention = (item: any, mode: 'at-risk' | 'blocked') => {
@@ -432,7 +467,7 @@ onMounted(() => {
     <div v-if="activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'" class="flex items-center gap-2">
       <!-- Category -->
       <div class="group/category relative">
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 group-hover/category:shadow-sm">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 group-hover/category:shadow-sm">
           <div
             class="w-1.5 h-1.5 rounded-full"
             :class="filterCategory ? (categoryDotColors[filterCategory] || 'bg-slate-400') : 'bg-slate-300'"
@@ -471,7 +506,7 @@ onMounted(() => {
 
       <!-- Priority -->
       <div class="group/priority relative">
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/priority:border-slate-300 group-hover/priority:shadow-sm">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/priority:border-slate-300 group-hover/priority:shadow-sm">
           <div
             class="w-1.5 h-1.5 rounded-full"
             :class="filterPriority ? (priorityDotColors[filterPriority] || 'bg-slate-400') : 'bg-slate-300'"
@@ -510,7 +545,7 @@ onMounted(() => {
 
       <!-- Complexity -->
       <div class="group/complexity relative">
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/complexity:border-slate-300 group-hover/complexity:shadow-sm">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/complexity:border-slate-300 group-hover/complexity:shadow-sm">
           <div
             class="w-1.5 h-1.5 rounded-full"
             :class="filterComplexity && filterComplexity !== 'NONE' ? (complexityDotColors[filterComplexity] || 'bg-slate-400') : 'bg-slate-300'"
@@ -559,15 +594,24 @@ onMounted(() => {
 
       <div class="flex-1" />
 
-      <!-- Search -->
-      <div class="relative">
-        <Icon name="heroicons:magnifying-glass" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search..."
-          class="pl-8 pr-3 py-1 text-xs bg-white border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 w-48 transition-all"
-        />
+      <!-- Search + Suggested order -->
+      <div class="flex items-center gap-2">
+        <div class="relative">
+          <Icon name="heroicons:magnifying-glass" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search..."
+            class="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 w-48 transition-all"
+          />
+        </div>
+        <button
+          @click="showSuggestedWorkOrder = true"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-normal rounded-full hover:bg-slate-800 transition-colors"
+        >
+          <Icon name="heroicons:sparkles" class="w-3.5 h-3.5" />
+          Suggested order
+        </button>
       </div>
     </div>
   </header>
@@ -594,6 +638,7 @@ onMounted(() => {
       @status-change="handleStatusChange"
       @parent-change="handleParentChange"
       @open-attention="handleOpenAttention"
+      @request-complete="handleRequestComplete"
     />
 
     <!-- Timeline View -->
@@ -656,5 +701,23 @@ onMounted(() => {
     @close="attentionPaneOpen = false"
     @open-detail="handleOpenDetail"
     @drill-down="handleDrillDown"
+  />
+
+  <ItemsCompleteWithChildrenModal
+    :open="showCompleteWithChildren"
+    :title="pendingCompleteItem?.title"
+    :max-depth="5"
+    :loading="completeWithChildrenLoading"
+    :error="completeWithChildrenError"
+    @cancel="showCompleteWithChildren = false"
+    @confirm="handleCompleteWithChildren"
+  />
+
+  <!-- Suggested Work Order Panel -->
+  <ItemsSuggestedWorkOrderPanel
+    :open="showSuggestedWorkOrder"
+    :items="scopedItems"
+    @close="showSuggestedWorkOrder = false"
+    @select="handleSuggestedSelect"
   />
 </template>

@@ -6,6 +6,14 @@ const { data: historyData, refresh } = useFetch('/api/focus/history', {
 })
 
 const timeline = computed(() => historyData.value?.timeline || [])
+const timelineSorted = computed(() => {
+  return timeline.value.map((day: any) => ({
+    ...day,
+    sessions: [...day.sessions].sort(
+      (a: any, b: any) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+    ),
+  }))
+})
 
 // Edit comment state
 const editingSessionId = ref<string | null>(null)
@@ -105,11 +113,16 @@ const getActivityColor = (session: any) => {
     </div>
 
     <!-- Timeline by day -->
-    <div v-for="day in timeline" :key="day.date" class="space-y-2">
+    <div v-for="day in timelineSorted" :key="day.date" class="space-y-2">
       <!-- Date header -->
-      <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wider px-1">
-        {{ formatDate(day.date) }}
-      </h3>
+      <div class="flex items-center justify-between px-1">
+        <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          {{ formatDate(day.date) }}
+        </h3>
+        <span class="text-[11px] text-slate-400">
+          {{ formatDuration(day.sessions.reduce((sum: number, s: any) => sum + s.durationMins, 0)) }}
+        </span>
+      </div>
 
       <!-- Sessions -->
       <div class="space-y-1">

@@ -224,7 +224,7 @@ onMounted(() => {
         <!-- Hero visual -->
         <div class="relative">
           <div class="hero-bubbles">
-            <div class="hero-bubble intro" style="--d: 520ms">
+            <div class="hero-bubble intro border border-slate-200/70" style="--d: 520ms">
               <div class="flex items-center justify-between">
                 <div class="text-xs font-semibold text-slate-700">Forecast</div>
                 <span class="pill pill--amber">At risk</span>
@@ -237,10 +237,10 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="hero-bubble intro" style="--d: 640ms">
+            <div class="hero-bubble intro border border-slate-200/70" style="--d: 640ms">
               <div class="text-xs font-semibold text-slate-700">Stakeholder update</div>
               <div class="mt-2 text-xs text-slate-600">
-                Core API is in progress. Two dependencies resolved. Next: billing integration.
+                Core API in progress. Two deps resolved. Next: billing.
               </div>
               <div class="mt-3 flex items-center gap-2 text-[10px] text-slate-500">
                 <span class="pill pill--emerald">Published</span>
@@ -248,7 +248,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="hero-bubble intro" style="--d: 760ms">
+            <div class="hero-bubble intro border border-slate-200/70" style="--d: 760ms">
               <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center">AI</div>
                 <div class="text-xs font-semibold text-slate-700">Team chat</div>
@@ -469,11 +469,7 @@ onMounted(() => {
 
 .hero-bubble {
   border-radius: 24px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
   background: rgba(255, 255, 255, 0.94);
-  box-shadow:
-    0 24px 60px rgba(15, 23, 42, 0.14),
-    0 6px 18px rgba(15, 23, 42, 0.08);
   padding: 22px 24px;
   backdrop-filter: blur(10px);
   width: 100%;
