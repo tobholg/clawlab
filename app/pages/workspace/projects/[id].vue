@@ -52,6 +52,15 @@ const showCompleteWithChildren = ref(false)
 const completeWithChildrenLoading = ref(false)
 const completeWithChildrenError = ref<string | null>(null)
 const pendingCompleteItem = ref<any>(null)
+const editingTitle = ref(false)
+const editingDescription = ref(false)
+const titleInputRef = ref<HTMLInputElement | null>(null)
+const descriptionRef = ref<HTMLTextAreaElement | null>(null)
+const descriptionNeedsTruncation = computed(() => {
+  const desc = editedProjectDescription.value
+  if (!desc) return false
+  return desc.length > 100 || desc.includes('\n')
+})
 
 const createDocumentFromHeader = async () => {
   if (activeView.value !== 'documents') return
@@ -91,6 +100,8 @@ const isProjectInitializing = ref(true)
 // Load project data when scope changes
 watch(currentScope, (scope) => {
   isProjectInitializing.value = true
+  editingTitle.value = false
+  editingDescription.value = false
   if (scope && scope.id !== 'root') {
     editedProjectTitle.value = scope.title ?? ''
     editedProjectDescription.value = scope.description ?? ''
@@ -366,23 +377,69 @@ onMounted(() => {
     <div class="flex items-start justify-between gap-6">
       <div class="flex items-start gap-4 flex-1 min-w-0">
         <div class="flex-1 min-w-0 max-w-3xl">
-          <!-- Editable title -->
+          <!-- Title: display or edit -->
+          <h1
+            v-if="!editingTitle"
+            class="text-xl font-medium text-slate-900 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 transition-colors"
+            @click="editingTitle = true; nextTick(() => titleInputRef?.focus())"
+          >
+            {{ editedProjectTitle || 'Untitled project' }}
+          </h1>
           <input
+            v-else
+            ref="titleInputRef"
             v-model="editedProjectTitle"
             type="text"
-            class="text-xl font-medium text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 p-0 w-full"
+            class="text-xl font-medium text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 p-0 px-1 -mx-1 w-full"
             placeholder="Project title..."
+            @blur="editingTitle = false"
+            @keydown.enter="editingTitle = false"
           />
 
-          <!-- Editable description -->
-          <textarea
-            v-model="editedProjectDescription"
-            rows="1"
-            class="text-sm text-slate-400 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 p-0 mt-1 w-full resize-none overflow-hidden"
-            placeholder="Add a description..."
-            @input="(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }"
-            @focus="(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }"
-          />
+          <!-- Description: display or edit -->
+          <div class="mt-1">
+            <div v-if="!editingDescription">
+              <p
+                v-if="editedProjectDescription"
+                class="text-sm text-slate-400 line-clamp-2 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
+              >
+                {{ editedProjectDescription }}
+              </p>
+              <p
+                v-else
+                class="text-sm text-slate-400 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                @click="editingDescription = true; nextTick(() => descriptionRef?.focus())"
+              >
+                Add a description...
+              </p>
+              <button
+                v-if="descriptionNeedsTruncation"
+                @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
+                class="text-xs text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
+              >
+                Show more
+              </button>
+            </div>
+            <div v-else>
+              <textarea
+                ref="descriptionRef"
+                v-model="editedProjectDescription"
+                rows="1"
+                class="text-sm text-slate-400 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 p-0 px-1 -mx-1 w-full resize-none overflow-hidden"
+                placeholder="Add a description..."
+                @input="(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }"
+                @blur="editingDescription = false"
+              />
+              <button
+                v-if="descriptionNeedsTruncation"
+                @mousedown.prevent="editingDescription = false"
+                class="text-xs text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
+              >
+                Show less
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

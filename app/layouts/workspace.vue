@@ -77,7 +77,6 @@ const currentChannelId = computed(() => {
   return null
 })
 
-const isWorkspaceHome = computed(() => route.path === '/workspace')
 const isTeamFocus = computed(() => route.path === '/workspace/team')
 
 // Handle project click - navigate to project page
@@ -289,12 +288,7 @@ provide('refreshSidebarProjects', fetchProjects)
     </aside>
 
     <!-- Main Content -->
-    <main
-      :class="[
-        'flex-1 flex flex-col min-w-0 relative overflow-hidden',
-        isWorkspaceHome ? 'workspace-home-bg' : 'bg-[#FAFAFA]'
-      ]"
-    >
+    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white">
       <slot />
     </main>
 
@@ -304,12 +298,3 @@ provide('refreshSidebarProjects', fetchProjects)
   </div>
 </template>
 
-<style scoped>
-.workspace-home-bg {
-  background-image:
-    radial-gradient(55% 45% at 85% 20%, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0)),
-    linear-gradient(120deg, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0.98) 38%, #ffffff 78%),
-    linear-gradient(300deg, rgba(56, 189, 248, 0.2) 0%, rgba(255, 255, 255, 0.98) 44%, #ffffff 82%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, #ffffff 52%, #ffffff 100%);
-}
-</style>
