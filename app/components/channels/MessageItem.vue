@@ -35,8 +35,8 @@ const isAiMessage = computed(() => {
 // Bubble background color - Telegram style
 const bubbleColor = computed(() => {
   if (isOwnMessage.value) {
-    // Green for own messages (like Telegram)
-    return 'bg-emerald-100 text-slate-800'
+    // Soft green-to-white gradient for own messages
+    return 'bg-gradient-to-r from-emerald-50 via-emerald-50 to-white text-slate-800 border border-emerald-100/60 shadow-sm'
   }
   // White for everyone else
   return 'bg-white text-slate-800 shadow-sm border border-slate-100'
@@ -80,6 +80,112 @@ const taskProposal = computed<TaskProposal | null>(() => {
   const attachments = Array.isArray(props.message.attachments) ? props.message.attachments : []
   const match = attachments.find((attachment: any) => attachment?.type === 'task_proposal' && attachment?.proposal)
   return (match?.proposal as TaskProposal) || null
+})
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+const renderInline = (value: string) => {
+  let content = value
+  // Inline code (`...`)
+  content = content.replace(/`([^`]+)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-xs">$1</code>')
+  // Bold (**...**)
+  content = content.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  // Italic (*...*)
+  content = content.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+  // Links [text](url)
+  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-emerald-700 hover:underline">$1</a>')
+  return content
+}
+
+// Simple markdown-like rendering for AI messages (basic)
+const renderedAiContent = computed(() => {
+  let content = props.message.content || ''
+  content = content.replace(/\r\n/g, '\n')
+
+  const codeBlocks: string[] = []
+  content = content.replace(/```(\w*)\n?([\s\S]*?)```/g, (_match, _lang, code) => {
+    const escaped = escapeHtml(code.trim())
+    const html = `<pre class="bg-slate-100 rounded-lg p-2 my-2 overflow-x-auto text-xs"><code>${escaped}</code></pre>`
+    const index = codeBlocks.length
+    codeBlocks.push(html)
+    return `__CODEBLOCK_${index}__`
+  })
+
+  content = escapeHtml(content)
+
+  const lines = content.split('\n')
+  const parts: string[] = []
+  let listType: 'ul' | 'ol' | null = null
+  const paragraphLines: string[] = []
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return
+    parts.push(`<p>${paragraphLines.join('<br>')}</p>`)
+    paragraphLines.length = 0
+  }
+
+  const closeList = () => {
+    if (!listType) return
+    parts.push(listType === 'ul' ? '</ul>' : '</ol>')
+    listType = null
+  }
+
+  const pushListItem = (type: 'ul' | 'ol', item: string) => {
+    if (listType && listType !== type) {
+      closeList()
+    }
+    if (!listType) {
+      parts.push(type === 'ul' ? '<ul class="list-disc pl-5 my-2">' : '<ol class="list-decimal pl-5 my-2">')
+      listType = type
+    }
+    parts.push(`<li>${renderInline(item)}</li>`)
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('__CODEBLOCK_') && trimmed.endsWith('__')) {
+      flushParagraph()
+      closeList()
+      parts.push(trimmed)
+      continue
+    }
+
+    if (!trimmed) {
+      flushParagraph()
+      closeList()
+      parts.push('<div class="h-2"></div>')
+      continue
+    }
+
+    const ulMatch = line.match(/^\s*-\s+(.*)$/)
+    if (ulMatch) {
+      flushParagraph()
+      pushListItem('ul', ulMatch[1])
+      continue
+    }
+
+    const olMatch = line.match(/^\s*\d+\.\s+(.*)$/)
+    if (olMatch) {
+      flushParagraph()
+      pushListItem('ol', olMatch[1])
+      continue
+    }
+
+    closeList()
+    paragraphLines.push(renderInline(line))
+  }
+
+  flushParagraph()
+  closeList()
+
+  let html = parts.join('')
+  html = html.replace(/__CODEBLOCK_(\d+)__/g, (_, index) => codeBlocks[Number(index)] ?? '')
+  return html
 })
 </script>
 
@@ -155,7 +261,10 @@ const taskProposal = computed<TaskProposal | null>(() => {
           ]"
         >
           <!-- Message text -->
-          <p class="text-sm whitespace-pre-wrap break-words leading-relaxed">
+          <div v-if="isAiMessage" class="text-sm leading-relaxed prose prose-sm prose-slate max-w-none">
+            <div v-if="message.content" v-html="renderedAiContent" />
+          </div>
+          <p v-else class="text-sm whitespace-pre-wrap break-words leading-relaxed">
             {{ message.content }}
           </p>
 

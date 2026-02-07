@@ -113,7 +113,7 @@ const formatDate = (dateStr: string): string => {
     </div>
 
     <!-- Summary text -->
-    <div class="flex items-center justify-between mt-1.5 text-xs text-slate-400">
+    <div class="flex items-center justify-between mt-2.5 text-xs text-slate-400">
       <span>{{ completionData?.totalCompletions ?? 0 }} completed</span>
       <span>{{ days ?? 14 }} days</span>
     </div>

@@ -9,8 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts"
+    "db:reset": "prisma db push --force-reset"
   },
   "dependencies": {
     "@nuxt/icon": "^2.2.1",

@@ -157,9 +157,6 @@ provide('refreshSidebarProjects', fetchProjects)
         </NuxtLink>
       </div>
 
-      <!-- Team Section -->
-      <TeamPresence v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
-
       <!-- Projects Section -->
       <div v-if="!sidebarCollapsed" class="px-3 mb-4">
         <button

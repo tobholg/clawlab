@@ -24,9 +24,6 @@ const currentWorkspaceId = ref('demo-workspace')
       <!-- Focus Section -->
       <FocusSidebar />
       
-      <!-- Team Presence -->
-      <TeamPresence :workspace-id="currentWorkspaceId" />
-
       <!-- Navigation -->
       <nav class="p-4 space-y-1 flex-shrink-0">
         <NuxtLink

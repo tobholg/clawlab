@@ -69,6 +69,62 @@ const getActiveChildrenCount = (project: ItemNode) => {
 const hasAllChildrenCompleted = (project: ItemNode) => {
   return (project.childrenCount ?? 0) > 0 && getActiveChildrenCount(project) === 0
 }
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+
+const calculateHealthScore = (project: ItemNode) => {
+  if (project.status === 'done') return 100
+
+  let score = 100
+  const blocked = project.blockedChildrenCount ?? 0
+  const atRisk = project.atRiskChildrenCount ?? 0
+
+  score -= Math.min(45, blocked * 12)
+  score -= Math.min(30, atRisk * 6)
+
+  if (project.status === 'blocked') score -= 18
+  if (project.status === 'paused') score -= 10
+
+  const activitySource = project.lastActivityAt || project.updatedAt || project.createdAt
+  if (activitySource) {
+    const last = new Date(activitySource).getTime()
+    const days = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24))
+    if (days > 21) score -= 15
+    else if (days > 10) score -= 8
+    else if (days > 5) score -= 4
+  }
+
+  if ((project.childrenCount ?? 0) > 0 && getActiveChildrenCount(project) === 0) {
+    score += 5
+  }
+
+  return clamp(Math.round(score), 0, 100)
+}
+
+const healthMeta = (project: ItemNode) => {
+  const score = calculateHealthScore(project)
+
+  if (project.status === 'done') {
+    return {
+      score,
+      label: 'Complete',
+      textClass: 'text-emerald-600',
+      barClass: 'from-emerald-500 via-emerald-400 to-emerald-200',
+      trackClass: 'bg-emerald-50',
+    }
+  }
+
+  if (score >= 85) {
+    return { score, label: 'Excellent', textClass: 'text-emerald-600', barClass: 'from-emerald-500 via-emerald-400 to-emerald-200', trackClass: 'bg-emerald-50' }
+  }
+  if (score >= 70) {
+    return { score, label: 'Good', textClass: 'text-teal-600', barClass: 'from-teal-500 via-teal-400 to-teal-200', trackClass: 'bg-teal-50' }
+  }
+  if (score >= 55) {
+    return { score, label: 'Watch', textClass: 'text-amber-600', barClass: 'from-amber-500 via-amber-400 to-amber-200', trackClass: 'bg-amber-50' }
+  }
+  return { score, label: 'Risk', textClass: 'text-rose-600', barClass: 'from-rose-500 via-rose-400 to-rose-200', trackClass: 'bg-rose-50' }
+}
 </script>
 
 <template>
@@ -78,16 +134,18 @@ const hasAllChildrenCompleted = (project: ItemNode) => {
       <div
         v-for="project in sortedProjects"
         :key="project.id"
-        class="group bg-white rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all duration-200 cursor-pointer"
+        class="group relative overflow-hidden bg-white/90 rounded-2xl border border-slate-100 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
         :class="{ 'opacity-60': project.status === 'done' }"
         @click="emit('openProject', project)"
       >
-        <div class="p-5">
+        <div class="p-5 relative">
           <!-- Title -->
-          <div class="flex items-start justify-between mb-4">
-            <h3 class="text-[15px] font-medium text-slate-800 leading-snug group-hover:text-slate-900 transition-colors">
-              {{ project.title }}
-            </h3>
+          <div class="flex items-start justify-between mb-3">
+            <div class="min-w-0">
+              <h3 class="text-[15px] font-semibold text-slate-800 leading-snug group-hover:text-slate-900 transition-colors truncate">
+                {{ project.title }}
+              </h3>
+            </div>
             <button
               @click.stop="emit('openDetail', project)"
               class="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-all flex-shrink-0 ml-3 -mr-1 -mt-1"
@@ -96,8 +154,25 @@ const hasAllChildrenCompleted = (project: ItemNode) => {
             </button>
           </div>
 
-          <!-- Heatmap (central focus) -->
+          <!-- Project Health -->
           <div class="mb-4">
+            <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
+              <span>Project health</span>
+              <span class="font-semibold" :class="healthMeta(project).textClass">
+                {{ healthMeta(project).score }}% · {{ healthMeta(project).label }}
+              </span>
+            </div>
+            <div class="h-2.5 rounded-full overflow-hidden" :class="healthMeta(project).trackClass">
+              <div
+                class="h-full rounded-full bg-gradient-to-r transition-all"
+                :class="healthMeta(project).barClass"
+                :style="{ width: `${healthMeta(project).score}%` }"
+              />
+            </div>
+          </div>
+
+          <!-- Heatmap (central focus) -->
+          <div class="mb-4 rounded-xl border border-slate-100 bg-white p-3">
             <UiCompletionHeatmap :item-id="project.id" :days="14" />
           </div>
 
@@ -130,10 +205,10 @@ const hasAllChildrenCompleted = (project: ItemNode) => {
             <div class="flex items-center gap-2">
               <template v-if="project.owner">
                 <div
-                  class="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center"
+                  class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center border border-slate-100"
                   :title="project.owner.name"
                 >
-                  <span class="text-[9px] text-slate-500 font-medium">{{ project.owner.name?.[0] ?? '?' }}</span>
+                  <span class="text-[10px] text-slate-500 font-medium">{{ project.owner.name?.[0] ?? '?' }}</span>
                 </div>
                 <span class="text-slate-600">{{ project.owner.name?.split(' ')[0] }}</span>
               </template>
@@ -155,7 +230,7 @@ const hasAllChildrenCompleted = (project: ItemNode) => {
       <!-- New Project Card -->
       <button
         @click="emit('createProject')"
-        class="flex flex-col items-center justify-center min-h-[180px] bg-slate-50 rounded-xl border border-dashed border-slate-300 hover:border-slate-400 hover:bg-slate-100 transition-all group"
+        class="flex flex-col items-center justify-center min-h-[200px] bg-gradient-to-br from-slate-50 via-white to-slate-50 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 hover:shadow-sm transition-all group"
       >
         <div class="w-10 h-10 rounded-full bg-slate-200 group-hover:bg-slate-300 flex items-center justify-center mb-2 transition-colors">
           <Icon name="heroicons:plus" class="w-5 h-5 text-slate-500 group-hover:text-slate-600" />
