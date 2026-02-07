@@ -6,15 +6,25 @@ const props = defineProps<{
   parentTitle?: string
   isProject?: boolean
   workspaceId?: string | null
+  parentId?: string | null
 }>()
 
 const emit = defineEmits<{
   close: []
   create: [item: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string }]
+  aiCreated: [item: any]
 }>()
 
 const { user } = useAuth()
 const currentUserId = computed(() => user.value?.id ?? null)
+const mode = ref<'ai' | 'manual'>('ai')
+const aiInput = ref('')
+const aiCreating = ref(false)
+const aiError = ref<string | null>(null)
+const aiSuccess = ref(false)
+const aiCreatedCount = ref(1)
+const aiCreatedSubtasks = ref(0)
+const aiSuccessTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 
 const title = ref('')
 const description = ref('')
@@ -51,6 +61,13 @@ watch(() => props.open, (open) => {
     if (!ownerId.value && currentUserId.value) {
       ownerId.value = currentUserId.value
     }
+    mode.value = props.isProject ? 'manual' : 'ai'
+    resetAiState()
+    if (!props.isProject) {
+      resetManualForm()
+    }
+  } else {
+    clearAiTimer()
   }
 })
 
@@ -81,6 +98,33 @@ const assigneeDropdownRef = ref<HTMLElement | null>(null)
 const categoryDropdownRef = ref<HTMLElement | null>(null)
 const priorityDropdownRef = ref<HTMLElement | null>(null)
 
+const clearAiTimer = () => {
+  if (aiSuccessTimer.value) {
+    clearTimeout(aiSuccessTimer.value)
+    aiSuccessTimer.value = null
+  }
+}
+
+const resetManualForm = () => {
+  title.value = ''
+  description.value = ''
+  category.value = ''
+  dueDate.value = ''
+  assigneeIds.value = []
+  ownerId.value = currentUserId.value ?? null
+  priority.value = 'MEDIUM'
+}
+
+const resetAiState = () => {
+  clearAiTimer()
+  aiInput.value = ''
+  aiError.value = null
+  aiSuccess.value = false
+  aiCreating.value = false
+  aiCreatedCount.value = 1
+  aiCreatedSubtasks.value = 0
+}
+
 const handleSubmit = () => {
   if (!title.value.trim()) return
   
@@ -94,17 +138,49 @@ const handleSubmit = () => {
     priority: priority.value || undefined,
   })
   
-  // Reset form
-  title.value = ''
-  description.value = ''
-  category.value = ''
-  dueDate.value = ''
-  assigneeIds.value = []
-  ownerId.value = currentUserId.value ?? null
-  priority.value = 'MEDIUM'
+  resetManualForm()
+}
+
+const handleAiSubmit = async () => {
+  if (!aiInput.value.trim() || aiCreating.value || aiSuccess.value) return
+  if (!props.workspaceId || !props.parentId) {
+    aiError.value = 'Missing workspace or parent project context.'
+    return
+  }
+
+  aiCreating.value = true
+  aiError.value = null
+
+  try {
+    const response = await $fetch<{ item: any; createdTaskCount: number; subtaskCount: number }>('/api/items/ai-create', {
+      method: 'POST',
+      body: {
+        workspaceId: props.workspaceId,
+        parentId: props.parentId,
+        input: aiInput.value.trim(),
+      },
+    })
+
+    aiSuccess.value = true
+    aiCreatedCount.value = response.createdTaskCount || 1
+    aiCreatedSubtasks.value = response.subtaskCount || 0
+    aiInput.value = ''
+
+    clearAiTimer()
+    aiSuccessTimer.value = setTimeout(() => {
+      emit('aiCreated', response.item)
+      emit('close')
+      resetAiState()
+    }, 2000)
+  } catch (e: any) {
+    aiError.value = e?.data?.message || e?.message || 'Failed to generate task.'
+  } finally {
+    aiCreating.value = false
+  }
 }
 
 const handleClose = () => {
+  if (aiCreating.value) return
   emit('close')
 }
 
@@ -175,6 +251,10 @@ const priorityDotColors: Record<string, string> = {
 const priorityLabel = computed(() => {
   return priorityOptions.find(opt => opt.value === priority.value)?.label ?? 'Medium'
 })
+
+onUnmounted(() => {
+  clearAiTimer()
+})
 </script>
 
 <template>
@@ -204,9 +284,35 @@ const priorityLabel = computed(() => {
               Create a new project in your workspace
             </p>
           </div>
-          
-          <!-- Form -->
-          <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
+
+          <!-- Mode Toggle -->
+          <div v-if="!isProject" class="px-6 pt-4">
+            <div class="inline-flex p-1 rounded-lg bg-slate-100 border border-slate-200">
+              <button
+                type="button"
+                @click="mode = 'ai'"
+                :class="[
+                  'px-3 py-1.5 text-xs rounded-md transition-all',
+                  mode === 'ai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                ]"
+              >
+                Relai AI
+              </button>
+              <button
+                type="button"
+                @click="mode = 'manual'"
+                :class="[
+                  'px-3 py-1.5 text-xs rounded-md transition-all',
+                  mode === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                ]"
+              >
+                Manual
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual Form -->
+          <form v-if="isProject || mode === 'manual'" @submit.prevent="handleSubmit" class="p-6 space-y-4">
             <!-- Title -->
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1.5">
@@ -478,6 +584,77 @@ const priorityLabel = computed(() => {
               </button>
             </div>
           </form>
+
+          <!-- AI Form -->
+          <form v-else @submit.prevent="handleAiSubmit" class="p-6 space-y-4">
+            <div
+              :class="[
+                'rounded-xl border bg-gradient-to-br p-4 transition-all duration-300',
+                aiCreating
+                  ? 'border-violet-300 from-violet-100 via-white to-sky-100 shadow-[0_0_0_2px_rgba(139,92,246,0.08)]'
+                  : 'border-violet-200/70 from-violet-50 via-white to-blue-50'
+              ]"
+            >
+              <label class="block text-xs font-medium text-slate-600 mb-2">
+                Describe what should be created
+              </label>
+              <textarea
+                v-model="aiInput"
+                rows="7"
+                placeholder="Paste an email, spec, bug report, or task description..."
+                :disabled="aiCreating || aiSuccess"
+                class="w-full px-3 py-2 text-sm border border-violet-200/80 rounded-lg bg-white/90 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-300 transition-all resize-none disabled:opacity-70"
+                autofocus
+              />
+              <p class="text-xs text-slate-500 mt-2">
+                Relai AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
+              </p>
+
+              <div
+                v-if="aiCreating"
+                class="mt-3 flex items-center gap-2 text-violet-700"
+              >
+                <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
+                <span class="text-xs font-medium animate-pulse">Relai AI is shaping your task plan...</span>
+              </div>
+            </div>
+
+            <div
+              v-if="aiError"
+              class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+            >
+              {{ aiError }}
+            </div>
+
+            <div
+              v-if="aiSuccess"
+              class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+            >
+              Created {{ aiCreatedCount }} task{{ aiCreatedCount === 1 ? '' : 's' }}
+              <span v-if="aiCreatedSubtasks > 0"> ({{ aiCreatedSubtasks }} subtasks)</span>.
+              Opening item...
+            </div>
+
+            <div class="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                @click="handleClose"
+                :disabled="aiCreating || aiSuccess"
+                class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="!aiInput.trim() || aiCreating || aiSuccess"
+                class="px-4 py-2 text-sm font-normal text-white bg-violet-600 rounded-lg hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <span v-if="aiCreating">Creating...</span>
+                <span v-else-if="aiSuccess">Created</span>
+                <span v-else>Create</span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </Transition>
@@ -515,4 +692,5 @@ const priorityLabel = computed(() => {
   opacity: 0;
   transform: translateY(-4px);
 }
+
 </style>

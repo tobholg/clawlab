@@ -1,6 +1,7 @@
 import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
 import { prisma } from '../../../../../../utils/prisma'
 import { requireUser } from '../../../../../../utils/auth'
+import { getDefaultSubStatus } from '../../../../../../utils/itemStage'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -72,6 +73,7 @@ export default defineEventHandler(async (event) => {
       description: `${ir.content}\n\n---\n*Suggested via ${ir.externalSpace.name}*`,
       category: category || undefined,
       status: 'TODO',
+      subStatus: getDefaultSubStatus('TODO'),
       progress: 0,
       confidence: 70,
       ownerId: user.id

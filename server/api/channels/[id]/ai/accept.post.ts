@@ -1,5 +1,6 @@
 import { prisma } from '../../../../utils/prisma'
 import { requireUser } from '../../../../utils/auth'
+import { getDefaultSubStatus } from '../../../../utils/itemStage'
 
 type ProposedTask = {
   title: string
@@ -115,6 +116,8 @@ async function createItem(params: { workspaceId: string; parentId: string | null
       projectId,
       title: params.title,
       description: params.description,
+      status: 'TODO',
+      subStatus: getDefaultSubStatus('TODO'),
     },
     select: { id: true },
   })

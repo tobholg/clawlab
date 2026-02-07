@@ -112,6 +112,13 @@ const showCompleteWithChildren = ref(false)
 const completeWithChildrenLoading = ref(false)
 const completeWithChildrenError = ref<string | null>(null)
 const completeWithChildrenSource = ref<'status' | 'focus' | null>(null)
+const defaultSubStatusByStatus: Record<string, string | null> = {
+  todo: 'backlog',
+  in_progress: 'scoping',
+  blocked: 'dependency',
+  paused: 'on_hold',
+  done: null,
+}
 
 const hasIncompleteChildren = () => {
   const children = itemDetail.value?.children ?? []
@@ -489,15 +496,14 @@ watch(editedStatus, async (newStatus, oldStatus) => {
     statusError.value = null
   }
   
-  // Only clear subStatus when moving between non-done statuses with incompatible sub-statuses
-  // Preserve subStatus when moving to/from done (for round-trips)
   if (oldStatus && newStatus !== oldStatus) {
-    const isDoneTransition = newStatus === 'done' || oldStatus === 'done'
-    if (!isDoneTransition && editedSubStatus.value) {
-      // Check if current subStatus is valid for new status
+    if (newStatus === 'done') {
+      editedSubStatus.value = null
+    } else {
       const validSubStatuses = getSubStatusesForStatus(newStatus)
-      if (!validSubStatuses[editedSubStatus.value as keyof typeof validSubStatuses]) {
-        editedSubStatus.value = null
+      const currentSubStatus = editedSubStatus.value
+      if (!currentSubStatus || !validSubStatuses[currentSubStatus as keyof typeof validSubStatuses]) {
+        editedSubStatus.value = defaultSubStatusByStatus[newStatus] ?? null
       }
     }
   }

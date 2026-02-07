@@ -6,6 +6,8 @@ const props = defineProps<{
   loading?: boolean
   hasMore?: boolean
   currentUserId?: string
+  channelId?: string
+  missedBoundaryMessageId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -16,8 +18,9 @@ const emit = defineEmits<{
 
 // Group messages by date and consecutive author
 interface MessageGroup {
-  type: 'date' | 'message'
+  type: 'date' | 'missed' | 'message'
   date?: string
+  missedLabel?: string
   message?: ChannelMessage
   showAuthor?: boolean
 }
@@ -41,6 +44,13 @@ const groupedMessages = computed((): MessageGroup[] => {
       groups.push({
         type: 'date',
         date: formatDateSeparator(messageDate),
+      })
+    }
+
+    if (props.missedBoundaryMessageId && message.id === props.missedBoundaryMessageId) {
+      groups.push({
+        type: 'missed',
+        missedLabel: 'New since your last visit',
       })
     }
 
@@ -90,6 +100,7 @@ const scrollContainer = ref<HTMLElement | null>(null)
 const isNearBottom = ref(true)
 const isAtTop = ref(false)
 const showScrollButton = ref(false)
+const animateEntries = ref(true)
 
 // Handle scroll
 const handleScroll = () => {
@@ -116,18 +127,79 @@ const handleScroll = () => {
 // Scroll to bottom
 const scrollToBottom = (smooth = false) => {
   if (!scrollContainer.value) return
-  scrollContainer.value.scrollTo({
-    top: scrollContainer.value.scrollHeight,
-    behavior: smooth ? 'smooth' : 'instant',
-  })
+  if (smooth) {
+    scrollContainer.value.scrollTo({
+      top: scrollContainer.value.scrollHeight,
+      behavior: 'smooth',
+    })
+    return
+  }
+  scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
+}
+
+const scrollToMessage = (messageId: string, smooth = true): boolean => {
+  if (!scrollContainer.value || !messageId) return false
+  const messageEls = scrollContainer.value.querySelectorAll<HTMLElement>('[data-message-id]')
+  const target = Array.from(messageEls).find(el => el.dataset.messageId === messageId)
+  if (!target) return false
+
+  const top = Math.max(target.offsetTop - 14, 0)
+  if (smooth) {
+    scrollContainer.value.scrollTo({
+      top,
+      behavior: 'smooth',
+    })
+    return true
+  }
+
+  scrollContainer.value.scrollTop = top
+  return true
+}
+
+const scrollToMissedDivider = (smooth = true): boolean => {
+  if (!scrollContainer.value) return false
+  const divider = scrollContainer.value.querySelector<HTMLElement>('[data-missed-divider="true"]')
+  if (!divider) {
+    if (props.missedBoundaryMessageId) {
+      return scrollToMessage(props.missedBoundaryMessageId, smooth)
+    }
+    return false
+  }
+
+  const top = Math.max(divider.offsetTop - 8, 0)
+  if (smooth) {
+    scrollContainer.value.scrollTo({
+      top,
+      behavior: 'smooth',
+    })
+    return true
+  }
+
+  scrollContainer.value.scrollTop = top
+  return true
 }
 
 // Auto-scroll when new messages arrive (if near bottom)
 watch(() => props.messages.length, (newLen, oldLen) => {
-  if (newLen > oldLen && isNearBottom.value) {
-    nextTick(() => scrollToBottom(true))
-  }
+  if (newLen <= oldLen || !isNearBottom.value) return
+  nextTick(() => scrollToBottom(false))
 })
+
+// Channel switch: always snap to bottom and skip initial list-enter animations.
+watch(() => props.channelId, (newId, oldId) => {
+  if (!newId || newId === oldId) return
+  animateEntries.value = false
+  nextTick(() => scrollToBottom(false))
+  if (import.meta.client) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        animateEntries.value = true
+      })
+    })
+    return
+  }
+  animateEntries.value = true
+}, { immediate: true })
 
 // Initial scroll to bottom
 onMounted(() => {
@@ -135,7 +207,7 @@ onMounted(() => {
 })
 
 // Expose scroll method
-defineExpose({ scrollToBottom })
+defineExpose({ scrollToBottom, scrollToMessage, scrollToMissedDivider })
 </script>
 
 <template>
@@ -163,6 +235,7 @@ defineExpose({ scrollToBottom })
     <!-- Messages - centered container -->
     <div class="max-w-3xl mx-auto">
       <TransitionGroup
+        :css="animateEntries"
         tag="div"
         class="py-4"
         enter-active-class="message-enter-active"
@@ -170,7 +243,10 @@ defineExpose({ scrollToBottom })
         enter-to-class="message-enter-to"
         move-class="message-move"
       >
-        <template v-for="group in groupedMessages" :key="group.type === 'date' ? group.date : group.message?.id">
+        <template
+          v-for="(group, index) in groupedMessages"
+          :key="group.type === 'date' ? `date-${group.date}` : group.type === 'missed' ? `missed-${index}` : group.message?.id"
+        >
           <!-- Date separator -->
           <div v-if="group.type === 'date'" class="flex items-center px-4 py-3">
             <div class="flex-1 h-px bg-slate-200" />
@@ -180,15 +256,25 @@ defineExpose({ scrollToBottom })
             <div class="flex-1 h-px bg-slate-200" />
           </div>
 
+          <!-- Missed divider -->
+          <div v-else-if="group.type === 'missed'" data-missed-divider="true" class="flex items-center px-4 py-3">
+            <div class="flex-1 h-px bg-amber-200/80" />
+            <span class="px-4 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">
+              {{ group.missedLabel }}
+            </span>
+            <div class="flex-1 h-px bg-amber-200/80" />
+          </div>
+
           <!-- Message -->
-          <ChannelsMessageItem
-            v-else-if="group.message"
-            :message="group.message"
-            :show-author="group.showAuthor"
-            :current-user-id="currentUserId"
-            @reply="(msg) => emit('reply', msg)"
-            @react="(msgId, emoji) => emit('react', msgId, emoji)"
-          />
+          <div v-else-if="group.message" :data-message-id="group.message.id">
+            <ChannelsMessageItem
+              :message="group.message"
+              :show-author="group.showAuthor"
+              :current-user-id="currentUserId"
+              @reply="(msg) => emit('reply', msg)"
+              @react="(msgId, emoji) => emit('react', msgId, emoji)"
+            />
+          </div>
         </template>
       </TransitionGroup>
     </div>

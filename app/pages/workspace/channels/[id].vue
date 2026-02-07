@@ -22,6 +22,17 @@ const {
 } = useChannels(workspaceId)
 
 const AI_TRIGGER = /\B@ai\b/i
+const MISSED_PROMPT_THRESHOLD = 5
+const SEEN_HEARTBEAT_MS = 10000
+
+const parseTimestamp = (value?: string | null) => {
+  if (!value) return 0
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const formatTimestamp = (ms: number) => new Date(ms).toISOString()
+
 const extractAiPrompt = (content: string) => {
   const withoutTag = content.replace(/\B@ai\b/gi, ' ')
   const cleaned = withoutTag.replace(/\s+/g, ' ').trim()
@@ -29,6 +40,70 @@ const extractAiPrompt = (content: string) => {
 }
 
 const aiPending = ref(false)
+const pageVisible = ref(import.meta.client ? document.visibilityState === 'visible' : true)
+const lastServerSeenAtMs = ref<number>(0)
+const pendingSeenAtMs = ref<number | null>(null)
+const seenFlushInFlight = ref(false)
+const seenHeartbeat = ref<ReturnType<typeof setInterval> | null>(null)
+const dismissedMissedPromptChannelId = ref<string | null>(null)
+
+const missedCount = computed(() => currentChannel.value?.readState?.missedCount ?? 0)
+const missedBoundaryMessageId = computed(() => currentChannel.value?.readState?.missedBoundaryMessageId ?? null)
+const showMissedPrompt = computed(() => {
+  if (!channelId.value || dismissedMissedPromptChannelId.value === channelId.value) return false
+  if (!missedBoundaryMessageId.value) return false
+  return missedCount.value > MISSED_PROMPT_THRESHOLD
+})
+
+const isTrackingSeenEligible = () => import.meta.client && pageVisible.value && !!channelId.value
+
+const queueSeenAt = (timestamp: string | null | undefined) => {
+  if (!isTrackingSeenEligible() || !timestamp) return
+  const seenAtMs = parseTimestamp(timestamp)
+  if (!seenAtMs) return
+  if (seenAtMs <= lastServerSeenAtMs.value) return
+  if (!pendingSeenAtMs.value || seenAtMs > pendingSeenAtMs.value) {
+    pendingSeenAtMs.value = seenAtMs
+  }
+}
+
+const flushSeen = async (force = false) => {
+  if (!channelId.value || pendingSeenAtMs.value === null || seenFlushInFlight.value) return
+  if (!force && !isTrackingSeenEligible()) return
+
+  const seenAtMs = pendingSeenAtMs.value
+  seenFlushInFlight.value = true
+  try {
+    const data = await $fetch<{ lastSeenAt: string }>(`/api/channels/${channelId.value}/seen`, {
+      method: 'POST',
+      body: { seenAt: formatTimestamp(seenAtMs) },
+    })
+    const persistedMs = parseTimestamp(data.lastSeenAt)
+    if (persistedMs > lastServerSeenAtMs.value) {
+      lastServerSeenAtMs.value = persistedMs
+    }
+    if (pendingSeenAtMs.value !== null && pendingSeenAtMs.value <= seenAtMs) {
+      pendingSeenAtMs.value = null
+    }
+  } catch (error) {
+    console.error('Failed to update channel seen state:', error)
+  } finally {
+    seenFlushInFlight.value = false
+  }
+}
+
+const handleMissedPromptDismiss = () => {
+  dismissedMissedPromptChannelId.value = channelId.value || null
+}
+
+const handleVisibilityChange = () => {
+  if (!import.meta.client) return
+  pageVisible.value = document.visibilityState === 'visible'
+  if (!pageVisible.value) return
+  const latestMessageAt = messages.value[messages.value.length - 1]?.createdAt
+  queueSeenAt(latestMessageAt)
+  void flushSeen()
+}
 
 watch(aiPending, () => {
   nextTick(() => messageListRef.value?.scrollToBottom())
@@ -38,6 +113,12 @@ watch(aiPending, () => {
 watch(channelId, async (id) => {
   if (id) {
     await fetchChannel(id)
+    lastServerSeenAtMs.value = parseTimestamp(currentChannel.value?.readState?.lastSeenAt)
+    pendingSeenAtMs.value = null
+    dismissedMissedPromptChannelId.value = null
+    const latestMessageAt = messages.value[messages.value.length - 1]?.createdAt
+    queueSeenAt(latestMessageAt)
+    void flushSeen()
   }
 }, { immediate: true })
 
@@ -45,8 +126,12 @@ watch(channelId, async (id) => {
 const handleSendMessage = async (content: string) => {
   if (!channelId.value) return
   try {
-    await sendMessage(channelId.value, content)
+    const sentMessage = await sendMessage(channelId.value, content)
     nextTick(() => messageListRef.value?.scrollToBottom())
+    if (sentMessage?.createdAt) {
+      queueSeenAt(sentMessage.createdAt)
+      void flushSeen()
+    }
     if (AI_TRIGGER.test(content)) {
       const prompt = extractAiPrompt(content)
       aiPending.value = true
@@ -71,7 +156,11 @@ const handleLoadMore = async () => {
 }
 
 // Message list ref
-const messageListRef = ref<{ scrollToBottom: (smooth?: boolean) => void } | null>(null)
+const messageListRef = ref<{
+  scrollToBottom: (smooth?: boolean) => void
+  scrollToMessage: (messageId: string, smooth?: boolean) => boolean
+  scrollToMissedDivider: (smooth?: boolean) => boolean
+} | null>(null)
 
 // Thread state
 const activeThread = ref<import('~/composables/useChannels').ChannelMessage | null>(null)
@@ -128,6 +217,13 @@ onMounted(() => {
       avatar: currentUser.value.avatar,
     })
   }
+
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  seenHeartbeat.value = setInterval(() => {
+    const latestMessageAt = messages.value[messages.value.length - 1]?.createdAt
+    queueSeenAt(latestMessageAt)
+    void flushSeen()
+  }, SEEN_HEARTBEAT_MS)
 })
 
 // Subscribe to channel WebSocket when channel changes
@@ -145,6 +241,8 @@ watch([channelId, currentChannel], ([id, channel], [oldId]) => {
         if (message.userId !== currentUser.value?.id && !message.parentId) {
           messages.value = [...messages.value, message]
           nextTick(() => messageListRef.value?.scrollToBottom())
+          queueSeenAt(message.createdAt)
+          void flushSeen()
         }
       },
       onReaction: (messageId, reactions) => {
@@ -162,6 +260,22 @@ onUnmounted(() => {
   if (channelId.value) {
     unsubscribe(channelId.value)
   }
+  const latestMessageAt = messages.value[messages.value.length - 1]?.createdAt
+  queueSeenAt(latestMessageAt)
+  if (seenHeartbeat.value) {
+    clearInterval(seenHeartbeat.value)
+    seenHeartbeat.value = null
+  }
+  if (import.meta.client) {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
+  void flushSeen(true)
+})
+
+onBeforeRouteLeave(() => {
+  const latestMessageAt = messages.value[messages.value.length - 1]?.createdAt
+  queueSeenAt(latestMessageAt)
+  void flushSeen(true)
 })
 
 // Presence for current channel
@@ -193,6 +307,14 @@ const handleReaction = async (messageId: string, emoji: string) => {
   } catch (error) {
     console.error('Failed to toggle reaction:', error)
   }
+}
+
+const handleWhatDidIMiss = () => {
+  const didScrollToDivider = messageListRef.value?.scrollToMissedDivider(true)
+  if (!didScrollToDivider && missedBoundaryMessageId.value) {
+    messageListRef.value?.scrollToMessage(missedBoundaryMessageId.value, true)
+  }
+  handleMissedPromptDismiss()
 }
 </script>
 
@@ -230,6 +352,8 @@ const handleReaction = async (messageId: string, emoji: string) => {
       <!-- Messages Area -->
       <ChannelsMessageList
         ref="messageListRef"
+        :channel-id="channelId"
+        :missed-boundary-message-id="missedBoundaryMessageId"
         :messages="messages"
         :loading="messagesLoading"
         :has-more="hasMoreMessages"
@@ -247,6 +371,35 @@ const handleReaction = async (messageId: string, emoji: string) => {
 
       <!-- Message Input -->
       <div class="relative z-10">
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-2"
+        >
+          <div
+            v-if="showMissedPrompt"
+            class="absolute left-0 right-0 -top-12 z-20 flex justify-center pointer-events-none"
+          >
+            <div class="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 shadow-sm backdrop-blur">
+              <button
+                class="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                @click="handleWhatDidIMiss"
+              >
+                What did I miss?
+              </button>
+              <button
+                class="inline-flex h-5 w-5 items-center justify-center rounded text-slate-400 leading-none hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                aria-label="Dismiss missed messages prompt"
+                @click="handleMissedPromptDismiss"
+              >
+                <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </Transition>
         <ChannelsMessageInput
           v-if="currentChannel"
           :channel-id="currentChannel.id"

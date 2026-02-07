@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
       where: { id: taskId },
       data: {
         status: 'DONE',
+        subStatus: null,
         progress: 100,
         updatedAt: now,
         lastActivityAt: now,

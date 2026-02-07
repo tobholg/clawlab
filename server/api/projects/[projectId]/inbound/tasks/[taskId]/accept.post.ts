@@ -1,6 +1,7 @@
 import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
 import { prisma } from '../../../../../../utils/prisma'
 import { requireUser } from '../../../../../../utils/auth'
+import { getDefaultSubStatus } from '../../../../../../utils/itemStage'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -65,6 +66,7 @@ export default defineEventHandler(async (event) => {
       description: `${externalTask.description}\n\n---\n*Submitted via ${externalTask.externalSpace.name}*`,
       category: category || undefined,
       status: 'TODO',
+      subStatus: getDefaultSubStatus('TODO'),
       progress: 0,
       confidence: 70,
       ownerId: user.id // Assign to the accepting user by default

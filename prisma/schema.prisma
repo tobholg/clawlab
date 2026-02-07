@@ -81,6 +81,7 @@ model User {
   currentProjectFocus Item?                @relation("CurrentProjectFocus", fields: [currentProjectFocusId], references: [id])
   currentTaskFocus    Item?                @relation("CurrentTaskFocus", fields: [currentTaskFocusId], references: [id])
   channelMembers      ChannelMember[]
+  channelReadStates   ChannelReadState[]
   messages            Message[]
   reactions           Reaction[]
   documentsCreated    Document[]           @relation("DocumentCreatedBy")
@@ -494,6 +495,7 @@ model Channel {
   children  Channel[]       @relation("ChannelHierarchy")
   project   Item?           @relation(fields: [projectId], references: [id])
   members   ChannelMember[]
+  readStates ChannelReadState[]
   messages  Message[]
 
   @@unique([workspaceId, name])
@@ -501,6 +503,23 @@ model Channel {
   @@index([parentId])
   @@index([projectId])
   @@map("channels")
+}
+
+model ChannelReadState {
+  id         String   @id @default(cuid())
+  channelId  String
+  userId     String
+  lastSeenAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
+  @@index([channelId])
+  @@map("channel_read_states")
 }
 
 model ChannelMember {

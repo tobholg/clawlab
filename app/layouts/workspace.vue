@@ -306,10 +306,10 @@ provide('refreshSidebarProjects', fetchProjects)
 
 <style scoped>
 .workspace-home-bg {
-  background:
-    radial-gradient(60% 35% at 50% 0%, rgba(16, 185, 129, 0.18), transparent 70%),
-    radial-gradient(45% 35% at 85% 10%, rgba(56, 189, 248, 0.12), transparent 70%),
-    radial-gradient(40% 35% at 15% 90%, rgba(45, 212, 191, 0.1), transparent 70%),
-    linear-gradient(180deg, rgba(236, 253, 245, 0.8) 0%, #ffffff 55%, #ffffff 100%);
+  background-image:
+    radial-gradient(55% 45% at 85% 20%, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0)),
+    linear-gradient(120deg, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0.98) 38%, #ffffff 78%),
+    linear-gradient(300deg, rgba(56, 189, 248, 0.2) 0%, rgba(255, 255, 255, 0.98) 44%, #ffffff 82%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, #ffffff 52%, #ffffff 100%);
 }
 </style>

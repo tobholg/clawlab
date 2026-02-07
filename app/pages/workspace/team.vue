@@ -119,6 +119,24 @@ const toggleMember = (memberId: string) => {
   expandedMembers.value = next
 }
 
+const expandAllMembers = () => {
+  const allIds = sortedMembers.value.map(member => member.userId)
+  expandedMembers.value = new Set(allIds)
+
+  const nextViews = { ...memberViews.value }
+  const nextModes = { ...memberTimelineMode.value }
+  for (const memberId of allIds) {
+    if (!nextViews[memberId]) nextViews[memberId] = 'timeline'
+    if (!nextModes[memberId]) nextModes[memberId] = 'daily'
+  }
+  memberViews.value = nextViews
+  memberTimelineMode.value = nextModes
+}
+
+const collapseAllMembers = () => {
+  expandedMembers.value = new Set()
+}
+
 const setMemberView = (memberId: string, view: 'timeline' | 'tasks') => {
   memberViews.value = { ...memberViews.value, [memberId]: view }
 }
@@ -387,6 +405,21 @@ const getDueDateClass = (task: any) => {
 
       <!-- Member timelines -->
       <div v-else class="space-y-5">
+        <div class="flex items-center justify-end gap-2">
+          <button
+            class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+            @click="collapseAllMembers"
+          >
+            Collapse all
+          </button>
+          <button
+            class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+            @click="expandAllMembers"
+          >
+            Expand all
+          </button>
+        </div>
+
         <div
           v-for="member in sortedMembers"
           :key="member.userId"

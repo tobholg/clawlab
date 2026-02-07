@@ -1,7 +1,9 @@
 import { prisma } from '../../utils/prisma'
+import { getSessionUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
+  const sessionUser = await getSessionUser(event)
 
   if (!id) {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
@@ -56,6 +58,64 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Channel not found' })
   }
 
+  const chronologicalMessages = [...channel.messages].reverse()
+  let readStatePayload: {
+    lastSeenAt: string | null
+    missedCount: number
+    missedBoundaryMessageId: string | null
+  } = {
+    lastSeenAt: null,
+    missedCount: 0,
+    missedBoundaryMessageId: null,
+  }
+
+  if (sessionUser) {
+    let readState = await prisma.channelReadState.findUnique({
+      where: {
+        channelId_userId: {
+          channelId: channel.id,
+          userId: sessionUser.id,
+        },
+      },
+    })
+
+    if (!readState) {
+      const initialLastSeenAt = channel.messages[0]?.createdAt ?? new Date()
+      readState = await prisma.channelReadState.upsert({
+        where: {
+          channelId_userId: {
+            channelId: channel.id,
+            userId: sessionUser.id,
+          },
+        },
+        update: {},
+        create: {
+          channelId: channel.id,
+          userId: sessionUser.id,
+          lastSeenAt: initialLastSeenAt,
+        },
+      })
+    }
+
+    const missedCount = await prisma.message.count({
+      where: {
+        channelId: channel.id,
+        deleted: false,
+        parentId: null,
+        createdAt: { gt: readState.lastSeenAt },
+      },
+    })
+
+    const missedBoundaryMessageId =
+      chronologicalMessages.find((msg) => msg.createdAt > readState.lastSeenAt)?.id ?? null
+
+    readStatePayload = {
+      lastSeenAt: readState.lastSeenAt.toISOString(),
+      missedCount,
+      missedBoundaryMessageId,
+    }
+  }
+
   return {
     id: channel.id,
     workspaceId: channel.workspaceId,
@@ -93,7 +153,7 @@ export default defineEventHandler(async (event) => {
       joinedAt: m.joinedAt.toISOString(),
       user: m.user,
     })),
-    messages: channel.messages.reverse().map((msg) => ({
+    messages: chronologicalMessages.map((msg) => ({
       id: msg.id,
       channelId: msg.channelId,
       userId: msg.userId,
@@ -107,6 +167,7 @@ export default defineEventHandler(async (event) => {
       replyCount: msg._count.replies,
       reactions: groupReactions(msg.reactions),
     })),
+    readState: readStatePayload,
   }
 })
 

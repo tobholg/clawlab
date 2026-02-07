@@ -1,5 +1,6 @@
 import { prisma } from '../../utils/prisma'
 import { countIncompleteDescendants } from '../../utils/itemCompletion'
+import { getDefaultSubStatus, isValidSubStatusForStatus, normalizeIncomingSubStatus, normalizeItemStatus, type ItemStatusValue } from '../../utils/itemStage'
 
 // Helper: Check if targetId is a descendant of itemId (prevent circular refs)
 async function isDescendant(itemId: string, targetId: string): Promise<boolean> {
@@ -77,21 +78,13 @@ export default defineEventHandler(async (event) => {
   if (complexity !== undefined) updateData.complexity = complexity
   if (priority !== undefined) updateData.priority = priority || null
   
-  // Valid sub-statuses per status
-  const validSubStatuses: Record<string, string[]> = {
-    TODO: ['backlog', 'ready'],
-    IN_PROGRESS: ['scoping', 'active', 'review', 'finalizing'],
-    BLOCKED: ['dependency', 'external', 'decision'],
-    PAUSED: ['on_hold', 'deprioritized'],
-    DONE: [], // No sub-statuses, but we preserve the old one
-  }
-  
+  const oldStatus = currentItem.status as ItemStatusValue
+  const requestedStatus = status !== undefined ? normalizeItemStatus(status, oldStatus) : oldStatus
+  const statusChanged = requestedStatus !== oldStatus
+
   // Handle status change
   if (status !== undefined) {
-    const newStatus = status.toUpperCase()
-    const oldStatus = currentItem.status
-
-    if (newStatus === 'DONE' && oldStatus !== 'DONE') {
+    if (requestedStatus === 'DONE' && oldStatus !== 'DONE') {
       const incompleteDescendants = await countIncompleteDescendants(prisma, id)
       if (incompleteDescendants > 0) {
         throw createError({
@@ -101,44 +94,51 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    updateData.status = newStatus
-    
-    // Only clear subStatus if:
-    // 1. subStatus is not explicitly being set in this request
-    // 2. Moving between statuses that have different valid sub-statuses
-    // 3. NOT moving to/from DONE (preserve subStatus for round-trips through DONE)
-    if (subStatus === undefined && newStatus !== oldStatus) {
-      const isDoneTransition = newStatus === 'DONE' || oldStatus === 'DONE'
-      
-      if (!isDoneTransition) {
-        // Check if current subStatus is valid for new status
-        const currentSubStatus = currentItem.subStatus
-        const newValidSubStatuses = validSubStatuses[newStatus] || []
-        
-        if (currentSubStatus && !newValidSubStatuses.includes(currentSubStatus)) {
-          // Current subStatus is not valid for new status, clear it
-          updateData.subStatus = null
-        }
-      }
-      // If it's a DONE transition, don't touch subStatus - preserve it
-    }
+    updateData.status = requestedStatus
     
     // Auto-set startDate when moving TO in_progress if not already set
-    if (newStatus === 'IN_PROGRESS' && currentItem.status !== 'IN_PROGRESS' && !currentItem.startDate) {
+    if (requestedStatus === 'IN_PROGRESS' && oldStatus !== 'IN_PROGRESS' && !currentItem.startDate) {
       updateData.startDate = now
     }
 
     // Set completedAt when moving TO done, clear when moving away from done
-    if (newStatus === 'DONE' && oldStatus !== 'DONE') {
+    if (requestedStatus === 'DONE' && oldStatus !== 'DONE') {
       updateData.completedAt = now
-    } else if (newStatus !== 'DONE' && oldStatus === 'DONE') {
+    } else if (requestedStatus !== 'DONE' && oldStatus === 'DONE') {
       updateData.completedAt = null
     }
   }
   
-  // Handle subStatus change
-  if (subStatus !== undefined) {
-    updateData.subStatus = subStatus
+  // Handle subStatus with status-aware defaults
+  const requestedSubStatus = normalizeIncomingSubStatus(subStatus)
+  if (status !== undefined) {
+    if (requestedStatus === 'DONE') {
+      updateData.subStatus = null
+    } else if (requestedSubStatus === undefined) {
+      if (statusChanged) {
+        updateData.subStatus = getDefaultSubStatus(requestedStatus)
+      }
+    } else if (requestedSubStatus === null) {
+      // Enforce default stages on status transitions; allow "None" only for TODO when status stays TODO.
+      updateData.subStatus = statusChanged
+        ? getDefaultSubStatus(requestedStatus)
+        : (requestedStatus === 'TODO' ? null : getDefaultSubStatus(requestedStatus))
+    } else if (isValidSubStatusForStatus(requestedStatus, requestedSubStatus)) {
+      updateData.subStatus = requestedSubStatus
+    } else {
+      updateData.subStatus = getDefaultSubStatus(requestedStatus)
+    }
+  } else if (subStatus !== undefined) {
+    // Status unchanged: normalize to a valid stage for current status.
+    if (requestedSubStatus === null) {
+      updateData.subStatus = oldStatus === 'TODO' || oldStatus === 'DONE'
+        ? null
+        : getDefaultSubStatus(oldStatus)
+    } else if (requestedSubStatus && isValidSubStatusForStatus(oldStatus, requestedSubStatus)) {
+      updateData.subStatus = requestedSubStatus
+    } else {
+      updateData.subStatus = getDefaultSubStatus(oldStatus)
+    }
   }
   
   if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null
@@ -205,7 +205,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Create Activity record for status changes
-  if (status !== undefined && status.toUpperCase() !== currentItem.status) {
+  if (status !== undefined && statusChanged) {
     // TODO: Get actual userId from auth context - using placeholder for now
     const userId = body.userId || 'system'
 
@@ -214,8 +214,8 @@ export default defineEventHandler(async (event) => {
         itemId: id,
         userId,
         type: 'STATUS_CHANGE',
-        oldValue: currentItem.status.toLowerCase(),
-        newValue: status.toLowerCase(),
+        oldValue: oldStatus.toLowerCase(),
+        newValue: requestedStatus.toLowerCase(),
       }
     })
   }

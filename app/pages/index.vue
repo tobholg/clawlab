@@ -3,6 +3,12 @@ definePageMeta({
   layout: false,
 })
 
+const proofStats = [
+  { value: '72%', label: 'status updates automated' },
+  { value: '+31%', label: 'forecast confidence in 2 weeks' },
+  { value: '-6 hrs/wk', label: 'stakeholder meeting overhead' },
+]
+
 const outcomeBlocks = [
   {
     title: 'Stakeholder updates that run themselves',
@@ -39,6 +45,7 @@ const capabilityCards = [
 
 const navItems = [
   { id: 'hero', label: 'Overview' },
+  { id: 'proof', label: 'Proof' },
   { id: 'recursive', label: 'Recursive' },
   { id: 'outcomes', label: 'Outcomes' },
   { id: 'capabilities', label: 'Capabilities' },
@@ -46,6 +53,7 @@ const navItems = [
 
 const sectionRefs = reactive<Record<string, HTMLElement | null>>({
   hero: null,
+  proof: null,
   outcomes: null,
   recursive: null,
   capabilities: null,
@@ -76,7 +84,13 @@ const scrollToSection = (id: string) => {
   const target = sectionRefs[id]
   if (!target) return
 
-  const top = target.getBoundingClientRect().top + window.scrollY
+  const landingRoot = document.querySelector<HTMLElement>('.relai-landing')
+  const configuredNavHeight = landingRoot
+    ? Number.parseFloat(getComputedStyle(landingRoot).getPropertyValue('--landing-nav-height'))
+    : Number.NaN
+  const measuredNavHeight = document.querySelector<HTMLElement>('[data-landing-nav]')?.getBoundingClientRect().height ?? 64
+  const navHeight = Number.isFinite(configuredNavHeight) ? configuredNavHeight : measuredNavHeight
+  const top = target.getBoundingClientRect().top + window.scrollY - navHeight + 1
   window.scrollTo({ top, behavior: 'smooth' })
 }
 
@@ -126,10 +140,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="relai-landing min-h-screen bg-white text-slate-900 scroll-smooth" :class="{ 'is-ready': heroReady }">
+  <div class="relai-landing min-h-screen bg-white text-slate-900 scroll-smooth" style="--landing-nav-height: 64px" :class="{ 'is-ready': heroReady }">
     <!-- Top nav -->
     <nav data-landing-nav class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-100 intro" style="--d: 0ms">
-      <div class="w-full px-6 h-16 flex items-center justify-between">
+      <div class="w-full px-6 h-[var(--landing-nav-height)] flex items-center justify-between">
         <div class="flex items-center gap-8">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
@@ -197,33 +211,22 @@ onMounted(() => {
             <button
               type="button"
               class="text-sm font-medium text-slate-600 hover:text-slate-900"
-              @click="scrollToSection('recursive')"
+              @click="scrollToSection('proof')"
             >
-              See how it works
+              See outcomes
             </button>
           </div>
-          <div
-            class="mt-10 grid grid-cols-1 sm:grid-cols-[max-content_max-content_max-content] sm:justify-start gap-8 xl:gap-10 max-w-2xl text-xs text-slate-500 intro"
-            style="--d: 720ms"
-          >
-            <div>
-              <div class="text-base font-semibold text-slate-800">Recursive</div>
-              <div class="sm:whitespace-nowrap">One model for every depth</div>
-            </div>
-            <div>
-              <div class="text-base font-semibold text-slate-800">Forecasts</div>
-              <div class="sm:whitespace-nowrap">Visible uncertainty + risk</div>
-            </div>
-            <div>
-              <div class="text-base font-semibold text-slate-800">Stakeholders</div>
-              <div class="sm:whitespace-nowrap">Calm updates, fast answers</div>
-            </div>
+          <div class="mt-10 flex flex-wrap items-center gap-3 text-xs intro" style="--d: 720ms">
+            <span class="signal-chip">Recursive planning graph</span>
+            <span class="signal-chip">Live forecast ranges</span>
+            <span class="signal-chip">Auto stakeholder updates</span>
           </div>
         </div>
 
         <!-- Hero visual -->
         <div class="relative">
-          <div class="hero-bubbles">
+          <div class="hero-visual-shell intro" style="--d: 460ms">
+            <div class="hero-bubbles">
             <div class="hero-bubble intro border border-slate-200/70" style="--d: 520ms">
               <div class="flex items-center justify-between">
                 <div class="text-xs font-semibold text-slate-700">Forecast</div>
@@ -258,6 +261,43 @@ onMounted(() => {
               </div>
               <div class="mt-2 text-xs text-slate-500">AI: 2 blockers. ETA at risk by 2-3 days.</div>
             </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Proof -->
+    <section
+      id="proof"
+      :ref="(el) => (sectionRefs.proof = el as HTMLElement | null)"
+      class="px-6 py-14 xl:py-18 bg-white scroll-mt-20 section-reveal"
+    >
+      <div class="max-w-6xl 2xl:max-w-7xl mx-auto proof-shell scroll-reveal" style="--d: 10ms">
+        <div class="scroll-reveal" style="--d: 0ms">
+          <div class="proof-kicker">Proof of value</div>
+          <h2 class="mt-3 text-3xl sm:text-4xl xl:text-5xl font-semibold text-slate-900">Measured calm, not just clean UI</h2>
+        </div>
+
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-5 scroll-reveal" style="--d: 100ms">
+          <article v-for="stat in proofStats" :key="stat.label" class="proof-stat">
+            <div class="proof-value">{{ stat.value }}</div>
+            <p class="mt-2 text-sm text-slate-600">{{ stat.label }}</p>
+          </article>
+        </div>
+
+        <div class="mt-6 grid md:grid-cols-[1.3fr,0.7fr] md:items-center gap-4 xl:gap-5 scroll-reveal" style="--d: 160ms">
+          <div class="proof-quote">
+            <p class="text-sm text-slate-700 leading-relaxed">
+              “Our weekly stakeholder sync went from status theater to decision-making. We spend less time reporting and more time shipping.”
+            </p>
+            <div class="mt-3 text-xs text-slate-500">VP Product, B2B SaaS team</div>
+          </div>
+          <div class="proof-tags md:self-center">
+            <span class="proof-tag">Design partners</span>
+            <span class="proof-tag">Product orgs</span>
+            <span class="proof-tag">Platform teams</span>
+            <span class="proof-tag">Delivery leads</span>
           </div>
         </div>
       </div>
@@ -267,7 +307,7 @@ onMounted(() => {
     <section
       id="recursive"
       :ref="(el) => (sectionRefs.recursive = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-white scroll-mt-20 flex items-center section-reveal"
+      class="px-6 py-20 xl:py-24 2xl:py-28 bg-white scroll-mt-20 section-reveal"
     >
       <div class="max-w-6xl 2xl:max-w-7xl mx-auto w-full">
         <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 xl:gap-16 w-full items-center">
@@ -332,7 +372,7 @@ onMounted(() => {
     <section
       id="outcomes"
       :ref="(el) => (sectionRefs.outcomes = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
+      class="px-6 py-20 xl:py-24 2xl:py-28 bg-slate-50/60 scroll-mt-20 section-reveal"
     >
       <div class="max-w-6xl 2xl:max-w-7xl mx-auto w-full">
         <div class="grid lg:grid-cols-[1.05fr,0.95fr] gap-12 xl:gap-16 w-full items-center">
@@ -379,7 +419,7 @@ onMounted(() => {
     <section
       id="capabilities"
       :ref="(el) => (sectionRefs.capabilities = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-white scroll-mt-20 flex items-center section-reveal"
+      class="px-6 py-20 xl:py-24 2xl:py-28 bg-white scroll-mt-20 section-reveal"
     >
       <div class="max-w-6xl 2xl:max-w-7xl mx-auto w-full">
         <div class="grid lg:grid-cols-[0.95fr,1.05fr] gap-12 xl:gap-16 w-full items-center">
@@ -418,7 +458,7 @@ onMounted(() => {
     <section
       id="cta"
       :ref="(el) => (sectionRefs.cta = el as HTMLElement | null)"
-      class="min-h-screen px-6 py-20 xl:py-24 2xl:py-28 bg-slate-50/60 scroll-mt-20 flex items-center section-reveal"
+      class="px-6 pt-10 pb-20 xl:pt-12 xl:pb-24 bg-slate-50/60 scroll-mt-20 section-reveal"
     >
       <div class="max-w-4xl 2xl:max-w-5xl mx-auto text-center w-full flex flex-col items-center justify-center scroll-reveal" style="--d: 0ms">
         <h2 class="text-3xl sm:text-4xl xl:text-5xl font-semibold text-slate-900">Start a stakeholder-calm workspace</h2>
@@ -459,6 +499,115 @@ onMounted(() => {
     linear-gradient(120deg, rgba(16, 185, 129, 0.24) 0%, rgba(255, 255, 255, 0.96) 45%),
     linear-gradient(300deg, rgba(56, 189, 248, 0.2) 0%, rgba(255, 255, 255, 0.96) 55%),
     linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+}
+
+.signal-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.85);
+  color: #475569;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.42rem 0.78rem;
+}
+
+.hero-visual-shell {
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  padding: 12px;
+}
+
+.proof-shell {
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background:
+    radial-gradient(140% 120% at 15% 0%, rgba(56, 189, 248, 0.1), rgba(56, 189, 248, 0)),
+    radial-gradient(140% 120% at 85% 0%, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0)),
+    #ffffff;
+  box-shadow: 0 20px 56px rgba(15, 23, 42, 0.08);
+  padding: 22px;
+}
+
+.proof-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.proof-kicker::after {
+  content: '';
+  width: 56px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.9), rgba(16, 185, 129, 0.8));
+}
+
+.proof-stat {
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  padding: 18px 20px;
+}
+
+.proof-value {
+  display: inline-block;
+  font-size: clamp(2rem, 2.7vw, 2.8rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  background-image: linear-gradient(140deg, #0f172a, #334155);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.proof-stat:nth-child(1) .proof-value {
+  background-image: linear-gradient(140deg, #0f172a, #0369a1);
+}
+
+.proof-stat:nth-child(2) .proof-value {
+  background-image: linear-gradient(140deg, #0f172a, #047857);
+}
+
+.proof-stat:nth-child(3) .proof-value {
+  background-image: linear-gradient(140deg, #0f172a, #a16207);
+}
+
+.proof-quote {
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  padding: 18px 20px;
+}
+
+.proof-tags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-content: center;
+}
+
+.proof-tag {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 9px 11px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
 }
 
 .hero-bubbles {
@@ -602,6 +751,14 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
+  .proof-shell {
+    padding: 16px;
+  }
+
+  .hero-visual-shell {
+    padding: 8px;
+  }
+
   .hero-bubble {
     padding: 18px 20px;
   }

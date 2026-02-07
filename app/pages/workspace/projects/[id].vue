@@ -217,6 +217,13 @@ const handleCreateItem = async (data: { title: string; description?: string; cat
   showCreateModal.value = false
 }
 
+const handleAiCreatedItem = async (item: any) => {
+  selectedItem.value = item
+  showDetailModal.value = true
+  showCreateModal.value = false
+  await refreshItems()
+}
+
 // Handle drill down (for nested items)
 const handleDrillDown = (item: any) => {
   attentionPaneOpen.value = false
@@ -680,8 +687,10 @@ onMounted(() => {
     :parent-title="currentScope?.title"
     :is-project="false"
     :workspace-id="workspaceId"
+    :parent-id="currentScopeId"
     @close="showCreateModal = false"
     @create="handleCreateItem"
+    @ai-created="handleAiCreatedItem"
   />
 
   <!-- Item Detail Modal -->

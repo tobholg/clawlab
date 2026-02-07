@@ -35,8 +35,8 @@ const isAiMessage = computed(() => {
 // Bubble background color - Telegram style
 const bubbleColor = computed(() => {
   if (isOwnMessage.value) {
-    // Soft green-to-white gradient for own messages
-    return 'bg-gradient-to-r from-emerald-50 via-emerald-50 to-white text-slate-800 border border-emerald-100/60 shadow-sm'
+    // Smooth green-to-near-white gradient for own messages
+    return 'bg-[linear-gradient(90deg,rgba(209,250,229,0.7)_0%,rgba(236,253,245,0.48)_52%,rgba(248,250,252,0.94)_100%)] text-slate-800 border border-emerald-100/60 shadow-sm'
   }
   // White for everyone else
   return 'bg-white text-slate-800 shadow-sm border border-slate-100'

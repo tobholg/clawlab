@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   layout: false,
+  middleware: 'guest',
 })
 
 const currentStep = ref(1)

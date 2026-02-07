@@ -1,5 +1,6 @@
 import { prisma } from '../../utils/prisma'
 import { createProjectChannel } from '../../utils/channelUtils'
+import { getDefaultSubStatus, isValidSubStatusForStatus, normalizeIncomingSubStatus, normalizeItemStatus } from '../../utils/itemStage'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -11,6 +12,7 @@ export default defineEventHandler(async (event) => {
     description, 
     category,
     status,
+    subStatus,
     dueDate,
     startDate,
     confidence,
@@ -25,8 +27,12 @@ export default defineEventHandler(async (event) => {
   }
   
   // Determine final status and auto-set startDate
-  const finalStatus = status?.toUpperCase() ?? 'TODO'
+  const finalStatus = normalizeItemStatus(status)
   const now = new Date()
+  const requestedSubStatus = normalizeIncomingSubStatus(subStatus)
+  const finalSubStatus = requestedSubStatus !== undefined && isValidSubStatusForStatus(finalStatus, requestedSubStatus)
+    ? requestedSubStatus
+    : getDefaultSubStatus(finalStatus)
   
   // Auto-set startDate to now if creating as IN_PROGRESS and no startDate provided
   let finalStartDate = startDate ? new Date(startDate) : null
@@ -57,6 +63,7 @@ export default defineEventHandler(async (event) => {
       description,
       category,
       status: finalStatus,
+      subStatus: finalSubStatus,
       dueDate: dueDate ? new Date(dueDate) : null,
       startDate: finalStartDate,
       confidence: confidence ?? 70,

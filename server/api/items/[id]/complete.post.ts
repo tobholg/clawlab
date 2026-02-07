@@ -47,6 +47,7 @@ export default defineEventHandler(async (event) => {
       where: { id: { in: incomplete.map((child) => child.id) } },
       data: {
         status: 'DONE',
+        subStatus: null,
         progress: 100,
         completedAt: now,
         updatedAt: now,
@@ -59,6 +60,7 @@ export default defineEventHandler(async (event) => {
     where: { id },
     data: {
       status: 'DONE',
+      subStatus: null,
       progress: 100,
       completedAt: now,
       updatedAt: now,

@@ -57,6 +57,11 @@ export interface Channel {
   members?: ChannelMember[]
   messages?: ChannelMessage[]
   children?: { id: string; name: string; displayName: string; type: string }[]
+  readState?: {
+    lastSeenAt: string | null
+    missedCount: number
+    missedBoundaryMessageId: string | null
+  }
 }
 
 export interface MessagesResponse {
