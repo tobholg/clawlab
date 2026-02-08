@@ -19,6 +19,8 @@ interface OnboardingRequest {
   }
   teamEmails?: string[]
   loadDemoData: boolean
+  planTier?: 'PRO'
+  seatSelection?: { internal: number; external: number }
 }
 
 export default defineEventHandler(async (event) => {
@@ -33,6 +35,25 @@ export default defineEventHandler(async (event) => {
   }
   if (!body.user?.name || !body.user?.email) {
     throw createError({ statusCode: 400, message: 'User name and email are required' })
+  }
+
+  // Plan tier validation
+  const tier = body.planTier === 'PRO' ? 'PRO' : 'FREE' as const
+
+  if (tier === 'PRO') {
+    if (!body.seatSelection || body.seatSelection.internal < 1 || body.seatSelection.internal > 100) {
+      throw createError({ statusCode: 400, message: 'Pro requires 1-100 internal seats' })
+    }
+    if (body.seatSelection.external < 0 || body.seatSelection.external > 100) {
+      throw createError({ statusCode: 400, message: 'External seats must be 0-100' })
+    }
+    if (body.teamEmails && body.teamEmails.length > body.seatSelection.internal - 1) {
+      throw createError({ statusCode: 400, message: 'Too many invites for selected seat count' })
+    }
+  } else {
+    if (body.teamEmails && body.teamEmails.length > 4) {
+      throw createError({ statusCode: 400, message: 'Free plan allows up to 4 team invites' })
+    }
   }
 
   // Check if org slug is taken
@@ -58,6 +79,7 @@ export default defineEventHandler(async (event) => {
       data: {
         name: body.organization.name,
         slug: body.organization.slug,
+        planTier: tier,
       }
     })
 
@@ -106,9 +128,25 @@ export default defineEventHandler(async (event) => {
     return { organization, workspace, user }
   })
 
-  // Provision default seats for the organization and occupy one for the owner
+  // Provision seats for the organization and occupy one for the owner
   try {
-    await provisionDefaultSeats(result.organization.id, 'FREE')
+    if (tier === 'PRO' && body.seatSelection) {
+      // Pro: create exact seat counts chosen by user
+      const seats: { organizationId: string; type: 'INTERNAL' | 'EXTERNAL'; status: 'AVAILABLE' }[] = []
+      for (let i = 0; i < body.seatSelection.internal; i++) {
+        seats.push({ organizationId: result.organization.id, type: 'INTERNAL', status: 'AVAILABLE' })
+      }
+      for (let i = 0; i < body.seatSelection.external; i++) {
+        seats.push({ organizationId: result.organization.id, type: 'EXTERNAL', status: 'AVAILABLE' })
+      }
+      if (seats.length > 0) {
+        await prisma.seat.createMany({ data: seats })
+      }
+    } else {
+      // Free: provision default seats (5 internal + 3 external)
+      await provisionDefaultSeats(result.organization.id, 'FREE')
+    }
+
     // Occupy one internal seat for the owner
     const ownerSeat = await prisma.seat.findFirst({
       where: { organizationId: result.organization.id, type: 'INTERNAL', status: 'AVAILABLE' },

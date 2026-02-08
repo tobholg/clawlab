@@ -56,15 +56,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="relai-auth min-h-screen text-slate-900" :class="{ 'is-ready': pageReady }">
+  <div class="ctx-auth min-h-screen text-slate-900" :class="{ 'is-ready': pageReady }">
     <!-- Navigation -->
     <nav class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-100 intro" style="--d: 0ms">
       <div class="w-full px-6 h-16 flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2.5">
           <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-            <span class="text-white text-sm font-semibold">R</span>
+            <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <span class="text-lg font-semibold tracking-tight">Relai</span>
+          <span class="text-lg font-semibold tracking-tight">Context</span>
         </NuxtLink>
 
         <div class="flex items-center gap-4">
@@ -95,17 +95,11 @@ onMounted(() => {
     </nav>
 
     <!-- Main Content -->
-    <main class="relative min-h-screen flex items-center px-6">
-      <div class="w-full py-16">
-        <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr,0.95fr] gap-10 xl:gap-14 items-center">
+    <main class="relative min-h-screen flex flex-col px-6 pt-24 pb-10">
+        <div class="max-w-6xl mx-auto w-full my-auto grid lg:grid-cols-[1.05fr,0.95fr] gap-10 xl:gap-14 items-center">
         <!-- Left Copy -->
         <section>
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-xs font-semibold text-slate-600 intro" style="--d: 120ms">
-            <span class="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Passwordless sign in</span>
-          </div>
-
-          <h1 class="mt-6 text-4xl sm:text-5xl xl:text-6xl font-semibold leading-tight tracking-tight">
+          <h1 class="text-3xl sm:text-4xl xl:text-5xl font-semibold leading-tight tracking-tight">
             <span class="word-animate" style="--d: 180ms">Welcome</span>
             <span class="word-animate" style="--d: 240ms">back</span>
             <span class="word-animate word-animate--accent" style="--d: 300ms">to clarity.</span>
@@ -134,7 +128,7 @@ onMounted(() => {
         <section class="relative lg:self-center">
           <div class="auth-card intro" style="--d: 220ms">
             <div class="text-center mb-8">
-              <h2 class="text-2xl font-semibold text-slate-900 tracking-tight mb-2">Sign in to Relai</h2>
+              <h2 class="text-2xl font-semibold text-slate-900 tracking-tight mb-2">Sign in to Context</h2>
               <p class="text-slate-500">We will email you a secure magic link.</p>
             </div>
 
@@ -186,7 +180,7 @@ onMounted(() => {
                   <Icon name="heroicons:sparkles" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <p class="text-sm font-medium text-emerald-800">Magic link sent!</p>
-                    <p class="text-sm text-emerald-600 mt-1">Check your inbox for a link to sign in. It'll expire in 15 minutes.</p>
+                    <p class="text-sm text-emerald-600 mt-1">Check your inbox for a link and a 4-character verification code. The link expires in 1 hour.</p>
                   </div>
                 </div>
               </div>
@@ -218,13 +212,12 @@ onMounted(() => {
           and
           <a href="#" class="text-slate-600 hover:text-slate-900 transition-colors">Privacy Policy</a>
         </p>
-      </div>
     </main>
   </div>
 </template>
 
 <style scoped>
-.relai-auth {
+.ctx-auth {
   background-image:
     radial-gradient(60% 60% at 85% 12%, rgba(56, 189, 248, 0.14), rgba(56, 189, 248, 0)),
     linear-gradient(120deg, rgba(16, 185, 129, 0.18) 0%, rgba(255, 255, 255, 0.96) 45%),

@@ -1,5 +1,5 @@
 import { prisma } from '../../utils/prisma'
-import { requireWorkspaceMember } from '../../utils/auth'
+import { requireWorkspaceMember, requireMinRole } from '../../utils/auth'
 import { slugify } from '../../utils/channelUtils'
 
 const MAX_NAME_LENGTH = 80
@@ -25,7 +25,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'workspaceId is required' })
   }
 
-  const user = await requireWorkspaceMember(event, workspaceId)
+  const auth = await requireWorkspaceMember(event, workspaceId)
+  requireMinRole(auth, 'MEMBER') // VIEWERs cannot create channels
+  const user = auth.user
 
   // Generate name from displayName if not provided
   let name = body.name

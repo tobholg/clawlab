@@ -14,8 +14,24 @@ const emit = defineEmits<{
   deleted: [id: string]
 }>()
 
+const router = useRouter()
+
 // Focus management
 const { focusState, startTaskFocus, completeTask, isFocusedOnTask, isLoading: focusLoading, currentUserId } = useFocus()
+
+// Role-based permission checks
+const { isWorkspaceAdmin, currentRole } = useWorkspaces()
+const canDeleteItem = computed(() => {
+  if (isWorkspaceAdmin.value) return true
+  // Item owner can delete
+  if (currentUserId.value && itemDetail.value?.ownerId === currentUserId.value) return true
+  return false
+})
+const canEditItem = computed(() => {
+  if (isWorkspaceAdmin.value) return true
+  if (currentRole.value === 'VIEWER') return false
+  return true
+})
 
 // Current item ID (allows in-modal navigation)
 const currentItemId = ref<string | null>(null)
@@ -563,11 +579,7 @@ const handleClose = async () => {
 const deleteItem = async () => {
   if (!props.item) return
 
-  const hasChildren = itemDetail.value?.childrenCount > 0
-  if (hasChildren) {
-    deleteError.value = 'This item has children. Delete child items first.'
-    return
-  }
+  const parentId = itemDetail.value?.parentId ?? null
 
   isDeleting.value = true
   deleteError.value = null
@@ -577,6 +589,13 @@ const deleteItem = async () => {
     })
     emit('deleted', props.item.id)
     emit('close')
+
+    // Navigate to parent item page, or workspace root if top-level project
+    if (parentId) {
+      router.push(`/workspace/projects/${parentId}`)
+    } else {
+      router.push('/workspace')
+    }
   } catch (e: any) {
     console.error('Failed to delete item:', e)
     deleteError.value = e.data?.message || 'Failed to delete item'
@@ -1124,9 +1143,12 @@ const formatRelativeTime = (dateStr: string) => {
               <div>
                 <label class="block text-xs font-medium text-slate-500 mb-2">Owner</label>
                 <div class="relative" ref="ownerDropdownRef">
-                  <button 
-                    @click.stop="showOwnerDropdown = !showOwnerDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                  <button
+                    @click.stop="canEditItem && (showOwnerDropdown = !showOwnerDropdown)"
+                    :class="[
+                      'w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm transition-colors',
+                      canEditItem ? 'hover:border-slate-300 cursor-pointer' : 'cursor-default'
+                    ]"
                   >
                     <template v-if="itemDetail?.owner">
                       <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
@@ -1140,9 +1162,9 @@ const formatRelativeTime = (dateStr: string) => {
                       </div>
                       <span class="flex-1 text-left text-slate-400">No owner</span>
                     </template>
-                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                    <Icon v-if="canEditItem" name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
                   </button>
-                  
+
                   <!-- Owner Dropdown -->
                   <Transition name="dropdown">
                     <div 
@@ -1193,7 +1215,8 @@ const formatRelativeTime = (dateStr: string) => {
                           <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
                         </div>
                         <span>{{ assignee.name }}</span>
-                        <button 
+                        <button
+                          v-if="canEditItem"
                           @click="removeAssignee(assignee.id)"
                           class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-all"
                         >
@@ -1204,8 +1227,8 @@ const formatRelativeTime = (dateStr: string) => {
                   </div>
                   
                   <!-- Add button with dropdown -->
-                  <div class="relative" ref="assigneeDropdownRef">
-                    <button 
+                  <div v-if="canEditItem" class="relative" ref="assigneeDropdownRef">
+                    <button
                       @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
                       class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors"
                     >
@@ -1473,6 +1496,13 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
             </div>
             
+            <!-- Project-level indicator -->
+            <div v-if="itemDetail && !itemDetail.parentId" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+              <Icon name="heroicons:folder" class="w-4 h-4 text-blue-500" />
+              <span class="text-xs font-medium text-blue-700">Top-level project</span>
+              <span class="text-xs text-blue-500">{{ itemDetail.childrenCount || 0 }} items inside</span>
+            </div>
+
             <!-- Subtasks Section -->
             <div v-if="itemDetail?.children?.length > 0 || itemDetail?.childrenCount > 0">
               <div class="flex items-center justify-between mb-3">
@@ -1737,7 +1767,7 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
 
             <!-- Delete Item -->
-            <div class="pt-6 mt-6 border-t border-slate-100">
+            <div v-if="canDeleteItem" class="pt-6 mt-6 border-t border-slate-100">
               <div v-if="!showDeleteConfirm" class="flex items-center justify-between gap-3">
                 <div class="text-xs text-slate-400">
                   Deleting removes this item permanently.
@@ -1762,7 +1792,7 @@ const formatRelativeTime = (dateStr: string) => {
                       This action cannot be undone.
                     </p>
                     <p v-if="itemDetail?.childrenCount > 0" class="text-xs text-rose-600 mt-2">
-                      This item has children. Delete child items first.
+                      This will also delete all {{ itemDetail.childrenCount }} child items and their data.
                     </p>
                     <p v-if="deleteError" class="text-xs text-rose-700 mt-2">
                       {{ deleteError }}
@@ -1776,7 +1806,7 @@ const formatRelativeTime = (dateStr: string) => {
                       </button>
                       <button
                         @click="deleteItem"
-                        :disabled="isDeleting || itemDetail?.childrenCount > 0"
+                        :disabled="isDeleting"
                         class="px-3 py-1.5 text-xs text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         {{ isDeleting ? 'Deleting...' : 'Confirm delete' }}

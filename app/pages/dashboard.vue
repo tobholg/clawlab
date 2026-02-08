@@ -186,10 +186,10 @@ onMounted(async () => {
           </button>
         </div>
 
-        <!-- CTA: Use Relai for your team -->
+        <!-- CTA: Use Context for your team -->
         <div class="mt-12 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-8 text-center">
           <h2 class="text-xl font-semibold text-white mb-2">
-            Want Relai for your own team?
+            Want Context for your own team?
           </h2>
           <p class="text-slate-300 mb-6 max-w-md mx-auto">
             Create your own workspace and invite your clients, investors, and partners to their own stakeholder portals.

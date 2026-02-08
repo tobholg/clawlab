@@ -361,10 +361,10 @@ function formatDays(days: number): string {
             
             <!-- Today marker -->
             <div
-              class="absolute top-0 h-full w-0.5 bg-relai-500 z-20"
+              class="absolute top-0 h-full w-0.5 bg-ctx-500 z-20"
               :style="{ left: `${dateToPosition(today)}px` }"
             >
-              <span class="absolute -top-0 left-1/2 -translate-x-1/2 text-[10px] font-bold text-relai-600 bg-relai-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+              <span class="absolute -top-0 left-1/2 -translate-x-1/2 text-[10px] font-bold text-ctx-600 bg-ctx-100 px-1.5 py-0.5 rounded whitespace-nowrap">
                 TODAY
               </span>
             </div>
@@ -485,7 +485,7 @@ function formatDays(days: number): string {
                   :key="'grid-' + index"
                   class="absolute top-0 h-full border-l"
                   :class="[
-                    day.isToday ? 'border-relai-200 border-l-2' :
+                    day.isToday ? 'border-ctx-200 border-l-2' :
                     day.isMonthStart ? 'border-gray-200' :
                     day.isWeekStart ? 'border-gray-100' : 
                     'border-gray-50'
@@ -576,7 +576,7 @@ function formatDays(days: number): string {
 
                   <!-- Hover highlight -->
                   <div 
-                    class="absolute inset-0 ring-2 ring-relai-500 ring-opacity-0 group-hover:ring-opacity-100 transition-all pointer-events-none"
+                    class="absolute inset-0 ring-2 ring-ctx-500 ring-opacity-0 group-hover:ring-opacity-100 transition-all pointer-events-none"
                     :class="task.isSubtask ? 'rounded' : 'rounded-lg'"
                   />
                 </div>
@@ -712,7 +712,7 @@ function formatDays(days: number): string {
         Due Date
       </span>
       <span class="flex items-center gap-1.5">
-        <div class="w-0.5 h-3 bg-relai-500" />
+        <div class="w-0.5 h-3 bg-ctx-500" />
         Today
       </span>
     </div>

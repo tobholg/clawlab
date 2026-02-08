@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   projects: ItemNode[]
-}>()
+  showCreateCard?: boolean
+}>(), {
+  showCreateCard: true,
+})
 
 const emit = defineEmits<{
   openProject: [project: ItemNode]
@@ -135,7 +138,6 @@ const healthMeta = (project: ItemNode) => {
         v-for="project in sortedProjects"
         :key="project.id"
         class="group relative overflow-hidden bg-white/90 rounded-2xl border border-slate-100 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
-        :class="{ 'opacity-60': project.status === 'done' }"
         @click="emit('openProject', project)"
       >
         <div class="p-5 relative">
@@ -229,6 +231,7 @@ const healthMeta = (project: ItemNode) => {
 
       <!-- New Project Card -->
       <button
+        v-if="showCreateCard"
         @click="emit('createProject')"
         class="flex flex-col items-center justify-center min-h-[200px] bg-gradient-to-br from-slate-50 via-white to-slate-50 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 hover:shadow-sm transition-all group"
       >

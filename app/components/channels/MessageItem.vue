@@ -29,7 +29,7 @@ const formattedTime = computed(() => {
 
 const isAiMessage = computed(() => {
   const name = props.message.user?.name?.trim().toLowerCase()
-  return name === 'relai ai'
+  return name === 'context ai'
 })
 
 // Bubble background color - Telegram style
@@ -252,7 +252,7 @@ const renderedAiContent = computed(() => {
       </div>
 
       <!-- Bubble -->
-      <div class="max-w-[75%] min-w-0">
+      <div class="max-w-[75%] min-w-[140px]">
         <div
           :class="[
             'relative px-3.5 py-2 rounded-2xl',

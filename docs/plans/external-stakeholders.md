@@ -4,11 +4,11 @@
 
 ## Vision
 
-Relai's External Stakeholders system creates isolated portals where clients, investors, partners, and power users can see project progress, ask questions, and submit requests — all mediated by AI that understands your project context.
+Context's External Stakeholders system creates isolated portals where clients, investors, partners, and power users can see project progress, ask questions, and submit requests — all mediated by AI that understands your project context.
 
 The key insight: **AI sits in the middle**, translating between internal reality and external audiences. Stakeholders get answers instantly when possible, and the team only gets interrupted when genuinely needed.
 
-**The network effect play:** External stakeholders are invited in, experience Relai's value, and convert to full users for their own teams.
+**The network effect play:** External stakeholders are invited in, experience Context's value, and convert to full users for their own teams.
 
 ---
 
@@ -180,7 +180,7 @@ My External Projects
 ├── Beta Program (Other Co) 
 │   └── Invited 2 days ago
 │
-└── [Use Relai for your team →]  // Conversion CTA
+└── [Use Context for your team →]  // Conversion CTA
 ```
 
 ### Stakeholder Portal (per space)
@@ -431,7 +431,7 @@ StakeholderAccess {
 
 ### Phase 6: Polish + Conversion
 - Stakeholder → full user conversion flow
-- "Use Relai for your team" CTAs
+- "Use Context for your team" CTAs
 - Onboarding for new stakeholders
 - Email notifications for IR responses
 
@@ -471,7 +471,7 @@ StakeholderAccess {
 - **Stakeholder engagement:** Questions asked, IRs submitted
 - **AI deflection rate:** % of questions answered without IR
 - **Response time:** Time from IR creation to response
-- **Conversion rate:** Stakeholders → full Relai users
+- **Conversion rate:** Stakeholders → full Context users
 - **Task acceptance rate:** External tasks accepted vs rejected
 
 ---

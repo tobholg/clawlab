@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto'
 import { prisma } from '../../utils/prisma'
 import { requireUser, buildAppBaseUrl } from '../../utils/auth'
 import { findAvailableSeat, checkUserAlreadySeated, expireStaleInvites } from '../../utils/seats'
+import { generateVerificationCode, sendInviteEmail } from '../../utils/email'
 
 export default defineEventHandler(async (event) => {
   const currentUser = await requireUser(event)
@@ -59,41 +60,18 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check if user is already seated in the org (cross-workspace)
-  // If so, they don't need a new seat — we'll still create the invite but skip seat consumption
   const alreadySeated = existingUser
     ? await checkUserAlreadySeated(workspace.organizationId, existingUser.id)
     : false
 
-  let seatId: string
-
   if (alreadySeated) {
-    // User already has a seat — create a "virtual" invite without consuming a seat
-    // We create a temporary AVAILABLE seat just for the invite tracking, which will be
-    // freed when accepted (since user already has their real seat)
-    // Actually simpler: just find their existing occupied seat
-    const existingSeat = await prisma.seat.findFirst({
-      where: { organizationId: workspace.organizationId, userId: existingUser!.id, status: 'OCCUPIED' },
-    })
-    if (!existingSeat) {
-      throw createError({ statusCode: 500, message: 'User seated but no occupied seat found' })
-    }
-    // For cross-workspace invites, we don't consume a new seat.
-    // Create the invite without a seat link — use a placeholder approach:
-    // Actually, we need a seatId for SeatInvite. Let's create a temporary seat that
-    // will be removed on accept. Better approach: find available seat, or if none,
-    // just create the workspace member directly since they already have a seat.
-
-    // Simplest approach: if user is already seated, add them to workspace directly
-    const token = randomBytes(32).toString('hex')
-
-    // Create workspace member directly (they already have an org seat)
+    // User already has a seat — add them to workspace directly
     if (existingUser) {
       const existingWsMember = await prisma.workspaceMember.findUnique({
         where: { workspaceId_userId: { workspaceId, userId: existingUser.id } },
       })
 
       if (existingWsMember && existingWsMember.status === 'DEACTIVATED') {
-        // Reactivate
         await prisma.workspaceMember.update({
           where: { id: existingWsMember.id },
           data: { status: 'ACTIVE', role: inviteRole },
@@ -120,9 +98,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Generate unique invite token
+  // Generate unique invite token + verification code
   const token = randomBytes(32).toString('hex')
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+  const code = generateVerificationCode()
+  const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days
 
   // Transaction: mark seat as INVITED + create SeatInvite
   const invite = await prisma.$transaction(async (tx) => {
@@ -140,6 +119,7 @@ export default defineEventHandler(async (event) => {
         workspaceId,
         invitedById: currentUser.id,
         token,
+        code,
         expiresAt,
       },
       select: {
@@ -156,6 +136,31 @@ export default defineEventHandler(async (event) => {
 
   const baseUrl = buildAppBaseUrl(event)
   const inviteLink = `${baseUrl}/invite/accept?token=${invite.token}`
+
+  // Get org name for the email
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: workspace.organizationId },
+    select: { name: true },
+  })
+
+  // Send invite email
+  try {
+    await sendInviteEmail({
+      to: email,
+      inviterName: currentUser.name || currentUser.email,
+      organizationName: org.name,
+      workspaceName: workspace.name,
+      role: inviteRole,
+      inviteLink,
+      code,
+    })
+  } catch (e) {
+    console.error('[invite] Failed to send invite email:', e)
+    if (process.env.NODE_ENV === 'development') {
+      console.info(`[invite] Invite link for ${email}: ${inviteLink}`)
+      console.info(`[invite] Verification code: ${code}`)
+    }
+  }
 
   return {
     invite: {

@@ -88,6 +88,7 @@ model SeatInvite {
   workspaceId    String
   invitedById    String
   token          String       @unique
+  code           String       @default("0000") // 4-char verification code (e.g. "B7MR")
   status         InviteStatus @default(PENDING)
   expiresAt      DateTime
   acceptedAt     DateTime?
@@ -155,6 +156,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  position  String?  // Job title: "Engineering Manager", "CTO"
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -209,6 +211,7 @@ model User {
 model MagicLinkToken {
   id        String    @id @default(cuid())
   token     String    @unique
+  code      String    @default("0000") // 4-char verification code (e.g. "A3KX")
   userId    String
   expiresAt DateTime
   usedAt    DateTime?

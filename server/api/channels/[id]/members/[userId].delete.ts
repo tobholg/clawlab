@@ -1,4 +1,5 @@
 import { prisma } from '../../../../utils/prisma'
+import { requireWorkspaceMemberForChannel } from '../../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const channelId = getRouterParam(event, 'id')
@@ -6,6 +7,20 @@ export default defineEventHandler(async (event) => {
 
   if (!channelId || !userId) {
     throw createError({ statusCode: 400, message: 'Channel ID and User ID are required' })
+  }
+
+  const auth = await requireWorkspaceMemberForChannel(event, channelId)
+
+  // Allow self-removal or workspace admin
+  if (userId !== auth.user.id && !auth.isWorkspaceAdmin) {
+    // Check if caller is channel admin
+    const callerMember = await prisma.channelMember.findUnique({
+      where: { channelId_userId: { channelId, userId: auth.user.id } },
+      select: { role: true },
+    })
+    if (!callerMember || (callerMember.role !== 'OWNER' && callerMember.role !== 'ADMIN')) {
+      throw createError({ statusCode: 403, statusMessage: 'Only channel admins can remove other members' })
+    }
   }
 
   // Find the membership

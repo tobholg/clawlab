@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -7,6 +8,8 @@ export default defineEventHandler(async (event) => {
   if (!itemId) {
     throw createError({ statusCode: 400, message: 'itemId is required' })
   }
+
+  await requireWorkspaceMemberForItem(event, itemId)
 
   const documents = await prisma.document.findMany({
     where: { itemId },

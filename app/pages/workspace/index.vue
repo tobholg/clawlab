@@ -13,7 +13,11 @@ const {
   workspaceId,
   navigateTo,
   currentScope,
+  loading: itemsLoading,
 } = useItems()
+
+const { currentRole, currentWorkspace } = useWorkspaces()
+const canCreate = computed(() => currentRole.value !== 'VIEWER')
 
 // Always show root level on this page
 // navigateTo handles both clearing stale data and triggering a refresh
@@ -24,6 +28,28 @@ watch(() => route.path, (path) => {
 }, { immediate: true })
 
 const activeView = ref<'dashboard' | 'timeline' | 'list'>('dashboard')
+const activeTab = ref<'in_progress' | 'backlog' | 'completed'>('in_progress')
+
+const tabCounts = computed(() => {
+  const items = scopedItems.value
+  return {
+    in_progress: items.filter(i => ['in_progress', 'blocked', 'paused'].includes(i.status)).length,
+    backlog: items.filter(i => i.status === 'todo').length,
+    completed: items.filter(i => i.status === 'done').length,
+  }
+})
+
+const filteredProjects = computed(() => {
+  switch (activeTab.value) {
+    case 'in_progress':
+      return scopedItems.value.filter(i => ['in_progress', 'blocked', 'paused'].includes(i.status))
+    case 'backlog':
+      return scopedItems.value.filter(i => i.status === 'todo')
+    case 'completed':
+      return scopedItems.value.filter(i => i.status === 'done')
+  }
+})
+
 const showCreateModal = ref(false)
 const showDetailModal = ref(false)
 const selectedItem = ref<any>(null)
@@ -49,7 +75,7 @@ const activeViewOption = computed(() => {
 const refreshSidebar = inject<() => Promise<void>>('refreshSidebarProjects')
 
 // Handle item creation
-const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string }) => {
+const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string }) => {
   try {
     await createItem(data)
     showCreateModal.value = false
@@ -118,15 +144,14 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
       <div class="flex items-start gap-4 flex-1 min-w-0">
         <div class="flex-1 min-w-0 max-w-3xl">
           <h1 class="text-xl font-medium text-slate-900">{{ currentScope?.title || 'Projects' }}</h1>
-          <p class="text-sm text-slate-500 mt-0.5">
-            {{ scopedItems.length }} projects
-          </p>
+          <p v-if="currentWorkspace?.description" class="text-sm text-slate-500 mt-1">{{ currentWorkspace.description }}</p>
         </div>
       </div>
 
       <div class="flex items-center gap-4">
         <!-- From template button -->
         <button
+          v-if="canCreate"
           @click="showTemplateModal = true"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-normal rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors"
         >
@@ -136,6 +161,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
 
         <!-- New project button -->
         <button
+          v-if="canCreate"
           @click="showCreateModal = true"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
         >
@@ -179,21 +205,60 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
         </div>
       </div>
     </div>
+
+    <!-- Tabs -->
+    <div class="flex items-center gap-1 border-b border-slate-200 -mx-6 px-6">
+      <button
+        v-for="tab in [
+          { key: 'in_progress', label: 'In Progress', count: tabCounts.in_progress },
+          { key: 'backlog', label: 'Backlog', count: tabCounts.backlog },
+          { key: 'completed', label: 'Completed', count: tabCounts.completed },
+        ]"
+        :key="tab.key"
+        @click="activeTab = tab.key as typeof activeTab"
+        class="relative px-3 py-2.5 text-sm font-medium transition-colors"
+        :class="activeTab === tab.key
+          ? 'text-slate-900'
+          : 'text-slate-400 hover:text-slate-600'"
+      >
+        {{ tab.label }}
+        <span
+          class="ml-1.5 text-xs tabular-nums"
+          :class="activeTab === tab.key ? 'text-slate-500' : 'text-slate-300'"
+        >{{ tab.count }}</span>
+        <div
+          v-if="activeTab === tab.key"
+          class="absolute bottom-0 left-3 right-3 h-0.5 bg-slate-900 rounded-full"
+        />
+      </button>
+    </div>
   </header>
 
   <!-- Content -->
   <div class="flex-1 overflow-auto px-6 pb-6">
-    <!-- Empty state onboarding -->
-    <div v-if="!scopedItems.length" class="flex items-center justify-center py-16">
-      <div class="w-full max-w-2xl text-center">
+    <!-- Empty tab state -->
+    <div v-if="!itemsLoading && !filteredProjects?.length" class="flex items-center justify-center min-h-full pb-24">
+      <!-- Completed tab: simple empty state -->
+      <div v-if="activeTab === 'completed'" class="text-center max-w-sm">
+        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+          <Icon name="heroicons:check-circle" class="w-6 h-6 text-slate-400" />
+        </div>
+        <h3 class="text-sm font-medium text-slate-700 mb-1">No completed projects</h3>
+        <p class="text-xs text-slate-400">Completed projects will appear here.</p>
+      </div>
+
+      <!-- In Progress / Backlog tabs: full onboarding empty state -->
+      <div v-else class="w-full max-w-2xl text-center">
         <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-5">
           <Icon name="heroicons:rocket-launch" class="w-7 h-7 text-slate-400" />
         </div>
-        <h2 class="text-lg font-medium text-slate-900 mb-2">Welcome to your workspace</h2>
+        <h2 class="text-lg font-medium text-slate-900 mb-2">
+          {{ activeTab === 'backlog' ? 'No projects in backlog' : 'No projects in progress' }}
+        </h2>
         <p class="text-sm text-slate-500 mb-8 leading-relaxed">
-          Get started by creating your first project from scratch or use a template to hit the ground running.
+          Get started by creating a project from scratch or use a template to hit the ground running.
         </p>
-        <div class="flex items-center justify-center gap-3">
+        <div v-if="canCreate" class="flex items-center justify-center gap-3">
           <button
             @click="showTemplateModal = true"
             class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors"
@@ -232,7 +297,8 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     <!-- Projects Dashboard -->
     <ViewsProjectsView
       v-else-if="activeView === 'dashboard'"
-      :projects="scopedItems"
+      :projects="filteredProjects"
+      :show-create-card="activeTab !== 'completed'"
       @open-project="handleDrillDown"
       @open-detail="handleOpenDetail"
       @create-project="showCreateModal = true"
@@ -242,7 +308,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     <!-- Timeline View -->
     <ViewsTimelineView
       v-else-if="activeView === 'timeline'"
-      :items="scopedItems"
+      :items="filteredProjects"
       :is-root-level="true"
       @open-item="handleDrillDown"
       @open-detail="handleOpenDetail"
@@ -251,7 +317,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     <!-- List View -->
     <ViewsListView
       v-else-if="activeView === 'list'"
-      :items="scopedItems"
+      :items="filteredProjects"
       :is-root-level="true"
       @openDetail="handleOpenDetail"
       @openItem="handleDrillDown"

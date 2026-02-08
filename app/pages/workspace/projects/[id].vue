@@ -23,6 +23,9 @@ const {
   currentScopeId,
 } = useItems()
 
+const { currentRole } = useWorkspaces()
+const canCreate = computed(() => currentRole.value !== 'VIEWER')
+
 // Navigate to this project when route changes or on mount
 // navigateTo handles the case where we're already at this scope
 watch(projectId, (id) => {
@@ -223,7 +226,7 @@ const filteredItems = computed(() => {
 })
 
 // Handle item creation
-const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string }) => {
+const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string }) => {
   await createItem(data)
   showCreateModal.value = false
 }
@@ -472,7 +475,7 @@ onMounted(() => {
 
         <!-- New item button -->
         <button
-          v-if="activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'"
+          v-if="canCreate && activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'"
           @click="showCreateModal = true"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
         >

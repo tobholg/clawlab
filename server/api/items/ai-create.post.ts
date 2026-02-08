@@ -1,5 +1,5 @@
 import { prisma } from '../../utils/prisma'
-import { requireUser } from '../../utils/auth'
+import { requireWorkspaceMember, requireMinRole } from '../../utils/auth'
 import { getDefaultSubStatus } from '../../utils/itemStage'
 import { checkCanUseAICredit, consumeAICredit } from '../../utils/planLimits'
 
@@ -43,7 +43,6 @@ const ALLOWED_PRIORITIES: ItemPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 const ALLOWED_COMPLEXITIES: ItemComplexity[] = ['TRIVIAL', 'SMALL', 'MEDIUM', 'LARGE', 'EPIC']
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
   const config = useRuntimeConfig()
 
   if (!config.openaiApiKey) {
@@ -58,6 +57,10 @@ export default defineEventHandler(async (event) => {
   if (!workspaceId || !parentId || !input) {
     throw createError({ statusCode: 400, message: 'workspaceId, parentId, and input are required' })
   }
+
+  const auth = await requireWorkspaceMember(event, workspaceId)
+  requireMinRole(auth, 'MEMBER')
+  const user = auth.user
 
   if (input.length > MAX_INPUT_LENGTH) {
     throw createError({ statusCode: 400, message: `Input must be ${MAX_INPUT_LENGTH} characters or fewer` })

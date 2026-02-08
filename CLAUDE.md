@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Relai is a multi-stakeholder project management SaaS with AI-powered insights. Built with Nuxt 4 (Vue 3), Nitro backend, PostgreSQL/Prisma, and Tailwind CSS v4.
+Context is a multi-stakeholder project management SaaS with AI-powered insights. Built with Nuxt 4 (Vue 3), Nitro backend, PostgreSQL/Prisma, and Tailwind CSS v4.
 
 ## Commands
 

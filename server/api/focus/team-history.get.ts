@@ -300,7 +300,7 @@ export default defineEventHandler(async (event) => {
 
   members.sort((a, b) => b.totals.totalHours - a.totals.totalHours)
 
-  const stats = members.reduce(
+  const rawStats = members.reduce(
     (acc, member) => {
       acc.totalHours += member.totals.totalHours
       acc.taskHours += member.totals.taskHours
@@ -312,6 +312,14 @@ export default defineEventHandler(async (event) => {
     { totalHours: 0, taskHours: 0, meetingHours: 0, sessions: 0, activeMembers: 0 }
   )
 
+  // Round aggregated floats to avoid floating point drift (e.g. 9.200000000000001)
+  const stats = {
+    ...rawStats,
+    totalHours: parseFloat(rawStats.totalHours.toFixed(1)),
+    taskHours: parseFloat(rawStats.taskHours.toFixed(1)),
+    meetingHours: parseFloat(rawStats.meetingHours.toFixed(1)),
+  }
+
   return {
     workspaceId,
     project: projectId ? { id: projectId, title: projectTitle } : null,
@@ -322,5 +330,5 @@ export default defineEventHandler(async (event) => {
 })
 
 function roundHours(mins: number) {
-  return Math.round((mins / 60) * 10) / 10
+  return parseFloat((mins / 60).toFixed(1))
 }

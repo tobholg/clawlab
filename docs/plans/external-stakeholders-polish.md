@@ -249,7 +249,7 @@ Recommended: Start with localStorage for MVP polish, consider server persistence
 
 ### 3.2 Stakeholder → Full User Conversion
 - Track conversion funnel
-- Enhanced "Use Relai for your team" CTA
+- Enhanced "Use Context for your team" CTA
 - Onboarding flow for new full users who started as stakeholders
 
 ### 3.3 Onboarding for New Stakeholders

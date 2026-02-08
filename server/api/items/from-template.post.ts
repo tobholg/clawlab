@@ -1,6 +1,7 @@
 import { prisma } from '../../utils/prisma'
-import { requireUser } from '../../utils/auth'
+import { requireWorkspaceMember, requireMinRole } from '../../utils/auth'
 import { checkCanCreateProject } from '../../utils/planLimits'
+import { createProjectChannel } from '../../utils/channelUtils'
 
 type TemplateTask = {
   title: string
@@ -232,11 +233,12 @@ const TEMPLATES: Template[] = [
 ]
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
   const body = await readBody(event)
 
-  // If requesting template list
+  // If requesting template list (requires auth but not workspace)
   if (body?.listTemplates) {
+    const { requireUser } = await import('../../utils/auth')
+    await requireUser(event)
     return TEMPLATES.map(t => ({
       id: t.id,
       name: t.name,
@@ -258,14 +260,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Template not found' })
   }
 
-  // Verify membership
-  const membership = await prisma.workspaceMember.findUnique({
-    where: { workspaceId_userId: { workspaceId, userId: user.id } }
-  })
-
-  if (!membership || membership.status !== 'ACTIVE') {
-    throw createError({ statusCode: 403, message: 'Not a workspace member' })
-  }
+  const auth = await requireWorkspaceMember(event, workspaceId)
+  requireMinRole(auth, 'MEMBER')
+  const user = auth.user
 
   // Enforce plan limit
   const check = await checkCanCreateProject(workspaceId)
@@ -285,7 +282,8 @@ export default defineEventHandler(async (event) => {
       title: projectTitle,
       description: template.description,
       ownerId: user.id,
-      status: 'TODO',
+      status: 'IN_PROGRESS',
+      startDate: new Date(),
     }
   })
 
@@ -322,21 +320,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Create project channel (same pattern as items/index.post.ts)
+  // Create project channel
   try {
-    await prisma.channel.create({
-      data: {
-        workspaceId,
-        type: 'PROJECT',
-        displayName: projectTitle,
-        visibility: 'public',
-        projectId: project.id,
-        members: {
-          create: { userId: user.id, role: 'ADMIN' }
-        }
-      }
-    })
+    await createProjectChannel(project.id, workspaceId, projectTitle, user.id)
   } catch (e) {
+    console.error('Failed to create project channel:', e)
     // Non-critical, don't fail the request
   }
 

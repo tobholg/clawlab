@@ -1,4 +1,6 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../utils/auth'
+import { requireItemPermission } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -9,12 +11,15 @@ export default defineEventHandler(async (event) => {
 
   const document = await prisma.document.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, itemId: true },
   })
 
   if (!document) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
+
+  const auth = await requireWorkspaceMemberForItem(event, document.itemId)
+  await requireItemPermission(auth, document.itemId, 'edit')
 
   // Delete all versions first (due to foreign key constraint)
   await prisma.documentVersion.deleteMany({

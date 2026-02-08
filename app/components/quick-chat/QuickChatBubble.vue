@@ -13,7 +13,7 @@
         @mousedown="startDrag"
       >
         <div class="flex items-center gap-2">
-          <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-4 h-4 text-relai-500" />
+          <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-4 h-4 text-ctx-500" />
           <span class="text-sm font-medium text-slate-700">Quick Chat</span>
         </div>
         <div class="flex items-center gap-1">
@@ -87,11 +87,11 @@
         
         <!-- Thinking indicator -->
         <div v-if="sending && messages.length > 0 && !messages[messages.length - 1]?.content" class="flex justify-start">
-          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-relai-50 text-slate-500 text-sm">
+          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-ctx-50 text-slate-500 text-sm">
             <span class="inline-flex items-center gap-1">
-              <span class="w-1.5 h-1.5 bg-relai-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
-              <span class="w-1.5 h-1.5 bg-relai-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
-              <span class="w-1.5 h-1.5 bg-relai-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
+              <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
+              <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
+              <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
             </span>
           </div>
         </div>
@@ -112,7 +112,7 @@
         <button
           @click="handleSend"
           :disabled="!inputMessage.trim() || sending"
-          class="w-8 h-8 rounded-full bg-relai-500 text-white flex items-center justify-center hover:bg-relai-600 transition-colors disabled:opacity-30 disabled:hover:bg-relai-500 shrink-0"
+          class="w-8 h-8 rounded-full bg-ctx-500 text-white flex items-center justify-center hover:bg-ctx-600 transition-colors disabled:opacity-30 disabled:hover:bg-ctx-500 shrink-0"
         >
           <Icon v-if="sending" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
           <Icon v-else name="heroicons:arrow-up" class="w-4 h-4" />

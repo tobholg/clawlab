@@ -1,8 +1,10 @@
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  await requireUser(event)
   const id = getRouterParam(event, 'id')
-  
+
   if (!id) {
     throw createError({ statusCode: 400, message: 'User ID is required' })
   }

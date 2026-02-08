@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMember } from '../../utils/auth'
 import { calculateTemperature } from '../../utils/temperature'
 import { getEstimateMeta } from '../../utils/estimate'
 
@@ -34,10 +35,12 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const workspaceId = query.workspaceId as string
   const parentId = query.parentId as string | undefined
-  
+
   if (!workspaceId) {
     throw createError({ statusCode: 400, message: 'workspaceId is required' })
   }
+
+  await requireWorkspaceMember(event, workspaceId)
   
   // Fetch items at the specified level
   const items = await prisma.item.findMany({

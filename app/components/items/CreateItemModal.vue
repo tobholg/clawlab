@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  create: [item: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string }]
+  create: [item: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string }]
   aiCreated: [item: any]
 }>()
 
@@ -31,6 +31,7 @@ const description = ref('')
 const category = ref('')
 const dueDate = ref('')
 const priority = ref('MEDIUM')
+const status = ref<'TODO' | 'IN_PROGRESS'>('IN_PROGRESS')
 const ownerId = ref<string | null>(null)
 const assigneeIds = ref<string[]>([])
 
@@ -113,6 +114,7 @@ const resetManualForm = () => {
   assigneeIds.value = []
   ownerId.value = currentUserId.value ?? null
   priority.value = 'MEDIUM'
+  status.value = 'IN_PROGRESS'
 }
 
 const resetAiState = () => {
@@ -136,6 +138,7 @@ const handleSubmit = () => {
     ownerId: ownerId.value,
     assigneeIds: assigneeIds.value.length ? assigneeIds.value : undefined,
     priority: priority.value || undefined,
+    status: status.value,
   })
   
   resetManualForm()
@@ -296,7 +299,7 @@ onUnmounted(() => {
                   mode === 'ai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 ]"
               >
-                Relai AI
+                Context AI
               </button>
               <button
                 type="button"
@@ -339,6 +342,35 @@ onUnmounted(() => {
                 placeholder="Add more details..."
                 class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all resize-none"
               />
+            </div>
+
+            <!-- Status selector (projects only) -->
+            <div v-if="isProject">
+              <label class="block text-xs font-medium text-slate-500 mb-2">Starting Status</label>
+              <div class="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200">
+                <button
+                  type="button"
+                  @click="status = 'IN_PROGRESS'"
+                  :class="[
+                    'px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5',
+                    status === 'IN_PROGRESS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  ]"
+                >
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  In Progress
+                </button>
+                <button
+                  type="button"
+                  @click="status = 'TODO'"
+                  :class="[
+                    'px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5',
+                    status === 'TODO' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  ]"
+                >
+                  <div class="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                  Backlog
+                </button>
+              </div>
             </div>
 
             <!-- Owner & Assignees Row -->
@@ -607,7 +639,7 @@ onUnmounted(() => {
                 autofocus
               />
               <p class="text-xs text-slate-500 mt-2">
-                Relai AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
+                Context AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
               </p>
 
               <div
@@ -615,7 +647,7 @@ onUnmounted(() => {
                 class="mt-3 flex items-center gap-2 text-violet-700"
               >
                 <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-                <span class="text-xs font-medium animate-pulse">Relai AI is shaping your task plan...</span>
+                <span class="text-xs font-medium animate-pulse">Context AI is shaping your task plan...</span>
               </div>
             </div>
 

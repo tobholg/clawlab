@@ -26,7 +26,7 @@ const marqueeItems = [
 ]
 
 const pipelineSteps = [
-  { icon: 'heroicons:plus-circle', label: 'Create', desc: 'Start with items at any depth. Projects, features, tasks, subtasks — all the same recursive model.', bgClass: 'bg-slate-100', iconClass: 'text-slate-600' },
+  { icon: 'heroicons:plus-circle', label: 'Create', desc: 'Start with items at any depth. Projects, features, tasks, subtasks, all the same recursive model.', bgClass: 'bg-slate-100', iconClass: 'text-slate-600' },
   { icon: 'heroicons:queue-list', label: 'Structure', desc: 'Nest as deep as you need. Progress rolls up through every level automatically.', bgClass: 'bg-sky-50', iconClass: 'text-sky-600' },
   { icon: 'heroicons:sparkles', label: 'Analyze', desc: 'AI evaluates risk, flags blockers, and tracks progress across every layer of your project.', bgClass: 'bg-violet-50', iconClass: 'text-violet-600' },
   { icon: 'heroicons:chart-bar', label: 'Forecast', desc: 'Get confidence ranges, not single dates. See what\'s slipping before deadlines hit.', bgClass: 'bg-amber-50', iconClass: 'text-amber-600' },
@@ -35,19 +35,61 @@ const pipelineSteps = [
 ]
 
 const capabilities = [
-  { pain: 'Lost in flat lists and scattered spreadsheets?', title: 'Infinite nesting', desc: 'One model, infinite depth. Projects contain epics contain tasks contain subtasks — and everything rolls up automatically.', visual: 'nesting' },
-  { pain: 'Deadlines slip silently until it\'s too late?', title: 'Live forecast ranges', desc: 'Confidence intervals tighten or widen in real-time as work progresses. Not a single date — a window of truth.', visual: 'forecast' },
-  { pain: 'Hours spent writing updates nobody reads?', title: 'Auto stakeholder reports', desc: 'AI curates weekly briefs from actual work. Risks, decisions, progress — published to stakeholder spaces automatically.', visual: 'report' },
-  { pain: 'No idea what\'s actually blocking what?', title: 'Dependency tracking', desc: 'See your critical path instantly. One blocked subtask surfaces risk across every item it touches.', visual: 'dependency' },
-  { pain: 'Context buried in Slack threads and email?', title: 'AI team channels', desc: 'Built-in channels tied to your projects. AI summarizes discussions, detects blockers, and connects decisions to the work.', visual: 'channels' },
-  { pain: 'Where does your team\'s week actually go?', title: 'Focus time tracking', desc: 'Track deep work, meetings, admin, and learning. See who\'s in flow and who\'s drowning in syncs.', visual: 'focus' },
+  { pain: 'Lost in flat lists and scattered spreadsheets?', title: 'Infinite nesting', desc: 'One model, infinite depth. Projects contain epics contain tasks contain subtasks, and everything rolls up automatically.', visual: 'nesting', features: ['Unlimited hierarchy depth with automatic roll-up', 'Progress, confidence, and status cascade through every level', 'Drag-and-drop restructuring across the tree'] },
+  { pain: 'Deadlines slip silently until it\'s too late?', title: 'Live forecast ranges', desc: 'Confidence intervals tighten or widen in real-time as work progresses. Not a single date, a window of truth.', visual: 'forecast', features: ['AI-generated confidence ranges that update daily', 'Temperature indicators flag items going cold or critical', 'Early warnings surface before deadlines are at risk'] },
+  { pain: 'Hours spent writing updates nobody reads?', title: 'Auto stakeholder reports', desc: 'AI curates weekly briefs from actual work. Risks, decisions, progress, all published to stakeholder spaces automatically.', visual: 'report', features: ['Stakeholder portals with curated, role-based views', 'AI drafts updates from actual activity, not manual input', 'Published on schedule with zero effort from your team'] },
+  { pain: 'No idea what\'s actually blocking what?', title: 'Dependency tracking', desc: 'See your critical path instantly. One blocked subtask surfaces risk across every item it touches.', visual: 'dependency', features: ['Visual dependency graph across the full hierarchy', 'Blocked items propagate risk up to parent projects', 'Critical path detection highlights what to unblock first'] },
+  { pain: 'Context buried in Slack threads and email?', title: 'AI team channels', desc: 'Built-in channels tied to your projects. AI summarizes discussions, detects blockers, and connects decisions to the work.', visual: 'channels', features: ['Project-linked channels keep context next to the work', 'AI summarizes threads and extracts action items', 'Decisions and blockers auto-tagged to relevant items'] },
+  { pain: 'Where does your team\'s week actually go?', title: 'Focus time tracking', desc: 'Track deep work, meetings, admin, and learning. See who\'s in flow and who\'s drowning in syncs.', visual: 'focus', features: ['Five focus lanes: deep work, meetings, admin, learning, break', 'Team-wide heatmaps show where time is really going', 'Spot burnout patterns and protect maker schedules'] },
 ]
 
 const stats = [
-  { value: '72%', label: 'Status updates automated', accent: 'from-slate-700 to-emerald-400' },
-  { value: '+31%', label: 'Forecast confidence gain', accent: 'from-slate-700 to-sky-400' },
-  { value: '-6 hrs', label: 'Meeting time saved weekly', accent: 'from-slate-700 to-amber-400' },
+  { target: 72, prefix: '', suffix: '%', label: 'Status updates automated', accent: 'from-slate-700 to-emerald-400' },
+  { target: 31, prefix: '+', suffix: '%', label: 'Forecast confidence gain', accent: 'from-slate-700 to-sky-400' },
+  { target: 6, prefix: '-', suffix: ' hrs', label: 'Meeting time saved weekly', accent: 'from-slate-700 to-amber-400' },
 ]
+
+// Count-up animation for stats
+const statsRef = ref<HTMLElement | null>(null)
+const statsCounted = ref(false)
+const statValues = reactive([0, 0, 0])
+
+const animateCountUp = () => {
+  if (statsCounted.value) return
+  statsCounted.value = true
+
+  const duration = 1600
+  const startTime = performance.now()
+
+  const tick = (now: number) => {
+    const elapsed = now - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    // Ease-out cubic
+    const eased = 1 - Math.pow(1 - progress, 3)
+
+    stats.forEach((stat, i) => {
+      statValues[i] = Math.round(eased * stat.target)
+    })
+
+    if (progress < 1) requestAnimationFrame(tick)
+  }
+
+  requestAnimationFrame(tick)
+}
+
+onMounted(() => {
+  if (!statsRef.value) return
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        animateCountUp()
+        observer.disconnect()
+      }
+    },
+    { threshold: 0.3 }
+  )
+  observer.observe(statsRef.value)
+})
 
 const plans = [
   {
@@ -69,7 +111,7 @@ const plans = [
     price: 'From $5',
     priceNote: 'per seat / mo',
     featured: true,
-    cta: 'Start free trial',
+    cta: 'Get started',
     features: [
       { label: 'Internal seats', value: 'Up to 100' },
       { label: 'External seats', value: 'Up to 100' },
@@ -108,6 +150,13 @@ const calcFullPrice = computed(() =>
 const calcSavingPct = computed(() => {
   if (calcFullPrice.value <= 0 || calcTotal.value >= calcFullPrice.value) return 0
   return ((calcFullPrice.value - calcTotal.value) / calcFullPrice.value) * 100
+})
+
+const proOnboardingUrl = computed(() => {
+  const params = new URLSearchParams({ plan: 'pro' })
+  if (calcInternal.value !== 10) params.set('seats', String(calcInternal.value))
+  if (calcExternal.value !== 5) params.set('ext', String(calcExternal.value))
+  return `/onboarding?${params.toString()}`
 })
 
 const navItems = [
@@ -202,20 +251,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="relai-landing min-h-screen bg-white text-slate-900 scroll-smooth" :class="{ 'is-ready': ready }">
+  <div class="ctx-landing min-h-screen bg-white text-slate-900 scroll-smooth" :class="{ 'is-ready': ready }">
     <!-- Nav -->
     <nav
       data-landing-nav
-      class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl transition-all duration-300"
-      :class="scrolled ? 'bg-white/90 border-b border-slate-200/60 shadow-sm' : 'bg-transparent'"
+      class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl transition-all duration-300 nav-intro"
+      :class="scrolled ? 'bg-white/80 border-b border-slate-200/60 shadow-sm' : 'bg-transparent'"
     >
       <div class="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
         <div class="flex items-center gap-8">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-              <span class="text-white text-sm font-semibold">R</span>
+              <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="text-lg font-semibold tracking-tight">Relai</span>
+            <span class="text-lg font-semibold tracking-tight">Context</span>
           </div>
           <div class="hidden md:flex items-center gap-6 text-sm text-slate-500">
             <button
@@ -235,7 +284,7 @@ onMounted(() => {
           </NuxtLink>
           <NuxtLink
             to="/onboarding"
-            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+            class="hidden sm:inline-flex px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
           >
             Get started free
           </NuxtLink>
@@ -252,22 +301,22 @@ onMounted(() => {
       <div class="hero-glow" aria-hidden="true" />
 
       <div class="relative max-w-4xl mx-auto text-center">
-        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1]">
-          <span class="word-animate" style="--d: 80ms">Ship</span>
-          <span class="word-animate" style="--d: 160ms">outcomes,</span>
+        <h1 class="text-4xl font-semibold sm:text-5xl sm:font-medium md:text-6xl lg:text-7xl tracking-tight leading-[1.1]">
+          <span class="word-animate" style="--d: 55ms">Ship</span>
+          <span class="word-animate" style="--d: 110ms">outcomes,</span>
           <br />
           <span ref="accentLineRef">
-            <span class="word-animate word-animate--accent" style="--d: 260ms">not</span>
-            <span class="word-animate word-animate--accent" style="--d: 340ms">status</span>
-            <span class="word-animate word-animate--accent" style="--d: 420ms">reports.</span>
+            <span class="word-animate word-animate--accent" style="--d: 175ms">not</span>
+            <span class="word-animate word-animate--accent" style="--d: 230ms">status</span>
+            <span class="word-animate word-animate--accent" style="--d: 280ms">reports.</span>
           </span>
         </h1>
 
-        <p class="mt-6 text-lg md:text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed intro" style="--d: 550ms">
+        <p class="mt-6 text-base md:text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed intro" style="--d: 370ms">
           One recursive model from portfolio to subtask. AI-driven forecasts surface risk early. Stakeholder updates write themselves.
         </p>
 
-        <div class="mt-8 flex items-center justify-center gap-4 intro" style="--d: 650ms">
+        <div class="mt-8 flex items-center justify-center gap-4 intro" style="--d: 430ms">
           <NuxtLink
             to="/onboarding"
             class="inline-flex items-center gap-2 px-7 py-3.5 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
@@ -286,11 +335,11 @@ onMounted(() => {
 
       </div>
 
-      <!-- Hero Visualization: Project + AI Update -->
-      <div class="mt-16 w-full max-w-6xl mx-auto px-2">
+      <!-- Hero Visualization: Project + AI Update (hidden on mobile) -->
+      <div class="hidden md:block mt-16 w-full max-w-6xl mx-auto px-2">
         <div class="grid md:grid-cols-2 gap-6 lg:gap-8 items-stretch">
           <!-- Project View -->
-          <div class="intro flex flex-col" style="--d: 800ms">
+          <div class="intro flex flex-col" style="--d: 500ms">
             <div class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3 text-center md:text-left">Your project</div>
             <div class="showcase-card flex flex-col flex-1">
               <div class="flex items-center justify-between p-5 pb-4 border-b border-slate-100">
@@ -344,7 +393,7 @@ onMounted(() => {
           </div>
 
           <!-- AI Stakeholder Update -->
-          <div class="intro flex flex-col" style="--d: 960ms">
+          <div class="intro flex flex-col" style="--d: 580ms">
             <div class="text-xs font-semibold text-emerald-600 uppercase tracking-widest mb-3 flex items-center justify-center md:justify-start gap-1.5">
               <Icon name="heroicons:sparkles" class="w-3.5 h-3.5" />
               Auto-generated update
@@ -364,7 +413,7 @@ onMounted(() => {
                     Risks
                   </div>
                   <div class="mt-2.5 text-sm text-slate-600 leading-relaxed pl-3 border-l-2 border-amber-200">
-                    Billing module at 45% — API integration blocked on partner approval. Estimated 2–3 day impact on timeline.
+                    Billing module at 45%. API integration blocked on partner approval. Estimated 2-3 day impact on timeline.
                   </div>
                 </div>
 
@@ -396,14 +445,15 @@ onMounted(() => {
       <div class="marquee-fade-left" />
       <div class="marquee-fade-right" />
       <div class="marquee-track">
-        <span v-for="item in marqueeItems" :key="item.label" class="marquee-chip">
-          <Icon :name="item.icon" class="w-3.5 h-3.5 text-slate-400" />
-          {{ item.label }}
-        </span>
-        <span v-for="item in marqueeItems" :key="item.label + '-dup'" class="marquee-chip">
-          <Icon :name="item.icon" class="w-3.5 h-3.5 text-slate-400" />
-          {{ item.label }}
-        </span>
+        <template v-for="copy in 4" :key="'copy-' + copy">
+          <template v-for="item in marqueeItems" :key="item.label + '-' + copy">
+            <span class="marquee-dot" />
+            <span class="marquee-label">
+              <Icon :name="item.icon" class="w-3.5 h-3.5 text-slate-400" />
+              {{ item.label }}
+            </span>
+          </template>
+        </template>
       </div>
     </div>
 
@@ -432,7 +482,7 @@ onMounted(() => {
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-2.5">
                 <span class="process-number">{{ String(i + 1).padStart(2, '0') }}</span>
-                <h3 class="text-lg font-semibold text-slate-900">{{ step.label }}</h3>
+                <h3 class="text-lg lg:text-xl font-semibold text-slate-900">{{ step.label }}</h3>
               </div>
               <Icon :name="step.icon" class="w-5 h-5" :class="step.iconClass" />
             </div>
@@ -455,31 +505,31 @@ onMounted(() => {
             <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest">Capabilities</div>
             <h2 class="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight">Powered by intelligence</h2>
             <p class="mt-4 text-lg text-slate-500 leading-relaxed">
-              Everything your team needs to ship outcomes while keeping stakeholders informed — automatically.
+              Everything your team needs to ship outcomes while keeping stakeholders informed, automatically.
             </p>
 
             <ul class="mt-8 space-y-4">
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">One recursive model</span> from portfolio down to subtask — no tool-switching, no sync gaps.</span>
+                <span class="text-sm sm:text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">One recursive model</span> from portfolio down to subtask. No tool-switching, no sync gaps.</span>
               </li>
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">AI runs continuously</span> — evaluating risk, surfacing blockers, and writing updates from real work.</span>
+                <span class="text-sm sm:text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">AI runs continuously</span>, evaluating risk, surfacing blockers, and writing updates from real work.</span>
               </li>
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Stakeholders see what matters</span> — curated views, auto-published reports, zero manual effort.</span>
+                <span class="text-sm sm:text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Stakeholders see what matters</span> with curated views, auto-published reports, and zero manual effort.</span>
               </li>
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Built-in focus tracking</span> — see where time goes across deep work, meetings, and admin.</span>
+                <span class="text-sm sm:text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Built-in focus tracking</span> to see where time goes across deep work, meetings, and admin.</span>
               </li>
             </ul>
           </div>
 
           <!-- Feature list -->
-          <div class="space-y-3 lg:pt-2">
+          <div class="space-y-5 lg:space-y-6 lg:pt-4 lg:pb-16">
             <div
               v-for="(cap, i) in capabilities"
               :key="cap.title"
@@ -610,7 +660,13 @@ onMounted(() => {
                     </div>
                   </div>
 
-                  <p class="text-sm text-slate-500 mt-2 leading-relaxed">{{ cap.desc }}</p>
+                  <p class="text-sm text-slate-500 mt-3 leading-relaxed">{{ cap.desc }}</p>
+                  <ul v-if="cap.features" class="mt-4 space-y-2">
+                    <li v-for="feat in cap.features" :key="feat" class="flex items-start gap-2 text-[13px] text-slate-500 leading-relaxed">
+                      <Icon name="heroicons:check" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <span>{{ feat }}</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -631,23 +687,35 @@ onMounted(() => {
           <h2 class="mt-4 text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight">Measured calm, not just clean UI</h2>
         </div>
 
-        <div class="mt-14 grid md:grid-cols-3 gap-5 scroll-reveal" style="--d: 80ms">
-          <div v-for="stat in stats" :key="stat.label" class="stat-card">
-            <div class="stat-value bg-gradient-to-br bg-clip-text" :class="stat.accent">{{ stat.value }}</div>
+        <div ref="statsRef" class="mt-14 grid md:grid-cols-3 gap-5 scroll-reveal" style="--d: 80ms">
+          <div v-for="(stat, i) in stats" :key="stat.label" class="stat-card">
+            <div class="stat-value bg-gradient-to-br bg-clip-text" :class="stat.accent">{{ stat.prefix }}{{ statValues[i] }}{{ stat.suffix }}</div>
             <p class="mt-2 text-sm text-slate-500">{{ stat.label }}</p>
           </div>
         </div>
 
-        <div class="mt-8 max-w-3xl mx-auto scroll-reveal" style="--d: 160ms">
-          <div class="quote-card">
-            <p class="text-base text-slate-700 leading-relaxed italic">
-              "Our weekly stakeholder sync went from status theater to decision-making. We spend less time reporting and more time shipping."
+        <div class="mt-8 max-w-4xl mx-auto grid md:grid-cols-2 gap-5 scroll-reveal" style="--d: 160ms">
+          <div class="quote-card flex flex-col">
+            <p class="text-base text-slate-700 leading-relaxed italic flex-1">
+              "Our weekly stakeholder sync went from status theater to decision-making. The auto-generated reports are accurate enough that we just review and publish. More time shipping, less time reporting."
             </p>
             <div class="mt-4 flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600">VP</div>
+              <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600">S</div>
               <div>
-                <div class="text-sm font-medium text-slate-800">VP of Product</div>
+                <div class="text-sm font-medium text-slate-800">Sarah, VP of Product</div>
                 <div class="text-xs text-slate-400">B2B SaaS, 40-person team</div>
+              </div>
+            </div>
+          </div>
+          <div class="quote-card flex flex-col">
+            <p class="text-base text-slate-700 leading-relaxed italic flex-1">
+              "Stakeholder updates write themselves now, and the recursive task model fits how we actually think about projects. The AI features alone save each engineer on the team 1 to 3 hours a week."
+            </p>
+            <div class="mt-4 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600">T</div>
+              <div>
+                <div class="text-sm font-medium text-slate-800">Toby, Lead Software Architect</div>
+                <div class="text-xs text-slate-400">Engineering team of 10</div>
               </div>
             </div>
           </div>
@@ -737,7 +805,7 @@ onMounted(() => {
             </div>
 
             <NuxtLink
-              :to="plan.name === 'Enterprise' ? '#' : '/onboarding'"
+              :to="plan.name === 'Enterprise' ? '#' : plan.name === 'Pro' ? proOnboardingUrl : '/onboarding'"
               class="mt-8 w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all"
               :class="plan.featured
                 ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-900/10'
@@ -757,11 +825,12 @@ onMounted(() => {
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <div class="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center">
-            <span class="text-white text-xs font-semibold">R</span>
+            <svg class="w-4 h-4" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <span class="text-sm text-slate-400">&copy; 2026 Relai</span>
+          <span class="text-sm text-slate-400">&copy; 2026 Context Labs</span>
         </div>
         <div class="flex items-center gap-6 text-sm text-slate-400">
+          <span>Built by <a href="https://recursion-endeavours.com" target="_blank" rel="noopener" class="hover:text-slate-900 transition-colors underline decoration-slate-300 hover:decoration-slate-900">Recursion Endeavours</a></span>
           <a href="#" class="hover:text-slate-900 transition-colors">Privacy</a>
           <a href="#" class="hover:text-slate-900 transition-colors">Terms</a>
           <a href="#" class="hover:text-slate-900 transition-colors">Contact</a>
@@ -830,7 +899,8 @@ onMounted(() => {
 
 .marquee-track {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 20px;
   width: max-content;
   animation: marquee 45s linear infinite;
 }
@@ -839,24 +909,22 @@ onMounted(() => {
   animation-play-state: paused;
 }
 
-.marquee-chip {
+.marquee-label {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   white-space: nowrap;
   font-size: 13px;
   font-weight: 500;
   color: #64748b;
-  padding: 6px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(248, 250, 252, 0.6);
-  transition: border-color 0.3s ease, color 0.3s ease;
 }
 
-.marquee-chip:hover {
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #334155;
+.marquee-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: #cbd5e1;
+  flex-shrink: 0;
 }
 
 .marquee-fade-left,
@@ -881,7 +949,7 @@ onMounted(() => {
 
 @keyframes marquee {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-25%); }
 }
 
 /* ── Process cards ─────────────────────────────────── */
@@ -891,22 +959,28 @@ onMounted(() => {
   border-radius: 20px;
   border: 1px solid rgba(148, 163, 184, 0.15);
   background: white;
+  box-shadow: 0 0 0 transparent;
   transition:
-    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border-color 300ms ease-in-out,
+    box-shadow 300ms ease-in-out;
 }
 
 .process-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  border-color: rgba(148, 163, 184, 0.3);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .process-number {
-  font-size: 18px;
+  font-size: 1.125rem;   /* matches text-lg (18px) */
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1;
   color: rgba(148, 163, 184, 0.5);
+}
+@media (min-width: 1024px) {
+  .process-number {
+    font-size: 1.25rem;  /* matches text-xl (20px) at lg: */
+  }
 }
 
 /* ── Capabilities section ─────────────────────────── */
@@ -936,6 +1010,13 @@ onMounted(() => {
   min-height: 56px;
 }
 
+@media (min-width: 1024px) {
+  .capability-header {
+    padding: 20px 24px;
+    min-height: 64px;
+  }
+}
+
 .capability-expand {
   overflow: hidden;
   transition:
@@ -944,7 +1025,7 @@ onMounted(() => {
 }
 
 .capability-expand--open {
-  max-height: 300px;
+  max-height: 500px;
   opacity: 1;
 }
 
@@ -954,12 +1035,18 @@ onMounted(() => {
 }
 
 .capability-expand-inner {
-  padding: 0 20px 20px;
+  padding: 0 20px 24px;
+}
+
+@media (min-width: 1024px) {
+  .capability-expand-inner {
+    padding: 0 24px 28px;
+  }
 }
 
 .capability-visual {
   padding-bottom: 16px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   border-bottom: 1px solid rgba(16, 185, 129, 0.08);
 }
 
@@ -1036,9 +1123,9 @@ onMounted(() => {
   transform: translateY(18px);
   filter: blur(8px);
   transition:
-    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   transition-delay: var(--d, 0ms);
   will-change: opacity, transform, filter;
 }
@@ -1047,6 +1134,20 @@ onMounted(() => {
   opacity: 1;
   transform: translateY(0);
   filter: blur(0);
+}
+
+.nav-intro {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.is-ready .nav-intro {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ── Word animate ─────────────────────────────────── */
@@ -1058,9 +1159,9 @@ onMounted(() => {
   filter: blur(12px);
   transform: translateY(10px);
   transition:
-    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   transition-delay: var(--d, 0ms);
   will-change: opacity, transform, filter;
 }

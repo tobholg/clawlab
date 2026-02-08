@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMember } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -7,6 +8,8 @@ export default defineEventHandler(async (event) => {
   if (!workspaceId) {
     throw createError({ statusCode: 400, message: 'workspaceId is required' })
   }
+
+  await requireWorkspaceMember(event, workspaceId)
 
   const channels = await prisma.channel.findMany({
     where: {

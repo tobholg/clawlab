@@ -1,4 +1,5 @@
 import { prisma } from '../../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -8,6 +9,8 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
+
+  await requireWorkspaceMemberForItem(event, id)
 
   // Start from (days - 1) days ago to include today
   // e.g., days=14 means "last 14 days including today"

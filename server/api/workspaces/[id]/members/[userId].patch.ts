@@ -1,8 +1,7 @@
 import { prisma } from '../../../../utils/prisma'
-import { requireUser } from '../../../../utils/auth'
+import { requireWorkspaceMember, requireMinRole } from '../../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const currentUser = await requireUser(event)
   const workspaceId = getRouterParam(event, 'id')
   const targetUserId = getRouterParam(event, 'userId')
 
@@ -10,14 +9,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Workspace ID and User ID are required' })
   }
 
-  // Require OWNER or ADMIN role
-  const currentMembership = await prisma.workspaceMember.findUnique({
-    where: { workspaceId_userId: { workspaceId, userId: currentUser.id } }
-  })
-
-  if (!currentMembership || currentMembership.status !== 'ACTIVE' || !['OWNER', 'ADMIN'].includes(currentMembership.role)) {
-    throw createError({ statusCode: 403, message: 'Admin access required' })
-  }
+  const auth = await requireWorkspaceMember(event, workspaceId)
+  requireMinRole(auth, 'ADMIN')
+  const currentUser = auth.user
 
   const body = await readBody(event)
   const { role, status } = body

@@ -1,4 +1,5 @@
 import { prisma } from '../../../utils/prisma'
+import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const messageId = getRouterParam(event, 'id')
@@ -6,6 +7,16 @@ export default defineEventHandler(async (event) => {
   if (!messageId) {
     throw createError({ statusCode: 400, message: 'Message ID is required' })
   }
+
+  // Look up message's channel to verify workspace membership
+  const msgForAuth = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { channelId: true },
+  })
+  if (!msgForAuth) {
+    throw createError({ statusCode: 404, message: 'Message not found' })
+  }
+  await requireWorkspaceMemberForChannel(event, msgForAuth.channelId)
 
   // Get parent message with replies
   const parentMessage = await prisma.message.findUnique({

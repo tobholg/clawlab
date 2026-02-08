@@ -7,6 +7,7 @@ export const PLAN_LIMITS = {
     externalSeats: 3,
     projects: 1,
     externalSpaces: 1,
+    workspaces: 1,
     aiCreditsPerUserPerMonth: 100,
     canPurchaseSeats: false,
   },
@@ -15,6 +16,7 @@ export const PLAN_LIMITS = {
     externalSeats: 100,
     projects: 25,
     externalSpaces: 25,
+    workspaces: 10,
     aiCreditsPerUserPerMonth: 10_000,
     canPurchaseSeats: true,
   },
@@ -23,6 +25,7 @@ export const PLAN_LIMITS = {
     externalSeats: Infinity,
     projects: Infinity,
     externalSpaces: Infinity,
+    workspaces: Infinity,
     aiCreditsPerUserPerMonth: Infinity,
     canPurchaseSeats: true,
   },
@@ -58,6 +61,27 @@ export async function checkCanCreateProject(workspaceId: string): Promise<LimitC
     allowed: current < limits.projects,
     current,
     limit: limits.projects,
+  }
+}
+
+// ─── Workspaces ───
+
+export async function checkCanCreateWorkspace(organizationId: string): Promise<LimitCheck> {
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { planTier: true },
+  })
+
+  const limits = getLimits(org.planTier as PlanTier)
+
+  const current = await prisma.workspace.count({
+    where: { organizationId },
+  })
+
+  return {
+    allowed: current < limits.workspaces,
+    current,
+    limit: limits.workspaces,
   }
 }
 
@@ -184,12 +208,15 @@ export async function getOrganizationUsage(organizationId: string) {
     return seatCounts.filter((c) => c.type === type).reduce((sum, c) => sum + c._count, 0)
   }
 
-  const [projectCount, externalSpaceCount] = await Promise.all([
+  const [projectCount, externalSpaceCount, workspaceCount] = await Promise.all([
     prisma.item.count({
       where: { workspaceId: { in: workspaceIds }, parentId: null },
     }),
     prisma.externalSpace.count({
       where: { project: { workspaceId: { in: workspaceIds } } },
+    }),
+    prisma.workspace.count({
+      where: { organizationId },
     }),
   ])
 
@@ -211,6 +238,7 @@ export async function getOrganizationUsage(organizationId: string) {
       },
       projects: { current: projectCount, limit: limits.projects },
       externalSpaces: { current: externalSpaceCount, limit: limits.externalSpaces },
+      workspaces: { current: workspaceCount, limit: limits.workspaces },
     },
   }
 }

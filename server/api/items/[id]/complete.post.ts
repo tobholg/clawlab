@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireWorkspaceMemberForItem } from '../../../utils/auth'
+import { requireItemPermission } from '../../../utils/permissions'
 import { collectDescendants, countIncompleteDescendants } from '../../../utils/itemCompletion'
 
 export default defineEventHandler(async (event) => {
@@ -12,7 +13,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
 
-  await requireWorkspaceMemberForItem(event, id)
+  const auth = await requireWorkspaceMemberForItem(event, id)
+  await requireItemPermission(auth, id, 'change_status')
 
   const item = await prisma.item.findUnique({
     where: { id },

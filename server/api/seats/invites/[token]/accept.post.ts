@@ -4,9 +4,15 @@ import { requireUser } from '../../../../utils/auth'
 export default defineEventHandler(async (event) => {
   const currentUser = await requireUser(event)
   const token = getRouterParam(event, 'token')
+  const body = await readBody<{ code?: string }>(event)
+  const code = body.code?.toUpperCase().trim()
 
   if (!token) {
     throw createError({ statusCode: 400, message: 'Token is required' })
+  }
+
+  if (!code || code.length !== 4) {
+    throw createError({ statusCode: 400, message: 'A 4-character verification code is required' })
   }
 
   const invite = await prisma.seatInvite.findUnique({
@@ -48,6 +54,11 @@ export default defineEventHandler(async (event) => {
       statusCode: 403,
       message: `This invite was sent to ${invite.email}. You are logged in as ${currentUser.email}.`,
     })
+  }
+
+  // Verification code must match
+  if (invite.code !== code) {
+    throw createError({ statusCode: 400, message: 'Invalid verification code' })
   }
 
   // Accept: transaction to update invite, seat, create members

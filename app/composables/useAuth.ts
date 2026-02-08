@@ -23,7 +23,7 @@ export const useAuth = () => {
   }) => {
     const response = await $fetch('/api/auth/request-magic-link', {
       method: 'POST',
-      body: { 
+      body: {
         email,
         ...options
       }
@@ -31,10 +31,10 @@ export const useAuth = () => {
     return response
   }
 
-  const confirmMagicLink = async (token: string) => {
+  const confirmMagicLink = async (token: string, code: string) => {
     const response = await $fetch('/api/auth/confirm', {
       method: 'POST',
-      body: { token }
+      body: { token, code }
     })
     if (response.user) {
       user.value = response.user

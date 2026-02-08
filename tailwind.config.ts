@@ -25,8 +25,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Relai brand colors
-        relai: {
+        // Context brand colors
+        ctx: {
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',

@@ -2,12 +2,12 @@ import { prisma } from './prisma'
 import type { FocusActivityType, FocusEndReason, FocusLane, ItemComplexity, ItemPriority, ItemStatus } from '@prisma/client'
 
 const DEMO_TEAM = [
-  { name: 'Sarah Chen', avatar: null, email: 'sarah.chen@demo.relai.app' },
-  { name: 'Marcus Johnson', avatar: null, email: 'marcus.j@demo.relai.app' },
-  { name: 'Elena Rodriguez', avatar: null, email: 'elena.r@demo.relai.app' },
-  { name: 'Alex Kim', avatar: null, email: 'alex.kim@demo.relai.app' },
-  { name: 'Jordan Taylor', avatar: null, email: 'jordan.t@demo.relai.app' },
-  { name: 'Priya Sharma', avatar: null, email: 'priya.s@demo.relai.app' },
+  { name: 'Sarah Chen', avatar: null, email: 'sarah.chen@demo.context-labs.ai' },
+  { name: 'Marcus Johnson', avatar: null, email: 'marcus.j@demo.context-labs.ai' },
+  { name: 'Elena Rodriguez', avatar: null, email: 'elena.r@demo.context-labs.ai' },
+  { name: 'Alex Kim', avatar: null, email: 'alex.kim@demo.context-labs.ai' },
+  { name: 'Jordan Taylor', avatar: null, email: 'jordan.t@demo.context-labs.ai' },
+  { name: 'Priya Sharma', avatar: null, email: 'priya.s@demo.context-labs.ai' },
 ]
 
 interface ProjectConfig {
@@ -94,11 +94,18 @@ function logSeedError(step: string, err: unknown) {
 }
 
 export async function seedDemoData(workspaceId: string, ownerId: string): Promise<void> {
+  // Look up workspace's organization for org membership + seats
+  const workspace = await prisma.workspace.findUniqueOrThrow({
+    where: { id: workspaceId },
+    select: { organizationId: true },
+  })
+  const organizationId = workspace.organizationId
+
   // Create demo team members
   let teamMembers: Array<{ id: string }> = []
   try {
     teamMembers = await Promise.all(
-      DEMO_TEAM.map(member => 
+      DEMO_TEAM.map(member =>
         prisma.user.create({
           data: {
             name: member.name,
@@ -111,6 +118,21 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
   } catch (err) {
     logSeedError('create demo users', err)
     throw err
+  }
+
+  // Add team members to organization
+  try {
+    await prisma.organizationMember.createMany({
+      data: teamMembers.map(member => ({
+        organizationId,
+        userId: member.id,
+        role: 'MEMBER' as const,
+      })),
+      skipDuplicates: true,
+    })
+  } catch (err) {
+    logSeedError('add demo users to organization', err)
+    // Non-fatal: continue even if org membership fails
   }
 
   // Add team members to workspace
@@ -129,6 +151,24 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
   } catch (err) {
     logSeedError('add demo users to workspace', err)
     throw err
+  }
+
+  // Occupy available seats for demo team members
+  try {
+    for (const member of teamMembers) {
+      const seat = await prisma.seat.findFirst({
+        where: { organizationId, type: 'INTERNAL', status: 'AVAILABLE' },
+      })
+      if (seat) {
+        await prisma.seat.update({
+          where: { id: seat.id },
+          data: { status: 'OCCUPIED', userId: member.id, occupiedAt: new Date() },
+        })
+      }
+    }
+  } catch (err) {
+    logSeedError('occupy seats for demo users', err)
+    // Non-fatal: continue even if seat allocation fails
   }
 
   // All available assignees

@@ -18,7 +18,7 @@ interface RequestBody {
   workspaceId?: string
 }
 
-const SYSTEM_PROMPT = `You are a helpful assistant for Relai, a project management tool.
+const SYSTEM_PROMPT = `You are a helpful assistant for Context, a project management tool.
 
 Key points:
 - Be concise and helpful

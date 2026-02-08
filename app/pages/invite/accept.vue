@@ -14,6 +14,57 @@ const inviteData = ref<any>(null)
 const errorMessage = ref('')
 const acceptedWorkspace = ref<any>(null)
 
+// Code verification
+const code = ref('')
+const codeError = ref('')
+const inputRefs = ref<HTMLInputElement[]>([])
+
+const codeDigits = computed(() => code.value.split(''))
+
+const setInputRef = (el: any, index: number) => {
+  if (el) inputRefs.value[index] = el
+}
+
+const handleInput = (index: number, event: Event) => {
+  const input = event.target as HTMLInputElement
+  let val = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+
+  if (val.length > 1) {
+    const fullPaste = val.slice(0, 4)
+    code.value = fullPaste
+    const nextIndex = Math.min(fullPaste.length, 3)
+    inputRefs.value[nextIndex]?.focus()
+    return
+  }
+
+  const chars = code.value.split('')
+  chars[index] = val
+  code.value = chars.join('').slice(0, 4)
+
+  if (val && index < 3) {
+    inputRefs.value[index + 1]?.focus()
+  }
+}
+
+const handleKeydown = (index: number, event: KeyboardEvent) => {
+  if (event.key === 'Backspace' && !code.value[index] && index > 0) {
+    const chars = code.value.split('')
+    chars[index - 1] = ''
+    code.value = chars.join('')
+    inputRefs.value[index - 1]?.focus()
+  }
+}
+
+const handlePaste = (event: ClipboardEvent) => {
+  event.preventDefault()
+  const pasted = (event.clipboardData?.getData('text') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4)
+  if (pasted) {
+    code.value = pasted
+    const nextIndex = Math.min(pasted.length, 3)
+    inputRefs.value[nextIndex]?.focus()
+  }
+}
+
 const fetchInvite = async () => {
   if (!token.value) {
     verifyState.value = 'invalid'
@@ -43,6 +94,8 @@ const fetchInvite = async () => {
     }
 
     verifyState.value = 'ready'
+    // Focus code input
+    nextTick(() => inputRefs.value[0]?.focus())
   } catch (e: any) {
     verifyState.value = 'invalid'
     errorMessage.value = e?.data?.message || 'Failed to verify invite'
@@ -50,18 +103,38 @@ const fetchInvite = async () => {
 }
 
 const acceptInvite = async () => {
+  if (code.value.length !== 4) return
+
   verifyState.value = 'accepting'
+  codeError.value = ''
   try {
     const result = await $fetch(`/api/seats/invites/${token.value}/accept`, {
       method: 'POST',
+      body: { code: code.value },
     })
     acceptedWorkspace.value = result.workspace
     verifyState.value = 'success'
   } catch (e: any) {
-    verifyState.value = 'error'
-    errorMessage.value = e?.data?.message || 'Failed to accept invite'
+    const msg = e?.data?.message || 'Failed to accept invite'
+    if (msg.toLowerCase().includes('verification code')) {
+      // Code error — stay on form
+      codeError.value = msg
+      verifyState.value = 'ready'
+      code.value = ''
+      nextTick(() => inputRefs.value[0]?.focus())
+    } else {
+      verifyState.value = 'error'
+      errorMessage.value = msg
+    }
   }
 }
+
+// Auto-submit when 4 chars entered
+watch(code, (val) => {
+  if (val.length === 4 && verifyState.value === 'ready' && isAuthenticated.value) {
+    acceptInvite()
+  }
+})
 
 const goToWorkspace = () => {
   router.push('/workspace')
@@ -145,7 +218,7 @@ onMounted(fetchInvite)
         </button>
       </div>
 
-      <!-- Ready to accept -->
+      <!-- Ready to accept (with code input) -->
       <div v-else-if="verifyState === 'ready' && isAuthenticated" class="text-center py-4">
         <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
           <Icon name="heroicons:user-plus" class="w-6 h-6 text-emerald-600" />
@@ -160,12 +233,49 @@ onMounted(fetchInvite)
         <p class="text-xs text-slate-400 mb-6">
           Invited by {{ inviteData?.invitedBy?.name || inviteData?.invitedBy?.email }}
         </p>
-        <button
-          @click="acceptInvite"
-          class="w-full px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
-        >
-          Accept and join
-        </button>
+
+        <!-- Code input -->
+        <p class="text-sm text-slate-600 mb-4">Enter the 4-character code from your invite email:</p>
+        <form @submit.prevent="acceptInvite">
+          <div class="flex justify-center gap-3 mb-4">
+            <input
+              v-for="i in 4"
+              :key="i"
+              :ref="(el) => setInputRef(el, i - 1)"
+              type="text"
+              :value="codeDigits[i - 1] || ''"
+              maxlength="4"
+              class="w-14 h-16 text-center text-2xl font-bold rounded-xl border-2 transition-all outline-none uppercase font-mono"
+              :class="codeError
+                ? 'border-rose-300 focus:border-rose-400 focus:ring-4 focus:ring-rose-100'
+                : 'border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-100'"
+              @input="handleInput(i - 1, $event)"
+              @keydown="handleKeydown(i - 1, $event)"
+              @paste="handlePaste"
+            />
+          </div>
+
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+          >
+            <div v-if="codeError" class="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl">
+              <div class="flex items-center gap-2 justify-center">
+                <Icon name="heroicons:exclamation-circle" class="w-4 h-4 text-rose-500 flex-shrink-0" />
+                <p class="text-sm text-rose-700">{{ codeError }}</p>
+              </div>
+            </div>
+          </Transition>
+
+          <button
+            type="submit"
+            :disabled="code.length !== 4"
+            class="w-full px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Verify and join
+          </button>
+        </form>
       </div>
 
       <!-- Accepting -->

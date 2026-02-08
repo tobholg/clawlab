@@ -21,7 +21,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Relai',
+      title: 'Context',
       meta: [
         { name: 'description', content: 'Multi-stakeholder project management with AI' }
       ],
@@ -37,8 +37,9 @@ export default defineNuxtConfig({
     openaiApiKey: process.env.OPENAI_API_KEY,
     openaiModel: process.env.OPENAI_MODEL || 'gpt-5-mini',
     openaiBaseUrl: process.env.OPENAI_BASE_URL,
+    postmarkApiToken: process.env.POSTMARK_API_TOKEN,
     public: {
-      appName: 'Relai',
+      appName: 'Context',
       appUrl: process.env.APP_URL || 'http://localhost:3000'
     }
   }

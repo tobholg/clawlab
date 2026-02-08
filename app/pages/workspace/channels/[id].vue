@@ -155,6 +155,9 @@ const handleLoadMore = async () => {
   await loadMoreMessages(channelId.value)
 }
 
+// Message input ref for focus-on-type
+const messageInputRef = ref<{ focus: () => void } | null>(null)
+
 // Message list ref
 const messageListRef = ref<{
   scrollToBottom: (smooth?: boolean) => void
@@ -208,6 +211,19 @@ const {
 // Get current user from auth
 const { user: currentUser } = useAuth()
 
+// Focus chat input when user starts typing anywhere on the page
+const handleGlobalKeydown = (e: KeyboardEvent) => {
+  // Skip if already in an input, textarea, or contenteditable
+  const tag = (e.target as HTMLElement)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
+
+  // Skip modifier-only keys, navigation, and function keys
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+  if (e.key.length !== 1) return
+
+  messageInputRef.value?.focus()
+}
+
 // Authenticate WebSocket on mount
 onMounted(() => {
   if (currentUser.value) {
@@ -218,6 +234,7 @@ onMounted(() => {
     })
   }
 
+  document.addEventListener('keydown', handleGlobalKeydown)
   document.addEventListener('visibilitychange', handleVisibilityChange)
   seenHeartbeat.value = setInterval(() => {
     const latestMessageAt = messages.value[messages.value.length - 1]?.createdAt
@@ -267,6 +284,7 @@ onUnmounted(() => {
     seenHeartbeat.value = null
   }
   if (import.meta.client) {
+    document.removeEventListener('keydown', handleGlobalKeydown)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
   void flushSeen(true)
@@ -401,6 +419,7 @@ const handleWhatDidIMiss = () => {
           </div>
         </Transition>
         <ChannelsMessageInput
+          ref="messageInputRef"
           v-if="currentChannel"
           :channel-id="currentChannel.id"
           :placeholder="`Message #${currentChannel.displayName}`"

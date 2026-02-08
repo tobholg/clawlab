@@ -17,13 +17,29 @@ export type SessionUser = {
   role: string
 }
 
+export type AuthenticatedMember = {
+  user: SessionUser
+  workspaceId: string
+  workspaceRole: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'
+  orgRole: 'OWNER' | 'ADMIN' | 'MEMBER'
+  isOrgAdmin: boolean      // orgRole in ['OWNER','ADMIN']
+  isWorkspaceAdmin: boolean // workspaceRole in ['OWNER','ADMIN'] || isOrgAdmin
+}
+
 type AuthTokenPayload = {
   sub: string
   email: string
 }
 
-const COOKIE_NAME = 'relai_token'
+const COOKIE_NAME = 'ctx_token'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
+
+const WORKSPACE_ROLE_HIERARCHY: Record<string, number> = {
+  VIEWER: 0,
+  MEMBER: 1,
+  ADMIN: 2,
+  OWNER: 3,
+}
 
 const getJwtSecret = () => {
   const config = useRuntimeConfig()
@@ -89,7 +105,7 @@ export const buildMagicLinkUrl = (event: H3Event, token: string, redirect?: stri
   return url
 }
 
-export const consumeMagicLink = async (token: string) => {
+export const consumeMagicLink = async (token: string, code: string) => {
   const record = await prisma.magicLinkToken.findUnique({
     where: { token },
     include: { user: true }
@@ -101,6 +117,10 @@ export const consumeMagicLink = async (token: string) => {
 
   if (record.expiresAt.getTime() < Date.now()) {
     throw createError({ statusCode: 400, statusMessage: 'Magic link expired' })
+  }
+
+  if (record.code !== code) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid verification code' })
   }
 
   await prisma.magicLinkToken.update({
@@ -158,28 +178,77 @@ export const requireBuilder = async (event: H3Event): Promise<SessionUser> => {
 
 /**
  * Require that the authenticated user is an ACTIVE member of the given workspace.
- * Returns the session user. Throws 401 if not authenticated, 403 if not an active member.
+ * Returns AuthenticatedMember with role info. Org OWNER/ADMIN get implicit workspace ADMIN access.
  */
-export const requireWorkspaceMember = async (event: H3Event, workspaceId: string): Promise<SessionUser> => {
+export const requireWorkspaceMember = async (event: H3Event, workspaceId: string): Promise<AuthenticatedMember> => {
   const user = await requireUser(event)
-  const membership = await prisma.workspaceMember.findUnique({
-    where: {
-      workspaceId_userId: { workspaceId, userId: user.id },
-    },
-    select: { status: true },
-  })
-  if (!membership || membership.status !== 'ACTIVE') {
-    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this workspace' })
+
+  // Fetch workspace membership and workspace's organizationId in parallel
+  const [membership, workspace] = await Promise.all([
+    prisma.workspaceMember.findUnique({
+      where: {
+        workspaceId_userId: { workspaceId, userId: user.id },
+      },
+      select: { status: true, role: true },
+    }),
+    prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { organizationId: true },
+    }),
+  ])
+
+  if (!workspace) {
+    throw createError({ statusCode: 404, statusMessage: 'Workspace not found' })
   }
-  return user
+
+  // Fetch org membership
+  const orgMembership = await prisma.organizationMember.findUnique({
+    where: {
+      organizationId_userId: { organizationId: workspace.organizationId, userId: user.id },
+    },
+    select: { role: true, status: true },
+  })
+
+  if (!orgMembership || orgMembership.status !== 'ACTIVE') {
+    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this organization' })
+  }
+
+  const orgRole = orgMembership.role as 'OWNER' | 'ADMIN' | 'MEMBER'
+  const isOrgAdmin = orgRole === 'OWNER' || orgRole === 'ADMIN'
+
+  // If user has explicit workspace membership
+  if (membership && membership.status === 'ACTIVE') {
+    const workspaceRole = membership.role as 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'
+    return {
+      user,
+      workspaceId,
+      workspaceRole,
+      orgRole,
+      isOrgAdmin,
+      isWorkspaceAdmin: workspaceRole === 'OWNER' || workspaceRole === 'ADMIN' || isOrgAdmin,
+    }
+  }
+
+  // Org OWNER/ADMIN gets implicit workspace ADMIN access without explicit membership
+  if (isOrgAdmin) {
+    return {
+      user,
+      workspaceId,
+      workspaceRole: 'ADMIN', // Implicit admin from org role
+      orgRole,
+      isOrgAdmin: true,
+      isWorkspaceAdmin: true,
+    }
+  }
+
+  throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this workspace' })
 }
 
 /**
  * Look up the workspace for a given item and verify the user is an ACTIVE member.
- * Returns both the session user and the item's workspaceId.
+ * Returns AuthenticatedMember with role info.
  */
-export const requireWorkspaceMemberForItem = async (event: H3Event, itemId: string): Promise<{ user: SessionUser; workspaceId: string }> => {
-  const user = await requireUser(event)
+export const requireWorkspaceMemberForItem = async (event: H3Event, itemId: string): Promise<AuthenticatedMember> => {
   const item = await prisma.item.findUnique({
     where: { id: itemId },
     select: { workspaceId: true },
@@ -187,24 +256,14 @@ export const requireWorkspaceMemberForItem = async (event: H3Event, itemId: stri
   if (!item) {
     throw createError({ statusCode: 404, statusMessage: 'Item not found' })
   }
-  const membership = await prisma.workspaceMember.findUnique({
-    where: {
-      workspaceId_userId: { workspaceId: item.workspaceId, userId: user.id },
-    },
-    select: { status: true },
-  })
-  if (!membership || membership.status !== 'ACTIVE') {
-    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this workspace' })
-  }
-  return { user, workspaceId: item.workspaceId }
+  return requireWorkspaceMember(event, item.workspaceId)
 }
 
 /**
  * Look up the workspace for a given channel and verify the user is an ACTIVE member.
- * Returns both the session user and the channel's workspaceId.
+ * Returns AuthenticatedMember with role info.
  */
-export const requireWorkspaceMemberForChannel = async (event: H3Event, channelId: string): Promise<{ user: SessionUser; workspaceId: string }> => {
-  const user = await requireUser(event)
+export const requireWorkspaceMemberForChannel = async (event: H3Event, channelId: string): Promise<AuthenticatedMember> => {
   const channel = await prisma.channel.findUnique({
     where: { id: channelId },
     select: { workspaceId: true },
@@ -212,14 +271,57 @@ export const requireWorkspaceMemberForChannel = async (event: H3Event, channelId
   if (!channel) {
     throw createError({ statusCode: 404, statusMessage: 'Channel not found' })
   }
-  const membership = await prisma.workspaceMember.findUnique({
+  return requireWorkspaceMember(event, channel.workspaceId)
+}
+
+export type AuthenticatedOrgAdmin = {
+  user: SessionUser
+  organizationId: string
+  orgRole: 'OWNER' | 'ADMIN'
+}
+
+/**
+ * Require that the authenticated user is an ACTIVE OWNER or ADMIN of the given organization.
+ */
+export const requireOrgAdmin = async (event: H3Event, organizationId: string): Promise<AuthenticatedOrgAdmin> => {
+  const user = await requireUser(event)
+
+  const orgMembership = await prisma.organizationMember.findUnique({
     where: {
-      workspaceId_userId: { workspaceId: channel.workspaceId, userId: user.id },
+      organizationId_userId: { organizationId, userId: user.id },
     },
-    select: { status: true },
+    select: { role: true, status: true },
   })
-  if (!membership || membership.status !== 'ACTIVE') {
-    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this workspace' })
+
+  if (!orgMembership || orgMembership.status !== 'ACTIVE') {
+    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this organization' })
   }
-  return { user, workspaceId: channel.workspaceId }
+
+  if (orgMembership.role !== 'OWNER' && orgMembership.role !== 'ADMIN') {
+    throw createError({ statusCode: 403, statusMessage: 'Organization admin access required' })
+  }
+
+  return {
+    user,
+    organizationId,
+    orgRole: orgMembership.role as 'OWNER' | 'ADMIN',
+  }
+}
+
+/**
+ * Require that the authenticated member has at least the specified workspace role.
+ * Org admins always bypass this check.
+ */
+export const requireMinRole = (auth: AuthenticatedMember, minRole: 'OWNER' | 'ADMIN' | 'MEMBER'): void => {
+  if (auth.isOrgAdmin) return // Org admins bypass workspace role checks
+
+  const userLevel = WORKSPACE_ROLE_HIERARCHY[auth.workspaceRole] ?? 0
+  const requiredLevel = WORKSPACE_ROLE_HIERARCHY[minRole] ?? 0
+
+  if (userLevel < requiredLevel) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: `Requires ${minRole} role or higher`,
+    })
+  }
 }

@@ -1,4 +1,5 @@
 import { prisma } from '../../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -6,6 +7,15 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'Document ID is required' })
   }
+
+  const docForAuth = await prisma.document.findUnique({
+    where: { id },
+    select: { itemId: true },
+  })
+  if (!docForAuth) {
+    throw createError({ statusCode: 404, message: 'Document not found' })
+  }
+  await requireWorkspaceMemberForItem(event, docForAuth.itemId)
 
   const versions = await prisma.documentVersion.findMany({
     where: { documentId: id },

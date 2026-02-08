@@ -1,7 +1,9 @@
 // POST /api/focus/session/[id]/comment - Add comment to a focus session
 import { prisma } from '../../../../utils/prisma'
+import { requireUser } from '../../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const sessionId = getRouterParam(event, 'id')
   const body = await readBody(event)
   const { comment } = body
@@ -12,6 +14,18 @@ export default defineEventHandler(async (event) => {
 
   if (!comment || typeof comment !== 'string') {
     throw createError({ statusCode: 400, message: 'Comment is required' })
+  }
+
+  // Verify the session belongs to this user
+  const existing = await prisma.focusSession.findUnique({
+    where: { id: sessionId },
+    select: { userId: true },
+  })
+  if (!existing) {
+    throw createError({ statusCode: 404, message: 'Session not found' })
+  }
+  if (existing.userId !== user.id) {
+    throw createError({ statusCode: 403, statusMessage: 'You can only comment on your own sessions' })
   }
 
   const now = new Date()

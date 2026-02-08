@@ -73,7 +73,7 @@ const showFilters = ref(false)
       <div class="flex items-center gap-2">
         <button 
           class="px-3 py-1.5 text-sm rounded-lg border transition-colors"
-          :class="showFilters ? 'bg-relai-50 border-relai-200 text-relai-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'"
+          :class="showFilters ? 'bg-ctx-50 border-ctx-200 text-ctx-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'"
           @click="showFilters = !showFilters"
         >
           <Icon name="heroicons:funnel" class="w-4 h-4 inline mr-1" />
@@ -83,7 +83,7 @@ const showFilters = ref(false)
 
       <button 
         @click="showNewTask = true"
-        class="flex items-center gap-2 px-4 py-2 bg-relai-600 text-white text-sm rounded-lg hover:bg-relai-700 transition-colors"
+        class="flex items-center gap-2 px-4 py-2 bg-ctx-600 text-white text-sm rounded-lg hover:bg-ctx-700 transition-colors"
         :disabled="!currentProject"
       >
         <Icon name="heroicons:plus" class="w-4 h-4" />
@@ -120,7 +120,7 @@ const showFilters = ref(false)
               v-model="newTask.title"
               type="text"
               placeholder="What needs to be done?"
-              class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-relai-400 focus:ring-2 focus:ring-relai-100 outline-none"
+              class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-ctx-400 focus:ring-2 focus:ring-ctx-100 outline-none"
             />
           </div>
 
@@ -130,7 +130,7 @@ const showFilters = ref(false)
               v-model="newTask.description"
               placeholder="Optional details..."
               rows="3"
-              class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-relai-400 focus:ring-2 focus:ring-relai-100 outline-none resize-none"
+              class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-ctx-400 focus:ring-2 focus:ring-ctx-100 outline-none resize-none"
             />
           </div>
 
@@ -139,7 +139,7 @@ const showFilters = ref(false)
               <label class="text-xs font-semibold uppercase tracking-wider text-gray-400 block mb-2">Scope</label>
               <select
                 v-model="newTask.scope"
-                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-relai-400 outline-none"
+                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-ctx-400 outline-none"
               >
                 <option value="XS">XS - Extra Small</option>
                 <option value="S">S - Small</option>
@@ -153,7 +153,7 @@ const showFilters = ref(false)
               <label class="text-xs font-semibold uppercase tracking-wider text-gray-400 block mb-2">Type</label>
               <select
                 v-model="newTask.type"
-                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-relai-400 outline-none"
+                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-ctx-400 outline-none"
               >
                 <option value="FEATURE">Feature</option>
                 <option value="BUG">Bug</option>
@@ -174,7 +174,7 @@ const showFilters = ref(false)
           </button>
           <button 
             @click="handleCreateTask"
-            class="px-4 py-2 bg-relai-600 text-white rounded-lg hover:bg-relai-700"
+            class="px-4 py-2 bg-ctx-600 text-white rounded-lg hover:bg-ctx-700"
           >
             Create Task
           </button>

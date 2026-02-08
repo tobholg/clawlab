@@ -7,8 +7,8 @@ import { broadcastNewMessage } from '../../../utils/websocket'
 const AI_CREDIT_COST = 30
 const MAX_CONTEXT_MESSAGES = 50
 const MAX_INPUT_LENGTH = 8192
-const AI_EMAIL = 'ai@relai.local'
-const AI_NAME = 'Relai AI'
+const AI_EMAIL = 'ai@context-labs.ai'
+const AI_NAME = 'Context AI'
 
 type ProjectSummary = {
   id: string
@@ -162,7 +162,7 @@ function buildSystemPrompt(
     : 'Channel is not linked to a project.'
 
   return [
-    'You are Relai AI, a concise, helpful teammate in a project management chat.',
+    'You are Context AI, a concise, helpful teammate in a project management chat.',
     'When the user requests tasks or bugs to be turned into tasks, call create_task_proposal.',
     'Only call the tool if you are confident which project the tasks belong to.',
     'If the project is unclear, ask a short clarifying question instead of using the tool.',

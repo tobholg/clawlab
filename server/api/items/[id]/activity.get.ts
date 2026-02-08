@@ -1,13 +1,16 @@
 import { prisma } from '../../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const query = getQuery(event)
   const days = Number(query.days) || 14
-  
+
   if (!id) {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
+
+  await requireWorkspaceMemberForItem(event, id)
   
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)

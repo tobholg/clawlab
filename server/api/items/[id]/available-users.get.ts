@@ -1,11 +1,14 @@
 import { prisma } from '../../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
-  
+
   if (!id) {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
+
+  await requireWorkspaceMemberForItem(event, id)
   
   // Get the item to find its workspace and parent chain
   const item = await prisma.item.findUnique({

@@ -19,7 +19,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'userId is required' })
   }
 
-  await requireWorkspaceMemberForChannel(event, channelId)
+  const auth = await requireWorkspaceMemberForChannel(event, channelId)
+
+  // Require channel ADMIN+ or workspace ADMIN
+  if (!auth.isWorkspaceAdmin) {
+    const callerMember = await prisma.channelMember.findUnique({
+      where: { channelId_userId: { channelId, userId: auth.user.id } },
+      select: { role: true },
+    })
+    if (!callerMember || (callerMember.role !== 'OWNER' && callerMember.role !== 'ADMIN')) {
+      throw createError({ statusCode: 403, statusMessage: 'Channel admin access required to add members' })
+    }
+  }
 
   // Verify channel exists
   const channel = await prisma.channel.findUnique({

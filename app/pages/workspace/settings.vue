@@ -6,10 +6,9 @@ definePageMeta({
 
 const { workspaceId } = useItems()
 const { user } = useAuth()
-const { calculateSeatCost } = usePricing()
 const { pendingInvites, availableInternalSeats, fetchSeats, fetchPendingInvites, sendInvite, cancelInvite } = useSeats()
 
-const activeTab = ref<'general' | 'members' | 'external' | 'plan'>('general')
+const activeTab = ref<'general' | 'members' | 'external'>('general')
 
 // Workspace data
 const workspace = ref<any>(null)
@@ -51,9 +50,6 @@ const seatActionMemberName = ref('')
 
 // Buy seats modal
 const showBuySeats = ref(false)
-
-// Upgrade to Pro modal
-const showUpgradeToProModal = ref(false)
 
 // Invite link copying
 const copiedLink = ref(false)
@@ -130,65 +126,9 @@ const fetchUsage = async () => {
   }
 }
 
-const tierLabel = computed(() => {
-  const tier = usageData.value?.planTier
-  if (tier === 'FREE') return 'Free'
-  if (tier === 'PRO') return 'Pro'
-  if (tier === 'ENTERPRISE') return 'Enterprise'
-  return 'Free'
-})
-
-const tierColor = computed(() => {
-  const tier = usageData.value?.planTier
-  if (tier === 'PRO') return 'bg-blue-100 text-blue-700'
-  if (tier === 'ENTERPRISE') return 'bg-violet-100 text-violet-700'
-  return 'bg-slate-100 text-slate-600'
-})
-
-const aiCredits = computed(() => usageData.value?.aiCredits ?? { current: 0, limit: 100 })
-
-// Current cost breakdown for PRO
+// Seat counts for BuySeatsModal
 const totalInternalSeats = computed(() => usageData.value?.usage?.internalSeats?.total ?? 0)
 const totalExternalSeats = computed(() => usageData.value?.usage?.externalSeats?.total ?? 0)
-const proCostInternal = computed(() => calculateSeatCost(totalInternalSeats.value, 'INTERNAL'))
-const proCostExternal = computed(() => calculateSeatCost(totalExternalSeats.value, 'EXTERNAL'))
-const proCostTotal = computed(() => proCostInternal.value + proCostExternal.value)
-const occupiedInternal = computed(() => usageData.value?.usage?.internalSeats?.occupied ?? 0)
-const occupiedExternal = computed(() => usageData.value?.usage?.externalSeats?.occupied ?? 0)
-
-const usagePercent = (current: number, limit: number) => {
-  if (limit === Infinity || limit === 0) return 0
-  return Math.min(100, Math.round((current / limit) * 100))
-}
-
-const usageBarColor = (current: number, limit: number) => {
-  const pct = usagePercent(current, limit)
-  if (pct >= 90) return 'bg-red-500'
-  if (pct >= 70) return 'bg-amber-500'
-  return 'bg-slate-900'
-}
-
-const formatLimit = (limit: number) => {
-  if (limit === Infinity) return 'Unlimited'
-  return limit.toLocaleString()
-}
-
-const upgradingPlan = ref(false)
-const upgradePlan = async (tier: 'FREE' | 'PRO' | 'ENTERPRISE') => {
-  if (!workspaceId.value || upgradingPlan.value) return
-  upgradingPlan.value = true
-  try {
-    await $fetch(`/api/workspaces/${workspaceId.value}/plan`, {
-      method: 'PATCH',
-      body: { planTier: tier },
-    })
-    await Promise.all([fetchUsage(), fetchSeats()])
-  } catch (e: any) {
-    console.error('Failed to change plan:', e)
-  } finally {
-    upgradingPlan.value = false
-  }
-}
 
 const saveWorkspace = async () => {
   if (!workspaceId.value || saving.value) return
@@ -433,29 +373,7 @@ const tabs = computed(() => [
   { key: 'general', label: 'General', icon: 'heroicons:cog-6-tooth' },
   { key: 'members', label: 'Members', icon: 'heroicons:users' },
   { key: 'external', label: 'External Users', icon: 'heroicons:globe-alt' },
-  { key: 'plan', label: 'Plan & Usage', icon: 'heroicons:chart-bar' },
 ])
-
-// Seat breakdown helpers for plan tab
-const seatBreakdown = (seatData: any) => {
-  if (!seatData) return null
-  return {
-    occupied: seatData.occupied ?? 0,
-    invited: seatData.invited ?? 0,
-    available: seatData.available ?? 0,
-    total: seatData.total ?? 0,
-  }
-}
-
-const seatBarSegments = (data: any) => {
-  if (!data || data.total === 0) return []
-  const total = data.total
-  return [
-    { width: (data.occupied / total) * 100, color: 'bg-slate-900', label: 'Occupied' },
-    { width: (data.invited / total) * 100, color: 'bg-amber-400', label: 'Invited' },
-    { width: (data.available / total) * 100, color: 'bg-slate-200', label: 'Available' },
-  ].filter(s => s.width > 0)
-}
 
 const formatExpiry = (dateStr: string) => {
   const d = new Date(dateStr)
@@ -482,7 +400,7 @@ watch(workspaceId, (id) => {
 onMounted(() => {
   const handler = (e: Event) => {
     const tab = (e as CustomEvent).detail
-    if (['general', 'members', 'external', 'plan'].includes(tab)) {
+    if (['general', 'members', 'external'].includes(tab)) {
       activeTab.value = tab
     }
   }
@@ -826,271 +744,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Plan & Usage -->
-    <div v-if="activeTab === 'plan'" class="max-w-3xl">
-      <div v-if="usageLoading" class="flex items-center gap-2 text-sm text-slate-500 py-8">
-        <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-        Loading plan details...
-      </div>
-
-      <div v-else-if="usageData" class="space-y-6">
-        <!-- Current plan -->
-        <div class="p-5 bg-white rounded-xl border border-slate-200">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-sm font-medium text-slate-900">Current plan</h3>
-              <p class="text-xs text-slate-500 mt-0.5">Manage your organization's plan and resource usage</p>
-            </div>
-            <span :class="['text-xs font-semibold px-2.5 py-1 rounded-full', tierColor]">
-              {{ tierLabel }}
-            </span>
-          </div>
-
-          <div v-if="usageData.planTier === 'FREE'" class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-            <p class="text-sm text-slate-700">
-              You're on the <strong>Free</strong> plan. Upgrade to <strong>Pro</strong> for more seats, projects, and 10,000 AI credits/user/mo.
-            </p>
-            <button
-              @click="showUpgradeToProModal = true"
-              class="mt-2 text-sm font-medium text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
-            >
-              Upgrade to Pro — from $5/seat/mo
-            </button>
-          </div>
-
-          <div v-else-if="usageData.planTier === 'PRO'" class="p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <p class="text-sm text-blue-800">
-              You're on the <strong>Pro</strong> plan.
-            </p>
-            <p class="text-xs text-blue-700 mt-1">
-              {{ totalInternalSeats }} internal (${{ proCostInternal }}/mo) &middot; {{ totalExternalSeats }} external (${{ proCostExternal }}/mo) &middot; <strong>Total: ${{ proCostTotal }}/mo</strong>
-            </p>
-          </div>
-
-          <div v-else class="p-3 bg-violet-50 rounded-lg border border-violet-100">
-            <p class="text-sm text-violet-800">
-              You're on the <strong>Enterprise</strong> plan with custom limits.
-            </p>
-          </div>
-        </div>
-
-        <!-- Seat breakdown -->
-        <div class="p-5 bg-white rounded-xl border border-slate-200">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-medium text-slate-900">Seats</h3>
-            <button
-              v-if="isOwner && usageData.planTier !== 'FREE'"
-              @click="showBuySeats = true"
-              class="text-xs font-medium text-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
-            >
-              Purchase more
-            </button>
-          </div>
-
-          <!-- Internal seats -->
-          <div class="mb-5">
-            <div class="flex items-center gap-2 mb-2">
-              <Icon name="heroicons:users" class="w-4 h-4 text-slate-400" />
-              <span class="text-sm text-slate-700">Internal seats</span>
-            </div>
-            <template v-if="seatBreakdown(usageData.usage?.internalSeats)">
-              <div class="text-xs text-slate-500 mb-1.5">
-                <span class="font-medium text-slate-900">{{ seatBreakdown(usageData.usage.internalSeats)!.occupied }}</span> occupied
-                <span class="text-slate-300 mx-1">&middot;</span>
-                <span class="font-medium text-amber-600">{{ seatBreakdown(usageData.usage.internalSeats)!.invited }}</span> invited
-                <span class="text-slate-300 mx-1">&middot;</span>
-                <span class="font-medium text-slate-500">{{ seatBreakdown(usageData.usage.internalSeats)!.available }}</span> available
-                <span class="text-slate-300 mx-1">&middot;</span>
-                {{ seatBreakdown(usageData.usage.internalSeats)!.total }} total
-              </div>
-              <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-                <div
-                  v-for="(seg, i) in seatBarSegments(seatBreakdown(usageData.usage.internalSeats))"
-                  :key="i"
-                  :class="['h-full transition-all', seg.color]"
-                  :style="{ width: `${seg.width}%` }"
-                  :title="seg.label"
-                />
-              </div>
-            </template>
-          </div>
-
-          <!-- External seats -->
-          <div>
-            <div class="flex items-center gap-2 mb-2">
-              <Icon name="heroicons:user-group" class="w-4 h-4 text-slate-400" />
-              <span class="text-sm text-slate-700">External seats</span>
-            </div>
-            <template v-if="seatBreakdown(usageData.usage?.externalSeats)">
-              <div class="text-xs text-slate-500 mb-1.5">
-                <span class="font-medium text-slate-900">{{ seatBreakdown(usageData.usage.externalSeats)!.occupied }}</span> occupied
-                <span class="text-slate-300 mx-1">&middot;</span>
-                <span class="font-medium text-amber-600">{{ seatBreakdown(usageData.usage.externalSeats)!.invited }}</span> invited
-                <span class="text-slate-300 mx-1">&middot;</span>
-                <span class="font-medium text-slate-500">{{ seatBreakdown(usageData.usage.externalSeats)!.available }}</span> available
-                <span class="text-slate-300 mx-1">&middot;</span>
-                {{ seatBreakdown(usageData.usage.externalSeats)!.total }} total
-              </div>
-              <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-                <div
-                  v-for="(seg, i) in seatBarSegments(seatBreakdown(usageData.usage.externalSeats))"
-                  :key="i"
-                  :class="['h-full transition-all', seg.color]"
-                  :style="{ width: `${seg.width}%` }"
-                  :title="seg.label"
-                />
-              </div>
-            </template>
-          </div>
-
-          <!-- Legend -->
-          <div class="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
-            <div class="flex items-center gap-1.5 text-xs text-slate-500">
-              <div class="w-2.5 h-2.5 rounded-full bg-slate-900" />
-              Occupied
-            </div>
-            <div class="flex items-center gap-1.5 text-xs text-slate-500">
-              <div class="w-2.5 h-2.5 rounded-full bg-amber-400" />
-              Invited
-            </div>
-            <div class="flex items-center gap-1.5 text-xs text-slate-500">
-              <div class="w-2.5 h-2.5 rounded-full bg-slate-200" />
-              Available
-            </div>
-          </div>
-        </div>
-
-        <!-- Other resource usage -->
-        <div class="p-5 bg-white rounded-xl border border-slate-200">
-          <h3 class="text-sm font-medium text-slate-900 mb-4">Other resources</h3>
-
-          <div class="space-y-4">
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <div class="flex items-center gap-2">
-                  <Icon name="heroicons:folder" class="w-4 h-4 text-slate-400" />
-                  <span class="text-sm text-slate-700">Projects</span>
-                </div>
-                <span class="text-sm text-slate-900 font-medium tabular-nums">
-                  {{ usageData.usage.projects.current }} / {{ formatLimit(usageData.usage.projects.limit) }}
-                </span>
-              </div>
-              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  :class="['h-full rounded-full transition-all', usageBarColor(usageData.usage.projects.current, usageData.usage.projects.limit)]"
-                  :style="{ width: `${usagePercent(usageData.usage.projects.current, usageData.usage.projects.limit)}%` }"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <div class="flex items-center gap-2">
-                  <Icon name="heroicons:globe-alt" class="w-4 h-4 text-slate-400" />
-                  <span class="text-sm text-slate-700">External spaces</span>
-                </div>
-                <span class="text-sm text-slate-900 font-medium tabular-nums">
-                  {{ usageData.usage.externalSpaces.current }} / {{ formatLimit(usageData.usage.externalSpaces.limit) }}
-                </span>
-              </div>
-              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  :class="['h-full rounded-full transition-all', usageBarColor(usageData.usage.externalSpaces.current, usageData.usage.externalSpaces.limit)]"
-                  :style="{ width: `${usagePercent(usageData.usage.externalSpaces.current, usageData.usage.externalSpaces.limit)}%` }"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AI Credits -->
-        <div class="p-5 bg-white rounded-xl border border-slate-200">
-          <h3 class="text-sm font-medium text-slate-900 mb-1">Your AI credits this month</h3>
-          <p class="text-xs text-slate-500 mb-4">AI credits are tracked per user per month and reset on the 1st</p>
-
-          <div class="flex items-center justify-between mb-1.5">
-            <div class="flex items-center gap-2">
-              <Icon name="heroicons:sparkles" class="w-4 h-4 text-slate-400" />
-              <span class="text-sm text-slate-700">AI credits used</span>
-            </div>
-            <span class="text-sm text-slate-900 font-medium tabular-nums">
-              {{ aiCredits.current.toLocaleString() }} / {{ formatLimit(aiCredits.limit) }}
-            </span>
-          </div>
-          <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              :class="['h-full rounded-full transition-all', usageBarColor(aiCredits.current, aiCredits.limit)]"
-              :style="{ width: `${usagePercent(aiCredits.current, aiCredits.limit)}%` }"
-            />
-          </div>
-        </div>
-
-        <!-- Plan comparison -->
-        <div v-if="usageData.planTier !== 'ENTERPRISE'" class="p-5 bg-white rounded-xl border border-slate-200">
-          <h3 class="text-sm font-medium text-slate-900 mb-4">Compare plans</h3>
-
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-slate-100">
-                <th class="text-left py-2 text-slate-500 font-normal">Feature</th>
-                <th class="text-center py-2 text-slate-500 font-normal">Free</th>
-                <th class="text-center py-2 text-slate-900 font-medium">Pro</th>
-                <th class="text-center py-2 text-slate-500 font-normal">Enterprise</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr>
-                <td class="py-2 text-slate-700">Internal seats</td>
-                <td class="py-2 text-center text-slate-500">5</td>
-                <td class="py-2 text-center text-slate-900 font-medium">Up to 100</td>
-                <td class="py-2 text-center text-slate-500">Unlimited</td>
-              </tr>
-              <tr>
-                <td class="py-2 text-slate-700">External seats</td>
-                <td class="py-2 text-center text-slate-500">3</td>
-                <td class="py-2 text-center text-slate-900 font-medium">Up to 100</td>
-                <td class="py-2 text-center text-slate-500">Unlimited</td>
-              </tr>
-              <tr>
-                <td class="py-2 text-slate-700">Pricing</td>
-                <td class="py-2 text-center text-slate-500">Free</td>
-                <td class="py-2 text-center text-slate-900 font-medium">From $5/seat</td>
-                <td class="py-2 text-center text-slate-500">Custom</td>
-              </tr>
-              <tr>
-                <td class="py-2 text-slate-700">Projects</td>
-                <td class="py-2 text-center text-slate-500">1</td>
-                <td class="py-2 text-center text-slate-900 font-medium">25</td>
-                <td class="py-2 text-center text-slate-500">Unlimited</td>
-              </tr>
-              <tr>
-                <td class="py-2 text-slate-700">External spaces</td>
-                <td class="py-2 text-center text-slate-500">1</td>
-                <td class="py-2 text-center text-slate-900 font-medium">25</td>
-                <td class="py-2 text-center text-slate-500">Unlimited</td>
-              </tr>
-              <tr>
-                <td class="py-2 text-slate-700">AI credits / user / mo</td>
-                <td class="py-2 text-center text-slate-500">100</td>
-                <td class="py-2 text-center text-slate-900 font-medium">10,000</td>
-                <td class="py-2 text-center text-slate-500">Custom</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div v-if="usageData.planTier === 'FREE'" class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <p class="text-sm text-slate-500">Need more room to grow?</p>
-            <button
-              @click="showUpgradeToProModal = true"
-              class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Upgrade to Pro
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- External Users -->
     <div v-if="activeTab === 'external'" class="max-w-3xl">
       <div v-if="externalLoading" class="flex items-center gap-2 text-sm text-slate-500 py-8">
@@ -1244,14 +897,6 @@ onMounted(() => {
     :current-external="totalExternalSeats"
     @close="showBuySeats = false"
     @purchased="fetchUsage"
-  />
-
-  <UpgradeToProModal
-    :open="showUpgradeToProModal"
-    :occupied-internal="occupiedInternal"
-    :occupied-external="occupiedExternal"
-    @close="showUpgradeToProModal = false"
-    @upgraded="Promise.all([fetchUsage(), fetchSeats()])"
   />
 
   <SeatActionModal

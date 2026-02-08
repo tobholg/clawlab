@@ -1,16 +1,21 @@
 import { prisma } from '../../utils/prisma'
+import { requireUser, requireWorkspaceMember } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  await requireUser(event)
   const query = getQuery(event)
   const workspaceId = query.workspaceId as string
-  
-  // If workspaceId provided, get workspace members
-  // Otherwise get all users (for now)
-  const users = workspaceId 
+
+  // Require workspace membership when filtering by workspace
+  if (workspaceId) {
+    await requireWorkspaceMember(event, workspaceId)
+  }
+
+  const users = workspaceId
     ? await prisma.user.findMany({
         where: {
           workspaceMembers: {
-            some: { workspaceId }
+            some: { workspaceId, status: 'ACTIVE' }
           }
         },
         select: {

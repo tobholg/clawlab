@@ -1,14 +1,12 @@
 // GET /api/focus/history - Get focus session history for a user
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  const sessionUser = await requireUser(event)
   const query = getQuery(event)
-  const userId = query.userId as string
+  const userId = (query.userId as string) || sessionUser.id
   const days = parseInt(query.days as string) || 7 // Default to 7 days
-
-  if (!userId) {
-    throw createError({ statusCode: 400, message: 'userId is required' })
-  }
 
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)

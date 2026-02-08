@@ -1,8 +1,10 @@
 import type { Item, ItemNode } from '~/types'
 
 export function useItems() {
-  // Global state - shared across all components using this composable
-  const workspaceId = useState<string | null>('workspaceId', () => null)
+  // Use shared workspace state from useWorkspaces composable
+  const { currentWorkspaceId, currentWorkspace, fetchWorkspaces } = useWorkspaces()
+  const workspaceId = currentWorkspaceId
+
   const currentScopeId = useState<string | null>('currentScope', () => null)
   const currentScopeData = useState<any>('currentScopeData', () => null)
   const itemsData = useState<any[]>('itemsData', () => [])
@@ -15,15 +17,13 @@ export function useItems() {
   // Request counter to handle race conditions - ignore stale responses
   const fetchCounter = useState('fetchCounter', () => 0)
 
-  // Fetch workspace on mount
-  const { data: workspaces } = useFetch('/api/workspaces')
-
-  // Set workspace when loaded
-  watch(workspaces, (ws) => {
-    if (ws?.length && !workspaceId.value) {
-      workspaceId.value = ws[0].id
-    }
-  }, { immediate: true })
+  // Always fetch workspaces on mount to populate the list
+  // (localStorage restores the ID but the workspace data still needs fetching)
+  if (import.meta.client) {
+    onMounted(() => {
+      fetchWorkspaces()
+    })
+  }
 
   // Fetch items for current scope
   const refreshItems = async (force = false) => {
@@ -87,16 +87,14 @@ export function useItems() {
     }
   })
 
-  // Fetch when workspace becomes available (only once)
+  // Reset scope when workspace actually switches (not on initial mount)
   watch(workspaceId, (wsId, oldWsId) => {
-    // Only fetch if workspace just became available or changed
-    if (wsId && wsId !== oldWsId) {
+    if (wsId && oldWsId && wsId !== oldWsId) {
+      currentScopeId.value = null
+      currentScopeData.value = null
       refreshItems()
-      if (currentScopeId.value) {
-        fetchScopeDetails(currentScopeId.value)
-      }
     }
-  }, { immediate: true })
+  })
 
   // Transform API data to ItemNode format
   const scopedItems = computed((): ItemNode[] => {
@@ -112,7 +110,7 @@ export function useItems() {
   const currentScope = computed(() => {
     if (!currentScopeId.value) {
       // Root level - use workspace info
-      const ws = workspaces.value?.[0]
+      const ws = currentWorkspace.value
       return ws ? {
         id: 'root',
         title: ws.name,

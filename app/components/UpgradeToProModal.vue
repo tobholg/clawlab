@@ -3,6 +3,7 @@ const props = defineProps<{
   open: boolean
   occupiedInternal?: number
   occupiedExternal?: number
+  organizationId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -32,11 +33,18 @@ const totalSeats = computed(() => internalCount.value + externalCount.value)
 const effectiveAvg = computed(() => totalSeats.value > 0 ? (totalCost.value / totalSeats.value).toFixed(2) : '0')
 
 const handleUpgrade = async () => {
-  if (!workspaceId.value || upgrading.value) return
+  // Use org endpoint if organizationId is provided, else workspace endpoint
+  const orgId = props.organizationId
+  const wsId = workspaceId.value
+  if (!orgId && !wsId) return
+  if (upgrading.value) return
   upgrading.value = true
   error.value = null
   try {
-    await $fetch(`/api/workspaces/${workspaceId.value}/plan`, {
+    const url = orgId
+      ? `/api/organizations/${orgId}/plan`
+      : `/api/workspaces/${wsId}/plan`
+    await $fetch(url, {
       method: 'PATCH',
       body: {
         planTier: 'PRO',

@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireWorkspaceMemberForItem } from '../../../utils/auth'
+import { requireItemPermission } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -15,7 +16,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'userId is required' })
   }
 
-  const { user: authUser } = await requireWorkspaceMemberForItem(event, id)
+  const auth = await requireWorkspaceMemberForItem(event, id)
+  await requireItemPermission(auth, id, 'assign')
+  const { user: authUser } = auth
 
   // Verify item exists
   const item = await prisma.item.findUnique({ where: { id } })

@@ -1,5 +1,6 @@
 // GET /api/focus/team - Get team focus presence for a workspace
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMember } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -8,6 +9,8 @@ export default defineEventHandler(async (event) => {
   if (!workspaceId) {
     throw createError({ statusCode: 400, message: 'workspaceId is required' })
   }
+
+  await requireWorkspaceMember(event, workspaceId)
 
   // Get all active workspace members with their current focus state
   const members = await prisma.workspaceMember.findMany({

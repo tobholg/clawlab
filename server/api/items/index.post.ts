@@ -1,5 +1,5 @@
 import { prisma } from '../../utils/prisma'
-import { requireWorkspaceMember } from '../../utils/auth'
+import { requireWorkspaceMember, requireMinRole } from '../../utils/auth'
 import { createProjectChannel } from '../../utils/channelUtils'
 import { getDefaultSubStatus, isValidSubStatusForStatus, normalizeIncomingSubStatus, normalizeItemStatus } from '../../utils/itemStage'
 import { checkCanCreateProject } from '../../utils/planLimits'
@@ -39,7 +39,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer` })
   }
 
-  const user = await requireWorkspaceMember(event, workspaceId)
+  const auth = await requireWorkspaceMember(event, workspaceId)
+  requireMinRole(auth, 'MEMBER') // VIEWERs cannot create items
+  const user = auth.user
 
   // Enforce plan limit for root-level projects
   if (!parentId) {

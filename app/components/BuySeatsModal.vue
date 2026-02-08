@@ -4,6 +4,7 @@ const props = defineProps<{
   planTier?: string
   currentInternal?: number
   currentExternal?: number
+  organizationId?: string | null
 }>()
 
 const emit = defineEmits<{

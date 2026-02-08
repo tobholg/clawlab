@@ -1,13 +1,11 @@
 // GET /api/focus/current - Get current focus state for a user
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  const sessionUser = await requireUser(event)
   const query = getQuery(event)
-  const userId = query.userId as string
-
-  if (!userId) {
-    throw createError({ statusCode: 400, message: 'userId is required' })
-  }
+  const userId = (query.userId as string) || sessionUser.id
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

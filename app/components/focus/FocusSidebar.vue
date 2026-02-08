@@ -167,7 +167,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
       <!-- Project Focus -->
       <button
         @click="showProjectPicker = true"
-        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-200"
+        class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
         :class="hasProjectFocus
           ? 'bg-blue-50 text-blue-900'
           : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
@@ -188,7 +188,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
       <button
         v-if="hasProjectFocus"
         @click="hasTaskFocus ? handleTaskAction() : showLanePicker = true"
-        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-200"
+        class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
         :class="hasTaskFocus
           ? 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100'
           : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"

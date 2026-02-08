@@ -1,5 +1,6 @@
 import { prisma } from '../../utils/prisma'
 import { requireWorkspaceMemberForItem } from '../../utils/auth'
+import { requireItemPermission } from '../../utils/permissions'
 import { countIncompleteDescendants } from '../../utils/itemCompletion'
 import { getDefaultSubStatus, isValidSubStatusForStatus, normalizeIncomingSubStatus, normalizeItemStatus, type ItemStatusValue } from '../../utils/itemStage'
 
@@ -45,7 +46,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
 
-  const { user } = await requireWorkspaceMemberForItem(event, id)
+  const auth = await requireWorkspaceMemberForItem(event, id)
+  await requireItemPermission(auth, id, 'edit')
+  const { user } = auth
 
   const {
     title,
