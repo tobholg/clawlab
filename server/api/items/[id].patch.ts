@@ -1,6 +1,10 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../utils/auth'
 import { countIncompleteDescendants } from '../../utils/itemCompletion'
 import { getDefaultSubStatus, isValidSubStatusForStatus, normalizeIncomingSubStatus, normalizeItemStatus, type ItemStatusValue } from '../../utils/itemStage'
+
+const MAX_TITLE_LENGTH = 255
+const MAX_DESCRIPTION_LENGTH = 10000
 
 // Helper: Check if targetId is a descendant of itemId (prevent circular refs)
 async function isDescendant(itemId: string, targetId: string): Promise<boolean> {
@@ -41,6 +45,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
 
+  const { user } = await requireWorkspaceMemberForItem(event, id)
+
   const {
     title,
     description,
@@ -56,6 +62,14 @@ export default defineEventHandler(async (event) => {
     ownerId,
     parentId,
   } = body
+
+  if (title !== undefined && title.length > MAX_TITLE_LENGTH) {
+    throw createError({ statusCode: 400, message: `Title must be ${MAX_TITLE_LENGTH} characters or fewer` })
+  }
+
+  if (description !== undefined && description && description.length > MAX_DESCRIPTION_LENGTH) {
+    throw createError({ statusCode: 400, message: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer` })
+  }
 
   // Get current item with hierarchy info
   const currentItem = await prisma.item.findUnique({
@@ -206,13 +220,10 @@ export default defineEventHandler(async (event) => {
 
   // Create Activity record for status changes
   if (status !== undefined && statusChanged) {
-    // TODO: Get actual userId from auth context - using placeholder for now
-    const userId = body.userId || 'system'
-
     await prisma.activity.create({
       data: {
         itemId: id,
-        userId,
+        userId: user.id,
         type: 'STATUS_CHANGE',
         oldValue: oldStatus.toLowerCase(),
         newValue: requestedStatus.toLowerCase(),

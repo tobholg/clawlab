@@ -1,6 +1,7 @@
 import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
 import { prisma } from '../../../utils/prisma'
 import { requireUser } from '../../../utils/auth'
+import { checkCanAddStakeholder } from '../../../utils/planLimits'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -98,6 +99,19 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: `You're already a stakeholder in the "${otherAccess.externalSpace.name}" space for this project. Users can only be in one space per project.`
+    })
+  }
+
+  // Enforce plan limit for external seats
+  const project = await prisma.item.findUniqueOrThrow({
+    where: { id: tokenData.projectId },
+    select: { workspaceId: true, workspace: { select: { organizationId: true } } },
+  })
+  const stakeholderCheck = await checkCanAddStakeholder(project.workspace.organizationId)
+  if (!stakeholderCheck.allowed) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: `External seat limit reached (${stakeholderCheck.current}/${stakeholderCheck.limit}). The workspace owner needs to upgrade their plan.`,
     })
   }
 

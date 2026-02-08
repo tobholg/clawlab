@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { prisma } from '../../../utils/prisma'
 import { requireUser } from '../../../utils/auth'
+import { checkCanUseAICredit, consumeAICredit } from '../../../utils/planLimits'
 import { broadcastNewMessage } from '../../../utils/websocket'
 
-const MAX_CONTEXT_MESSAGES = 64
+const AI_CREDIT_COST = 30
+const MAX_CONTEXT_MESSAGES = 50
+const MAX_INPUT_LENGTH = 8192
 const AI_EMAIL = 'ai@relai.local'
 const AI_NAME = 'Relai AI'
 
@@ -28,7 +31,7 @@ type TaskProposal = {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event)
+  const user = await requireUser(event)
   const channelId = getRouterParam(event, 'id')
   const body = await readBody<{ prompt?: string }>(event)
 
@@ -41,6 +44,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'prompt is required' })
   }
 
+  if (prompt.length > MAX_INPUT_LENGTH) {
+    throw createError({ statusCode: 400, message: `Prompt must be ${MAX_INPUT_LENGTH} characters or fewer` })
+  }
+
   const channel = await prisma.channel.findUnique({
     where: { id: channelId },
     select: { id: true, displayName: true, workspaceId: true, projectId: true },
@@ -48,6 +55,16 @@ export default defineEventHandler(async (event) => {
 
   if (!channel) {
     throw createError({ statusCode: 404, message: 'Channel not found' })
+  }
+
+  // Check AI credits
+  const workspace = await prisma.workspace.findUniqueOrThrow({
+    where: { id: channel.workspaceId },
+    select: { organizationId: true },
+  })
+  const creditCheck = await checkCanUseAICredit(workspace.organizationId, user.id)
+  if (!creditCheck.allowed) {
+    throw createError({ statusCode: 403, message: 'AI credit limit reached for this month. Upgrade to Pro for 10,000 credits/user/month.' })
   }
 
   const recentMessages = await prisma.message.findMany({
@@ -76,6 +93,9 @@ export default defineEventHandler(async (event) => {
     console.error('[AI] OpenAI request failed:', error?.message || error)
     content = 'I ran into an issue reaching the AI service. Please try again in a moment.'
   }
+
+  // Consume AI credits after successful AI call
+  await consumeAICredit(workspace.organizationId, user.id, AI_CREDIT_COST)
 
   const aiUser = await prisma.user.upsert({
     where: { email: AI_EMAIL },
@@ -132,7 +152,8 @@ function buildSystemPrompt(
         const replyTo = msg.parentId && messageById.get(msg.parentId)
           ? ` [reply to: "${truncate(messageById.get(msg.parentId) || '')}"]`
           : ''
-        return `${author}${replyTo}: ${msg.content}`
+        const content = msg.content.length > MAX_INPUT_LENGTH ? msg.content.slice(0, MAX_INPUT_LENGTH) : msg.content
+        return `${author}${replyTo}: ${content}`
       }).join('\n')
     : 'No messages yet.'
 

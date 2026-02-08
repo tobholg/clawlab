@@ -1,6 +1,10 @@
 import { prisma } from '../../utils/prisma'
 import { requireUser } from '../../utils/auth'
 import { getDefaultSubStatus } from '../../utils/itemStage'
+import { checkCanUseAICredit, consumeAICredit } from '../../utils/planLimits'
+
+const AI_CREDIT_COST = 20
+const MAX_INPUT_LENGTH = 8192
 
 type ItemPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 type ItemComplexity = 'TRIVIAL' | 'SMALL' | 'MEDIUM' | 'LARGE' | 'EPIC'
@@ -53,6 +57,20 @@ export default defineEventHandler(async (event) => {
 
   if (!workspaceId || !parentId || !input) {
     throw createError({ statusCode: 400, message: 'workspaceId, parentId, and input are required' })
+  }
+
+  if (input.length > MAX_INPUT_LENGTH) {
+    throw createError({ statusCode: 400, message: `Input must be ${MAX_INPUT_LENGTH} characters or fewer` })
+  }
+
+  // Check AI credits
+  const workspace = await prisma.workspace.findUniqueOrThrow({
+    where: { id: workspaceId },
+    select: { organizationId: true },
+  })
+  const creditCheck = await checkCanUseAICredit(workspace.organizationId, user.id)
+  if (!creditCheck.allowed) {
+    throw createError({ statusCode: 403, message: 'AI credit limit reached for this month. Upgrade to Pro for 10,000 credits/user/month.' })
   }
 
   const parent = await prisma.item.findFirst({
@@ -129,6 +147,9 @@ export default defineEventHandler(async (event) => {
     })
     subtaskCount += 1
   }
+
+  // Consume AI credits after successful generation
+  await consumeAICredit(workspace.organizationId, user.id, AI_CREDIT_COST)
 
   return {
     item: {

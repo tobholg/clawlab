@@ -399,13 +399,12 @@ onMounted(() => {
           <!-- Description: display or edit -->
           <div class="mt-1">
             <div v-if="!editingDescription">
-              <p
+              <MarkdownRenderer
                 v-if="editedProjectDescription"
+                :content="editedProjectDescription"
                 class="text-sm text-slate-400 line-clamp-2 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
                 @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
-              >
-                {{ editedProjectDescription }}
-              </p>
+              />
               <p
                 v-else
                 class="text-sm text-slate-400 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
@@ -681,7 +680,7 @@ onMounted(() => {
   </header>
 
   <!-- Content -->
-  <div class="flex-1 overflow-auto px-6 pb-8">
+  <div class="flex-1 overflow-auto px-6 pb-6">
     <!-- Documents View -->
     <DocumentsSection
       v-if="activeView === 'documents'"

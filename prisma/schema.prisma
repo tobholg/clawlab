@@ -20,18 +20,114 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members    OrganizationMember[]
-  workspaces Workspace[]
+  // Billing & plan
+  planTier     PlanTier @default(FREE)
+  billingEmail String?
+  trialEndsAt  DateTime?
+
+  members     OrganizationMember[]
+  workspaces  Workspace[]
+  usage       UserMonthlyUsage[]
+  seats       Seat[]
+  seatInvites SeatInvite[]
 
   @@map("organizations")
 }
 
-model OrganizationMember {
-  id             String   @id @default(cuid())
+enum PlanTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SeatStatus {
+  AVAILABLE
+  INVITED
+  OCCUPIED
+}
+
+enum SeatType {
+  INTERNAL
+  EXTERNAL
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+// ============================================
+// SEATS & INVITES
+// ============================================
+
+model Seat {
+  id             String     @id @default(cuid())
+  organizationId String
+  type           SeatType
+  status         SeatStatus @default(AVAILABLE)
+  userId         String?
+  occupiedAt     DateTime?
+  createdAt      DateTime   @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invite       SeatInvite?
+
+  @@index([organizationId, type, status])
+  @@map("seats")
+}
+
+model SeatInvite {
+  id             String       @id @default(cuid())
+  seatId         String       @unique
+  organizationId String
+  email          String
+  role           WorkspaceRole @default(MEMBER)
+  workspaceId    String
+  invitedById    String
+  token          String       @unique
+  status         InviteStatus @default(PENDING)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  seat         Seat         @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("SentInvites", fields: [invitedById], references: [id])
+
+  @@index([token])
+  @@index([organizationId, status])
+  @@index([email, organizationId])
+  @@map("seat_invites")
+}
+
+// Per-user monthly AI credit tracking
+model UserMonthlyUsage {
+  id             String @id @default(cuid())
   organizationId String
   userId         String
-  role           OrgRole  @default(MEMBER)
-  joinedAt       DateTime @default(now())
+  month          String // "2026-02" format for bucketing
+  aiCreditsUsed  Int    @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, month])
+  @@index([organizationId, month])
+  @@map("user_monthly_usage")
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrgRole      @default(MEMBER)
+  status         MemberStatus @default(ACTIVE)
+  joinedAt       DateTime     @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -44,6 +140,11 @@ enum OrgRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+enum MemberStatus {
+  ACTIVE
+  DEACTIVATED
 }
 
 // ============================================
@@ -88,6 +189,10 @@ model User {
   documentsEdited     Document[]           @relation("DocumentLastEditedBy")
   documentVersions    DocumentVersion[]    @relation("DocumentVersionCreatedBy")
 
+  // Seat relations
+  seats             Seat[]
+  sentInvites       SeatInvite[]         @relation("SentInvites")
+
   // External stakeholder relations
   stakeholderAccess   StakeholderAccess[] // Spaces this user is a stakeholder in
   stakeholderInvites  StakeholderAccess[]  @relation("StakeholderInviter") // Invites sent
@@ -96,6 +201,7 @@ model User {
   externalTasks       ExternalTask[]
   externalComments    ExternalComment[]
   aiContextDocs       AIContextDoc[]
+  monthlyUsage        UserMonthlyUsage[]
 
   @@map("users")
 }
@@ -132,6 +238,7 @@ model Workspace {
   members      WorkspaceMember[]
   items        Item[]
   channels     Channel[]
+  seatInvites  SeatInvite[]
 
   @@index([organizationId])
   @@map("workspaces")
@@ -142,6 +249,7 @@ model WorkspaceMember {
   workspaceId String
   userId      String
   role        WorkspaceRole @default(MEMBER)
+  status      MemberStatus  @default(ACTIVE)
   joinedAt    DateTime      @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

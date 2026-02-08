@@ -19,11 +19,12 @@ export default defineEventHandler(async (event) => {
     },
     select: {
       role: true,
+      status: true,
       joinedAt: true,
     }
   })
 
-  if (!membership) {
+  if (!membership || membership.status !== 'ACTIVE') {
     throw createError({ statusCode: 403, message: 'Not a workspace member' })
   }
 

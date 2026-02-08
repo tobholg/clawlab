@@ -1,5 +1,9 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMemberForChannel } from '../../utils/auth'
 import { slugify } from '../../utils/channelUtils'
+
+const MAX_NAME_LENGTH = 80
+const MAX_DESCRIPTION_LENGTH = 500
 
 interface UpdateChannelBody {
   name?: string
@@ -17,6 +21,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
 
+  await requireWorkspaceMemberForChannel(event, id)
+
   const channel = await prisma.channel.findUnique({
     where: { id },
   })
@@ -29,10 +35,16 @@ export default defineEventHandler(async (event) => {
   const updateData: Record<string, unknown> = {}
 
   if (body.displayName !== undefined) {
+    if (body.displayName && body.displayName.length > MAX_NAME_LENGTH) {
+      throw createError({ statusCode: 400, message: `Channel name must be ${MAX_NAME_LENGTH} characters or fewer` })
+    }
     updateData.displayName = body.displayName || null
   }
 
   if (body.description !== undefined) {
+    if (body.description && body.description.length > MAX_DESCRIPTION_LENGTH) {
+      throw createError({ statusCode: 400, message: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer` })
+    }
     updateData.description = body.description || null
   }
 

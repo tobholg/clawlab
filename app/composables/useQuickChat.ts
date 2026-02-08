@@ -78,10 +78,11 @@ export const useQuickChat = () => {
         .slice(0, -2)
         .map(m => ({ role: m.role, content: m.content }))
 
+      const { workspaceId } = useItems()
       const response = await fetch('/api/chat/quick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, history }),
+        body: JSON.stringify({ content, history, workspaceId: workspaceId.value }),
       })
 
       if (!response.ok) {

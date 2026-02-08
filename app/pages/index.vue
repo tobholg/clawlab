@@ -66,13 +66,13 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '$7',
+    price: 'From $5',
     priceNote: 'per seat / mo',
     featured: true,
     cta: 'Start free trial',
     features: [
-      { label: 'Internal seats', value: '25' },
-      { label: 'External seats', value: '25' },
+      { label: 'Internal seats', value: 'Up to 100' },
+      { label: 'External seats', value: 'Up to 100' },
       { label: 'Projects', value: '25' },
       { label: 'External spaces', value: '25' },
       { label: 'AI credits / user / mo', value: '10,000' },
@@ -87,12 +87,28 @@ const plans = [
     features: [
       { label: 'Internal seats', value: 'Unlimited' },
       { label: 'External seats', value: 'Unlimited' },
+      { label: '100+ seats per type', value: '' },
       { label: 'Projects', value: 'Unlimited' },
       { label: 'External spaces', value: 'Unlimited' },
       { label: 'AI credits / user / mo', value: 'Custom' },
     ],
   },
 ]
+
+// Mini pricing calculator for landing page
+const { calculateSeatCost, SEAT_TIERS } = usePricing()
+const calcInternal = ref(10)
+const calcExternal = ref(5)
+const calcTotal = computed(() =>
+  calculateSeatCost(calcInternal.value, 'INTERNAL') + (calcExternal.value > 0 ? calculateSeatCost(calcExternal.value, 'EXTERNAL') : 0)
+)
+const calcFullPrice = computed(() =>
+  calcInternal.value * SEAT_TIERS.INTERNAL.prices[0]! + calcExternal.value * SEAT_TIERS.EXTERNAL.prices[0]!
+)
+const calcSavingPct = computed(() => {
+  if (calcFullPrice.value <= 0 || calcTotal.value >= calcFullPrice.value) return 0
+  return ((calcFullPrice.value - calcTotal.value) / calcFullPrice.value) * 100
+})
 
 const navItems = [
   { id: 'hero', label: 'Overview' },
@@ -236,14 +252,14 @@ onMounted(() => {
       <div class="hero-glow" aria-hidden="true" />
 
       <div class="relative max-w-4xl mx-auto text-center">
-        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1]">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1]">
           <span class="word-animate" style="--d: 80ms">Ship</span>
-          <span class="word-animate" style="--d: 160ms">Outcomes,</span>
+          <span class="word-animate" style="--d: 160ms">outcomes,</span>
           <br />
           <span ref="accentLineRef">
-            <span class="word-animate word-animate--accent" style="--d: 260ms">Not</span>
-            <span class="word-animate word-animate--accent" style="--d: 340ms">Status</span>
-            <span class="word-animate word-animate--accent" style="--d: 420ms">Reports.</span>
+            <span class="word-animate word-animate--accent" style="--d: 260ms">not</span>
+            <span class="word-animate word-animate--accent" style="--d: 340ms">status</span>
+            <span class="word-animate word-animate--accent" style="--d: 420ms">reports.</span>
           </span>
         </h1>
 
@@ -437,27 +453,27 @@ onMounted(() => {
           <!-- Sticky intro -->
           <div class="lg:sticky lg:top-28 scroll-reveal" style="--d: 0ms">
             <div class="text-xs font-semibold text-emerald-700 uppercase tracking-widest">Capabilities</div>
-            <h2 class="mt-4 text-3xl sm:text-4xl font-semibold tracking-tight">Powered by intelligence</h2>
-            <p class="mt-4 text-base text-slate-500 leading-relaxed">
+            <h2 class="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight">Powered by intelligence</h2>
+            <p class="mt-4 text-lg text-slate-500 leading-relaxed">
               Everything your team needs to ship outcomes while keeping stakeholders informed — automatically.
             </p>
 
             <ul class="mt-8 space-y-4">
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-sm text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">One recursive model</span> from portfolio down to subtask — no tool-switching, no sync gaps.</span>
+                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">One recursive model</span> from portfolio down to subtask — no tool-switching, no sync gaps.</span>
               </li>
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-sm text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">AI runs continuously</span> — evaluating risk, surfacing blockers, and writing updates from real work.</span>
+                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">AI runs continuously</span> — evaluating risk, surfacing blockers, and writing updates from real work.</span>
               </li>
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-sm text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Stakeholders see what matters</span> — curated views, auto-published reports, zero manual effort.</span>
+                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Stakeholders see what matters</span> — curated views, auto-published reports, zero manual effort.</span>
               </li>
               <li class="flex items-start gap-3">
                 <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <span class="text-sm text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Built-in focus tracking</span> — see where time goes across deep work, meetings, and admin.</span>
+                <span class="text-base text-slate-600 leading-relaxed"><span class="font-semibold text-slate-900">Built-in focus tracking</span> — see where time goes across deep work, meetings, and admin.</span>
               </li>
             </ul>
           </div>
@@ -475,7 +491,7 @@ onMounted(() => {
               <!-- Collapsed header (always visible) -->
               <div class="capability-header">
                 <div class="flex-1 min-w-0">
-                  <div class="text-xs font-medium text-slate-400 italic">{{ cap.pain }}</div>
+                  <div class="text-xs font-medium text-slate-400">{{ cap.pain }}</div>
                   <h3 class="text-[15px] font-semibold text-slate-900 mt-0.5">{{ cap.title }}</h3>
                 </div>
                 <Icon
@@ -650,7 +666,7 @@ onMounted(() => {
           <div class="text-xs font-semibold text-emerald-600 uppercase tracking-widest">Pricing</div>
           <h2 class="mt-4 text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight">Simple, transparent pricing</h2>
           <p class="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">
-            Start free. Scale when you're ready. External stakeholders are always free.
+            Start free. Scale when you're ready. Volume discounts built in.
           </p>
         </div>
 
@@ -674,11 +690,51 @@ onMounted(() => {
             <ul class="mt-8 space-y-3.5">
               <li v-for="feature in plan.features" :key="feature.label" class="flex items-center gap-3">
                 <Icon name="heroicons:check" class="w-4.5 h-4.5 text-emerald-500 flex-shrink-0" />
-                <span class="text-sm text-slate-500">{{ feature.label }}:
-                  <span class="font-semibold text-slate-900">{{ feature.value }}</span>
+                <span class="text-sm text-slate-500">
+                  <template v-if="feature.value">{{ feature.label }}: <span class="font-semibold text-slate-900">{{ feature.value }}</span></template>
+                  <template v-else><span class="font-semibold text-slate-900">{{ feature.label }}</span></template>
                 </span>
               </li>
             </ul>
+
+            <!-- Mini pricing calculator (Pro card only) -->
+            <div v-if="plan.featured" class="mt-6 p-4 rounded-xl bg-slate-50/80 border border-slate-100">
+              <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Estimate your cost</div>
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between gap-3">
+                  <label class="text-xs text-slate-500 whitespace-nowrap">Internal</label>
+                  <input
+                    v-model.number="calcInternal"
+                    type="number"
+                    min="1"
+                    max="100"
+                    class="w-16 px-2 py-1 border border-slate-200 rounded-md text-xs text-center tabular-nums bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
+                  />
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                  <label class="text-xs text-slate-500 whitespace-nowrap">External</label>
+                  <input
+                    v-model.number="calcExternal"
+                    type="number"
+                    min="0"
+                    max="100"
+                    class="w-16 px-2 py-1 border border-slate-200 rounded-md text-xs text-center tabular-nums bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
+                  />
+                </div>
+              </div>
+              <div class="mt-3 pt-3 border-t border-slate-200">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-slate-500">Monthly total</span>
+                  <span class="text-lg font-bold text-slate-900 tabular-nums">${{ calcTotal }}/mo</span>
+                </div>
+                <div v-if="calcSavingPct > 0" class="flex items-center justify-end gap-1.5 mt-1">
+                  <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    Save {{ calcSavingPct.toFixed(1) }}%
+                  </span>
+                  <span class="text-[11px] text-slate-400 line-through tabular-nums">${{ calcFullPrice }}/mo</span>
+                </div>
+              </div>
+            </div>
 
             <NuxtLink
               :to="plan.name === 'Enterprise' ? '#' : '/onboarding'"

@@ -27,9 +27,12 @@ const activeView = ref<'dashboard' | 'timeline' | 'list'>('dashboard')
 const showCreateModal = ref(false)
 const showDetailModal = ref(false)
 const selectedItem = ref<any>(null)
+const showTemplateModal = ref(false)
 const attentionPaneOpen = ref(false)
 const attentionPaneMode = ref<'at-risk' | 'blocked'>('at-risk')
 const attentionPaneRoot = ref<any>(null)
+const showUpgradeModal = ref(false)
+const upgradeMessage = ref('')
 
 // View options configuration
 const viewOptions = [
@@ -47,10 +50,17 @@ const refreshSidebar = inject<() => Promise<void>>('refreshSidebarProjects')
 
 // Handle item creation
 const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string }) => {
-  await createItem(data)
-  showCreateModal.value = false
-  // Refresh sidebar projects
-  if (refreshSidebar) refreshSidebar()
+  try {
+    await createItem(data)
+    showCreateModal.value = false
+    if (refreshSidebar) refreshSidebar()
+  } catch (e: any) {
+    if (e?.statusCode === 403 || e?.data?.statusCode === 403) {
+      showCreateModal.value = false
+      upgradeMessage.value = e?.data?.message || e?.message || 'Plan limit reached.'
+      showUpgradeModal.value = true
+    }
+  }
 }
 
 // Handle drill down to project
@@ -84,6 +94,20 @@ const handleUpdateItem = async (_id: string, data: any) => {
 const handleViewFull = (item: any) => {
   router.push(`/workspace/projects/${item.id}`)
 }
+
+// Handle template creation
+const handleTemplateCreated = (project: { id: string; title: string } | { error: true; message: string }) => {
+  if ('error' in project) {
+    showTemplateModal.value = false
+    upgradeMessage.value = project.message
+    showUpgradeModal.value = true
+    return
+  }
+  showTemplateModal.value = false
+  refreshItems()
+  if (refreshSidebar) refreshSidebar()
+  router.push(`/workspace/projects/${project.id}`)
+}
 </script>
 
 <template>
@@ -101,6 +125,15 @@ const handleViewFull = (item: any) => {
       </div>
 
       <div class="flex items-center gap-4">
+        <!-- From template button -->
+        <button
+          @click="showTemplateModal = true"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-normal rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors"
+        >
+          <Icon name="heroicons:document-duplicate" class="w-4 h-4" />
+          <span>From Template</span>
+        </button>
+
         <!-- New project button -->
         <button
           @click="showCreateModal = true"
@@ -149,10 +182,56 @@ const handleViewFull = (item: any) => {
   </header>
 
   <!-- Content -->
-  <div class="flex-1 overflow-auto px-6 pb-8">
+  <div class="flex-1 overflow-auto px-6 pb-6">
+    <!-- Empty state onboarding -->
+    <div v-if="!scopedItems.length" class="flex items-center justify-center py-16">
+      <div class="w-full max-w-2xl text-center">
+        <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-5">
+          <Icon name="heroicons:rocket-launch" class="w-7 h-7 text-slate-400" />
+        </div>
+        <h2 class="text-lg font-medium text-slate-900 mb-2">Welcome to your workspace</h2>
+        <p class="text-sm text-slate-500 mb-8 leading-relaxed">
+          Get started by creating your first project from scratch or use a template to hit the ground running.
+        </p>
+        <div class="flex items-center justify-center gap-3">
+          <button
+            @click="showTemplateModal = true"
+            class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors"
+          >
+            <Icon name="heroicons:document-duplicate" class="w-4 h-4" />
+            Start from template
+          </button>
+          <button
+            @click="showCreateModal = true"
+            class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <Icon name="heroicons:plus" class="w-4 h-4" />
+            Create project
+          </button>
+        </div>
+        <div class="mt-10 grid grid-cols-3 gap-5 text-left w-full">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+            <Icon name="heroicons:view-columns" class="w-5 h-5 text-blue-500 mb-2.5" />
+            <h3 class="text-sm font-medium text-slate-700">Kanban boards</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Organize and move tasks visually across stages</p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+            <Icon name="heroicons:users" class="w-5 h-5 text-violet-500 mb-2.5" />
+            <h3 class="text-sm font-medium text-slate-700">Stakeholder spaces</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Keep external collaborators in the loop effortlessly</p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+            <Icon name="heroicons:bolt" class="w-5 h-5 text-emerald-500 mb-2.5" />
+            <h3 class="text-sm font-medium text-slate-700">Focus tracking</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">See where your team spends time across projects</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Projects Dashboard -->
     <ViewsProjectsView
-      v-if="activeView === 'dashboard'"
+      v-else-if="activeView === 'dashboard'"
       :projects="scopedItems"
       @open-project="handleDrillDown"
       @open-detail="handleOpenDetail"
@@ -199,6 +278,14 @@ const handleViewFull = (item: any) => {
     @deleted="showDetailModal = false; refreshItems(); refreshSidebar?.()"
   />
 
+  <!-- Template Picker Modal -->
+  <ItemsTemplatePickerModal
+    :open="showTemplateModal"
+    :workspace-id="workspaceId"
+    @close="showTemplateModal = false"
+    @created="handleTemplateCreated"
+  />
+
   <ItemsItemAttentionPane
     :open="attentionPaneOpen"
     :mode="attentionPaneMode"
@@ -206,5 +293,12 @@ const handleViewFull = (item: any) => {
     @close="attentionPaneOpen = false"
     @open-detail="handleOpenDetail"
     @drill-down="handleDrillDown"
+  />
+
+  <!-- Upgrade Modal -->
+  <UpgradeModal
+    :open="showUpgradeModal"
+    :message="upgradeMessage"
+    @close="showUpgradeModal = false"
   />
 </template>

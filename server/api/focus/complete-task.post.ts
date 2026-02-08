@@ -1,14 +1,13 @@
 // POST /api/focus/complete-task - Complete current task and end focus session
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
 import { countIncompleteDescendants } from '../../utils/itemCompletion'
 
 export default defineEventHandler(async (event) => {
+  const authUser = await requireUser(event)
   const body = await readBody(event)
-  const { userId, comment, markTaskDone = true } = body
-
-  if (!userId) {
-    throw createError({ statusCode: 400, message: 'userId is required' })
-  }
+  const userId = authUser.id
+  const { comment, markTaskDone = true } = body
 
   // Get current user state
   const user = await prisma.user.findUnique({

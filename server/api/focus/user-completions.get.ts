@@ -23,10 +23,10 @@ export default defineEventHandler(async (event) => {
         userId: sessionUser.id,
       }
     },
-    select: { role: true },
+    select: { role: true, status: true },
   })
 
-  if (!membership || !ADMIN_ROLES.has(membership.role)) {
+  if (!membership || membership.status !== 'ACTIVE' || !ADMIN_ROLES.has(membership.role)) {
     throw createError({ statusCode: 403, message: 'Admin access required' })
   }
 

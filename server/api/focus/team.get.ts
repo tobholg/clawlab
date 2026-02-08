@@ -9,9 +9,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'workspaceId is required' })
   }
 
-  // Get all workspace members with their current focus state
+  // Get all active workspace members with their current focus state
   const members = await prisma.workspaceMember.findMany({
-    where: { workspaceId },
+    where: { workspaceId, status: 'ACTIVE' },
     include: {
       user: {
         select: {

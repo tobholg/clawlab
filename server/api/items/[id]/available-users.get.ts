@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   } else {
     // Return workspace members or all users
     const workspaceMembers = await prisma.workspaceMember.findMany({
-      where: { workspaceId: item.workspaceId },
+      where: { workspaceId: item.workspaceId, status: 'ACTIVE' },
       include: { user: true }
     })
     

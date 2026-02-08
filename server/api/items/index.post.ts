@@ -1,15 +1,20 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMember } from '../../utils/auth'
 import { createProjectChannel } from '../../utils/channelUtils'
 import { getDefaultSubStatus, isValidSubStatusForStatus, normalizeIncomingSubStatus, normalizeItemStatus } from '../../utils/itemStage'
+import { checkCanCreateProject } from '../../utils/planLimits'
+
+const MAX_TITLE_LENGTH = 255
+const MAX_DESCRIPTION_LENGTH = 10000
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  
-  const { 
-    workspaceId, 
-    parentId, 
-    title, 
-    description, 
+
+  const {
+    workspaceId,
+    parentId,
+    title,
+    description,
     category,
     status,
     subStatus,
@@ -21,9 +26,30 @@ export default defineEventHandler(async (event) => {
     assigneeIds,
     stakeholderIds,
   } = body
-  
+
   if (!workspaceId || !title) {
     throw createError({ statusCode: 400, message: 'workspaceId and title are required' })
+  }
+
+  if (title.length > MAX_TITLE_LENGTH) {
+    throw createError({ statusCode: 400, message: `Title must be ${MAX_TITLE_LENGTH} characters or fewer` })
+  }
+
+  if (description && description.length > MAX_DESCRIPTION_LENGTH) {
+    throw createError({ statusCode: 400, message: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer` })
+  }
+
+  const user = await requireWorkspaceMember(event, workspaceId)
+
+  // Enforce plan limit for root-level projects
+  if (!parentId) {
+    const check = await checkCanCreateProject(workspaceId)
+    if (!check.allowed) {
+      throw createError({
+        statusCode: 403,
+        message: `Project limit reached (${check.current}/${check.limit}). Upgrade your plan to create more projects.`,
+      })
+    }
   }
   
   // Determine final status and auto-set startDate
@@ -40,8 +66,8 @@ export default defineEventHandler(async (event) => {
     finalStartDate = now
   }
   
-  // Set first assignee as owner by default
-  const ownerId = body.ownerId ?? assigneeIds?.[0] ?? null
+  // Set first assignee as owner by default, fall back to authenticated user
+  const ownerId = body.ownerId ?? assigneeIds?.[0] ?? user.id
 
   // Determine projectId (root project) for efficient queries
   let projectId: string | null = null
@@ -91,7 +117,7 @@ export default defineEventHandler(async (event) => {
       let creatorUserId = assigneeIds?.[0]
       if (!creatorUserId) {
         const member = await prisma.workspaceMember.findFirst({
-          where: { workspaceId },
+          where: { workspaceId, status: 'ACTIVE' },
           select: { userId: true },
         })
         creatorUserId = member?.userId

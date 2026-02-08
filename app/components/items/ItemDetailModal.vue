@@ -227,6 +227,7 @@ const showAssigneeDropdown = ref(false)
 const showComplexityDropdown = ref(false)
 const showPriorityDropdown = ref(false)
 const descriptionRef = ref<HTMLTextAreaElement | null>(null)
+const editingDescription = ref(false)
 
 // Auto-resize description textarea
 const autoResizeDescription = () => {
@@ -983,13 +984,30 @@ const formatRelativeTime = (dateStr: string) => {
             />
             
             <!-- Description -->
+            <div v-if="!editingDescription">
+              <MarkdownRenderer
+                v-if="editedDescription"
+                :content="editedDescription"
+                class="text-sm text-slate-600 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                @click="editingDescription = true; nextTick(() => { autoResizeDescription(); descriptionRef?.focus() })"
+              />
+              <p
+                v-else
+                class="text-sm text-slate-400 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                @click="editingDescription = true; nextTick(() => descriptionRef?.focus())"
+              >
+                Add a description...
+              </p>
+            </div>
             <textarea
+              v-else
               ref="descriptionRef"
               v-model="editedDescription"
               rows="1"
               class="w-full text-sm text-slate-600 bg-transparent px-0 py-1 border-0 focus:outline-none resize-none placeholder-slate-400"
               placeholder="Add a description..."
               @input="autoResizeDescription"
+              @blur="editingDescription = false"
             />
 
             <!-- Dates Row -->
@@ -1648,7 +1666,7 @@ const formatRelativeTime = (dateStr: string) => {
                         <span class="text-sm font-medium text-slate-800">{{ comment.user?.name ?? 'User' }}</span>
                         <span class="text-xs text-slate-400">{{ formatRelativeTime(comment.createdAt) }}</span>
                       </div>
-                      <p class="text-sm text-slate-600 whitespace-pre-wrap">{{ comment.content }}</p>
+                      <MarkdownRenderer :content="comment.content" class="text-sm text-slate-600" />
                       
                       <!-- Reply button -->
                       <button
@@ -1702,7 +1720,7 @@ const formatRelativeTime = (dateStr: string) => {
                               <span class="text-xs font-medium text-slate-700">{{ reply.user?.name ?? 'User' }}</span>
                               <span class="text-[10px] text-slate-400">{{ formatRelativeTime(reply.createdAt) }}</span>
                             </div>
-                            <p class="text-xs text-slate-600 whitespace-pre-wrap">{{ reply.content }}</p>
+                            <MarkdownRenderer :content="reply.content" class="text-xs text-slate-600" />
                           </div>
                         </div>
                       </div>

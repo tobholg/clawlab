@@ -1,8 +1,13 @@
 import { prisma } from '../../utils/prisma'
+import { getSessionUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
-  // TODO: Filter by user membership when auth is integrated
+  const user = await getSessionUser(event)
+
   const workspaces = await prisma.workspace.findMany({
+    where: user
+      ? { members: { some: { userId: user.id, status: 'ACTIVE' } } }
+      : undefined,
     include: {
       _count: {
         select: { items: true, members: true }

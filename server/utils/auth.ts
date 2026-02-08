@@ -155,3 +155,71 @@ export const requireBuilder = async (event: H3Event): Promise<SessionUser> => {
   }
   return user
 }
+
+/**
+ * Require that the authenticated user is an ACTIVE member of the given workspace.
+ * Returns the session user. Throws 401 if not authenticated, 403 if not an active member.
+ */
+export const requireWorkspaceMember = async (event: H3Event, workspaceId: string): Promise<SessionUser> => {
+  const user = await requireUser(event)
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId, userId: user.id },
+    },
+    select: { status: true },
+  })
+  if (!membership || membership.status !== 'ACTIVE') {
+    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this workspace' })
+  }
+  return user
+}
+
+/**
+ * Look up the workspace for a given item and verify the user is an ACTIVE member.
+ * Returns both the session user and the item's workspaceId.
+ */
+export const requireWorkspaceMemberForItem = async (event: H3Event, itemId: string): Promise<{ user: SessionUser; workspaceId: string }> => {
+  const user = await requireUser(event)
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    select: { workspaceId: true },
+  })
+  if (!item) {
+    throw createError({ statusCode: 404, statusMessage: 'Item not found' })
+  }
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId: item.workspaceId, userId: user.id },
+    },
+    select: { status: true },
+  })
+  if (!membership || membership.status !== 'ACTIVE') {
+    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this workspace' })
+  }
+  return { user, workspaceId: item.workspaceId }
+}
+
+/**
+ * Look up the workspace for a given channel and verify the user is an ACTIVE member.
+ * Returns both the session user and the channel's workspaceId.
+ */
+export const requireWorkspaceMemberForChannel = async (event: H3Event, channelId: string): Promise<{ user: SessionUser; workspaceId: string }> => {
+  const user = await requireUser(event)
+  const channel = await prisma.channel.findUnique({
+    where: { id: channelId },
+    select: { workspaceId: true },
+  })
+  if (!channel) {
+    throw createError({ statusCode: 404, statusMessage: 'Channel not found' })
+  }
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId: channel.workspaceId, userId: user.id },
+    },
+    select: { status: true },
+  })
+  if (!membership || membership.status !== 'ACTIVE') {
+    throw createError({ statusCode: 403, statusMessage: 'You are not an active member of this workspace' })
+  }
+  return { user, workspaceId: channel.workspaceId }
+}

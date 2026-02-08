@@ -1,6 +1,7 @@
 import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
 import { prisma } from '../../../../utils/prisma'
 import { requireUser } from '../../../../utils/auth'
+import { checkCanCreateExternalSpace } from '../../../../utils/planLimits'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -36,6 +37,15 @@ export default defineEventHandler(async (event) => {
 
   if (!project) {
     throw createError({ statusCode: 404, statusMessage: 'Project not found' })
+  }
+
+  // Enforce plan limit
+  const spaceCheck = await checkCanCreateExternalSpace(project.workspaceId)
+  if (!spaceCheck.allowed) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: `External space limit reached (${spaceCheck.current}/${spaceCheck.limit}). Upgrade your plan to create more spaces.`,
+    })
   }
 
   // Generate slug from name

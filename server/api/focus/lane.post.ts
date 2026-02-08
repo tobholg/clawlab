@@ -1,14 +1,17 @@
 // POST /api/focus/lane - Switch to a lane (general, meeting, admin, learning, break)
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
 
 const VALID_LANES = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK'] as const
 
 export default defineEventHandler(async (event) => {
+  const authUser = await requireUser(event)
   const body = await readBody(event)
-  const { userId, lane } = body
+  const userId = authUser.id
+  const { lane } = body
 
-  if (!userId || !lane) {
-    throw createError({ statusCode: 400, message: 'userId and lane are required' })
+  if (!lane) {
+    throw createError({ statusCode: 400, message: 'lane is required' })
   }
 
   const upperLane = lane.toUpperCase()

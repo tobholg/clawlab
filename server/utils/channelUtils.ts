@@ -113,7 +113,7 @@ export async function createProjectChannel(
  */
 export async function syncWorkspaceMembersToChannel(channelId: string, workspaceId: string) {
   const workspaceMembers = await prisma.workspaceMember.findMany({
-    where: { workspaceId },
+    where: { workspaceId, status: 'ACTIVE' },
   })
 
   const existingMembers = await prisma.channelMember.findMany({

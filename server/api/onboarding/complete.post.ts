@@ -2,6 +2,7 @@ import { prisma } from '../../utils/prisma'
 import { seedDemoData } from '../../utils/seedDemoData'
 import { createDefaultChannels } from '../../utils/channelUtils'
 import { createSession } from '../../utils/auth'
+import { provisionDefaultSeats } from '../../utils/seats'
 
 interface OnboardingRequest {
   organization: {
@@ -105,6 +106,23 @@ export default defineEventHandler(async (event) => {
     return { organization, workspace, user }
   })
 
+  // Provision default seats for the organization and occupy one for the owner
+  try {
+    await provisionDefaultSeats(result.organization.id, 'FREE')
+    // Occupy one internal seat for the owner
+    const ownerSeat = await prisma.seat.findFirst({
+      where: { organizationId: result.organization.id, type: 'INTERNAL', status: 'AVAILABLE' },
+    })
+    if (ownerSeat) {
+      await prisma.seat.update({
+        where: { id: ownerSeat.id },
+        data: { status: 'OCCUPIED', userId: result.user.id, occupiedAt: new Date() },
+      })
+    }
+  } catch (err) {
+    console.error('Failed to provision seats:', err)
+  }
+
   // Create default channels (#general, #off-topic) for the new workspace
   let channels: any[] = []
   try {
@@ -182,6 +200,17 @@ export default defineEventHandler(async (event) => {
               userId: teamUser.id,
               role: 'MEMBER',
             }
+          })
+        }
+
+        // Occupy a seat for this team member
+        const teamSeat = await prisma.seat.findFirst({
+          where: { organizationId: result.organization.id, type: 'INTERNAL', status: 'AVAILABLE' },
+        })
+        if (teamSeat) {
+          await prisma.seat.update({
+            where: { id: teamSeat.id },
+            data: { status: 'OCCUPIED', userId: teamUser.id, occupiedAt: new Date() },
           })
         }
 

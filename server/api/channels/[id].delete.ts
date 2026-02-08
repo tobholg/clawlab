@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMemberForChannel } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -6,6 +7,8 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
+
+  await requireWorkspaceMemberForChannel(event, id)
 
   const channel = await prisma.channel.findUnique({
     where: { id },

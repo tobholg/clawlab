@@ -2,6 +2,8 @@ import { prisma } from '../../../utils/prisma'
 import { requireUser } from '../../../utils/auth'
 import { broadcastNewMessage } from '../../../utils/websocket'
 
+const MAX_MESSAGE_LENGTH = 5000
+
 interface CreateMessageBody {
   content: string
   parentId?: string
@@ -18,6 +20,10 @@ export default defineEventHandler(async (event) => {
 
   if (!body.content?.trim()) {
     throw createError({ statusCode: 400, message: 'content is required' })
+  }
+
+  if (body.content.length > MAX_MESSAGE_LENGTH) {
+    throw createError({ statusCode: 400, message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer` })
   }
 
   // Verify channel exists

@@ -1,4 +1,11 @@
 import { defineEventHandler, readBody, createError, setResponseHeader } from 'h3'
+import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
+import { checkCanUseAICredit, consumeAICredit } from '../../utils/planLimits'
+
+const AI_CREDIT_COST = 7
+const MAX_INPUT_LENGTH = 8192
+const MAX_HISTORY_MESSAGES = 20
 
 interface Message {
   role: 'user' | 'assistant'
@@ -8,9 +15,10 @@ interface Message {
 interface RequestBody {
   content: string
   history?: Message[]
+  workspaceId?: string
 }
 
-const SYSTEM_PROMPT = `You are a helpful assistant for Relai, a project management tool. 
+const SYSTEM_PROMPT = `You are a helpful assistant for Relai, a project management tool.
 
 Key points:
 - Be concise and helpful
@@ -22,8 +30,9 @@ Key points:
 If asked about specific project data you don't have access to, let the user know you can only provide general guidance.`
 
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const config = useRuntimeConfig()
-  
+
   if (!config.openaiApiKey) {
     throw createError({
       statusCode: 500,
@@ -32,7 +41,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<RequestBody>(event)
-  
+
   if (!body.content?.trim()) {
     throw createError({
       statusCode: 400,
@@ -40,15 +49,35 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (body.content.length > MAX_INPUT_LENGTH) {
+    throw createError({
+      statusCode: 400,
+      message: `Message must be ${MAX_INPUT_LENGTH} characters or fewer`,
+    })
+  }
+
+  // Check AI credits
+  if (body.workspaceId) {
+    const workspace = await prisma.workspace.findUniqueOrThrow({
+      where: { id: body.workspaceId },
+      select: { organizationId: true },
+    })
+    const creditCheck = await checkCanUseAICredit(workspace.organizationId, user.id)
+    if (!creditCheck.allowed) {
+      throw createError({ statusCode: 403, message: 'AI credit limit reached for this month. Upgrade to Pro for 10,000 credits/user/month.' })
+    }
+  }
+
   // Build messages array
   const messages: Array<{ role: string; content: string }> = [
     { role: 'system', content: SYSTEM_PROMPT },
   ]
 
-  // Add history if provided
+  // Add history if provided (limited to MAX_HISTORY_MESSAGES)
   if (body.history?.length) {
-    for (const msg of body.history) {
-      messages.push({ role: msg.role, content: msg.content })
+    const trimmedHistory = body.history.slice(-MAX_HISTORY_MESSAGES)
+    for (const msg of trimmedHistory) {
+      messages.push({ role: msg.role, content: msg.content.slice(0, MAX_INPUT_LENGTH) })
     }
   }
 
@@ -83,6 +112,15 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Consume AI credits after successful API call
+    if (body.workspaceId) {
+      const workspace = await prisma.workspace.findUniqueOrThrow({
+        where: { id: body.workspaceId },
+        select: { organizationId: true },
+      })
+      await consumeAICredit(workspace.organizationId, user.id, AI_CREDIT_COST)
+    }
+
     // Set up streaming response
     setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
     setResponseHeader(event, 'Cache-Control', 'no-cache')
@@ -98,12 +136,12 @@ export default defineEventHandler(async (event) => {
 
     const decoder = new TextDecoder()
     const encoder = new TextEncoder()
-    
+
     // Create a readable stream that processes the OpenAI SSE format
     const stream = new ReadableStream({
       async start(controller) {
         let buffer = ''
-        
+
         try {
           while (true) {
             const { done, value } = await reader.read()
@@ -141,7 +179,7 @@ export default defineEventHandler(async (event) => {
     return stream
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     console.error('Quick chat error:', error)
     throw createError({
       statusCode: 500,

@@ -1,13 +1,16 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../utils/auth'
 import { calculateTemperature } from '../../utils/temperature'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
-  
+
   if (!id) {
     throw createError({ statusCode: 400, message: 'Item ID is required' })
   }
-  
+
+  await requireWorkspaceMemberForItem(event, id)
+
   const item = await prisma.item.findUnique({
     where: { id },
     include: {

@@ -96,6 +96,28 @@ const toggleSidebar = () => {
 
 // Provide refresh function to child pages
 provide('refreshSidebarProjects', fetchProjects)
+
+// Search palette trigger
+const openSearch = () => {
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))
+}
+
+// Plan tier
+const { data: planData } = useFetch(() => workspaceId.value ? `/api/workspaces/${workspaceId.value}/usage` : null, {
+  watch: [workspaceId],
+})
+const planTierLabel = computed(() => {
+  const tier = (planData.value as any)?.planTier
+  if (tier === 'PRO') return 'Pro'
+  if (tier === 'ENTERPRISE') return 'Enterprise'
+  return 'Free'
+})
+const planTierClass = computed(() => {
+  const tier = (planData.value as any)?.planTier
+  if (tier === 'PRO') return 'bg-blue-100 text-blue-600'
+  if (tier === 'ENTERPRISE') return 'bg-violet-100 text-violet-600'
+  return 'bg-slate-100 text-slate-500'
+})
 </script>
 
 <template>
@@ -131,30 +153,20 @@ provide('refreshSidebarProjects', fetchProjects)
         </button>
       </div>
 
+      <!-- Search button -->
+      <div v-if="!sidebarCollapsed" class="px-3 mb-3">
+        <button
+          @click="openSearch"
+          class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all duration-200"
+        >
+          <Icon name="heroicons:magnifying-glass" class="w-4 h-4" />
+          <span class="flex-1 text-left">Search</span>
+          <kbd class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+        </button>
+      </div>
+
       <!-- Focus Section -->
       <FocusSidebar v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
-
-      <div v-if="!sidebarCollapsed && isWorkspaceAdmin" class="px-3 mb-4 -mt-3">
-        <NuxtLink
-          to="/workspace/team"
-          :class="[
-            'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200',
-            isTeamFocus
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
-          ]"
-        >
-          <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
-            <Icon :name="'heroicons:users'" class="w-4 h-4" :class="isTeamFocus ? 'text-slate-700' : ''" />
-          </div>
-          <span class="flex-1 text-left">Team focus</span>
-          <Icon
-            name="heroicons:chevron-right"
-            class="w-3 h-3 flex-shrink-0"
-            :class="isTeamFocus ? 'text-slate-500' : 'text-slate-400'"
-          />
-        </NuxtLink>
-      </div>
 
       <!-- Projects Section -->
       <div v-if="!sidebarCollapsed" class="px-3 mb-4">
@@ -245,19 +257,57 @@ provide('refreshSidebarProjects', fetchProjects)
         </div>
       </div>
 
-      <!-- Settings Section -->
+      <!-- Workspace links -->
       <div v-if="!sidebarCollapsed" class="px-3 mb-4">
         <h3 class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-          Settings
+          Workspace
         </h3>
         <div>
-          <button class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100">
+          <NuxtLink
+            to="/workspace/activities"
+            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200"
+            :class="route.path === '/workspace/activities'
+              ? 'bg-slate-100 text-slate-900'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+          >
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <Icon name="heroicons:clock" class="w-4 h-4" />
+            </div>
+            <span class="flex-1 text-left">Activity</span>
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+          </NuxtLink>
+          <NuxtLink
+            v-if="isWorkspaceAdmin"
+            to="/workspace/team"
+            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200"
+            :class="isTeamFocus
+              ? 'bg-slate-100 text-slate-900'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+          >
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <Icon name="heroicons:users" class="w-4 h-4" />
+            </div>
+            <span class="flex-1 text-left">Team focus</span>
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+          </NuxtLink>
+          <NuxtLink
+            to="/workspace/settings"
+            class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200"
+            :class="route.path === '/workspace/settings'
+              ? 'bg-slate-100 text-slate-900'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+          >
             <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
               <Icon name="heroicons:cog-6-tooth" class="w-4 h-4" />
             </div>
-            <span class="flex-1 text-left">Workspace settings</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
-          </button>
+            <span class="flex-1 text-left">Settings</span>
+            <span
+              v-if="planData"
+              :class="['text-[10px] font-medium px-1.5 py-0.5 rounded-full', planTierClass]"
+            >
+              {{ planTierLabel }}
+            </span>
+          </NuxtLink>
         </div>
       </div>
 
@@ -295,6 +345,9 @@ provide('refreshSidebarProjects', fetchProjects)
     <!-- Quick Chat -->
     <QuickChatOrb />
     <QuickChatBubble />
+
+    <!-- Command Palette (Cmd+K) -->
+    <CommandPalette />
   </div>
 </template>
 

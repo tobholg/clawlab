@@ -1,12 +1,18 @@
 import { prisma } from '../../utils/prisma'
+import { requireWorkspaceMemberForItem } from '../../utils/auth'
+
+const MAX_TITLE_LENGTH = 255
+const MAX_DOCUMENTS_PER_ITEM = 25
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { itemId, title, content, userId } = body
+  const { itemId, title, content } = body
 
   if (!itemId) {
     throw createError({ statusCode: 400, message: 'itemId is required' })
   }
+
+  const { user } = await requireWorkspaceMemberForItem(event, itemId)
 
   const item = await prisma.item.findUnique({
     where: { id: itemId },
@@ -17,32 +23,28 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Item not found' })
   }
 
-  let creatorId = userId as string | undefined
-  if (creatorId) {
-    const user = await prisma.user.findUnique({ where: { id: creatorId }, select: { id: true } })
-    if (!user) creatorId = undefined
+  const docTitle = (title ?? 'Untitled document').toString()
+  if (docTitle.length > MAX_TITLE_LENGTH) {
+    throw createError({ statusCode: 400, message: `Title must be ${MAX_TITLE_LENGTH} characters or fewer` })
   }
 
-  if (!creatorId) {
-    const member = await prisma.workspaceMember.findFirst({
-      where: { workspaceId: item.workspaceId },
-      select: { userId: true },
+  // Enforce document limit per item
+  const existingCount = await prisma.document.count({ where: { itemId } })
+  if (existingCount >= MAX_DOCUMENTS_PER_ITEM) {
+    throw createError({
+      statusCode: 403,
+      message: `Maximum of ${MAX_DOCUMENTS_PER_ITEM} documents per item reached.`,
     })
-    creatorId = member?.userId
-  }
-
-  if (!creatorId) {
-    throw createError({ statusCode: 400, message: 'creator userId is required' })
   }
 
   const document = await prisma.document.create({
     data: {
       itemId,
       projectId: item.projectId ?? item.id,
-      title: (title ?? 'Untitled document').toString(),
+      title: docTitle,
       content: content?.toString() ?? '',
-      createdById: creatorId,
-      lastEditedById: creatorId,
+      createdById: user.id,
+      lastEditedById: user.id,
     },
     include: {
       createdBy: true,

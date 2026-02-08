@@ -1,4 +1,7 @@
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
+
+const MAX_TITLE_LENGTH = 255
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -7,20 +10,44 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Document ID is required' })
   }
 
-  const body = await readBody(event)
-  const { title, content, isLocked, userId } = body
+  const user = await requireUser(event)
 
-  const data: { title?: string; content?: string; isLocked?: boolean; lastEditedById?: string | null } = {}
+  // Load document to find its workspace
+  const document = await prisma.document.findUnique({
+    where: { id },
+    select: { id: true, itemId: true, item: { select: { workspaceId: true } } },
+  })
+
+  if (!document) {
+    throw createError({ statusCode: 404, message: 'Document not found' })
+  }
+
+  // Verify active workspace membership
+  const membership = await prisma.workspaceMember.findUnique({
+    where: {
+      workspaceId_userId: { workspaceId: document.item.workspaceId, userId: user.id },
+    },
+    select: { status: true },
+  })
+  if (!membership || membership.status !== 'ACTIVE') {
+    throw createError({ statusCode: 403, message: 'You are not an active member of this workspace' })
+  }
+
+  const body = await readBody(event)
+  const { title, content, isLocked } = body
+
+  if (title !== undefined && title && title.toString().length > MAX_TITLE_LENGTH) {
+    throw createError({ statusCode: 400, message: `Title must be ${MAX_TITLE_LENGTH} characters or fewer` })
+  }
+
+  const data: { title?: string; content?: string; isLocked?: boolean; lastEditedById?: string } = {}
 
   if (title !== undefined) data.title = title?.toString() ?? ''
   if (content !== undefined) data.content = content?.toString() ?? ''
   if (isLocked !== undefined) data.isLocked = !!isLocked
-  if (userId !== undefined) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
-    if (user) data.lastEditedById = userId
-  }
+  data.lastEditedById = user.id
 
-  const document = await prisma.document.update({
+  const updated = await prisma.document.update({
     where: { id },
     data,
     include: {
@@ -31,24 +58,24 @@ export default defineEventHandler(async (event) => {
   })
 
   return {
-    id: document.id,
-    itemId: document.itemId,
-    projectId: document.projectId,
-    title: document.title,
-    content: document.content,
-    isLocked: document.isLocked,
-    createdAt: document.createdAt.toISOString(),
-    updatedAt: document.updatedAt.toISOString(),
-    createdBy: document.createdBy ? {
-      id: document.createdBy.id,
-      name: document.createdBy.name ?? document.createdBy.email.split('@')[0],
-      avatar: document.createdBy.avatar,
+    id: updated.id,
+    itemId: updated.itemId,
+    projectId: updated.projectId,
+    title: updated.title,
+    content: updated.content,
+    isLocked: updated.isLocked,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+    createdBy: updated.createdBy ? {
+      id: updated.createdBy.id,
+      name: updated.createdBy.name ?? updated.createdBy.email.split('@')[0],
+      avatar: updated.createdBy.avatar,
     } : null,
-    lastEditedBy: document.lastEditedBy ? {
-      id: document.lastEditedBy.id,
-      name: document.lastEditedBy.name ?? document.lastEditedBy.email.split('@')[0],
-      avatar: document.lastEditedBy.avatar,
+    lastEditedBy: updated.lastEditedBy ? {
+      id: updated.lastEditedBy.id,
+      name: updated.lastEditedBy.name ?? updated.lastEditedBy.email.split('@')[0],
+      avatar: updated.lastEditedBy.avatar,
     } : null,
-    versionCount: document._count.versions,
+    versionCount: updated._count.versions,
   }
 })

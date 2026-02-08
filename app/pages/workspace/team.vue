@@ -79,6 +79,14 @@ const sortedMembers = computed(() => {
   }
   return list.sort((a, b) => getValue(b) - getValue(a))
 })
+
+const filteredMembers = computed(() => {
+  const q = memberSearch.value.trim().toLowerCase()
+  if (!q) return sortedMembers.value
+  return sortedMembers.value.filter((m: any) =>
+    m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q)
+  )
+})
 const stats = computed(() => teamHistory.value?.stats ?? {
   totalHours: 0,
   taskHours: 0,
@@ -98,6 +106,8 @@ watch([daysBack, selectedProjectId, isAdmin, workspaceId], () => {
     refreshTeamHistory()
   }
 }, { immediate: true })
+
+const memberSearch = ref('')
 
 const expandedMembers = ref<Set<string>>(new Set())
 const memberViews = ref<Record<string, 'timeline' | 'tasks'>>({})
@@ -358,7 +368,7 @@ const getDueDateClass = (task: any) => {
     </div>
   </header>
 
-  <div class="flex-1 overflow-auto px-6 pb-8">
+  <div class="flex-1 overflow-auto px-6 pb-6">
     <div v-if="!isAdmin" class="py-16 text-center text-slate-500">
       <Icon name="heroicons:lock-closed" class="w-10 h-10 mx-auto mb-4 text-slate-300" />
       <p class="text-sm">Only workspace owners and admins can view team focus timelines.</p>
@@ -405,23 +415,34 @@ const getDueDateClass = (task: any) => {
 
       <!-- Member timelines -->
       <div v-else class="space-y-5">
-        <div class="flex items-center justify-end gap-2">
-          <button
-            class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors"
-            @click="collapseAllMembers"
-          >
-            Collapse all
-          </button>
-          <button
-            class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors"
-            @click="expandAllMembers"
-          >
-            Expand all
-          </button>
+        <div class="flex items-center justify-between gap-3">
+          <div class="relative">
+            <Icon name="heroicons:magnifying-glass" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              v-model="memberSearch"
+              type="text"
+              placeholder="Search members..."
+              class="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300 w-52 placeholder-slate-400"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+              @click="collapseAllMembers"
+            >
+              Collapse all
+            </button>
+            <button
+              class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+              @click="expandAllMembers"
+            >
+              Expand all
+            </button>
+          </div>
         </div>
 
         <div
-          v-for="member in sortedMembers"
+          v-for="member in filteredMembers"
           :key="member.userId"
           class="bg-white rounded-2xl border border-slate-200 overflow-hidden"
         >

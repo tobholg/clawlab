@@ -1,12 +1,15 @@
 // POST /api/focus/task - Start focus on a task
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  const authUser = await requireUser(event)
   const body = await readBody(event)
-  const { userId, taskId } = body
+  const userId = authUser.id
+  const { taskId } = body
 
-  if (!userId || !taskId) {
-    throw createError({ statusCode: 400, message: 'userId and taskId are required' })
+  if (!taskId) {
+    throw createError({ statusCode: 400, message: 'taskId is required' })
   }
 
   // Get the task and its root project

@@ -1,13 +1,12 @@
 // POST /api/focus/end - End all focus (task/lane and optionally project)
 import { prisma } from '../../utils/prisma'
+import { requireUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  const authUser = await requireUser(event)
   const body = await readBody(event)
-  const { userId, comment, endProject = false } = body
-
-  if (!userId) {
-    throw createError({ statusCode: 400, message: 'userId is required' })
-  }
+  const userId = authUser.id
+  const { comment, endProject = false } = body
 
   // Get current user state
   const user = await prisma.user.findUnique({

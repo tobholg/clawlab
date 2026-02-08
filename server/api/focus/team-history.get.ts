@@ -22,10 +22,10 @@ export default defineEventHandler(async (event) => {
         userId: user.id,
       }
     },
-    select: { role: true },
+    select: { role: true, status: true },
   })
 
-  if (!membership || !ADMIN_ROLES.has(membership.role)) {
+  if (!membership || membership.status !== 'ACTIVE' || !ADMIN_ROLES.has(membership.role)) {
     throw createError({ statusCode: 403, message: 'Admin access required' })
   }
 
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
   startDate.setHours(0, 0, 0, 0)
 
   const workspaceMembers = await prisma.workspaceMember.findMany({
-    where: { workspaceId },
+    where: { workspaceId, status: 'ACTIVE' },
     include: {
       user: {
         select: { id: true, name: true, email: true, avatar: true }

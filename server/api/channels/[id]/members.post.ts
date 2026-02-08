@@ -1,4 +1,5 @@
 import { prisma } from '../../../utils/prisma'
+import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
 
 interface AddMemberBody {
   userId: string
@@ -17,6 +18,8 @@ export default defineEventHandler(async (event) => {
   if (!body.userId) {
     throw createError({ statusCode: 400, message: 'userId is required' })
   }
+
+  await requireWorkspaceMemberForChannel(event, channelId)
 
   // Verify channel exists
   const channel = await prisma.channel.findUnique({

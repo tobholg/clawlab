@@ -1,6 +1,9 @@
 import { prisma } from '../../utils/prisma'
-import { requireUser } from '../../utils/auth'
+import { requireWorkspaceMember } from '../../utils/auth'
 import { slugify } from '../../utils/channelUtils'
+
+const MAX_NAME_LENGTH = 80
+const MAX_DESCRIPTION_LENGTH = 500
 
 interface CreateChannelBody {
   workspaceId: string
@@ -14,7 +17,6 @@ interface CreateChannelBody {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
   const body = await readBody<CreateChannelBody>(event)
 
   const { workspaceId, displayName, description, type, visibility, parentId, projectId } = body
@@ -23,6 +25,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'workspaceId is required' })
   }
 
+  const user = await requireWorkspaceMember(event, workspaceId)
+
   // Generate name from displayName if not provided
   let name = body.name
   if (!name && displayName) {
@@ -30,6 +34,29 @@ export default defineEventHandler(async (event) => {
   }
   if (!name) {
     throw createError({ statusCode: 400, message: 'name or displayName is required' })
+  }
+
+  if (name.length > MAX_NAME_LENGTH || (displayName && displayName.length > MAX_NAME_LENGTH)) {
+    throw createError({ statusCode: 400, message: `Channel name must be ${MAX_NAME_LENGTH} characters or fewer` })
+  }
+
+  if (description && description.length > MAX_DESCRIPTION_LENGTH) {
+    throw createError({ statusCode: 400, message: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer` })
+  }
+
+  // FREE tier: only WORKSPACE and PROJECT channels allowed (no CUSTOM)
+  const effectiveType = type || 'CUSTOM'
+  if (effectiveType === 'CUSTOM') {
+    const workspace = await prisma.workspace.findUniqueOrThrow({
+      where: { id: workspaceId },
+      select: { organization: { select: { planTier: true } } },
+    })
+    if (workspace.organization.planTier === 'FREE') {
+      throw createError({
+        statusCode: 403,
+        message: 'Custom channels are not available on the Free plan. Upgrade to Pro to create custom channels.',
+      })
+    }
   }
 
   // Ensure unique name within workspace
@@ -69,7 +96,7 @@ export default defineEventHandler(async (event) => {
       name,
       displayName: displayName || null,
       description: description || null,
-      type: type || 'CUSTOM',
+      type: effectiveType,
       visibility: visibility || 'PUBLIC',
       parentId: parentId || null,
       projectId: projectId || null,
