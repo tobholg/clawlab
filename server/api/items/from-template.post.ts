@@ -17,16 +17,158 @@ type Template = {
   description: string
   icon: string
   category: string
+  group: 'general' | 'specific'
   tasks: TemplateTask[]
 }
 
 const TEMPLATES: Template[] = [
+  // ── General templates ──────────────────────────────
+  {
+    id: 'software-development',
+    name: 'Software Development',
+    description: 'Organize features, bugs, tech debt, and releases in one project',
+    icon: 'heroicons:code-bracket',
+    category: 'Engineering',
+    group: 'general',
+    tasks: [
+      { title: 'Features', category: 'Engineering', priority: 'HIGH', children: [
+        { title: 'Feature 1', category: 'Engineering' },
+        { title: 'Feature 2', category: 'Engineering' },
+        { title: 'Feature 3', category: 'Engineering' },
+      ]},
+      { title: 'Bugs', category: 'Engineering', priority: 'HIGH', children: [
+        { title: 'Bug 1', category: 'Engineering' },
+        { title: 'Bug 2', category: 'Engineering' },
+      ]},
+      { title: 'Tech Debt', category: 'Engineering', priority: 'MEDIUM', children: [
+        { title: 'Refactor 1', category: 'Engineering' },
+        { title: 'Refactor 2', category: 'Engineering' },
+      ]},
+      { title: 'Infrastructure', category: 'Engineering', priority: 'MEDIUM' },
+      { title: 'Documentation', category: 'Engineering', priority: 'LOW' },
+    ]
+  },
+  {
+    id: 'creative-production',
+    name: 'Creative Production',
+    description: 'Manage briefs, assets, reviews, and deliverables for creative work',
+    icon: 'heroicons:paint-brush',
+    category: 'Design',
+    group: 'general',
+    tasks: [
+      { title: 'Briefs & Requirements', category: 'Design', priority: 'HIGH', children: [
+        { title: 'Brief 1', category: 'Design' },
+        { title: 'Brief 2', category: 'Design' },
+      ]},
+      { title: 'In Production', category: 'Design', priority: 'HIGH', children: [
+        { title: 'Asset 1', category: 'Design' },
+        { title: 'Asset 2', category: 'Design' },
+        { title: 'Asset 3', category: 'Design' },
+      ]},
+      { title: 'Review & Feedback', category: 'Design', priority: 'MEDIUM' },
+      { title: 'Final Deliverables', category: 'Design', priority: 'MEDIUM' },
+    ]
+  },
+  {
+    id: 'content-pipeline',
+    name: 'Content Pipeline',
+    description: 'Plan, draft, review, and publish content across channels',
+    icon: 'heroicons:document-text',
+    category: 'Marketing',
+    group: 'general',
+    tasks: [
+      { title: 'Content Ideas', category: 'Marketing', priority: 'MEDIUM', children: [
+        { title: 'Topic 1', category: 'Marketing' },
+        { title: 'Topic 2', category: 'Marketing' },
+        { title: 'Topic 3', category: 'Marketing' },
+      ]},
+      { title: 'Drafting', category: 'Marketing', priority: 'HIGH', children: [
+        { title: 'Draft 1', category: 'Marketing' },
+        { title: 'Draft 2', category: 'Marketing' },
+      ]},
+      { title: 'Review & Editing', category: 'Marketing', priority: 'HIGH' },
+      { title: 'Scheduled / Published', category: 'Marketing', priority: 'MEDIUM' },
+      { title: 'Performance Tracking', category: 'Marketing', priority: 'LOW' },
+    ]
+  },
+  {
+    id: 'consulting-engagement',
+    name: 'Consulting Engagement',
+    description: 'Structure client work from discovery through delivery and follow-up',
+    icon: 'heroicons:briefcase',
+    category: 'Operations',
+    group: 'general',
+    tasks: [
+      { title: 'Discovery', category: 'Operations', priority: 'HIGH', children: [
+        { title: 'Stakeholder interviews', category: 'Operations' },
+        { title: 'Current state assessment', category: 'Operations' },
+        { title: 'Requirements gathering', category: 'Operations' },
+      ]},
+      { title: 'Analysis & Recommendations', category: 'Operations', priority: 'HIGH', children: [
+        { title: 'Data analysis', category: 'Operations' },
+        { title: 'Findings report', category: 'Operations' },
+        { title: 'Recommendation deck', category: 'Operations' },
+      ]},
+      { title: 'Implementation Support', category: 'Operations', priority: 'MEDIUM' },
+      { title: 'Handoff & Follow-up', category: 'Operations', priority: 'MEDIUM' },
+    ]
+  },
+  {
+    id: 'product-roadmap',
+    name: 'Product Roadmap',
+    description: 'Organize product initiatives by quarter with research, design, and delivery',
+    icon: 'heroicons:map',
+    category: 'Product',
+    group: 'general',
+    tasks: [
+      { title: 'Research & Discovery', category: 'Research', priority: 'HIGH', children: [
+        { title: 'User research', category: 'Research' },
+        { title: 'Market analysis', category: 'Research' },
+        { title: 'Opportunity sizing', category: 'Research' },
+      ]},
+      { title: 'Design & Validation', category: 'Design', priority: 'HIGH', children: [
+        { title: 'Concepts & wireframes', category: 'Design' },
+        { title: 'Prototype testing', category: 'Design' },
+        { title: 'Spec finalization', category: 'Design' },
+      ]},
+      { title: 'Build & Ship', category: 'Engineering', priority: 'HIGH', children: [
+        { title: 'Development', category: 'Engineering' },
+        { title: 'QA & testing', category: 'Engineering' },
+        { title: 'Release', category: 'Engineering' },
+      ]},
+      { title: 'Measure & Iterate', category: 'Product', priority: 'MEDIUM' },
+    ]
+  },
+  {
+    id: 'operations-workflow',
+    name: 'Operations Workflow',
+    description: 'Track recurring operational tasks, processes, and improvements',
+    icon: 'heroicons:cog-6-tooth',
+    category: 'Operations',
+    group: 'general',
+    tasks: [
+      { title: 'Daily Operations', category: 'Operations', priority: 'HIGH', children: [
+        { title: 'Task 1', category: 'Operations' },
+        { title: 'Task 2', category: 'Operations' },
+        { title: 'Task 3', category: 'Operations' },
+      ]},
+      { title: 'Process Improvements', category: 'Operations', priority: 'MEDIUM', children: [
+        { title: 'Improvement 1', category: 'Operations' },
+        { title: 'Improvement 2', category: 'Operations' },
+      ]},
+      { title: 'Vendor & Tools', category: 'Operations', priority: 'LOW' },
+      { title: 'Reporting & Metrics', category: 'Operations', priority: 'MEDIUM' },
+    ]
+  },
+
+  // ── Specific templates ─────────────────────────────
   {
     id: 'product-launch',
     name: 'Product Launch',
     description: 'End-to-end product launch checklist from research to post-launch review',
     icon: 'heroicons:rocket-launch',
     category: 'Product',
+    group: 'specific',
     tasks: [
       { title: 'Market research & validation', category: 'Research', priority: 'HIGH', children: [
         { title: 'Competitive analysis', category: 'Research' },
@@ -52,33 +194,12 @@ const TEMPLATES: Template[] = [
     ]
   },
   {
-    id: 'sprint-cycle',
-    name: 'Sprint Cycle',
-    description: 'Standard 2-week sprint with planning, execution, and retro',
-    icon: 'heroicons:arrow-path-rounded-square',
-    category: 'Engineering',
-    tasks: [
-      { title: 'Sprint planning', category: 'Operations', priority: 'HIGH', children: [
-        { title: 'Review backlog & prioritize', category: 'Operations' },
-        { title: 'Estimate stories', category: 'Operations' },
-        { title: 'Assign owners', category: 'Operations' },
-      ]},
-      { title: 'Development work', category: 'Engineering', priority: 'HIGH', children: [
-        { title: 'Feature A', category: 'Engineering' },
-        { title: 'Feature B', category: 'Engineering' },
-        { title: 'Bug fixes', category: 'Engineering' },
-      ]},
-      { title: 'Code review & testing', category: 'Engineering', priority: 'HIGH' },
-      { title: 'Sprint demo', category: 'Operations', priority: 'MEDIUM' },
-      { title: 'Retrospective', category: 'Operations', priority: 'MEDIUM' },
-    ]
-  },
-  {
     id: 'marketing-campaign',
     name: 'Marketing Campaign',
     description: 'Multi-channel campaign from strategy through performance analysis',
     icon: 'heroicons:megaphone',
     category: 'Marketing',
+    group: 'specific',
     tasks: [
       { title: 'Campaign strategy', category: 'Marketing', priority: 'HIGH', children: [
         { title: 'Define goals & KPIs', category: 'Marketing' },
@@ -105,6 +226,7 @@ const TEMPLATES: Template[] = [
     description: 'Structured onboarding flow from welcome to handoff',
     icon: 'heroicons:hand-raised',
     category: 'Operations',
+    group: 'specific',
     tasks: [
       { title: 'Welcome & setup', category: 'Operations', priority: 'HIGH', children: [
         { title: 'Send welcome pack', category: 'Operations' },
@@ -129,34 +251,12 @@ const TEMPLATES: Template[] = [
     ]
   },
   {
-    id: 'bug-bash',
-    name: 'Bug Bash',
-    description: 'Coordinated bug hunting and fixing session',
-    icon: 'heroicons:bug-ant',
-    category: 'Engineering',
-    tasks: [
-      { title: 'Preparation', category: 'Engineering', priority: 'HIGH', children: [
-        { title: 'Define scope & focus areas', category: 'Engineering' },
-        { title: 'Set up test environments', category: 'Engineering' },
-        { title: 'Create bug report template', category: 'Engineering' },
-      ]},
-      { title: 'Bug hunting', category: 'Engineering', priority: 'HIGH', children: [
-        { title: 'Critical path testing', category: 'Engineering' },
-        { title: 'Edge case exploration', category: 'Engineering' },
-        { title: 'Cross-browser testing', category: 'Engineering' },
-        { title: 'Mobile testing', category: 'Engineering' },
-      ]},
-      { title: 'Triage & prioritize', category: 'Engineering', priority: 'HIGH' },
-      { title: 'Fix & verify', category: 'Engineering', priority: 'HIGH' },
-      { title: 'Regression testing', category: 'Engineering', priority: 'MEDIUM' },
-    ]
-  },
-  {
     id: 'platform-migration',
     name: 'Platform Migration',
     description: 'Migrate systems with minimal downtime and risk',
     icon: 'heroicons:server-stack',
     category: 'Engineering',
+    group: 'specific',
     tasks: [
       { title: 'Assessment & planning', category: 'Engineering', priority: 'HIGH', children: [
         { title: 'Audit current system', category: 'Engineering' },
@@ -179,37 +279,12 @@ const TEMPLATES: Template[] = [
     ]
   },
   {
-    id: 'design-system',
-    name: 'Design System',
-    description: 'Build a reusable component library and design tokens',
-    icon: 'heroicons:paint-brush',
-    category: 'Design',
-    tasks: [
-      { title: 'Foundations', category: 'Design', priority: 'HIGH', children: [
-        { title: 'Color palette & tokens', category: 'Design' },
-        { title: 'Typography scale', category: 'Design' },
-        { title: 'Spacing & layout grid', category: 'Design' },
-        { title: 'Icon set', category: 'Design' },
-      ]},
-      { title: 'Core components', category: 'Design', priority: 'HIGH', children: [
-        { title: 'Buttons & CTAs', category: 'Design' },
-        { title: 'Form inputs', category: 'Design' },
-        { title: 'Cards & containers', category: 'Design' },
-        { title: 'Navigation components', category: 'Design' },
-      ]},
-      { title: 'Documentation', category: 'Operations', priority: 'MEDIUM', children: [
-        { title: 'Usage guidelines', category: 'Operations' },
-        { title: 'Component storybook', category: 'Engineering' },
-        { title: 'Contribution guide', category: 'Operations' },
-      ]},
-    ]
-  },
-  {
     id: 'hiring-pipeline',
     name: 'Hiring Pipeline',
     description: 'Structure the hiring process from job posting to offer',
     icon: 'heroicons:user-group',
     category: 'Operations',
+    group: 'specific',
     tasks: [
       { title: 'Job definition', category: 'Operations', priority: 'HIGH', children: [
         { title: 'Write job description', category: 'Operations' },
@@ -230,6 +305,33 @@ const TEMPLATES: Template[] = [
       { title: 'Offer & close', category: 'Operations', priority: 'HIGH' },
     ]
   },
+  {
+    id: 'event-planning',
+    name: 'Event Planning',
+    description: 'Plan and execute events from venue booking to post-event wrap-up',
+    icon: 'heroicons:calendar-days',
+    category: 'Operations',
+    group: 'specific',
+    tasks: [
+      { title: 'Venue & logistics', category: 'Operations', priority: 'HIGH', children: [
+        { title: 'Book venue', category: 'Operations' },
+        { title: 'Catering arrangements', category: 'Operations' },
+        { title: 'AV & equipment setup', category: 'Operations' },
+      ]},
+      { title: 'Program & speakers', category: 'Operations', priority: 'HIGH', children: [
+        { title: 'Confirm speakers', category: 'Operations' },
+        { title: 'Finalize agenda', category: 'Operations' },
+        { title: 'Prepare materials', category: 'Design' },
+      ]},
+      { title: 'Promotion', category: 'Marketing', priority: 'MEDIUM', children: [
+        { title: 'Email invitations', category: 'Marketing' },
+        { title: 'Social media promotion', category: 'Marketing' },
+        { title: 'Registration page', category: 'Marketing' },
+      ]},
+      { title: 'Day-of execution', category: 'Operations', priority: 'CRITICAL' },
+      { title: 'Post-event follow-up', category: 'Operations', priority: 'MEDIUM' },
+    ]
+  },
 ]
 
 export default defineEventHandler(async (event) => {
@@ -245,6 +347,7 @@ export default defineEventHandler(async (event) => {
       description: t.description,
       icon: t.icon,
       category: t.category,
+      group: t.group,
       taskCount: t.tasks.reduce((sum, task) => sum + 1 + (task.children?.length || 0), 0),
     }))
   }

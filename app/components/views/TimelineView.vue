@@ -115,11 +115,19 @@ const displayItems = computed<DisplayItem[]>(() => {
 const timelineRange = computed(() => {
   const now = new Date()
   const items = props.items
-  
+
+  // Minimum lookahead depends on zoom level
+  const minMonthsAhead: Record<ZoomLevel, number> = {
+    days: 2,
+    weeks: 3,
+    months: 12,
+    quarters: 18,
+  }
+
   let earliest = new Date(now)
   let latest = new Date(now)
-  latest.setMonth(latest.getMonth() + 3)
-  
+  latest.setMonth(latest.getMonth() + minMonthsAhead[zoomLevel.value])
+
   items.forEach(item => {
     if (item.startDate) {
       const start = new Date(item.startDate)
@@ -130,14 +138,14 @@ const timelineRange = computed(() => {
       if (due > latest) latest = due
     }
   })
-  
+
   earliest.setDate(earliest.getDate() - 7)
   latest.setDate(latest.getDate() + 14)
 
   // Normalize to start of day for consistent positioning
   earliest = new Date(earliest.getFullYear(), earliest.getMonth(), earliest.getDate())
   latest = new Date(latest.getFullYear(), latest.getMonth(), latest.getDate())
-  
+
   return { start: earliest, end: latest }
 })
 

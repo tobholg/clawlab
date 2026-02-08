@@ -342,7 +342,7 @@ onMounted(() => {
 
 <template>
   <!-- Header -->
-  <header class="relative z-10 px-6 py-5 flex flex-col gap-4">
+  <header class="relative z-30 px-6 py-5 flex flex-col gap-4">
     <!-- Breadcrumbs -->
     <nav class="flex items-center gap-1.5 text-sm">
       <button
@@ -405,7 +405,7 @@ onMounted(() => {
               <MarkdownRenderer
                 v-if="editedProjectDescription"
                 :content="editedProjectDescription"
-                class="text-sm text-slate-400 line-clamp-2 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                class="text-sm text-slate-500 line-clamp-2 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
                 @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
               />
               <p
@@ -428,7 +428,7 @@ onMounted(() => {
                 ref="descriptionRef"
                 v-model="editedProjectDescription"
                 rows="1"
-                class="text-sm text-slate-400 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 p-0 px-1 -mx-1 w-full resize-none overflow-hidden"
+                class="text-sm text-slate-500 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 p-0 px-1 -mx-1 w-full resize-none overflow-hidden"
                 placeholder="Add a description..."
                 @input="(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }"
                 @blur="editingDescription = false"

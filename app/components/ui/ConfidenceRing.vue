@@ -12,14 +12,14 @@ const strokeDashoffset = computed(() =>
 )
 
 const colorClass = computed(() => {
-  if (props.percent >= 85) return 'text-emerald-400'
-  if (props.percent >= 60) return 'text-amber-400'
+  if (props.percent >= 67) return 'text-emerald-400'
+  if (props.percent >= 34) return 'text-amber-400'
   return 'text-rose-400'
 })
 </script>
 
 <template>
-  <div class="relative flex items-center justify-center w-6 h-6 group/confidence cursor-help">
+  <div class="relative flex items-center justify-center w-6 h-6" title="Confidence: how certain is this estimate">
     <svg :height="radius * 2" :width="radius * 2" class="rotate-[-90deg]">
       <!-- Background ring -->
       <circle
@@ -48,10 +48,5 @@ const colorClass = computed(() => {
     <span class="absolute text-[8px] font-normal text-slate-400">
       {{ percent }}
     </span>
-    
-    <!-- Tooltip -->
-    <div class="absolute bottom-full mb-2 hidden group-hover/confidence:block bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20 pointer-events-none">
-      Confidence: how certain is this estimate
-    </div>
   </div>
 </template>

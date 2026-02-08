@@ -1240,7 +1240,7 @@ const formatRelativeTime = (dateStr: string) => {
                     <Transition name="dropdown">
                       <div 
                         v-if="showAssigneeDropdown"
-                        class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10"
+                        class="absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10"
                       >
                         <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400">
                           No more users to add

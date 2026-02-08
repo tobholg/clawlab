@@ -255,8 +255,8 @@ onMounted(() => {
     <!-- Nav -->
     <nav
       data-landing-nav
-      class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl transition-all duration-300 nav-intro"
-      :class="scrolled ? 'bg-white/80 border-b border-slate-200/60 shadow-sm' : 'bg-transparent'"
+      class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl nav-intro border-b shadow-sm transition-all duration-300"
+      :class="scrolled ? 'bg-white/80 border-slate-200/60 shadow-slate-200/50' : 'bg-transparent border-transparent shadow-transparent'"
     >
       <div class="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
         <div class="flex items-center gap-8">
@@ -1141,7 +1141,10 @@ onMounted(() => {
   transform: translateY(-8px);
   transition:
     opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
   will-change: opacity, transform;
 }
 

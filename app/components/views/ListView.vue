@@ -758,11 +758,11 @@ function handleRowClick(item: FlatItem) {
           <span 
             class="text-xs"
             :class="[
-              (item.confidence ?? 70) >= 80 ? 'text-emerald-500' :
-              (item.confidence ?? 70) >= 50 ? 'text-amber-500' : 'text-rose-500'
+              (item.confidence ?? 70) >= 67 ? 'text-emerald-500' :
+              (item.confidence ?? 70) >= 34 ? 'text-amber-500' : 'text-rose-500'
             ]"
           >
-            {{ (item.confidence ?? 70) >= 80 ? '●●●' : (item.confidence ?? 70) >= 50 ? '●●○' : '●○○' }}
+            {{ (item.confidence ?? 70) >= 67 ? '●●●' : (item.confidence ?? 70) >= 34 ? '●●○' : '●○○' }}
           </span>
           <span class="text-[10px] text-slate-400">{{ item.confidence ?? 70 }}%</span>
         </div>

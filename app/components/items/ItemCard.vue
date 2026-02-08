@@ -271,7 +271,7 @@ const handleCardClick = () => {
         </span>
         
         <!-- Progress Ring -->
-        <div class="relative flex items-center justify-center w-6 h-6 group/progress cursor-help">
+        <div class="relative flex items-center justify-center w-6 h-6" title="Progress: how much of this task is complete">
           <svg height="20" width="20" class="rotate-[-90deg]">
             <circle
               stroke="currentColor"
@@ -298,10 +298,6 @@ const handleCardClick = () => {
           <span class="absolute text-[8px] font-normal text-slate-400">
             {{ item.progress ?? 0 }}
           </span>
-          <!-- Tooltip -->
-          <div class="absolute bottom-full mb-2 hidden group-hover/progress:block bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20 pointer-events-none">
-            Progress: how much of this task is complete
-          </div>
         </div>
         
         <!-- Confidence Ring -->

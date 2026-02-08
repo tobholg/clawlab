@@ -4,6 +4,8 @@ const router = useRouter()
 
 const { workspaceId, currentScope, navigateTo } = useItems()
 const { isWorkspaceAdmin, isOrgAdmin, currentRole } = useWorkspaces()
+const { toggleSection, isSectionCollapsed } = useSidebarSections()
+const { sidebarPreview, activeCount: myTasksActiveCount, hasMoreTasks, fetchMyTasks } = useMyTasks()
 
 // Fetch channels for sidebar
 const { channelTree, loading: channelsLoading } = useChannels(workspaceId)
@@ -45,10 +47,9 @@ onMounted(() => {
   if (workspaceId.value) fetchProjects()
 })
 
-// Recent projects for sidebar (top 5 by last activity)
-const recentProjects = computed(() => {
+// Recent projects for sidebar (top 3 by last activity)
+const allActiveProjects = computed(() => {
   if (!sidebarProjects.value?.length) return []
-
   return [...sidebarProjects.value]
     .filter((p: any) => p.status !== 'done')
     .sort((a: any, b: any) => {
@@ -56,8 +57,9 @@ const recentProjects = computed(() => {
       const bTime = new Date(b.lastActivityAt || b.updatedAt || b.createdAt).getTime()
       return bTime - aTime
     })
-    .slice(0, 5)
 })
+const recentProjects = computed(() => allActiveProjects.value.slice(0, 3))
+const hasMoreProjects = computed(() => allActiveProjects.value.length > 3)
 
 // Current project ID from route
 const currentProjectId = computed(() => {
@@ -76,6 +78,7 @@ const currentChannelId = computed(() => {
 })
 
 const isTeamFocus = computed(() => route.path === '/workspace/team')
+const isMyWork = computed(() => route.path === '/workspace/my-work')
 
 // Handle project click - navigate to project page
 const handleProjectClick = (projectId: string) => {
@@ -115,10 +118,45 @@ const planTierLabel = computed(() => {
 })
 const planTierClass = computed(() => {
   const tier = (planData.value as any)?.planTier
-  if (tier === 'PRO') return 'bg-blue-100 text-blue-600'
-  if (tier === 'ENTERPRISE') return 'bg-violet-100 text-violet-600'
-  return 'bg-slate-100 text-slate-500'
+  if (tier === 'PRO') return 'text-blue-500'
+  if (tier === 'ENTERPRISE') return 'text-violet-500'
+  return 'text-slate-400'
 })
+
+// FocusSidebar ref for timeline
+const focusSidebarRef = ref<{ openTimeline: () => void } | null>(null)
+
+// My Tasks - ItemDetailModal
+const showTaskDetail = ref(false)
+const selectedTask = ref<any>(null)
+
+const handleSidebarTaskClick = (task: any) => {
+  selectedTask.value = task
+  showTaskDetail.value = true
+}
+
+const handleTaskUpdate = async () => {
+  showTaskDetail.value = false
+  await fetchMyTasks()
+}
+
+// Status color helper
+const statusDotClass = (status: string) => {
+  switch (status) {
+    case 'DONE': return 'bg-emerald-400'
+    case 'IN_PROGRESS': return 'bg-blue-400'
+    case 'BLOCKED': return 'bg-red-400'
+    case 'PAUSED': return 'bg-amber-400'
+    default: return 'bg-slate-300'
+  }
+}
+
+// Temperature dot - only show for hot/critical
+const tempDotClass = (temp: string) => {
+  if (temp === 'critical') return 'bg-red-500'
+  if (temp === 'hot') return 'bg-orange-400'
+  return ''
+}
 </script>
 
 <template>
@@ -168,18 +206,45 @@ const planTierClass = computed(() => {
       </div>
 
       <!-- Focus Section -->
-      <FocusSidebar v-if="!sidebarCollapsed" :workspace-id="workspaceId" />
+      <div v-if="!sidebarCollapsed" :class="isSectionCollapsed('focus') ? 'mb-1' : ''">
+        <div :class="['flex items-center justify-between px-3', isSectionCollapsed('focus') ? '' : 'mb-2']">
+          <button
+            @click="focusSidebarRef?.openTimeline()"
+            class="text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
+          >
+            Focus
+            <Icon name="heroicons:clock" class="w-3 h-3" />
+          </button>
+          <button
+            @click="toggleSection('focus')"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <Icon :name="isSectionCollapsed('focus') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
+          </button>
+        </div>
+        <div v-if="!isSectionCollapsed('focus')">
+          <FocusSidebar ref="focusSidebarRef" :workspace-id="workspaceId" />
+        </div>
+      </div>
 
       <!-- Projects Section -->
-      <div v-if="!sidebarCollapsed" class="px-3 mb-4">
-        <button
-          @click="handleProjectsClick"
-          class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
-        >
-          Projects
-          <Icon name="heroicons:squares-2x2" class="w-3 h-3" />
-        </button>
-        <div>
+      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('projects') ? 'mb-1' : 'mb-4']">
+        <div :class="['flex items-center justify-between', isSectionCollapsed('projects') ? '' : 'mb-2']">
+          <button
+            @click="handleProjectsClick"
+            class="text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
+          >
+            Projects
+            <Icon name="heroicons:squares-2x2" class="w-3 h-3" />
+          </button>
+          <button
+            @click="toggleSection('projects')"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <Icon :name="isSectionCollapsed('projects') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
+          </button>
+        </div>
+        <div v-if="!isSectionCollapsed('projects')">
           <button
             v-for="project in recentProjects"
             :key="project.id"
@@ -206,15 +271,84 @@ const planTierClass = computed(() => {
             <Icon name="heroicons:plus" class="w-4 h-4" />
             <span>Create new project</span>
           </button>
+          <NuxtLink
+            v-if="hasMoreProjects"
+            to="/workspace"
+            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200"
+          >
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <Icon name="heroicons:arrow-right" class="w-3 h-3" />
+            </div>
+            <span class="flex-1 text-left">View all {{ allActiveProjects.length }}</span>
+          </NuxtLink>
+        </div>
+      </div>
+
+      <!-- My Tasks Section -->
+      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('myTasks') ? 'mb-1' : 'mb-4']">
+        <div :class="['flex items-center justify-between', isSectionCollapsed('myTasks') ? '' : 'mb-2']">
+          <NuxtLink
+            to="/workspace/my-work"
+            class="text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
+          >
+            My Tasks
+            <Icon name="heroicons:clipboard-document-check" class="w-3 h-3" />
+          </NuxtLink>
+          <button
+            @click="toggleSection('myTasks')"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <Icon :name="isSectionCollapsed('myTasks') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
+          </button>
+        </div>
+        <div v-if="!isSectionCollapsed('myTasks')">
+          <template v-if="sidebarPreview.length">
+            <button
+              v-for="task in sidebarPreview"
+              :key="task.id"
+              @click="handleSidebarTaskClick(task)"
+              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200 text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+            >
+              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                <div class="w-2 h-2 rounded-full" :class="statusDotClass(task.status)" />
+              </div>
+              <span class="flex-1 text-left truncate">{{ task.title }}</span>
+              <div
+                v-if="tempDotClass(task.temperature)"
+                class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                :class="tempDotClass(task.temperature)"
+              />
+              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+            </button>
+            <NuxtLink
+              v-if="hasMoreTasks"
+              to="/workspace/my-work"
+              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200"
+            >
+              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                <Icon name="heroicons:arrow-right" class="w-3 h-3" />
+              </div>
+              <span class="flex-1 text-left">View all {{ myTasksActiveCount }}</span>
+            </NuxtLink>
+          </template>
+          <p v-else class="px-3 py-2 text-xs text-slate-400 italic">No active tasks</p>
         </div>
       </div>
 
       <!-- Channels Section -->
-      <div v-if="!sidebarCollapsed" class="px-3 mb-4">
-        <h3 class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-          Channels
-        </h3>
-        <div>
+      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('channels') ? 'mb-1' : 'mb-4']">
+        <div :class="['flex items-center justify-between', isSectionCollapsed('channels') ? '' : 'mb-2']">
+          <h3 class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+            Channels
+          </h3>
+          <button
+            @click="toggleSection('channels')"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <Icon :name="isSectionCollapsed('channels') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
+          </button>
+        </div>
+        <div v-if="!isSectionCollapsed('channels')">
           <template v-for="channel in channelTree" :key="channel.id">
             <NuxtLink
               :to="`/workspace/channels/${channel.id}`"
@@ -225,7 +359,7 @@ const planTierClass = computed(() => {
             >
               <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
                 <Icon
-                  :name="channel.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'"
+                  :name="channel.visibility === 'private' ? 'heroicons:lock-closed' : channel.type === 'project' ? 'heroicons:folder' : 'heroicons:hashtag'"
                   class="w-4 h-4"
                 />
               </div>
@@ -251,7 +385,7 @@ const planTierClass = computed(() => {
                   : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
               >
                 <Icon
-                  :name="child.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'"
+                  :name="child.visibility === 'private' ? 'heroicons:lock-closed' : child.type === 'project' ? 'heroicons:folder' : 'heroicons:hashtag'"
                   class="w-3 h-3"
                 />
                 <span class="truncate">{{ child.displayName }}</span>
@@ -265,11 +399,32 @@ const planTierClass = computed(() => {
       </div>
 
       <!-- Workspace links -->
-      <div v-if="!sidebarCollapsed" class="px-3 mb-4">
-        <h3 class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-          Workspace
-        </h3>
-        <div>
+      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('workspace') ? 'mb-1' : 'mb-4']">
+        <div :class="['flex items-center justify-between', isSectionCollapsed('workspace') ? '' : 'mb-2']">
+          <h3 class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+            Workspace
+          </h3>
+          <button
+            @click="toggleSection('workspace')"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <Icon :name="isSectionCollapsed('workspace') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
+          </button>
+        </div>
+        <div v-if="!isSectionCollapsed('workspace')">
+          <NuxtLink
+            to="/workspace/my-work"
+            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+            :class="isMyWork
+              ? 'bg-slate-100 text-slate-900'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+          >
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <Icon name="heroicons:clipboard-document-check" class="w-4 h-4" />
+            </div>
+            <span class="flex-1 text-left">My Work</span>
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+          </NuxtLink>
           <NuxtLink
             to="/workspace/activities"
             class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
@@ -324,7 +479,7 @@ const planTierClass = computed(() => {
             <span class="flex-1 text-left">Organization</span>
             <span
               v-if="planData"
-              :class="['text-[10px] font-medium px-1.5 py-0.5 rounded-full', planTierClass]"
+              :class="['text-[10px] font-medium', planTierClass]"
             >
               {{ planTierLabel }}
             </span>
@@ -379,6 +534,16 @@ const planTierClass = computed(() => {
       v-if="showUserSettings"
       @close="showUserSettings = false"
     />
+
+    <!-- Sidebar Task Detail Modal -->
+    <ItemsItemDetailModal
+      :open="showTaskDetail"
+      :item="selectedTask"
+      @close="showTaskDetail = false"
+      @update="handleTaskUpdate"
+      @view-full="(item: any) => { showTaskDetail = false; router.push(`/workspace/projects/${item.id}`) }"
+      @deleted="handleTaskUpdate"
+    />
   </div>
 </template>
 
@@ -396,4 +561,3 @@ const planTierClass = computed(() => {
   opacity: 0;
 }
 </style>
-

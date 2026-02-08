@@ -14,6 +14,11 @@ const loading = ref(false)
 const creating = ref(false)
 const selectedTemplate = ref<any>(null)
 const customTitle = ref('')
+const activeTab = ref<'general' | 'specific'>('general')
+
+const generalTemplates = computed(() => templates.value.filter(t => t.group === 'general'))
+const specificTemplates = computed(() => templates.value.filter(t => t.group === 'specific'))
+const displayedTemplates = computed(() => activeTab.value === 'general' ? generalTemplates.value : specificTemplates.value)
 
 const fetchTemplates = async () => {
   loading.value = true
@@ -36,6 +41,7 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) {
     selectedTemplate.value = null
     customTitle.value = ''
+    activeTab.value = 'general'
   }
 })
 
@@ -76,6 +82,7 @@ const getCategoryColor = (category: string) => {
     case 'Marketing': return 'bg-pink-100 text-pink-700'
     case 'Design': return 'bg-amber-100 text-amber-700'
     case 'Operations': return 'bg-emerald-100 text-emerald-700'
+    case 'Research': return 'bg-cyan-100 text-cyan-700'
     default: return 'bg-slate-100 text-slate-700'
   }
 }
@@ -110,6 +117,32 @@ const getCategoryColor = (category: string) => {
             </div>
             <button @click="emit('close')" class="p-1 text-slate-400 hover:text-slate-600 transition-colors">
               <Icon name="heroicons:x-mark" class="w-5 h-5" />
+            </button>
+          </div>
+
+          <!-- Tabs (only when browsing, not when a template is selected) -->
+          <div v-if="!selectedTemplate && !loading" class="px-6 pt-4 flex gap-1">
+            <button
+              @click="activeTab = 'general'"
+              :class="[
+                'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                activeTab === 'general'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+              ]"
+            >
+              General
+            </button>
+            <button
+              @click="activeTab = 'specific'"
+              :class="[
+                'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                activeTab === 'specific'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+              ]"
+            >
+              Specific
             </button>
           </div>
 
@@ -162,7 +195,7 @@ const getCategoryColor = (category: string) => {
             <!-- Template grid -->
             <div v-else class="grid grid-cols-2 gap-3">
               <button
-                v-for="template in templates"
+                v-for="template in displayedTemplates"
                 :key="template.id"
                 @click="selectTemplate(template)"
                 class="flex items-start gap-3 p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-left"

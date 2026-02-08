@@ -24,6 +24,9 @@ const showProjectPicker = ref(false)
 const showLanePicker = ref(false)
 const showTaskActionModal = ref(false)
 const showTimeline = ref(false)
+
+const openTimeline = () => { showTimeline.value = true }
+defineExpose({ openTimeline })
 const actionComment = ref('')
 const selectedNextLane = ref<FocusLane>('GENERAL')
 const actionError = ref<string | null>(null)
@@ -154,15 +157,6 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
 
 <template>
   <div class="px-3 mb-4">
-    <!-- Section Title -->
-    <button
-      @click="showTimeline = true"
-      class="mb-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider px-0 hover:text-slate-700 transition-colors flex items-center gap-1"
-    >
-      Focus
-      <Icon name="heroicons:clock" class="w-3 h-3" />
-    </button>
-
     <div class="space-y-1">
       <!-- Project Focus -->
       <button

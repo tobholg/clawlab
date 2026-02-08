@@ -205,7 +205,7 @@ const toggleExpand = () => {
                     :class="[
                       'w-1.5 h-3 rounded-sm transition-colors',
                       i <= Math.ceil(task.confidence / 33) 
-                        ? task.confidence >= 70 ? 'bg-emerald-400' : task.confidence >= 40 ? 'bg-amber-400' : 'bg-rose-400'
+                        ? task.confidence >= 67 ? 'bg-emerald-400' : task.confidence >= 34 ? 'bg-amber-400' : 'bg-rose-400'
                         : 'bg-slate-200'
                     ]"
                   />

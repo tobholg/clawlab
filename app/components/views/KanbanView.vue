@@ -158,12 +158,55 @@ const getItemsGroupedBySubStatus = (status: Item['status']) => {
   return groups
 }
 
+// Resolve the actual status for a sub-status (e.g. 'on_hold' → 'paused')
+const pausedSubStatuses = new Set(Object.keys(getSubStatusesForStatus('paused')))
+const resolveStatusForSubStatus = (columnStatus: string, subStatus: string | null | undefined): string => {
+  if (columnStatus === 'in_progress' && subStatus && pausedSubStatuses.has(subStatus)) {
+    return 'paused'
+  }
+  return columnStatus
+}
+
 // Check if a column has multiple groups (for showing headers)
 const hasMultipleGroups = (status: Item['status']) => {
   if (status === 'done') {
     return getDoneItemsByTimeGroup().length > 1
   }
   return getItemsGroupedBySubStatus(status).length > 1
+}
+
+// Collapse all / Expand all for a column
+const collapseAllInColumn = (status: Item['status']) => {
+  if (status === 'done') {
+    for (const group of getDoneItemsByTimeGroup()) {
+      collapsedSections.value.add(`done:${group.key}`)
+    }
+  } else {
+    for (const group of getItemsGroupedBySubStatus(status)) {
+      collapsedSections.value.add(group.sectionKey)
+    }
+  }
+  collapsedSections.value = new Set(collapsedSections.value)
+}
+
+const expandAllInColumn = (status: Item['status']) => {
+  if (status === 'done') {
+    for (const group of getDoneItemsByTimeGroup()) {
+      collapsedSections.value.delete(`done:${group.key}`)
+    }
+  } else {
+    for (const group of getItemsGroupedBySubStatus(status)) {
+      collapsedSections.value.delete(group.sectionKey)
+    }
+  }
+  collapsedSections.value = new Set(collapsedSections.value)
+}
+
+const isAllCollapsedInColumn = (status: Item['status']) => {
+  const keys = status === 'done'
+    ? getDoneItemsByTimeGroup().map(g => `done:${g.key}`)
+    : getItemsGroupedBySubStatus(status).map(g => g.sectionKey)
+  return keys.length > 0 && keys.every(k => collapsedSections.value.has(k))
 }
 
 // Drag and drop state
@@ -213,7 +256,9 @@ const handleDragOver = (e: DragEvent, status: string, subStatus?: string | null)
     e.dataTransfer.dropEffect = 'move'
   }
   dragOverColumn.value = status
-  dragOverSubStatus.value = subStatus ?? null
+  if (subStatus !== undefined) {
+    dragOverSubStatus.value = subStatus ?? null
+  }
 }
 
 const handleDragLeave = (e: DragEvent) => {
@@ -233,17 +278,19 @@ const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string
   if (dragOverCardId.value) return
 
   if (draggedItem.value) {
-    if (targetStatus === 'done' && draggedItem.value.status !== 'done') {
+    const resolvedStatus = resolveStatusForSubStatus(targetStatus, targetSubStatus)
+
+    if (resolvedStatus === 'done' && draggedItem.value.status !== 'done') {
       if (hasIncompleteChildren(draggedItem.value)) {
         emit('requestComplete', draggedItem.value)
         return
       }
     }
-    const statusChanged = draggedItem.value.status !== targetStatus
+    const statusChanged = draggedItem.value.status !== resolvedStatus
     const subStatusChanged = draggedItem.value.subStatus !== targetSubStatus
 
     if (statusChanged || subStatusChanged) {
-      emit('statusChange', draggedItem.value.id, targetStatus, targetSubStatus)
+      emit('statusChange', draggedItem.value.id, resolvedStatus, targetSubStatus)
     }
   }
   draggedItem.value = null
@@ -252,6 +299,10 @@ const handleDrop = (e: DragEvent, targetStatus: string, targetSubStatus?: string
 // Card-on-card drag handlers for nesting
 const handleCardDragOver = (e: DragEvent, targetItem: ItemNode) => {
   if (!draggedItem.value) return
+
+  // Always update sub-status tracking so section highlights work
+  dragOverColumn.value = targetItem.status
+  dragOverSubStatus.value = targetItem.subStatus ?? null
 
   // Can only nest within same column
   if (draggedItem.value.status !== targetItem.status) return
@@ -273,18 +324,17 @@ const handleCardDragLeave = (e: DragEvent) => {
 }
 
 const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
-  e.preventDefault()
-  e.stopPropagation()
-
   if (draggedItem.value && dragOverCardId.value === targetItem.id) {
-    // Emit parent change - dragged item becomes child of target
+    // Nesting: dragged item becomes child of target
+    e.preventDefault()
+    e.stopPropagation()
     emit('parentChange', draggedItem.value.id, targetItem.id)
+    draggedItem.value = null
+    dragOverCardId.value = null
+    dragOverColumn.value = null
+    dragOverSubStatus.value = null
   }
-
-  draggedItem.value = null
-  dragOverCardId.value = null
-  dragOverColumn.value = null
-  dragOverSubStatus.value = null
+  // Otherwise let the event bubble to the container's drop handler
 }
 </script>
 
@@ -296,7 +346,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       :data-column="status"
       :class="[
         'flex flex-col min-w-0 rounded-xl p-3 transition-colors duration-150',
-        dragOverColumn === status && draggedItem?.status !== status
+        dragOverColumn === status && draggedItem && !(draggedItem.status === status || (status === 'in_progress' && draggedItem.status === 'paused'))
           ? columnStyles[status].dropBg + ' ring-2 ring-inset ring-slate-300'
           : columnStyles[status].bg
       ]"
@@ -314,9 +364,24 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
             {{ getItemsByStatus(status).length }}
           </span>
         </div>
-        <button class="opacity-0 group-hover:opacity-100 transition-opacity">
-          <Icon name="heroicons:plus" class="w-4 h-4 text-slate-300 hover:text-slate-500" />
-        </button>
+        <div class="flex items-center gap-0.5">
+          <button
+            v-if="isAllCollapsedInColumn(status)"
+            @click="expandAllInColumn(status)"
+            class="p-1 rounded text-slate-300 hover:text-slate-500 transition-colors"
+            title="Expand all"
+          >
+            <Icon name="heroicons:bars-arrow-down" class="w-3.5 h-3.5" />
+          </button>
+          <button
+            v-else
+            @click="collapseAllInColumn(status)"
+            class="p-1 rounded text-slate-300 hover:text-slate-500 transition-colors"
+            title="Collapse all"
+          >
+            <Icon name="heroicons:bars-arrow-up" class="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
       
       <!-- DONE column: Time-based groups -->
@@ -392,9 +457,12 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
         <div class="flex flex-col gap-3 flex-1 min-h-[120px] overflow-y-auto">
           <template v-for="group in getItemsGroupedBySubStatus(status)" :key="group.sectionKey">
             <!-- Sub-status section header (collapsible, only if multiple groups) -->
-            <button 
-              v-if="group.label && hasMultipleGroups(status)"
-              class="flex items-center gap-2 px-2 py-1.5 bg-white/60 hover:bg-white/80 rounded-lg border border-white/80 transition-colors text-left w-full"
+            <button
+              v-if="group.label"
+              class="flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-colors text-left w-full"
+              :class="dragOverColumn === status && dragOverSubStatus === group.subStatus && draggedItem && !(draggedItem.status === status && draggedItem.subStatus === group.subStatus)
+                ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200'
+                : 'bg-white/60 hover:bg-white/80 border-white/80'"
               :data-substatus="group.subStatus"
               @click="toggleSection(group.sectionKey)"
               @dragover.stop="handleDragOver($event, status, group.subStatus)"
@@ -415,9 +483,12 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
             </button>
             
             <!-- Items in this group -->
-            <div 
+            <div
               v-show="!isSectionCollapsed(group.sectionKey)"
-              class="flex flex-col gap-2"
+              class="flex flex-col gap-2 rounded-lg transition-colors"
+              :class="dragOverColumn === status && dragOverSubStatus === group.subStatus && draggedItem && !(draggedItem.status === status && draggedItem.subStatus === group.subStatus)
+                ? 'bg-blue-50/50'
+                : ''"
               :data-substatus="group.subStatus"
               @dragover.stop="handleDragOver($event, status, group.subStatus)"
               @drop.stop="handleDrop($event, status, group.subStatus)"
