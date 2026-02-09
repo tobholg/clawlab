@@ -42,11 +42,11 @@ watch(
 )
 
 const intensityColors = [
-  'bg-slate-100',
-  'bg-emerald-200',
-  'bg-emerald-300',
-  'bg-emerald-400',
-  'bg-emerald-500',
+  'bg-slate-100 dark:bg-white/[0.08]',
+  'bg-emerald-200 dark:bg-emerald-500/20',
+  'bg-emerald-300 dark:bg-emerald-500/40',
+  'bg-emerald-400 dark:bg-emerald-500/60',
+  'bg-emerald-500 dark:bg-emerald-400',
 ]
 
 const getColor = (intensity: number) => intensityColors[Math.min(intensity, 4)]
@@ -117,12 +117,12 @@ const formatDate = (dateStr: string): string => {
         <div
           v-for="i in (props.days ?? 14)"
           :key="i"
-          class="w-3 h-3 rounded-sm bg-slate-100 animate-pulse"
+          class="w-3 h-3 rounded-sm bg-slate-100 dark:bg-white/[0.08] animate-pulse"
         />
       </template>
     </div>
 
-    <div class="flex items-center justify-between mt-1.5 text-xs text-slate-400">
+    <div class="flex items-center justify-between mt-1.5 text-xs text-slate-400 dark:text-zinc-500">
       <span>{{ completionData?.totalCompletions ?? 0 }} completed</span>
       <span>{{ props.days ?? 14 }} days</span>
     </div>

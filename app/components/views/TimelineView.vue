@@ -394,15 +394,15 @@ const todayPosition = computed(() => {
 
 // Category color mapping
 const categoryColors: Record<string, { bar: string; bg: string }> = {
-  'Engineering': { bar: 'from-blue-400 to-blue-500', bg: 'bg-blue-100' },
-  'Bug': { bar: 'from-rose-400 to-rose-500', bg: 'bg-rose-100' },
-  'Design': { bar: 'from-violet-400 to-violet-500', bg: 'bg-violet-100' },
-  'Product': { bar: 'from-indigo-400 to-indigo-500', bg: 'bg-indigo-100' },
-  'QA': { bar: 'from-amber-400 to-amber-500', bg: 'bg-amber-100' },
-  'Research': { bar: 'from-cyan-400 to-cyan-500', bg: 'bg-cyan-100' },
-  'Operations': { bar: 'from-orange-400 to-orange-500', bg: 'bg-orange-100' },
-  'Marketing': { bar: 'from-pink-400 to-pink-500', bg: 'bg-pink-100' },
-  'default': { bar: 'from-slate-400 to-slate-500', bg: 'bg-slate-100' },
+  'Engineering': { bar: 'from-blue-400 to-blue-500', bg: 'bg-blue-100 dark:bg-blue-500/10' },
+  'Bug': { bar: 'from-rose-400 to-rose-500', bg: 'bg-rose-100 dark:bg-rose-500/10' },
+  'Design': { bar: 'from-violet-400 to-violet-500', bg: 'bg-violet-100 dark:bg-violet-500/10' },
+  'Product': { bar: 'from-indigo-400 to-indigo-500', bg: 'bg-indigo-100 dark:bg-indigo-500/10' },
+  'QA': { bar: 'from-amber-400 to-amber-500', bg: 'bg-amber-100 dark:bg-amber-500/10' },
+  'Research': { bar: 'from-cyan-400 to-cyan-500', bg: 'bg-cyan-100 dark:bg-cyan-500/10' },
+  'Operations': { bar: 'from-orange-400 to-orange-500', bg: 'bg-orange-100 dark:bg-orange-500/10' },
+  'Marketing': { bar: 'from-pink-400 to-pink-500', bg: 'bg-pink-100 dark:bg-pink-500/10' },
+  'default': { bar: 'from-slate-400 to-slate-500', bg: 'bg-slate-100 dark:bg-white/[0.08]' },
 }
 
 const getBarColor = (item: ItemNode | DisplayItem) => {
@@ -412,8 +412,8 @@ const getBarColor = (item: ItemNode | DisplayItem) => {
 }
 
 const getBgColor = (item: ItemNode | DisplayItem) => {
-  if (item.status === 'done') return 'bg-emerald-100'
-  if (item.status === 'blocked') return 'bg-rose-100'
+  if (item.status === 'done') return 'bg-emerald-100 dark:bg-emerald-500/10'
+  if (item.status === 'blocked') return 'bg-rose-100 dark:bg-rose-500/10'
   return categoryColors[item.category || 'default']?.bg || categoryColors.default.bg
 }
 
@@ -457,12 +457,12 @@ function syncHeaderScroll(event: Event) {
   <div class="h-full flex flex-col">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
-      <div class="text-sm text-slate-500">
+      <div class="text-sm text-slate-500 dark:text-zinc-400">
         {{ items.length }} {{ isRootLevel ? 'projects' : 'items' }} on timeline
       </div>
       
       <!-- Zoom toggle -->
-      <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
+      <div class="flex items-center gap-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg p-0.5">
         <button
           v-for="opt in zoomOptions"
           :key="opt.value"
@@ -470,8 +470,8 @@ function syncHeaderScroll(event: Event) {
           :class="[
             'px-2.5 py-1 text-xs font-medium rounded-md transition-all',
             zoomLevel === opt.value 
-              ? 'bg-slate-100 text-slate-800' 
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-800 dark:text-zinc-200'
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300'
           ]"
         >
           {{ opt.label }}
@@ -480,12 +480,12 @@ function syncHeaderScroll(event: Event) {
     </div>
     
     <!-- Timeline -->
-    <div class="flex-1 bg-white rounded-xl border border-slate-100 overflow-hidden flex flex-col">
+    <div class="flex-1 bg-white dark:bg-dm-card rounded-xl border border-slate-100 dark:border-white/[0.06] overflow-hidden flex flex-col">
       <!-- Fixed headers row -->
-      <div class="flex flex-shrink-0 border-b border-slate-100">
+      <div class="flex flex-shrink-0 border-b border-slate-100 dark:border-white/[0.06]">
         <!-- Tasks column header -->
-        <div class="w-52 flex-shrink-0 h-10 px-4 flex items-center border-r border-slate-100 bg-slate-50/80">
-          <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <div class="w-52 flex-shrink-0 h-10 px-4 flex items-center border-r border-slate-100 dark:border-white/[0.06] bg-slate-50/80 dark:bg-white/[0.04]">
+          <span class="text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wide">
             {{ isRootLevel ? 'Projects' : 'Tasks' }}
           </span>
         </div>
@@ -496,12 +496,12 @@ function syncHeaderScroll(event: Event) {
           class="flex-1 overflow-x-auto scrollbar-hide"
           @scroll="syncHeaderScroll"
         >
-          <div class="h-10 bg-slate-50/80 flex" :style="{ width: `${totalWidth}px`, minWidth: '100%' }">
+          <div class="h-10 bg-slate-50/80 dark:bg-white/[0.04] flex" :style="{ width: `${totalWidth}px`, minWidth: '100%' }">
             <div 
               v-for="(col, i) in timeColumns" 
               :key="i"
               :class="[
-                'flex-shrink-0 px-1 flex items-center justify-center border-r border-slate-100 last:border-r-0',
+                'flex-shrink-0 px-1 flex items-center justify-center border-r border-slate-100 dark:border-white/[0.06] last:border-r-0',
                 zoomLevel === 'days' ? 'w-14' : 
                 zoomLevel === 'weeks' ? 'w-20' : 
                 zoomLevel === 'months' ? 'w-24' : 'w-32'
@@ -510,7 +510,7 @@ function syncHeaderScroll(event: Event) {
               <span 
                 :class="[
                   'text-[10px] font-medium whitespace-nowrap',
-                  col.isToday ? 'text-blue-600' : 'text-slate-500'
+                  col.isToday ? 'text-blue-600' : 'text-slate-500 dark:text-zinc-400'
                 ]"
               >
                 {{ col.label }}
@@ -524,12 +524,12 @@ function syncHeaderScroll(event: Event) {
       <div class="flex-1 overflow-y-auto">
         <div class="flex min-h-full">
           <!-- Sticky row labels column -->
-          <div class="w-52 flex-shrink-0 border-r border-slate-100 bg-white sticky left-0 z-10">
+          <div class="w-52 flex-shrink-0 border-r border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card sticky left-0 z-10">
             <div 
               v-for="item in displayItems" 
               :key="item.id + '-label'"
-              class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group cursor-pointer"
-              :class="item.isSubtask ? 'h-10 bg-slate-50/30' : 'h-12'"
+              class="border-b border-slate-50 dark:border-white/[0.04] hover:bg-slate-50/50 dark:hover:bg-white/[0.04] transition-colors group cursor-pointer"
+              :class="item.isSubtask ? 'h-10 bg-slate-50/30 dark:bg-white/[0.02]' : 'h-12'"
               @click="emit('openDetail', item)"
             >
               <div 
@@ -538,8 +538,8 @@ function syncHeaderScroll(event: Event) {
               >
                 <!-- Subtask connector -->
                 <div v-if="item.isSubtask" class="flex-shrink-0 w-3 h-full relative">
-                  <div class="absolute left-0 top-0 bottom-1/2 w-px bg-slate-200" />
-                  <div class="absolute left-0 top-1/2 w-3 h-px bg-slate-200" />
+                  <div class="absolute left-0 top-0 bottom-1/2 w-px bg-slate-200 dark:bg-zinc-700" />
+                  <div class="absolute left-0 top-1/2 w-3 h-px bg-slate-200 dark:bg-zinc-700" />
                 </div>
                 
                 <!-- Status dot -->
@@ -550,28 +550,28 @@ function syncHeaderScroll(event: Event) {
                     item.status === 'done' ? 'bg-emerald-500' :
                     item.status === 'blocked' ? 'bg-rose-500' :
                     item.status === 'in_progress' ? 'bg-blue-500' :
-                    'bg-slate-400'
+                    'bg-slate-400 dark:bg-zinc-500'
                   ]"
                 />
                 
                 <!-- Item info -->
                 <div class="flex-1 min-w-0">
                   <span 
-                    class="font-medium text-slate-700 truncate block group-hover:text-blue-600 transition-colors"
+                    class="font-medium text-slate-700 dark:text-zinc-300 truncate block group-hover:text-blue-600 transition-colors"
                     :class="item.isSubtask ? 'text-xs' : 'text-sm'"
                   >
                     {{ item.title }}
                   </span>
                   <div 
                     v-if="!item.isSubtask" 
-                    class="flex items-center gap-1.5 text-[10px] text-slate-400"
+                    class="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-zinc-500"
                   >
                     <span>{{ item.progress || 0 }}%</span>
-                    <span v-if="item.children?.length" class="text-slate-300">
+                    <span v-if="item.children?.length" class="text-slate-300 dark:text-zinc-600">
                       · {{ item.children.length }}
                     </span>
                   </div>
-                  <div v-else class="text-[10px] text-slate-400">
+                  <div v-else class="text-[10px] text-slate-400 dark:text-zinc-500">
                     {{ item.progress || 0 }}%
                   </div>
                 </div>
@@ -579,12 +579,12 @@ function syncHeaderScroll(event: Event) {
                 <!-- Expand/collapse button -->
                 <button
                   v-if="!item.isSubtask && item.children && item.children.length > 0"
-                  class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 transition-colors"
+                  class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-white/[0.06] transition-colors"
                   @click="toggleExpand(item.id, $event)"
                 >
                   <Icon 
                     name="heroicons:chevron-down" 
-                    class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+                    class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 transition-transform duration-200"
                     :class="expandedItems.has(item.id) ? 'rotate-180' : ''"
                   />
                 </button>
@@ -611,7 +611,7 @@ function syncHeaderScroll(event: Event) {
               <div 
                 v-for="item in displayItems" 
                 :key="item.id"
-                class="relative border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
+                class="relative border-b border-slate-50 dark:border-white/[0.04] hover:bg-slate-50/50 dark:hover:bg-white/[0.04] transition-colors"
                 :class="item.isSubtask ? 'h-10' : 'h-12'"
               >
                 <!-- Grid lines -->
@@ -621,7 +621,7 @@ function syncHeaderScroll(event: Event) {
                     :key="i"
                     :class="[
                       'flex-shrink-0 border-r',
-                      col.isWeekend ? 'bg-slate-50/50 border-slate-100' : 'border-slate-50',
+                      col.isWeekend ? 'bg-slate-50/50 dark:bg-white/[0.03] border-slate-100 dark:border-white/[0.06]' : 'border-slate-50 dark:border-white/[0.04]',
                       zoomLevel === 'days' ? 'w-14' : 
                       zoomLevel === 'weeks' ? 'w-20' : 
                       zoomLevel === 'months' ? 'w-24' : 'w-32'
@@ -660,14 +660,14 @@ function syncHeaderScroll(event: Event) {
                   <!-- Base estimate marker -->
                   <div
                     v-if="getForecastRange(item)"
-                    class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white shadow ring-1 ring-slate-400"
+                    class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white dark:bg-zinc-300 shadow ring-1 ring-slate-400 dark:ring-zinc-600"
                     :style="{ left: `${getForecastRange(item)?.baseLeft}px` }"
                   />
 
                   <!-- Due date marker -->
                   <div 
                     v-if="item.dueDate && getForecastRange(item)?.dueLeft !== null"
-                    class="absolute inset-y-0 w-[2px] bg-slate-600"
+                    class="absolute inset-y-0 w-[2px] bg-slate-600 dark:bg-zinc-500"
                     :style="{ left: `calc(${getForecastRange(item)?.dueLeft}px - 1px)` }"
                   />
                   
@@ -697,7 +697,7 @@ function syncHeaderScroll(event: Event) {
               <!-- Empty state -->
               <div 
                 v-if="items.length === 0"
-                class="flex items-center justify-center py-12 text-slate-400"
+                class="flex items-center justify-center py-12 text-slate-400 dark:text-zinc-500"
               >
                 <div class="text-center">
                   <Icon name="heroicons:calendar" class="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -711,19 +711,19 @@ function syncHeaderScroll(event: Event) {
     </div>
     
     <!-- Legend -->
-    <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+    <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-zinc-400">
       <span class="flex items-center gap-1.5">
         <div class="w-4 h-2 rounded bg-gradient-to-r from-blue-400 to-blue-500" />
         Progress
       </span>
       <span class="flex items-center gap-1.5">
         <div class="relative w-6 h-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 opacity-70">
-          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white shadow ring-1 ring-slate-400"></div>
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-300 shadow ring-1 ring-slate-400 dark:ring-zinc-600"></div>
         </div>
         Estimate range
       </span>
       <span class="flex items-center gap-1.5">
-        <div class="w-0.5 h-3 bg-slate-600" />
+        <div class="w-0.5 h-3 bg-slate-600 dark:bg-zinc-500" />
         Due Date
       </span>
       <span class="flex items-center gap-1.5">

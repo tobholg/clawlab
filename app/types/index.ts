@@ -111,30 +111,30 @@ export const TEMPERATURE_CONFIG = {
 } as const
 
 export const STATUS_CONFIG = {
-  todo: { label: 'To Do', color: 'bg-slate-100 text-slate-600' },
-  in_progress: { label: 'In Progress', color: 'bg-blue-50 text-blue-600' },
-  blocked: { label: 'Blocked', color: 'bg-rose-50 text-rose-600' },
-  paused: { label: 'Paused', color: 'bg-amber-50 text-amber-600' },
-  done: { label: 'Done', color: 'bg-emerald-50 text-emerald-600' },
+  todo: { label: 'To Do', color: 'bg-slate-100 text-slate-600 dark:bg-white/[0.08] dark:text-zinc-400' },
+  in_progress: { label: 'In Progress', color: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' },
+  blocked: { label: 'Blocked', color: 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400' },
+  paused: { label: 'Paused', color: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' },
+  done: { label: 'Done', color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' },
 } as const
 
 // Sub-states for each status (with colors for badges)
 export const SUB_STATUS_CONFIG: Record<string, { label: string; icon: string; order: number; color: string }> = {
   // Todo sub-states
-  backlog: { label: 'Backlog', icon: 'heroicons:inbox', order: 0, color: 'bg-slate-100 text-slate-500' },
-  ready: { label: 'Ready', icon: 'heroicons:check-circle', order: 1, color: 'bg-emerald-50 text-emerald-600' },
+  backlog: { label: 'Backlog', icon: 'heroicons:inbox', order: 0, color: 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-zinc-400' },
+  ready: { label: 'Ready', icon: 'heroicons:check-circle', order: 1, color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' },
   // In Progress sub-states
-  scoping: { label: 'Scoping', icon: 'heroicons:document-magnifying-glass', order: 0, color: 'bg-violet-50 text-violet-600' },
-  active: { label: 'Active', icon: 'heroicons:play', order: 1, color: 'bg-blue-50 text-blue-600' },
-  review: { label: 'Review', icon: 'heroicons:eye', order: 2, color: 'bg-amber-50 text-amber-600' },
-  finalizing: { label: 'Finalizing', icon: 'heroicons:sparkles', order: 3, color: 'bg-cyan-50 text-cyan-600' },
+  scoping: { label: 'Scoping', icon: 'heroicons:document-magnifying-glass', order: 0, color: 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400' },
+  active: { label: 'Active', icon: 'heroicons:play', order: 1, color: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' },
+  review: { label: 'Review', icon: 'heroicons:eye', order: 2, color: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' },
+  finalizing: { label: 'Finalizing', icon: 'heroicons:sparkles', order: 3, color: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400' },
   // Blocked sub-states
-  dependency: { label: 'Dependency', icon: 'heroicons:link', order: 0, color: 'bg-rose-50 text-rose-600' },
-  external: { label: 'External', icon: 'heroicons:arrow-top-right-on-square', order: 1, color: 'bg-orange-50 text-orange-600' },
-  decision: { label: 'Awaiting Decision', icon: 'heroicons:question-mark-circle', order: 2, color: 'bg-pink-50 text-pink-600' },
+  dependency: { label: 'Dependency', icon: 'heroicons:link', order: 0, color: 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400' },
+  external: { label: 'External', icon: 'heroicons:arrow-top-right-on-square', order: 1, color: 'bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400' },
+  decision: { label: 'Awaiting Decision', icon: 'heroicons:question-mark-circle', order: 2, color: 'bg-pink-50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-400' },
   // Paused sub-states
-  on_hold: { label: 'On Hold', icon: 'heroicons:pause', order: 0, color: 'bg-slate-100 text-slate-500' },
-  deprioritized: { label: 'Deprioritized', icon: 'heroicons:arrow-down', order: 1, color: 'bg-slate-50 text-slate-400' },
+  on_hold: { label: 'On Hold', icon: 'heroicons:pause', order: 0, color: 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-zinc-400' },
+  deprioritized: { label: 'Deprioritized', icon: 'heroicons:arrow-down', order: 1, color: 'bg-slate-50 text-slate-400 dark:bg-white/[0.06] dark:text-zinc-500' },
 }
 
 // Sub-states grouped by parent status (for dropdowns)

@@ -402,8 +402,8 @@ function getDepthIcon(depth: number, isProject: boolean) {
 function getDepthIconColor(depth: number, isProject: boolean) {
   if (depth === 0 && isProject) return 'text-blue-500'
   if (depth === 0) return 'text-emerald-500'
-  if (depth === 1) return 'text-slate-500'
-  return 'text-slate-400'
+  if (depth === 1) return 'text-slate-500 dark:text-zinc-400'
+  return 'text-slate-400 dark:text-zinc-500'
 }
 
 // Row click
@@ -413,46 +413,46 @@ function handleRowClick(item: FlatItem) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <div class="h-full flex flex-col bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06] overflow-hidden">
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-white/[0.03]">
       <div class="flex items-center gap-4">
-        <span class="text-sm font-medium text-slate-700">
+        <span class="text-sm font-medium text-slate-700 dark:text-zinc-300">
           {{ flattenedItems.length }} items
         </span>
         
         <!-- Expand/Collapse controls -->
-        <div class="flex items-center gap-1 border-l border-slate-200 pl-4">
+        <div class="flex items-center gap-1 border-l border-slate-200 dark:border-white/[0.06] pl-4">
           <button
             @click="expandAll"
-            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            class="px-2 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded transition-colors"
           >
             Expand All
           </button>
           <button
             @click="collapseAll"
-            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            class="px-2 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded transition-colors"
           >
             Collapse All
           </button>
-          <div class="w-px h-4 bg-slate-200 mx-1" />
+          <div class="w-px h-4 bg-slate-200 dark:bg-white/[0.06] mx-1" />
           <button
             @click="expandToLevel(1)"
-            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            class="px-2 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded transition-colors"
             title="Expand to Level 1"
           >
             L1
           </button>
           <button
             @click="expandToLevel(2)"
-            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            class="px-2 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded transition-colors"
             title="Expand to Level 2"
           >
             L2
           </button>
           <button
             @click="expandToLevel(3)"
-            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+            class="px-2 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded transition-colors"
             title="Expand to Level 3"
           >
             L3
@@ -465,7 +465,7 @@ function handleRowClick(item: FlatItem) {
         <button 
           @click="showAdvancedFilters = !showAdvancedFilters"
           class="p-1.5 rounded transition-colors"
-          :class="showAdvancedFilters || hasActiveFilters ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'"
+          :class="showAdvancedFilters || hasActiveFilters ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
         >
           <Icon name="heroicons:funnel" class="w-4 h-4" />
         </button>
@@ -473,15 +473,15 @@ function handleRowClick(item: FlatItem) {
     </div>
     
     <!-- Filter Bar -->
-    <div class="px-4 py-2 border-b border-slate-100 bg-white flex flex-wrap items-center gap-3">
+    <div class="px-4 py-2 border-b border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card flex flex-wrap items-center gap-3">
       <!-- Search -->
       <div class="relative">
-        <Icon name="heroicons:magnifying-glass" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Icon name="heroicons:magnifying-glass" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500" />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search tasks..."
-          class="w-48 pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+          class="w-48 pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-white/[0.04] dark:text-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20 focus:border-blue-300 dark:focus:border-blue-500/30"
         />
       </div>
       
@@ -494,23 +494,23 @@ function handleRowClick(item: FlatItem) {
       <div class="relative group">
         <button 
           class="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg transition-colors"
-          :class="statusFilter.length ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'"
+          :class="statusFilter.length ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-white/[0.08]'"
         >
           Status
-          <span v-if="statusFilter.length" class="bg-blue-200 text-blue-800 px-1 rounded text-[10px]">{{ statusFilter.length }}</span>
+          <span v-if="statusFilter.length" class="bg-blue-200 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 px-1 rounded text-[10px]">{{ statusFilter.length }}</span>
           <Icon name="heroicons:chevron-down" class="w-3 h-3" />
         </button>
-        <div class="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[140px]">
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[140px]">
           <label
             v-for="status in availableStatuses"
             :key="status"
-            class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer"
+            class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer"
           >
             <input
               type="checkbox"
               :value="status"
               v-model="statusFilter"
-              class="rounded border-slate-300 text-blue-500 focus:ring-blue-200"
+              class="rounded border-slate-300 dark:border-white/[0.08] text-blue-500 focus:ring-blue-200"
             />
             <span 
               class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
@@ -526,25 +526,25 @@ function handleRowClick(item: FlatItem) {
       <div v-if="availableCategories.length" class="relative group">
         <button 
           class="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg transition-colors"
-          :class="categoryFilter.length ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'"
+          :class="categoryFilter.length ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-white/[0.08]'"
         >
           Category
-          <span v-if="categoryFilter.length" class="bg-blue-200 text-blue-800 px-1 rounded text-[10px]">{{ categoryFilter.length }}</span>
+          <span v-if="categoryFilter.length" class="bg-blue-200 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 px-1 rounded text-[10px]">{{ categoryFilter.length }}</span>
           <Icon name="heroicons:chevron-down" class="w-3 h-3" />
         </button>
-        <div class="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[140px]">
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[140px]">
           <label
             v-for="cat in availableCategories"
             :key="cat"
-            class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer"
+            class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer"
           >
             <input
               type="checkbox"
               :value="cat"
               v-model="categoryFilter"
-              class="rounded border-slate-300 text-blue-500 focus:ring-blue-200"
+              class="rounded border-slate-300 dark:border-white/[0.08] text-blue-500 focus:ring-blue-200"
             />
-            <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400'" />
+            <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400 dark:bg-zinc-500'" />
             {{ cat }}
           </label>
         </div>
@@ -554,23 +554,23 @@ function handleRowClick(item: FlatItem) {
       <div class="relative group">
         <button 
           class="flex items-center gap-1.5 px-3 py-1.5 text-xs border rounded-lg transition-colors"
-          :class="riskFilter.length ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'"
+          :class="riskFilter.length ? 'border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-white/[0.08]'"
         >
           Risk
-          <span v-if="riskFilter.length" class="bg-blue-200 text-blue-800 px-1 rounded text-[10px]">{{ riskFilter.length }}</span>
+          <span v-if="riskFilter.length" class="bg-blue-200 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 px-1 rounded text-[10px]">{{ riskFilter.length }}</span>
           <Icon name="heroicons:chevron-down" class="w-3 h-3" />
         </button>
-        <div class="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[120px]">
-          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer">
-            <input type="checkbox" value="high" v-model="riskFilter" class="rounded border-slate-300 text-blue-500" />
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg shadow-lg py-1 z-20 hidden group-hover:block min-w-[120px]">
+          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer">
+            <input type="checkbox" value="high" v-model="riskFilter" class="rounded border-slate-300 dark:border-white/[0.08] text-blue-500" />
             🔴 High
           </label>
-          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer">
-            <input type="checkbox" value="medium" v-model="riskFilter" class="rounded border-slate-300 text-blue-500" />
+          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer">
+            <input type="checkbox" value="medium" v-model="riskFilter" class="rounded border-slate-300 dark:border-white/[0.08] text-blue-500" />
             🟡 Medium
           </label>
-          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 cursor-pointer">
-            <input type="checkbox" value="low" v-model="riskFilter" class="rounded border-slate-300 text-blue-500" />
+          <label class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer">
+            <input type="checkbox" value="low" v-model="riskFilter" class="rounded border-slate-300 dark:border-white/[0.08] text-blue-500" />
             🟢 Low
           </label>
         </div>
@@ -584,21 +584,21 @@ function handleRowClick(item: FlatItem) {
         <button
           @click="applyPreset('needs-attention')"
           class="px-2 py-1 text-xs rounded transition-colors"
-          :class="activePreset === 'needs-attention' ? 'bg-rose-100 text-rose-700' : 'text-slate-500 hover:bg-slate-100'"
+          :class="activePreset === 'needs-attention' ? 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
         >
           🔥 Needs Attention
         </button>
         <button
           @click="applyPreset('at-risk')"
           class="px-2 py-1 text-xs rounded transition-colors"
-          :class="activePreset === 'at-risk' ? 'bg-amber-100 text-amber-700' : 'text-slate-500 hover:bg-slate-100'"
+          :class="activePreset === 'at-risk' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
         >
           ⚠️ At Risk
         </button>
         <button
           @click="applyPreset('due-this-week')"
           class="px-2 py-1 text-xs rounded transition-colors"
-          :class="activePreset === 'due-this-week' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'"
+          :class="activePreset === 'due-this-week' ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400' : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
         >
           📅 Due This Week
         </button>
@@ -608,7 +608,7 @@ function handleRowClick(item: FlatItem) {
       <button
         v-if="hasActiveFilters"
         @click="clearFilters"
-        class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+        class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded transition-colors"
       >
         <Icon name="heroicons:x-mark" class="w-3 h-3" />
         Clear
@@ -616,42 +616,42 @@ function handleRowClick(item: FlatItem) {
     </div>
     
     <!-- Table Header (Sortable) -->
-    <div class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,90px,50px,110px,100px] gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
-      <button @click="toggleSort('title')" class="pl-2 text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+    <div class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,90px,50px,110px,100px] gap-3 px-4 py-2 border-b border-slate-200 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.04] text-xs font-medium text-slate-500 dark:text-zinc-400 uppercase tracking-wide">
+      <button @click="toggleSort('title')" class="pl-2 text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Task
         <Icon v-if="sortColumn === 'title'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
-      <button @click="toggleSort('status')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+      <button @click="toggleSort('status')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Status
         <Icon v-if="sortColumn === 'status'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
       <div class="text-left">Stage</div>
-      <button @click="toggleSort('progress')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+      <button @click="toggleSort('progress')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Progress
         <Icon v-if="sortColumn === 'progress'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
-      <button @click="toggleSort('confidence')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+      <button @click="toggleSort('confidence')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Conf.
         <Icon v-if="sortColumn === 'confidence'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
       <div>Est. Completion</div>
-      <button @click="toggleSort('dueDate')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+      <button @click="toggleSort('dueDate')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Due
         <Icon v-if="sortColumn === 'dueDate'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
-      <button @click="toggleSort('priority')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+      <button @click="toggleSort('priority')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Priority
         <Icon v-if="sortColumn === 'priority'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
-      <button @click="toggleSort('risk')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+      <button @click="toggleSort('risk')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Risk
         <Icon v-if="sortColumn === 'risk'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
-      <button @click="toggleSort('assignee')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors" title="Task Owner - primary responsible person">
+      <button @click="toggleSort('assignee')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors" title="Task Owner - primary responsible person">
         Owner
         <Icon v-if="sortColumn === 'assignee'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
-      <button @click="toggleSort('category')" class="text-left flex items-center gap-1 hover:text-slate-700 transition-colors">
+      <button @click="toggleSort('category')" class="text-left flex items-center gap-1 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors">
         Category
         <Icon v-if="sortColumn === 'category'" :name="sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-3 h-3" />
       </button>
@@ -662,7 +662,7 @@ function handleRowClick(item: FlatItem) {
       <div
         v-for="item in flattenedItems"
         :key="item.id"
-        class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,90px,50px,110px,100px] gap-3 px-4 py-2.5 border-b border-slate-50 hover:bg-slate-50/80 cursor-pointer transition-colors items-center group"
+        class="grid grid-cols-[minmax(200px,400px),100px,80px,120px,80px,130px,90px,90px,50px,110px,100px] gap-3 px-4 py-2.5 border-b border-slate-50 dark:border-white/[0.04] hover:bg-slate-50/80 dark:hover:bg-white/[0.04] cursor-pointer transition-colors items-center group"
         :class="[
           item.status === 'done' ? 'opacity-60' : '',
           item.status === 'blocked' ? 'border-l-2 border-l-rose-400' : '',
@@ -678,11 +678,11 @@ function handleRowClick(item: FlatItem) {
           <button
             v-if="item.hasChildren"
             @click="toggleExpand(item.id, $event)"
-            class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 transition-colors"
+            class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-white/[0.06] transition-colors"
           >
             <Icon 
               name="heroicons:chevron-right" 
-              class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+              class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 transition-transform duration-200"
               :class="item.isExpanded ? 'rotate-90' : ''"
             />
           </button>
@@ -699,7 +699,7 @@ function handleRowClick(item: FlatItem) {
           <span 
             class="truncate text-sm"
             :class="[
-              item.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-800',
+              item.status === 'done' ? 'text-slate-400 dark:text-zinc-500 line-through' : 'text-slate-800 dark:text-zinc-200',
               item.depth === 0 ? 'font-medium' : 'font-normal'
             ]"
           >
@@ -709,7 +709,7 @@ function handleRowClick(item: FlatItem) {
           <!-- Children count badge -->
           <span 
             v-if="item.hasChildren && !item.isExpanded"
-            class="flex-shrink-0 text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded"
+            class="flex-shrink-0 text-[10px] text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-white/[0.08] px-1.5 py-0.5 rounded"
           >
             {{ item.childrenCount || item.children?.length || 0 }}
           </span>
@@ -719,7 +719,7 @@ function handleRowClick(item: FlatItem) {
         <div>
           <span 
             class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium"
-            :class="STATUS_CONFIG[item.status]?.color || 'bg-slate-100 text-slate-600'"
+            :class="STATUS_CONFIG[item.status]?.color || 'bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-zinc-400'"
           >
             {{ STATUS_CONFIG[item.status]?.label || item.status }}
           </span>
@@ -730,27 +730,27 @@ function handleRowClick(item: FlatItem) {
           <span 
             v-if="item.subStatus && SUB_STATUS_CONFIG[item.subStatus]"
             class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium"
-            :class="SUB_STATUS_CONFIG[item.subStatus]?.color || 'bg-slate-100 text-slate-500'"
+            :class="SUB_STATUS_CONFIG[item.subStatus]?.color || 'bg-slate-100 dark:bg-white/[0.08] text-slate-500 dark:text-zinc-400'"
           >
             {{ SUB_STATUS_CONFIG[item.subStatus]?.label || item.subStatus }}
           </span>
-          <span v-else class="text-xs text-slate-300">—</span>
+          <span v-else class="text-xs text-slate-300 dark:text-zinc-600">—</span>
         </div>
-        
+
         <!-- Progress -->
         <div class="flex items-center gap-2">
-          <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
             <div 
               class="h-full rounded-full transition-all"
               :class="[
                 item.progress >= 80 ? 'bg-emerald-400' :
                 item.progress >= 50 ? 'bg-blue-400' :
-                item.progress >= 25 ? 'bg-amber-400' : 'bg-slate-300'
+                item.progress >= 25 ? 'bg-amber-400' : 'bg-slate-300 dark:bg-zinc-600'
               ]"
               :style="{ width: `${item.progress || 0}%` }"
             />
           </div>
-          <span class="text-xs text-slate-500 w-8 text-right">{{ item.progress || 0 }}%</span>
+          <span class="text-xs text-slate-500 dark:text-zinc-400 w-8 text-right">{{ item.progress || 0 }}%</span>
         </div>
         
         <!-- Confidence -->
@@ -764,11 +764,11 @@ function handleRowClick(item: FlatItem) {
           >
             {{ (item.confidence ?? 70) >= 67 ? '●●●' : (item.confidence ?? 70) >= 34 ? '●●○' : '●○○' }}
           </span>
-          <span class="text-[10px] text-slate-400">{{ item.confidence ?? 70 }}%</span>
+          <span class="text-[10px] text-slate-400 dark:text-zinc-500">{{ item.confidence ?? 70 }}%</span>
         </div>
         
         <!-- Est. Completion -->
-        <div class="text-xs" :class="item.needsEstimate ? 'text-slate-400' : 'text-slate-600'">
+        <div class="text-xs" :class="item.needsEstimate ? 'text-slate-400 dark:text-zinc-500' : 'text-slate-600 dark:text-zinc-400'">
           {{ item.needsEstimate ? 'Needs estimate' : formatDateRange(getEstimatedCompletion(item)) }}
         </div>
         
@@ -778,7 +778,7 @@ function handleRowClick(item: FlatItem) {
           :class="[
             item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'done'
               ? 'text-rose-500 font-medium'
-              : 'text-slate-600'
+              : 'text-slate-600 dark:text-zinc-400'
           ]"
         >
           {{ formatDate(item.dueDate) }}
@@ -788,9 +788,9 @@ function handleRowClick(item: FlatItem) {
         <div class="flex items-center gap-1.5">
           <div
             class="w-2 h-2 rounded-full flex-shrink-0"
-            :class="priorityDotColors[item.priority ?? 'MEDIUM'] || 'bg-slate-300'"
+            :class="priorityDotColors[item.priority ?? 'MEDIUM'] || 'bg-slate-300 dark:bg-zinc-600'"
           />
-          <span class="text-xs text-slate-600 truncate">
+          <span class="text-xs text-slate-600 dark:text-zinc-400 truncate">
             {{ priorityLabelMap[item.priority ?? 'MEDIUM'] ?? 'Medium' }}
           </span>
         </div>
@@ -804,44 +804,44 @@ function handleRowClick(item: FlatItem) {
           >
             {{ item.riskLevel === 'high' ? '🔴' : item.riskLevel === 'medium' ? '🟡' : '🟢' }}
           </span>
-          <span v-else class="text-slate-300">—</span>
+          <span v-else class="text-slate-300 dark:text-zinc-600">—</span>
         </div>
-        
+
         <!-- Assignee -->
         <div class="flex items-center gap-1.5">
           <template v-if="item.assignee">
             <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
               <span class="text-[9px] text-white font-medium">{{ item.assignee.name?.[0] || '?' }}</span>
             </div>
-            <span class="text-xs text-slate-600 truncate">{{ item.assignee.name?.split(' ')[0] }}</span>
+            <span class="text-xs text-slate-600 dark:text-zinc-400 truncate">{{ item.assignee.name?.split(' ')[0] }}</span>
           </template>
-          <span v-else class="text-xs text-slate-300">—</span>
+          <span v-else class="text-xs text-slate-300 dark:text-zinc-600">—</span>
         </div>
-        
+
         <!-- Category -->
         <div class="flex items-center gap-1.5">
           <template v-if="item.category">
             <div 
               class="w-2 h-2 rounded-full flex-shrink-0"
-              :class="categoryDotColors[item.category] || 'bg-slate-400'"
+              :class="categoryDotColors[item.category] || 'bg-slate-400 dark:bg-zinc-500'"
             />
-            <span class="text-xs text-slate-600 truncate">{{ item.category }}</span>
+            <span class="text-xs text-slate-600 dark:text-zinc-400 truncate">{{ item.category }}</span>
           </template>
-          <span v-else class="text-xs text-slate-300">—</span>
+          <span v-else class="text-xs text-slate-300 dark:text-zinc-600">—</span>
         </div>
       </div>
       
       <!-- Empty state -->
       <div 
         v-if="flattenedItems.length === 0"
-        class="flex flex-col items-center justify-center py-16 text-slate-400"
+        class="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-zinc-500"
       >
         <Icon :name="hasActiveFilters ? 'heroicons:funnel' : 'heroicons:clipboard-document-list'" class="w-12 h-12 mb-4 opacity-50" />
         <p class="text-sm">{{ hasActiveFilters ? 'No items match your filters' : 'No items to display' }}</p>
         <button
           v-if="hasActiveFilters"
           @click="clearFilters"
-          class="mt-3 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+          class="mt-3 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
         >
           Clear filters
         </button>
