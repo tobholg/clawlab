@@ -361,11 +361,11 @@ const roleOptions = [
 
 const getRoleColor = (role: string) => {
   switch (role) {
-    case 'OWNER': return 'bg-amber-100 text-amber-700'
-    case 'ADMIN': return 'bg-blue-100 text-blue-700'
-    case 'MEMBER': return 'bg-slate-100 text-slate-700'
-    case 'VIEWER': return 'bg-slate-100 text-slate-500'
-    default: return 'bg-slate-100 text-slate-700'
+    case 'OWNER': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+    case 'ADMIN': return 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+    case 'MEMBER': return 'bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-zinc-300'
+    case 'VIEWER': return 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-zinc-400'
+    default: return 'bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-zinc-300'
   }
 }
 
@@ -411,13 +411,13 @@ onMounted(() => {
 
 <template>
   <header class="relative z-10 px-6 py-5">
-    <h1 class="text-xl font-medium text-slate-900">Workspace Settings</h1>
-    <p class="text-sm text-slate-500 mt-0.5">Manage your workspace configuration and members</p>
+    <h1 class="text-xl font-medium text-slate-900 dark:text-zinc-100">Workspace Settings</h1>
+    <p class="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">Manage your workspace configuration and members</p>
   </header>
 
   <div class="flex-1 overflow-auto px-6 pb-6">
     <!-- Tabs -->
-    <div class="flex gap-1 mb-6 border-b border-slate-200">
+    <div class="flex gap-1 mb-6 border-b border-slate-200 dark:border-white/[0.06]">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -425,8 +425,8 @@ onMounted(() => {
         :class="[
           'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
           activeTab === tab.key
-            ? 'border-slate-900 text-slate-900'
-            : 'border-transparent text-slate-500 hover:text-slate-700'
+            ? 'border-slate-900 text-slate-900 dark:border-zinc-100 dark:text-zinc-100'
+            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-300'
         ]"
       >
         <Icon :name="tab.icon" class="w-4 h-4" />
@@ -436,51 +436,51 @@ onMounted(() => {
 
     <!-- General Settings -->
     <div v-if="activeTab === 'general'" class="max-w-2xl">
-      <div v-if="loading" class="flex items-center gap-2 text-sm text-slate-500 py-8">
+      <div v-if="loading" class="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400 py-8">
         <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
         Loading workspace...
       </div>
 
       <div v-else class="space-y-6">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Workspace name</label>
+          <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Workspace name</label>
           <input
             v-model="editName"
             type="text"
             :disabled="!isOwner"
-            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 disabled:opacity-50 disabled:bg-slate-50"
+            class="w-full px-3 py-2 border border-slate-200 dark:border-white/[0.06] rounded-lg text-sm dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-zinc-600 focus:border-slate-300 disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-white/[0.04]"
             placeholder="Workspace name"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+          <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Description</label>
           <textarea
             v-model="editDescription"
             :disabled="!isOwner"
             rows="3"
-            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 resize-none disabled:opacity-50 disabled:bg-slate-50"
+            class="w-full px-3 py-2 border border-slate-200 dark:border-white/[0.06] rounded-lg text-sm dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-zinc-600 focus:border-slate-300 resize-none disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-white/[0.04]"
             placeholder="Optional workspace description..."
           />
         </div>
 
-        <div v-if="workspace" class="pt-4 border-t border-slate-100">
+        <div v-if="workspace" class="pt-4 border-t border-slate-100 dark:border-white/[0.06]">
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span class="text-slate-500">Organization</span>
-              <p class="text-slate-900 font-medium">{{ workspace.organizationName }}</p>
+              <span class="text-slate-500 dark:text-zinc-400">Organization</span>
+              <p class="text-slate-900 dark:text-zinc-100 font-medium">{{ workspace.organizationName }}</p>
             </div>
             <div>
-              <span class="text-slate-500">Created</span>
-              <p class="text-slate-900 font-medium">{{ new Date(workspace.createdAt).toLocaleDateString() }}</p>
+              <span class="text-slate-500 dark:text-zinc-400">Created</span>
+              <p class="text-slate-900 dark:text-zinc-100 font-medium">{{ new Date(workspace.createdAt).toLocaleDateString() }}</p>
             </div>
             <div>
-              <span class="text-slate-500">Members</span>
-              <p class="text-slate-900 font-medium">{{ workspace.memberCount }}</p>
+              <span class="text-slate-500 dark:text-zinc-400">Members</span>
+              <p class="text-slate-900 dark:text-zinc-100 font-medium">{{ workspace.memberCount }}</p>
             </div>
             <div>
-              <span class="text-slate-500">Items</span>
-              <p class="text-slate-900 font-medium">{{ workspace.itemCount }}</p>
+              <span class="text-slate-500 dark:text-zinc-400">Items</span>
+              <p class="text-slate-900 dark:text-zinc-100 font-medium">{{ workspace.itemCount }}</p>
             </div>
           </div>
         </div>
@@ -489,7 +489,7 @@ onMounted(() => {
           <button
             @click="saveWorkspace"
             :disabled="saving"
-            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
+            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
           >
             {{ saving ? 'Saving...' : 'Save changes' }}
           </button>
@@ -504,37 +504,37 @@ onMounted(() => {
     <!-- Members -->
     <div v-if="activeTab === 'members'" class="max-w-3xl">
       <!-- Invite form -->
-      <div v-if="isAdmin" class="mb-6 p-4 bg-white rounded-xl border border-slate-200">
+      <div v-if="isAdmin" class="mb-6 p-4 bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06]">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-slate-900">Invite a member</h3>
-          <span v-if="availableInternalSeats > 0" class="text-xs text-slate-500">
+          <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Invite a member</h3>
+          <span v-if="availableInternalSeats > 0" class="text-xs text-slate-500 dark:text-zinc-400">
             {{ availableInternalSeats }} {{ availableInternalSeats === 1 ? 'seat' : 'seats' }} available
           </span>
           <button
             v-else-if="isOwner"
             @click="showBuySeats = true"
-            class="text-xs text-slate-900 font-medium underline underline-offset-2 hover:text-slate-700"
+            class="text-xs text-slate-900 dark:text-zinc-100 font-medium underline underline-offset-2 hover:text-slate-700 dark:hover:text-zinc-300"
           >
             Purchase seats
           </button>
-          <span v-else class="text-xs text-amber-600">No seats available</span>
+          <span v-else class="text-xs text-amber-600 dark:text-amber-400">No seats available</span>
         </div>
         <form @submit.prevent="inviteMember" class="flex items-end gap-3">
           <div class="flex-1">
-            <label class="block text-xs text-slate-500 mb-1">Email address</label>
+            <label class="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Email address</label>
             <input
               v-model="inviteEmail"
               type="email"
               required
               placeholder="colleague@company.com"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-white/[0.06] rounded-lg text-sm dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-zinc-600 focus:border-slate-300"
             />
           </div>
           <div class="w-32">
-            <label class="block text-xs text-slate-500 mb-1">Role</label>
+            <label class="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Role</label>
             <select
               v-model="inviteRole"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-white/[0.06] rounded-lg text-sm bg-white dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-zinc-600 focus:border-slate-300"
             >
               <option value="ADMIN">Admin</option>
               <option value="MEMBER">Member</option>
@@ -544,7 +544,7 @@ onMounted(() => {
           <button
             type="submit"
             :disabled="inviting || !inviteEmail.trim()"
-            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 whitespace-nowrap"
+            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {{ inviting ? 'Inviting...' : 'Send invite' }}
           </button>
@@ -562,7 +562,7 @@ onMounted(() => {
             </p>
             <button
               @click="copyInviteLink"
-              class="text-xs px-2 py-0.5 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors flex items-center gap-1"
+              class="text-xs px-2 py-0.5 bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-zinc-300 rounded hover:bg-slate-200 dark:hover:bg-white/[0.06] transition-colors flex items-center gap-1"
             >
               <Icon :name="copiedLink ? 'heroicons:check' : 'heroicons:clipboard'" class="w-3 h-3" />
               {{ copiedLink ? 'Copied!' : 'Copy link' }}
@@ -572,23 +572,23 @@ onMounted(() => {
       </div>
 
       <!-- Pending invites -->
-      <div v-if="isAdmin && pendingInvites.length" class="mb-6 p-4 bg-white rounded-xl border border-slate-200">
-        <h3 class="text-sm font-medium text-slate-900 mb-3">
+      <div v-if="isAdmin && pendingInvites.length" class="mb-6 p-4 bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06]">
+        <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100 mb-3">
           Pending invites
-          <span class="text-slate-400 font-normal">({{ pendingInvites.length }})</span>
+          <span class="text-slate-400 dark:text-zinc-500 font-normal">({{ pendingInvites.length }})</span>
         </h3>
         <div class="space-y-2">
           <div
             v-for="inv in pendingInvites"
             :key="inv.id"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50"
+            class="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 dark:bg-white/[0.04]"
           >
-            <div class="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <Icon name="heroicons:envelope" class="w-3.5 h-3.5 text-amber-600" />
+            <div class="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+              <Icon name="heroicons:envelope" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm text-slate-900 truncate">{{ inv.email }}</div>
-              <div class="text-xs text-slate-400">
+              <div class="text-sm text-slate-900 dark:text-zinc-100 truncate">{{ inv.email }}</div>
+              <div class="text-xs text-slate-400 dark:text-zinc-500">
                 {{ inv.role }} &middot; {{ formatExpiry(inv.expiresAt) }}
                 <span v-if="inv.workspace"> &middot; {{ inv.workspace.name }}</span>
               </div>
@@ -596,7 +596,7 @@ onMounted(() => {
             <button
               @click="handleCancelInvite(inv.id)"
               :disabled="cancellingInvite === inv.id"
-              class="text-xs px-2 py-0.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+              class="text-xs px-2 py-0.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
             >
               {{ cancellingInvite === inv.id ? '...' : 'Cancel' }}
             </button>
@@ -604,7 +604,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="membersLoading" class="flex items-center gap-2 text-sm text-slate-500 py-8">
+      <div v-if="membersLoading" class="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400 py-8">
         <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
         Loading members...
       </div>
@@ -615,22 +615,22 @@ onMounted(() => {
           <div
             v-for="member in activeMembers"
             :key="member.id"
-            class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-slate-50 transition-colors"
+            class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
           >
             <!-- Avatar -->
-            <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-              <span class="text-xs font-medium text-slate-600">
+            <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+              <span class="text-xs font-medium text-slate-600 dark:text-zinc-400">
                 {{ (member.name || member.email)?.[0]?.toUpperCase() || '?' }}
               </span>
             </div>
 
             <!-- Info -->
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-900 truncate">
+              <div class="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">
                 {{ member.name || member.email }}
-                <span v-if="member.userId === user?.id" class="text-slate-400 font-normal">(you)</span>
+                <span v-if="member.userId === user?.id" class="text-slate-400 dark:text-zinc-500 font-normal">(you)</span>
               </div>
-              <div class="text-xs text-slate-500 truncate">{{ member.email }}</div>
+              <div class="text-xs text-slate-500 dark:text-zinc-400 truncate">{{ member.email }}</div>
             </div>
 
             <!-- Role badge / selector -->
@@ -646,7 +646,7 @@ onMounted(() => {
                 :value="member.role"
                 @change="updateMemberRole(member.userId, ($event.target as HTMLSelectElement).value)"
                 :disabled="updatingRole === member.userId"
-                class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
+                class="text-xs border border-slate-200 dark:border-white/[0.06] rounded-md px-2 py-1 bg-white dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600"
               >
                 <option v-for="opt in roleOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -656,7 +656,7 @@ onMounted(() => {
                 <button
                   v-if="confirmDeactivate !== member.userId"
                   @click="confirmDeactivate = member.userId"
-                  class="p-1 text-slate-400 hover:text-amber-500 transition-colors rounded"
+                  class="p-1 text-slate-400 dark:text-zinc-500 hover:text-amber-500 dark:hover:text-amber-400 transition-colors rounded"
                   title="Deactivate member"
                 >
                   <Icon name="heroicons:pause-circle" class="w-4 h-4" />
@@ -671,7 +671,7 @@ onMounted(() => {
                   </button>
                   <button
                     @click="confirmDeactivate = null"
-                    class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-colors"
+                    class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-white/[0.08] dark:text-zinc-400 rounded hover:bg-slate-200 dark:hover:bg-white/[0.06] transition-colors"
                   >
                     Cancel
                   </button>
@@ -680,7 +680,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-if="!activeMembers.length" class="py-8 text-center text-sm text-slate-500">
+          <div v-if="!activeMembers.length" class="py-8 text-center text-sm text-slate-500 dark:text-zinc-400">
             No active members found
           </div>
         </div>
@@ -689,7 +689,7 @@ onMounted(() => {
         <div v-if="deactivatedMembers.length" class="mt-4">
           <button
             @click="showDeactivated = !showDeactivated"
-            class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors mb-2"
+            class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-300 transition-colors mb-2"
           >
             <Icon
               :name="showDeactivated ? 'heroicons:chevron-down' : 'heroicons:chevron-right'"
@@ -702,26 +702,26 @@ onMounted(() => {
             <div
               v-for="member in deactivatedMembers"
               :key="member.id"
-              class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-slate-50 transition-colors opacity-60"
+              class="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors opacity-60"
             >
               <!-- Avatar -->
-              <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                <span class="text-xs font-medium text-slate-400">
+              <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                <span class="text-xs font-medium text-slate-400 dark:text-zinc-500">
                   {{ (member.name || member.email)?.[0]?.toUpperCase() || '?' }}
                 </span>
               </div>
 
               <!-- Info -->
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-slate-500 truncate">
+                <div class="text-sm font-medium text-slate-500 dark:text-zinc-400 truncate">
                   {{ member.name || member.email }}
                 </div>
-                <div class="text-xs text-slate-400 truncate">{{ member.email }}</div>
+                <div class="text-xs text-slate-400 dark:text-zinc-500 truncate">{{ member.email }}</div>
               </div>
 
               <!-- Status + role badges -->
               <div class="flex items-center gap-2">
-                <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 dark:bg-white/[0.08] dark:text-zinc-500">
                   Deactivated
                 </span>
                 <span :class="['text-xs font-medium px-2 py-0.5 rounded-full', getRoleColor(member.role)]">
@@ -746,76 +746,76 @@ onMounted(() => {
 
     <!-- External Users -->
     <div v-if="activeTab === 'external'" class="max-w-3xl">
-      <div v-if="externalLoading" class="flex items-center gap-2 text-sm text-slate-500 py-8">
+      <div v-if="externalLoading" class="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400 py-8">
         <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
         Loading external users...
       </div>
 
       <div v-else-if="!externalSpaces.length" class="py-12 text-center">
-        <Icon name="heroicons:globe-alt" class="w-8 h-8 text-slate-300 mx-auto mb-3" />
-        <p class="text-sm text-slate-500">No external spaces configured yet</p>
-        <p class="text-xs text-slate-400 mt-1">Create an external space in a project to invite stakeholders</p>
+        <Icon name="heroicons:globe-alt" class="w-8 h-8 text-slate-300 dark:text-zinc-600 mx-auto mb-3" />
+        <p class="text-sm text-slate-500 dark:text-zinc-400">No external spaces configured yet</p>
+        <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">Create an external space in a project to invite stakeholders</p>
       </div>
 
       <div v-else class="space-y-4">
-        <p class="text-sm text-slate-500">
+        <p class="text-sm text-slate-500 dark:text-zinc-400">
           {{ totalExternalUsers }} external {{ totalExternalUsers === 1 ? 'user' : 'users' }} across {{ externalSpaces.length }} {{ externalSpaces.length === 1 ? 'space' : 'spaces' }}
         </p>
 
         <div
           v-for="space in externalSpaces"
           :key="space.id"
-          class="bg-white rounded-xl border border-slate-200 overflow-hidden"
+          class="bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06] overflow-hidden"
         >
           <!-- Space header -->
           <button
             @click="toggleSpace(space.id)"
-            class="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+            class="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors text-left"
           >
-            <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-              <Icon name="heroicons:globe-alt" class="w-4 h-4 text-slate-500" />
+            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+              <Icon name="heroicons:globe-alt" class="w-4 h-4 text-slate-500 dark:text-zinc-400" />
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-900 truncate">{{ space.name }}</div>
-              <div class="text-xs text-slate-500 truncate">
+              <div class="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">{{ space.name }}</div>
+              <div class="text-xs text-slate-500 dark:text-zinc-400 truncate">
                 {{ space.project.title }}
-                <span class="text-slate-300 mx-1">&middot;</span>
+                <span class="text-slate-300 dark:text-zinc-600 mx-1">&middot;</span>
                 {{ space.stakeholders.length }} {{ space.stakeholders.length === 1 ? 'user' : 'users' }}
               </div>
             </div>
             <Icon
               :name="collapsedSpaces.has(space.id) ? 'heroicons:chevron-down' : 'heroicons:chevron-up'"
-              class="w-4 h-4 text-slate-400 flex-shrink-0"
+              class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex-shrink-0"
             />
           </button>
 
           <!-- Stakeholders -->
-          <div v-if="!collapsedSpaces.has(space.id)" class="border-t border-slate-100">
-            <div v-if="!space.stakeholders.length" class="px-5 py-4 text-sm text-slate-400 italic">
+          <div v-if="!collapsedSpaces.has(space.id)" class="border-t border-slate-100 dark:border-white/[0.06]">
+            <div v-if="!space.stakeholders.length" class="px-5 py-4 text-sm text-slate-400 dark:text-zinc-500 italic">
               No external users in this space
             </div>
 
             <div
               v-for="stakeholder in space.stakeholders"
               :key="stakeholder.userId"
-              class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
+              class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors border-b border-slate-50 dark:border-white/[0.06] last:border-b-0"
             >
               <!-- Avatar -->
-              <div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                <span class="text-[10px] font-medium text-slate-600">
+              <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                <span class="text-[10px] font-medium text-slate-600 dark:text-zinc-400">
                   {{ (stakeholder.name || stakeholder.email)?.[0]?.toUpperCase() || '?' }}
                 </span>
               </div>
 
               <!-- Info -->
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-slate-900 truncate">
+                <div class="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">
                   {{ stakeholder.name || stakeholder.email }}
                 </div>
-                <div class="text-xs text-slate-500 truncate flex items-center gap-1.5">
+                <div class="text-xs text-slate-500 dark:text-zinc-400 truncate flex items-center gap-1.5">
                   {{ stakeholder.email }}
-                  <span v-if="stakeholder.position" class="text-slate-300">&middot;</span>
-                  <span v-if="stakeholder.position" class="text-slate-400">{{ stakeholder.position }}</span>
+                  <span v-if="stakeholder.position" class="text-slate-300 dark:text-zinc-600">&middot;</span>
+                  <span v-if="stakeholder.position" class="text-slate-400 dark:text-zinc-500">{{ stakeholder.position }}</span>
                 </div>
               </div>
 
@@ -828,8 +828,8 @@ onMounted(() => {
                   :class="[
                     'text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors',
                     (stakeholder.canSubmitTasks ?? space.allowTaskSubmission)
-                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-white/[0.08] dark:text-zinc-400 dark:hover:bg-white/[0.06]'
                   ]"
                   :title="(stakeholder.canSubmitTasks ?? space.allowTaskSubmission) ? 'Can submit tasks (click to revoke)' : 'Cannot submit tasks (click to grant)'"
                 >
@@ -841,7 +841,7 @@ onMounted(() => {
                   <button
                     v-if="confirmRemoveStakeholder !== `${space.id}-${stakeholder.userId}`"
                     @click.stop="confirmRemoveStakeholder = `${space.id}-${stakeholder.userId}`"
-                    class="p-1 text-slate-400 hover:text-red-500 transition-colors rounded"
+                    class="p-1 text-slate-400 dark:text-zinc-500 hover:text-red-500 transition-colors rounded"
                     title="Remove from space"
                   >
                     <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
@@ -856,7 +856,7 @@ onMounted(() => {
                     </button>
                     <button
                       @click="confirmRemoveStakeholder = null"
-                      class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-colors"
+                      class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-white/[0.08] dark:text-zinc-400 rounded hover:bg-slate-200 dark:hover:bg-white/[0.06] transition-colors"
                     >
                       Cancel
                     </button>
@@ -870,8 +870,8 @@ onMounted(() => {
                   :class="[
                     'text-[10px] font-medium px-2 py-0.5 rounded-full',
                     (stakeholder.canSubmitTasks ?? space.allowTaskSubmission)
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-slate-100 text-slate-500'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                      : 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-zinc-400'
                   ]"
                 >
                   {{ (stakeholder.canSubmitTasks ?? space.allowTaskSubmission) ? 'Can submit tasks' : 'View only' }}

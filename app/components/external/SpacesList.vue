@@ -98,12 +98,12 @@ defineExpose({ refresh: fetchSpaces })
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-sm font-medium text-slate-900">External Spaces</h2>
-        <p class="text-xs text-slate-500 mt-0.5">Create portals for clients, investors, and partners</p>
+        <h2 class="text-sm font-medium text-slate-900 dark:text-zinc-100">External Spaces</h2>
+        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Create portals for clients, investors, and partners</p>
       </div>
       <button
         @click="showCreateModal = true"
-        class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-normal rounded-lg hover:bg-slate-800 transition-colors"
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-normal rounded-lg hover:bg-slate-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
       >
         <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
         <span>New Space</span>
@@ -112,28 +112,28 @@ defineExpose({ refresh: fetchSpaces })
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="w-6 h-6 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+      <div class="w-6 h-6 border-2 border-slate-200 border-t-slate-600 dark:border-white/[0.06] dark:border-t-zinc-300 rounded-full animate-spin" />
     </div>
 
     <!-- Error State -->
     <div v-else-if="error" class="text-center py-12">
       <Icon name="heroicons:exclamation-circle" class="w-8 h-8 text-red-400 mx-auto mb-2" />
-      <p class="text-sm text-slate-600">{{ error }}</p>
-      <button @click="fetchSpaces" class="text-xs text-blue-600 hover:underline mt-2">
+      <p class="text-sm text-slate-600 dark:text-zinc-400">{{ error }}</p>
+      <button @click="fetchSpaces" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2">
         Try again
       </button>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="spaces.length === 0" class="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-      <Icon name="heroicons:globe-alt" class="w-10 h-10 text-slate-300 mx-auto mb-3" />
-      <h3 class="text-sm font-medium text-slate-600 mb-1">No external spaces yet</h3>
-      <p class="text-xs text-slate-400 mb-4 max-w-xs mx-auto">
+    <div v-else-if="spaces.length === 0" class="text-center py-12 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06]">
+      <Icon name="heroicons:globe-alt" class="w-10 h-10 text-slate-300 dark:text-zinc-600 mx-auto mb-3" />
+      <h3 class="text-sm font-medium text-slate-600 dark:text-zinc-300 mb-1">No external spaces yet</h3>
+      <p class="text-xs text-slate-400 dark:text-zinc-500 mb-4 max-w-xs mx-auto">
         Create spaces to give clients, investors, or partners a window into your project
       </p>
       <button
         @click="showCreateModal = true"
-        class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
       >
         <Icon name="heroicons:plus" class="w-4 h-4" />
         Create your first space

@@ -259,23 +259,23 @@ const formatDate = (dateStr: string) => {
 // Type badge colors
 const typeBadgeClass = (type: string) => {
   switch (type) {
-    case 'task': return 'bg-blue-100 text-blue-700'
-    case 'question': return 'bg-amber-100 text-amber-700'
-    case 'suggestion': return 'bg-emerald-100 text-emerald-700'
-    default: return 'bg-slate-100 text-slate-700'
+    case 'task': return 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+    case 'question': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+    case 'suggestion': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+    default: return 'bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-zinc-400'
   }
 }
 
 // Status badge colors
 const statusBadgeClass = (status: string) => {
   switch (status) {
-    case 'pending': return 'bg-yellow-100 text-yellow-700'
-    case 'needs_info': return 'bg-orange-100 text-orange-700'
-    case 'accepted': return 'bg-green-100 text-green-700'
-    case 'answered': return 'bg-green-100 text-green-700'
-    case 'rejected': return 'bg-red-100 text-red-700'
-    case 'declined': return 'bg-red-100 text-red-700'
-    default: return 'bg-slate-100 text-slate-700'
+    case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
+    case 'needs_info': return 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400'
+    case 'accepted': return 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
+    case 'answered': return 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
+    case 'rejected': return 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
+    case 'declined': return 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
+    default: return 'bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-zinc-400'
   }
 }
 
@@ -295,8 +295,8 @@ defineExpose({ refresh: fetchItems })
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-sm font-medium text-slate-900">Inbound Queue</h2>
-        <p class="text-xs text-slate-500 mt-0.5">
+        <h2 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Inbound Queue</h2>
+        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
           {{ counts.total }} items from stakeholders
         </p>
       </div>
@@ -305,7 +305,7 @@ defineExpose({ refresh: fetchItems })
         <!-- Space filter -->
         <select
           v-model="filterSpace"
-          class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
+          class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white dark:border-white/[0.06] dark:bg-white/[0.06] dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-slate-300"
         >
           <option :value="null">All spaces</option>
           <option v-for="space in spaces" :key="space.id" :value="space.id">
@@ -316,7 +316,7 @@ defineExpose({ refresh: fetchItems })
         <!-- Sort -->
         <select
           v-model="sortBy"
-          class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-slate-300"
+          class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white dark:border-white/[0.06] dark:bg-white/[0.06] dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-slate-300"
         >
           <option value="date">Newest first</option>
           <option value="votes">Most votes</option>
@@ -325,26 +325,26 @@ defineExpose({ refresh: fetchItems })
     </div>
     
     <!-- Status Tabs -->
-    <div class="flex items-center gap-1 border-b border-slate-200">
+    <div class="flex items-center gap-1 border-b border-slate-200 dark:border-white/[0.06]">
       <button
         @click="filterStatus = 'pending'"
         :class="[
           'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
           filterStatus === 'pending' 
-            ? 'border-violet-600 text-violet-700' 
-            : 'border-transparent text-slate-500 hover:text-slate-700'
+            ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-400'
+            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
         ]"
       >
         Pending
-        <span class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700">{{ counts.total }}</span>
+        <span class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">{{ counts.total }}</span>
       </button>
       <button
         @click="filterStatus = 'all'"
         :class="[
           'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
           filterStatus === 'all' 
-            ? 'border-violet-600 text-violet-700' 
-            : 'border-transparent text-slate-500 hover:text-slate-700'
+            ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-400'
+            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
         ]"
       >
         All
@@ -354,8 +354,8 @@ defineExpose({ refresh: fetchItems })
         :class="[
           'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
           filterStatus === 'resolved' 
-            ? 'border-violet-600 text-violet-700' 
-            : 'border-transparent text-slate-500 hover:text-slate-700'
+            ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-400'
+            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
         ]"
       >
         Resolved
@@ -364,7 +364,7 @@ defineExpose({ refresh: fetchItems })
     
     <!-- Type Filter Pills -->
     <div class="flex items-center gap-2">
-      <span class="text-xs text-slate-400">Filter:</span>
+      <span class="text-xs text-slate-400 dark:text-zinc-500">Filter:</span>
       <div class="flex items-center gap-1">
         <button
           v-for="opt in ['all', 'task', 'question', 'suggestion'] as const"
@@ -373,8 +373,8 @@ defineExpose({ refresh: fetchItems })
           :class="[
             'px-2.5 py-1 text-xs font-medium rounded-full transition-all',
             filterType === opt 
-              ? 'bg-violet-100 text-violet-700' 
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/[0.08] dark:text-zinc-400 dark:hover:bg-white/[0.12]'
           ]"
         >
           {{ opt === 'all' ? 'All Types' : opt.charAt(0).toUpperCase() + opt.slice(1) + 's' }}
@@ -384,23 +384,23 @@ defineExpose({ refresh: fetchItems })
     
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="w-6 h-6 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+      <div class="w-6 h-6 border-2 border-slate-200 border-t-slate-600 dark:border-white/[0.06] dark:border-t-zinc-300 rounded-full animate-spin" />
     </div>
-    
+
     <!-- Error -->
     <div v-else-if="error" class="text-center py-12">
       <Icon name="heroicons:exclamation-circle" class="w-8 h-8 text-red-400 mx-auto mb-2" />
-      <p class="text-sm text-slate-600">{{ error }}</p>
-      <button @click="fetchItems" class="text-xs text-blue-600 hover:underline mt-2">
+      <p class="text-sm text-slate-600 dark:text-zinc-400">{{ error }}</p>
+      <button @click="fetchItems" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2">
         Try again
       </button>
     </div>
     
     <!-- Empty state -->
-    <div v-else-if="sortedItems.length === 0" class="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-      <Icon name="heroicons:inbox" class="w-10 h-10 text-slate-300 mx-auto mb-3" />
-      <h3 class="text-sm font-medium text-slate-600 mb-1">No pending items</h3>
-      <p class="text-xs text-slate-400 max-w-xs mx-auto">
+    <div v-else-if="sortedItems.length === 0" class="text-center py-12 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06]">
+      <Icon name="heroicons:inbox" class="w-10 h-10 text-slate-300 dark:text-zinc-600 mx-auto mb-3" />
+      <h3 class="text-sm font-medium text-slate-600 dark:text-zinc-300 mb-1">No pending items</h3>
+      <p class="text-xs text-slate-400 dark:text-zinc-500 max-w-xs mx-auto">
         When stakeholders submit tasks or questions, they'll appear here for your review
       </p>
     </div>
@@ -410,7 +410,7 @@ defineExpose({ refresh: fetchItems })
       <div
         v-for="item in sortedItems"
         :key="item.id"
-        class="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors"
+        class="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 dark:bg-dm-card dark:border-white/[0.06] dark:hover:border-white/[0.09] transition-colors"
       >
         <div class="flex items-start gap-4">
           <!-- Main content -->
@@ -423,7 +423,7 @@ defineExpose({ refresh: fetchItems })
               </span>
               
               <!-- Space name -->
-              <span class="text-xs text-slate-400">{{ item.spaceName }}</span>
+              <span class="text-xs text-slate-400 dark:text-zinc-500">{{ item.spaceName }}</span>
               
               <!-- Status badge (for non-pending) -->
               <span
@@ -436,7 +436,7 @@ defineExpose({ refresh: fetchItems })
               <!-- Vote count for IRs -->
               <span
                 v-if="item.type !== 'task' && (item as InboundIR).voteCount > 0"
-                class="flex items-center gap-0.5 text-xs text-slate-500"
+                class="flex items-center gap-0.5 text-xs text-slate-500 dark:text-zinc-400"
               >
                 <Icon name="heroicons:arrow-up" class="w-3 h-3" />
                 {{ (item as InboundIR).voteCount }}
@@ -445,7 +445,7 @@ defineExpose({ refresh: fetchItems })
               <!-- AI Context badge -->
               <span
                 v-if="item.type !== 'task' && (item as InboundIR).addedToAIContext"
-                class="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-purple-100 text-purple-700"
+                class="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
               >
                 <Icon name="heroicons:sparkles" class="w-3 h-3" />
                 AI
@@ -453,7 +453,7 @@ defineExpose({ refresh: fetchItems })
             </div>
             
             <!-- Title/Content -->
-            <h3 class="text-sm font-medium text-slate-900 mb-1">
+            <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100 mb-1">
               {{ item.type === 'task' ? (item as InboundTask).title : (item as InboundIR).content.substring(0, 100) }}
               <span v-if="item.type !== 'task' && (item as InboundIR).content.length > 100">...</span>
             </h3>
@@ -461,17 +461,17 @@ defineExpose({ refresh: fetchItems })
             <!-- Description preview for tasks -->
             <p
               v-if="item.type === 'task' && (item as InboundTask).description"
-              class="text-xs text-slate-500 line-clamp-2 mb-2"
+              class="text-xs text-slate-500 dark:text-zinc-400 line-clamp-2 mb-2"
             >
               {{ (item as InboundTask).description }}
             </p>
             
             <!-- Submitter info -->
-            <div class="flex items-center gap-2 text-xs text-slate-400">
+            <div class="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
               <span>{{ item.submitter.displayName }}</span>
-              <span v-if="item.submitter.position" class="text-slate-300">•</span>
+              <span v-if="item.submitter.position" class="text-slate-300 dark:text-zinc-600">•</span>
               <span v-if="item.submitter.position">{{ item.submitter.position }}</span>
-              <span class="text-slate-300">•</span>
+              <span class="text-slate-300 dark:text-zinc-600">•</span>
               <span>{{ formatDate(item.submittedAt) }}</span>
             </div>
           </div>
@@ -490,7 +490,7 @@ defineExpose({ refresh: fetchItems })
               </button>
               <button
                 @click="handleRejectTask(item as InboundTask)"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/15 rounded-lg transition-colors"
                 title="Reject"
               >
                 <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
@@ -511,7 +511,7 @@ defineExpose({ refresh: fetchItems })
               <button
                 v-if="item.type === 'suggestion'"
                 @click="handleConvertToTask(item as InboundIR)"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 rounded-lg transition-colors"
                 title="Convert to task"
               >
                 <Icon name="heroicons:plus-circle" class="w-3.5 h-3.5" />
@@ -519,7 +519,7 @@ defineExpose({ refresh: fetchItems })
               </button>
               <button
                 @click="handleDeclineIR(item as InboundIR)"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/15 rounded-lg transition-colors"
                 title="Decline"
               >
                 <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
@@ -528,7 +528,7 @@ defineExpose({ refresh: fetchItems })
             </template>
             
             <!-- Secondary actions -->
-            <div class="flex items-center gap-1 border-l border-slate-200 pl-2 ml-1">
+            <div class="flex items-center gap-1 border-l border-slate-200 dark:border-white/[0.06] pl-2 ml-1">
               <!-- AI Context toggle for IRs -->
               <button
                 v-if="item.type !== 'task'"
@@ -536,8 +536,8 @@ defineExpose({ refresh: fetchItems })
                 :class="[
                   'p-1.5 rounded-lg transition-colors',
                   (item as InboundIR).addedToAIContext
-                    ? 'text-purple-600 bg-purple-50'
-                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                    ? 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-500/10'
+                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-white/[0.04] dark:hover:text-zinc-300'
                 ]"
                 :title="(item as InboundIR).addedToAIContext ? 'Remove from AI context' : 'Add to AI context'"
               >
@@ -547,7 +547,7 @@ defineExpose({ refresh: fetchItems })
               <!-- View details -->
               <button
                 @click="handleViewDetails(item)"
-                class="flex items-center gap-1 p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                class="flex items-center gap-1 p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.04] rounded-lg transition-colors"
                 title="View details & reply"
               >
                 <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-4 h-4" />

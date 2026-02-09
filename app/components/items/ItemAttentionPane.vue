@@ -24,13 +24,13 @@ const description = computed(() => {
 })
 const modePillClasses = computed(() => (
   props.mode === 'blocked'
-    ? 'bg-rose-100 text-rose-700'
-    : 'bg-amber-100 text-amber-700'
+    ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
+    : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
 ))
 const modeBorderClasses = computed(() => (
   props.mode === 'blocked'
-    ? 'border-rose-200/70'
-    : 'border-amber-200/70'
+    ? 'border-rose-200/70 dark:border-rose-500/20'
+    : 'border-amber-200/70 dark:border-amber-500/20'
 ))
 
 const entries = computed(() => {
@@ -64,30 +64,30 @@ const formatDate = (dateStr?: string | null) => {
         <div class="fixed inset-0 bg-black/30" @click="emit('close')" />
 
         <!-- Panel -->
-        <div class="panel relative bg-white shadow-2xl w-full max-w-lg h-full flex flex-col">
+        <div class="panel relative bg-white dark:bg-dm-card shadow-2xl w-full max-w-lg h-full flex flex-col">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-semibold text-slate-900">{{ title }}</h2>
-                <p class="text-xs text-slate-500 mt-1">{{ description }}</p>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-zinc-100">{{ title }}</h2>
+                <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">{{ description }}</p>
               </div>
               <button
-                class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-colors"
                 @click="emit('close')"
                 aria-label="Close"
               >
                 <Icon name="heroicons:x-mark" class="w-4 h-4" />
               </button>
             </div>
-            <div class="mt-3 text-xs text-slate-500">
-              From: <span class="text-slate-700 font-medium">{{ rootItem.title }}</span>
+            <div class="mt-3 text-xs text-slate-500 dark:text-zinc-500">
+              From: <span class="text-slate-700 dark:text-zinc-200 font-medium">{{ rootItem.title }}</span>
             </div>
           </div>
 
           <!-- Content -->
           <div class="flex-1 overflow-y-auto p-6 space-y-3">
-            <div v-if="entryData.length === 0" class="text-sm text-slate-400 text-center py-12">
+            <div v-if="entryData.length === 0" class="text-sm text-slate-400 dark:text-zinc-500 text-center py-12">
               No items to show.
             </div>
 
@@ -95,34 +95,34 @@ const formatDate = (dateStr?: string | null) => {
               v-for="entry in entryData"
               :key="entry.item.id"
               class="p-4 rounded-xl border hover:shadow-sm transition-all cursor-pointer"
-              :class="['border-slate-200 hover:border-slate-300', modeBorderClasses]"
+              :class="['border-slate-200 hover:border-slate-300 dark:border-white/[0.06] dark:hover:border-white/[0.09]', modeBorderClasses]"
               @click="emit('openDetail', entry.item)"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="text-sm font-medium text-slate-800 truncate">{{ entry.item.title }}</div>
-                  <div class="mt-1 text-[11px] text-slate-500 flex flex-wrap items-center gap-1">
+                  <div class="text-sm font-medium text-slate-800 dark:text-zinc-200 truncate">{{ entry.item.title }}</div>
+                  <div class="mt-1 text-[11px] text-slate-500 dark:text-zinc-500 flex flex-wrap items-center gap-1">
                     <template v-for="(node, index) in entry.path" :key="node.id">
-                      <span :class="index === entry.path.length - 1 ? 'text-slate-700' : 'text-slate-500'">
+                      <span :class="index === entry.path.length - 1 ? 'text-slate-700 dark:text-zinc-300' : 'text-slate-500 dark:text-zinc-500'">
                         {{ node.title }}
                       </span>
                       <Icon
                         v-if="index < entry.path.length - 1"
                         name="heroicons:chevron-right"
-                        class="w-3 h-3 text-slate-300"
+                        class="w-3 h-3 text-slate-300 dark:text-zinc-600"
                       />
                     </template>
                   </div>
                 </div>
                 <button
-                  class="text-xs text-slate-500 hover:text-slate-700"
+                  class="text-xs text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                   @click.stop="emit('openDetail', entry.item)"
                 >
                   Open
                 </button>
               </div>
 
-              <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+              <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-zinc-500">
                 <span v-if="entry.item.dueDate">Due {{ formatDate(entry.item.dueDate) }}</span>
                 <span v-if="mode === 'at-risk'">Miss {{ entry.meta.missProb }}%</span>
                 <span
@@ -133,7 +133,7 @@ const formatDate = (dateStr?: string | null) => {
                 </span>
                 <button
                   v-if="(entry.item.childrenCount ?? 0) > 0"
-                  class="text-slate-500 hover:text-slate-700 transition-colors"
+                  class="text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                   @click.stop="emit('drillDown', entry.item)"
                 >
                   {{ entry.item.childrenCount }} items

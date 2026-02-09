@@ -269,34 +269,34 @@ onUnmounted(() => {
       >
         <!-- Backdrop -->
         <div 
-          class="absolute inset-0 bg-slate-900/20 backdrop-blur-sm"
+          class="absolute inset-0 bg-slate-900/20 dark:bg-black/50 backdrop-blur-sm"
           @click="handleClose"
         />
         
         <!-- Modal -->
-        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-visible">
+        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-visible">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h2 class="text-base font-medium text-slate-900">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
+            <h2 class="text-base font-medium text-slate-900 dark:text-zinc-100">
               {{ isProject ? 'New Project' : 'New Item' }}
             </h2>
-            <p v-if="parentTitle && !isProject" class="text-xs text-slate-400 mt-0.5">
+            <p v-if="parentTitle && !isProject" class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
               Adding to {{ parentTitle }}
             </p>
-            <p v-else-if="isProject" class="text-xs text-slate-400 mt-0.5">
+            <p v-else-if="isProject" class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
               Create a new project in your workspace
             </p>
           </div>
 
           <!-- Mode Toggle -->
           <div v-if="!isProject" class="px-6 pt-4">
-            <div class="inline-flex p-1 rounded-lg bg-slate-100 border border-slate-200">
+            <div class="inline-flex p-1 rounded-lg bg-slate-100 border border-slate-200 dark:bg-white/[0.06] dark:border-white/[0.06]">
               <button
                 type="button"
                 @click="mode = 'ai'"
                 :class="[
                   'px-3 py-1.5 text-xs rounded-md transition-all',
-                  mode === 'ai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  mode === 'ai' ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
                 ]"
               >
                 Context AI
@@ -306,7 +306,7 @@ onUnmounted(() => {
                 @click="mode = 'manual'"
                 :class="[
                   'px-3 py-1.5 text-xs rounded-md transition-all',
-                  mode === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  mode === 'manual' ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
                 ]"
               >
                 Manual
@@ -318,42 +318,42 @@ onUnmounted(() => {
           <form v-if="isProject || mode === 'manual'" @submit.prevent="handleSubmit" class="p-6 space-y-4">
             <!-- Title -->
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
                 {{ isProject ? 'Project Name' : 'Title' }}
               </label>
               <input
                 v-model="title"
                 type="text"
                 :placeholder="isProject ? 'Enter project name...' : 'What needs to be done?'"
-                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all dark:bg-white/[0.06] dark:border-white/[0.06] dark:text-zinc-100 dark:placeholder-zinc-500"
                 autofocus
               />
             </div>
             
             <!-- Description -->
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
                 Description
-                <span class="text-slate-300 font-normal">(optional)</span>
+                <span class="text-slate-300 dark:text-zinc-600 font-normal">(optional)</span>
               </label>
               <textarea
                 v-model="description"
                 rows="3"
                 placeholder="Add more details..."
-                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all resize-none"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all resize-none dark:bg-white/[0.06] dark:border-white/[0.06] dark:text-zinc-100 dark:placeholder-zinc-500"
               />
             </div>
 
             <!-- Status selector (projects only) -->
             <div v-if="isProject">
-              <label class="block text-xs font-medium text-slate-500 mb-2">Starting Status</label>
-              <div class="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200">
+              <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Starting Status</label>
+              <div class="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200 dark:bg-white/[0.06] dark:border-white/[0.06]">
                 <button
                   type="button"
                   @click="status = 'IN_PROGRESS'"
                   :class="[
                     'px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5',
-                    status === 'IN_PROGRESS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    status === 'IN_PROGRESS' ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
                   ]"
                 >
                   <div class="w-1.5 h-1.5 rounded-full bg-blue-400" />
@@ -364,7 +364,7 @@ onUnmounted(() => {
                   @click="status = 'TODO'"
                   :class="[
                     'px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5',
-                    status === 'TODO' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    status === 'TODO' ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
                   ]"
                 >
                   <div class="w-1.5 h-1.5 rounded-full bg-slate-300" />
@@ -377,51 +377,51 @@ onUnmounted(() => {
             <div class="grid grid-cols-2 gap-4">
               <!-- Owner -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Owner</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Owner</label>
                 <div class="relative" ref="ownerDropdownRef">
                   <button
                     type="button"
                     @click.stop="showOwnerDropdown = !showOwnerDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors dark:border-white/[0.06] dark:hover:border-white/[0.09]"
                   >
                     <template v-if="ownerUser">
                       <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
                         <span class="text-[10px] text-white font-medium">{{ ownerUser.name?.[0] ?? 'U' }}</span>
                       </div>
-                      <span class="flex-1 text-left text-slate-700">{{ ownerUser.name }}</span>
+                      <span class="flex-1 text-left text-slate-700 dark:text-zinc-200">{{ ownerUser.name }}</span>
                     </template>
                     <template v-else>
-                      <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
-                        <Icon name="heroicons:user" class="w-3.5 h-3.5 text-slate-400" />
+                      <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center">
+                        <Icon name="heroicons:user" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                       </div>
-                      <span class="flex-1 text-left text-slate-400">No owner</span>
+                      <span class="flex-1 text-left text-slate-400 dark:text-zinc-500">No owner</span>
                     </template>
-                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
                   </button>
 
                   <Transition name="dropdown">
                     <div
                       v-if="showOwnerDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
                     >
                       <button
                         v-if="ownerUser"
                         type="button"
                         @click="updateOwner(null)"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors dark:text-zinc-400 dark:hover:bg-white/[0.04]"
                       >
-                        <Icon name="heroicons:x-mark" class="w-5 h-5 text-slate-400" />
+                        <Icon name="heroicons:x-mark" class="w-5 h-5 text-slate-400 dark:text-zinc-500" />
                         <span>Remove owner</span>
                       </button>
-                      <div v-if="ownerUser" class="border-t border-slate-100 my-1" />
+                      <div v-if="ownerUser" class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
 
                       <button
                         v-for="userOption in availableUsers"
                         :key="userOption.id"
                         type="button"
                         @click="updateOwner(userOption.id)"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        :class="{ 'bg-amber-50': userOption.id === ownerId }"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors dark:text-zinc-300 dark:hover:bg-white/[0.04]"
+                        :class="{ 'bg-amber-50 dark:bg-amber-500/10': userOption.id === ownerId }"
                       >
                         <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
                           <span class="text-[10px] text-white font-medium">{{ userOption.name?.[0] ?? 'U' }}</span>
@@ -436,14 +436,14 @@ onUnmounted(() => {
 
               <!-- Assignees -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Assignees</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Assignees</label>
                 <div class="flex flex-wrap gap-2">
                   <div class="max-h-24 overflow-y-auto pr-1 flex flex-wrap gap-2">
                     <template v-if="assignedUsers.length">
                       <div
                         v-for="assignee in assignedUsers"
                         :key="assignee.id"
-                        class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-full text-xs"
+                        class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-white/[0.08] rounded-full text-xs"
                       >
                         <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                           <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
@@ -452,7 +452,7 @@ onUnmounted(() => {
                         <button
                           type="button"
                           @click="removeAssignee(assignee.id)"
-                          class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-all"
+                          class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 dark:hover:bg-white/[0.12] rounded transition-all"
                         >
                           <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
                         </button>
@@ -464,7 +464,7 @@ onUnmounted(() => {
                     <button
                       type="button"
                       @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
-                      class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors"
+                      class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-400"
                     >
                       <Icon name="heroicons:plus" class="w-3 h-3" />
                       Add
@@ -473,9 +473,9 @@ onUnmounted(() => {
                     <Transition name="dropdown">
                       <div
                         v-if="showAssigneeDropdown"
-                        class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10"
+                        class="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
                       >
-                        <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400">
+                        <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400 dark:text-zinc-500">
                           No more users to add
                         </div>
                         <button
@@ -483,7 +483,7 @@ onUnmounted(() => {
                           :key="userOption.id"
                           type="button"
                           @click="assignUser(userOption.id)"
-                          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors dark:text-zinc-300 dark:hover:bg-white/[0.04]"
                         >
                           <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                             <span class="text-[10px] text-white font-medium">{{ userOption.name?.[0] ?? 'U' }}</span>
@@ -501,43 +501,43 @@ onUnmounted(() => {
             <div class="grid grid-cols-2 gap-4">
               <!-- Category -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Category</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Category</label>
                 <div class="relative" ref="categoryDropdownRef">
                   <button
                     type="button"
                     @click.stop="showCategoryDropdown = !showCategoryDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors dark:border-white/[0.06] dark:hover:border-white/[0.09]"
                   >
                     <div
                       class="w-2 h-2 rounded-full"
                       :class="category ? (categoryDotColors[category] || 'bg-slate-400') : 'bg-slate-300'"
                     />
-                    <span class="flex-1 text-left text-slate-700">{{ category || 'No category' }}</span>
-                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                    <span class="flex-1 text-left text-slate-700 dark:text-zinc-200">{{ category || 'No category' }}</span>
+                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
                   </button>
 
                   <Transition name="dropdown">
                     <div
                       v-if="showCategoryDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
                     >
                       <button
                         type="button"
                         @click="category = ''; showCategoryDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors"
-                        :class="!category ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors dark:text-zinc-400 dark:hover:bg-white/[0.04]"
+                        :class="!category ? 'bg-slate-100 text-slate-900 font-medium dark:bg-white/[0.08] dark:text-zinc-100' : ''"
                       >
                         <div class="w-2 h-2 rounded-full bg-slate-300" />
                         <span>No category</span>
                       </button>
-                      <div class="border-t border-slate-100 my-1" />
+                      <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
                       <button
                         v-for="cat in categories"
                         :key="cat"
                         type="button"
                         @click="category = cat; showCategoryDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        :class="category === cat ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors dark:text-zinc-300 dark:hover:bg-white/[0.04]"
+                        :class="category === cat ? 'bg-slate-100 text-slate-900 font-medium dark:bg-white/[0.08] dark:text-zinc-100' : ''"
                       >
                         <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400'" />
                         <span>{{ cat }}</span>
@@ -549,33 +549,33 @@ onUnmounted(() => {
 
               <!-- Priority -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Priority</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Priority</label>
                 <div class="relative" ref="priorityDropdownRef">
                   <button
                     type="button"
                     @click.stop="showPriorityDropdown = !showPriorityDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors dark:border-white/[0.06] dark:hover:border-white/[0.09]"
                   >
                     <div
                       class="w-2 h-2 rounded-full"
                       :class="priorityDotColors[priority] || 'bg-slate-300'"
                     />
-                    <span class="flex-1 text-left text-slate-700">{{ priorityLabel }}</span>
-                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                    <span class="flex-1 text-left text-slate-700 dark:text-zinc-200">{{ priorityLabel }}</span>
+                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
                   </button>
 
                   <Transition name="dropdown">
                     <div
                       v-if="showPriorityDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
                     >
                       <button
                         v-for="opt in priorityOptions"
                         :key="opt.value"
                         type="button"
                         @click="priority = opt.value; showPriorityDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        :class="priority === opt.value ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors dark:text-zinc-300 dark:hover:bg-white/[0.04]"
+                        :class="priority === opt.value ? 'bg-slate-100 text-slate-900 font-medium dark:bg-white/[0.08] dark:text-zinc-100' : ''"
                       >
                         <div class="w-2 h-2 rounded-full" :class="priorityDotColors[opt.value] || 'bg-slate-400'" />
                         <span>{{ opt.label }}</span>
@@ -588,13 +588,13 @@ onUnmounted(() => {
 
             <!-- Due Date -->
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
                 Due Date
               </label>
               <input
                 v-model="dueDate"
                 type="date"
-                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all dark:bg-white/[0.06] dark:border-white/[0.06] dark:text-zinc-100 dark:placeholder-zinc-500"
               />
             </div>
             
@@ -603,14 +603,14 @@ onUnmounted(() => {
               <button
                 type="button"
                 @click="handleClose"
-                class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 transition-colors"
+                class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 transition-colors dark:text-zinc-400 dark:hover:text-zinc-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 :disabled="!title.trim()"
-                class="px-4 py-2 text-sm font-normal text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                class="px-4 py-2 text-sm font-normal text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {{ isProject ? 'Create Project' : 'Create Item' }}
               </button>
@@ -623,11 +623,11 @@ onUnmounted(() => {
               :class="[
                 'rounded-xl border bg-gradient-to-br p-4 transition-all duration-300',
                 aiCreating
-                  ? 'border-violet-300 from-violet-100 via-white to-sky-100 shadow-[0_0_0_2px_rgba(139,92,246,0.08)]'
-                  : 'border-violet-200/70 from-violet-50 via-white to-blue-50'
+                  ? 'border-violet-300 from-violet-100 via-white to-sky-100 shadow-[0_0_0_2px_rgba(139,92,246,0.08)] dark:border-violet-500/30 dark:from-violet-500/10 dark:via-dm-card dark:to-sky-500/10'
+                  : 'border-violet-200/70 from-violet-50 via-white to-blue-50 dark:border-violet-500/20 dark:from-violet-500/5 dark:via-dm-card dark:to-blue-500/5'
               ]"
             >
-              <label class="block text-xs font-medium text-slate-600 mb-2">
+              <label class="block text-xs font-medium text-slate-600 dark:text-zinc-300 mb-2">
                 Describe what should be created
               </label>
               <textarea
@@ -635,16 +635,16 @@ onUnmounted(() => {
                 rows="7"
                 placeholder="Paste an email, spec, bug report, or task description..."
                 :disabled="aiCreating || aiSuccess"
-                class="w-full px-3 py-2 text-sm border border-violet-200/80 rounded-lg bg-white/90 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-300 transition-all resize-none disabled:opacity-70"
+                class="w-full px-3 py-2 text-sm border border-violet-200/80 rounded-lg bg-white/90 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-300 transition-all resize-none disabled:opacity-70 dark:bg-white/[0.06] dark:border-violet-500/20 dark:text-zinc-100 dark:placeholder-zinc-500"
                 autofocus
               />
-              <p class="text-xs text-slate-500 mt-2">
+              <p class="text-xs text-slate-500 dark:text-zinc-500 mt-2">
                 Context AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
               </p>
 
               <div
                 v-if="aiCreating"
-                class="mt-3 flex items-center gap-2 text-violet-700"
+                class="mt-3 flex items-center gap-2 text-violet-700 dark:text-violet-400"
               >
                 <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
                 <span class="text-xs font-medium animate-pulse">Context AI is shaping your task plan...</span>
@@ -653,14 +653,14 @@ onUnmounted(() => {
 
             <div
               v-if="aiError"
-              class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+              class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
             >
               {{ aiError }}
             </div>
 
             <div
               v-if="aiSuccess"
-              class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+              class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
             >
               Created {{ aiCreatedCount }} task{{ aiCreatedCount === 1 ? '' : 's' }}
               <span v-if="aiCreatedSubtasks > 0"> ({{ aiCreatedSubtasks }} subtasks)</span>.
@@ -672,7 +672,7 @@ onUnmounted(() => {
                 type="button"
                 @click="handleClose"
                 :disabled="aiCreating || aiSuccess"
-                class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:text-zinc-400 dark:hover:text-zinc-200"
               >
                 Cancel
               </button>

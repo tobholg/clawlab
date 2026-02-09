@@ -100,15 +100,15 @@ const getActivityIcon = (type: string) => {
 
 const getActivityColor = (type: string) => {
   switch (type) {
-    case 'CREATED': return 'text-emerald-500 bg-emerald-50'
-    case 'STATUS_CHANGE': return 'text-blue-500 bg-blue-50'
-    case 'PROGRESS_UPDATE': return 'text-sky-500 bg-sky-50'
-    case 'ASSIGNMENT': return 'text-violet-500 bg-violet-50'
-    case 'COMMENT': return 'text-amber-500 bg-amber-50'
-    case 'DEPENDENCY_ADDED': return 'text-orange-500 bg-orange-50'
-    case 'DEPENDENCY_REMOVED': return 'text-red-500 bg-red-50'
-    case 'UPDATED': return 'text-slate-500 bg-slate-50'
-    default: return 'text-slate-500 bg-slate-50'
+    case 'CREATED': return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
+    case 'STATUS_CHANGE': return 'text-blue-500 bg-blue-50 dark:bg-blue-500/10'
+    case 'PROGRESS_UPDATE': return 'text-sky-500 bg-sky-50 dark:bg-sky-500/10'
+    case 'ASSIGNMENT': return 'text-violet-500 bg-violet-50 dark:bg-violet-500/10'
+    case 'COMMENT': return 'text-amber-500 bg-amber-50 dark:bg-amber-500/10'
+    case 'DEPENDENCY_ADDED': return 'text-orange-500 bg-orange-50 dark:bg-orange-500/10'
+    case 'DEPENDENCY_REMOVED': return 'text-red-500 bg-red-50 dark:bg-red-500/10'
+    case 'UPDATED': return 'text-slate-500 bg-slate-50 dark:text-zinc-400 dark:bg-white/[0.04]'
+    default: return 'text-slate-500 bg-slate-50 dark:text-zinc-400 dark:bg-white/[0.04]'
   }
 }
 
@@ -158,13 +158,13 @@ const navigateToItem = (item: any) => {
   <header class="relative z-10 px-6 py-5">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-medium text-slate-900">Activity</h1>
-        <p class="text-sm text-slate-500 mt-0.5">Recent changes across your workspace</p>
+        <h1 class="text-xl font-medium text-slate-900 dark:text-zinc-100">Activity</h1>
+        <p class="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">Recent changes across your workspace</p>
       </div>
 
       <select
         v-model="filterType"
-        class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
+        class="text-sm border border-slate-200 dark:border-white/[0.06] rounded-lg px-3 py-1.5 bg-white dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
       >
         <option v-for="f in typeFilters" :key="f.value" :value="f.value">{{ f.label }}</option>
       </select>
@@ -173,21 +173,21 @@ const navigateToItem = (item: any) => {
 
   <div class="flex-1 overflow-auto px-6 pb-6">
     <!-- Loading -->
-    <div v-if="loading" class="flex items-center gap-2 text-sm text-slate-500 py-12 justify-center">
+    <div v-if="loading" class="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400 py-12 justify-center">
       <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
       Loading activity...
     </div>
 
     <!-- Empty -->
     <div v-else-if="!activities.length" class="py-12 text-center">
-      <Icon name="heroicons:clock" class="w-8 h-8 text-slate-300 mx-auto mb-3" />
-      <p class="text-sm text-slate-500">No activity yet</p>
+      <Icon name="heroicons:clock" class="w-8 h-8 text-slate-300 dark:text-zinc-600 mx-auto mb-3" />
+      <p class="text-sm text-slate-500 dark:text-zinc-400">No activity yet</p>
     </div>
 
     <!-- Activity feed -->
     <div v-else class="max-w-3xl">
       <div v-for="group in groupedActivities" :key="group.date" class="mb-8">
-        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
+        <div class="text-xs font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3">
           {{ group.label }}
         </div>
 
@@ -195,7 +195,7 @@ const navigateToItem = (item: any) => {
           <div
             v-for="activity in group.items"
             :key="activity.id"
-            class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors group"
+            class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors group"
           >
             <!-- Icon -->
             <div
@@ -206,12 +206,12 @@ const navigateToItem = (item: any) => {
 
             <!-- Content -->
             <div class="flex-1 min-w-0">
-              <p class="text-sm text-slate-700">
+              <p class="text-sm text-slate-700 dark:text-zinc-300">
                 {{ getActivityDescription(activity) }}
               </p>
               <button
                 @click="navigateToItem(activity.item)"
-                class="text-xs text-slate-400 hover:text-slate-600 transition-colors mt-0.5 truncate block"
+                class="text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-400 transition-colors mt-0.5 truncate block"
               >
                 {{ activity.item.title }}
                 <span v-if="activity.item.parentTitle"> &middot; {{ activity.item.parentTitle }}</span>
@@ -219,7 +219,7 @@ const navigateToItem = (item: any) => {
             </div>
 
             <!-- Time -->
-            <span class="text-xs text-slate-400 flex-shrink-0 mt-0.5">
+            <span class="text-xs text-slate-400 dark:text-zinc-500 flex-shrink-0 mt-0.5">
               {{ formatTime(activity.createdAt) }}
             </span>
           </div>
@@ -231,7 +231,7 @@ const navigateToItem = (item: any) => {
         <button
           @click="fetchActivities(true)"
           :disabled="loadingMore"
-          class="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          class="text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
         >
           {{ loadingMore ? 'Loading...' : 'Load more' }}
         </button>

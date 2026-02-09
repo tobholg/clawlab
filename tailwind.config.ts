@@ -55,7 +55,7 @@ export default {
         },
         // Linear-inspired dark mode neutrals
         dm: {
-          DEFAULT: '#000000',
+          DEFAULT: '#09090b',
           surface: '#050506',
           card: '#111113',
         },
