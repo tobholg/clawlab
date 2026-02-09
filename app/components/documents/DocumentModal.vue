@@ -879,9 +879,9 @@ onMounted(() => {
       <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" @click="handleClose" />
 
-        <div class="relative w-full max-w-5xl h-[85vh] mx-4 bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
+        <div class="relative w-full max-w-5xl h-[85vh] mx-4 bg-white dark:bg-dm-surface rounded-2xl shadow-2xl border border-slate-100 dark:border-white/[0.06] flex flex-col overflow-hidden">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
             <div class="flex items-start justify-between gap-4">
               <!-- Title and meta -->
               <div class="flex-1 min-w-0">
@@ -890,21 +890,21 @@ onMounted(() => {
                     v-if="canEdit && !isReadMode"
                     v-model="editedTitle"
                     type="text"
-                    class="flex-1 text-xl font-semibold text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0"
+                    class="flex-1 text-xl font-semibold text-slate-900 dark:text-zinc-100 dark:text-zinc-100 bg-transparent border-0 focus:outline-none focus:ring-0"
                     placeholder="Untitled document"
                   />
-                  <h2 v-else class="text-xl font-semibold text-slate-900 truncate">{{ editedTitle || 'Untitled document' }}</h2>
+                  <h2 v-else class="text-xl font-semibold text-slate-900 dark:text-zinc-100 dark:text-zinc-100 truncate">{{ editedTitle || 'Untitled document' }}</h2>
                   <span
                     v-if="documentData?.isLocked"
-                    class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full flex-shrink-0"
+                    class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full flex-shrink-0"
                   >
                     <Icon name="heroicons:lock-closed" class="w-3 h-3" />
                     Locked
                   </span>
                 </div>
-                <div class="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                <div class="mt-1 flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
                   <span v-if="documentData?.createdBy">{{ documentData.createdBy.name }}</span>
-                  <span v-if="documentData?.updatedAt" class="text-slate-300">·</span>
+                  <span v-if="documentData?.updatedAt" class="text-slate-300 dark:text-zinc-600">·</span>
                   <span v-if="documentData?.updatedAt">{{ formatRelativeTime(documentData.updatedAt) }}</span>
                   <Transition
                     enter-active-class="transition-opacity duration-200"
@@ -912,7 +912,7 @@ onMounted(() => {
                     leave-active-class="transition-opacity duration-200"
                     leave-to-class="opacity-0"
                   >
-                    <span v-if="isSaving" class="text-slate-300">· Saving...</span>
+                    <span v-if="isSaving" class="text-slate-300 dark:text-zinc-600">· Saving...</span>
                   </Transition>
                 </div>
               </div>
@@ -920,12 +920,12 @@ onMounted(() => {
               <!-- Actions -->
               <div class="flex items-center gap-1">
                 <!-- Edit/Read toggle -->
-                <div class="flex items-center bg-slate-100 rounded-lg p-0.5 mr-2">
+                <div class="flex items-center bg-slate-100 dark:bg-white/[0.08] rounded-lg p-0.5 mr-2">
                   <button
                     @click="isReadMode = false"
                     :class="[
                       'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                      !isReadMode ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      !isReadMode ? 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
                     ]"
                   >
                     Edit
@@ -934,7 +934,7 @@ onMounted(() => {
                     @click="isReadMode = true"
                     :class="[
                       'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                      isReadMode ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      isReadMode ? 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
                     ]"
                   >
                     Read
@@ -946,7 +946,7 @@ onMounted(() => {
                   @click="showVersions = !showVersions"
                   :class="[
                     'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    showVersions ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                    showVersions ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100'
                   ]"
                   title="Version history"
                 >
@@ -956,7 +956,7 @@ onMounted(() => {
                 <!-- Save version -->
                 <button
                   @click="showVersionModal = true"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
                   title="Save version"
                 >
                   <Icon name="heroicons:bookmark" class="w-4 h-4" />
@@ -966,7 +966,7 @@ onMounted(() => {
                 <button
                   v-if="documentData"
                   @click="deleteDocument"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
                   title="Delete document"
                 >
                   <Icon name="heroicons:trash" class="w-4 h-4" />
@@ -978,7 +978,7 @@ onMounted(() => {
                   @click="toggleLock"
                   :class="[
                     'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    documentData?.isLocked ? 'text-amber-500 hover:bg-amber-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                    documentData?.isLocked ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100'
                   ]"
                   :title="documentData?.isLocked ? 'Unlock document' : 'Lock document'"
                 >
@@ -988,7 +988,7 @@ onMounted(() => {
                 <!-- Close -->
                 <button
                   @click="handleClose"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors ml-1"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors ml-1"
                 >
                   <Icon name="heroicons:x-mark" class="w-5 h-5" />
                 </button>
@@ -1000,7 +1000,7 @@ onMounted(() => {
           <div class="flex-1 overflow-hidden flex">
             <div class="flex-1 overflow-y-auto px-8 py-6">
               <div v-if="isLoading" class="space-y-3">
-                <div v-for="i in 5" :key="i" class="h-6 rounded bg-slate-50 animate-pulse" />
+                <div v-for="i in 5" :key="i" class="h-6 rounded bg-slate-50 dark:bg-white/[0.04] animate-pulse" />
               </div>
 
               <!-- Read Mode -->
@@ -1011,7 +1011,7 @@ onMounted(() => {
                     <h1
                       v-if="block.type === 'heading'"
                       :class="[
-                        'text-slate-900',
+                        'text-slate-900 dark:text-zinc-100',
                         block.level === 1 ? 'text-2xl font-bold mt-6 first:mt-0' : '',
                         block.level === 2 ? 'text-xl font-semibold mt-5 first:mt-0' : '',
                         block.level === 3 ? 'text-lg font-medium mt-4 first:mt-0' : '',
@@ -1023,10 +1023,10 @@ onMounted(() => {
                     <!-- List item -->
                     <div
                       v-else-if="block.type === 'list-item'"
-                      class="flex items-start gap-2 text-[15px] leading-relaxed text-slate-700"
+                      class="flex items-start gap-2 text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300"
                       :style="{ paddingLeft: `${(block.indent ?? 0) * 24}px` }"
                     >
-                      <span class="text-slate-400 select-none w-4 text-center flex-shrink-0">
+                      <span class="text-slate-400 dark:text-zinc-600 select-none w-4 text-center flex-shrink-0">
                         {{ block.listStyle === 'number' ? '1.' : '•' }}
                       </span>
                       <span>{{ block.text }}</span>
@@ -1034,17 +1034,17 @@ onMounted(() => {
 
                     <!-- Table -->
                     <div v-else-if="block.type === 'table'" class="overflow-x-auto my-4">
-                      <table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-                        <thead class="bg-slate-50">
+                      <table class="w-full text-sm border border-slate-200 dark:border-white/[0.06] rounded-lg overflow-hidden">
+                        <thead class="bg-slate-50 dark:bg-white/[0.04]">
                           <tr>
-                            <th v-for="(cell, colIndex) in block.table?.[0]" :key="colIndex" class="px-3 py-2.5 text-left font-medium text-slate-600 border-b border-slate-200">
+                            <th v-for="(cell, colIndex) in block.table?.[0]" :key="colIndex" class="px-3 py-2.5 text-left font-medium text-slate-600 dark:text-zinc-400 border-b border-slate-200 dark:border-white/[0.06]">
                               {{ cell }}
                             </th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="(row, rowIndex) in block.table?.slice(1)" :key="rowIndex" class="border-t border-slate-100">
-                            <td v-for="(cell, colIndex) in row" :key="colIndex" class="px-3 py-2.5 text-slate-700">
+                          <tr v-for="(row, rowIndex) in block.table?.slice(1)" :key="rowIndex" class="border-t border-slate-100 dark:border-white/[0.04]">
+                            <td v-for="(cell, colIndex) in row" :key="colIndex" class="px-3 py-2.5 text-slate-700 dark:text-zinc-300">
                               {{ cell }}
                             </td>
                           </tr>
@@ -1053,10 +1053,10 @@ onMounted(() => {
                     </div>
 
                     <!-- Divider -->
-                    <hr v-else-if="block.type === 'divider'" class="border-slate-200 my-6" />
+                    <hr v-else-if="block.type === 'divider'" class="border-slate-200 dark:border-white/[0.06] my-6" />
 
                     <!-- Paragraph -->
-                    <p v-else class="text-[15px] leading-relaxed text-slate-700 whitespace-pre-wrap">
+                    <p v-else class="text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300 whitespace-pre-wrap">
                       {{ block.text }}
                     </p>
                   </template>
@@ -1066,7 +1066,7 @@ onMounted(() => {
               <!-- Edit Mode -->
               <div v-else class="max-w-3xl mx-auto">
                 <!-- Locked warning -->
-                <div v-if="!canEdit" class="mb-6 px-4 py-3 rounded-xl bg-amber-50 text-amber-700 text-sm border border-amber-100 flex items-center gap-2">
+                <div v-if="!canEdit" class="mb-6 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm border border-amber-100 dark:border-amber-500/20 flex items-center gap-2">
                   <Icon name="heroicons:lock-closed" class="w-4 h-4" />
                   This document is locked. Only the creator can edit it.
                 </div>
@@ -1093,7 +1093,7 @@ onMounted(() => {
                       <button
                         data-block-menu
                         @click.stop="toggleBlockMenu(block.id)"
-                        class="w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors"
+                        class="w-6 h-6 flex items-center justify-center rounded text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] dark:hover:bg-white/[0.06] transition-colors"
                         title="Change block type"
                       >
                         <Icon name="heroicons:squares-plus" class="w-4 h-4" />
@@ -1102,7 +1102,7 @@ onMounted(() => {
                         draggable="true"
                         @dragstart="handleBlockDragStart($event, index)"
                         @dragend="handleBlockDragEnd"
-                        class="w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors cursor-grab active:cursor-grabbing"
+                        class="w-6 h-6 flex items-center justify-center rounded text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] dark:hover:bg-white/[0.06] transition-colors cursor-grab active:cursor-grabbing"
                         title="Drag to reorder (or Alt+Arrow)"
                       >
                         <Icon name="heroicons:bars-2" class="w-4 h-4" />
@@ -1113,25 +1113,25 @@ onMounted(() => {
                     <div
                       v-if="activeBlockMenuId === block.id"
                       data-block-menu
-                      class="absolute -left-10 top-8 z-20 w-48 rounded-xl border border-slate-200 bg-white shadow-xl py-1"
+                      class="absolute -left-10 top-8 z-20 w-48 rounded-xl border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card shadow-xl py-1"
                     >
                       <button
                         v-for="option in blockTypeOptions"
                         :key="option.label"
-                        class="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-slate-50 text-slate-600 transition-colors"
+                        class="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-600 dark:text-zinc-400 transition-colors"
                         @click.stop="setBlockType(index, option.type, option.level)"
                       >
-                        <span class="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-xs font-medium text-slate-500">
+                        <span class="w-6 h-6 rounded bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center text-xs font-medium text-slate-500 dark:text-zinc-400">
                           {{ option.label.charAt(0) }}
                         </span>
                         <span>{{ option.label }}</span>
-                        <Icon v-if="option.type === block.type && (!option.level || option.level === block.level)" name="heroicons:check" class="w-4 h-4 text-slate-400 ml-auto" />
+                        <Icon v-if="option.type === block.type && (!option.level || option.level === block.level)" name="heroicons:check" class="w-4 h-4 text-slate-400 dark:text-zinc-500 ml-auto" />
                       </button>
-                      <div v-if="block.type === 'list-item'" class="border-t border-slate-100 mt-1 pt-1 px-2 pb-1 flex gap-1">
+                      <div v-if="block.type === 'list-item'" class="border-t border-slate-100 dark:border-white/[0.04] mt-1 pt-1 px-2 pb-1 flex gap-1">
                         <button
                           :class="[
                             'flex-1 text-xs px-2 py-1.5 rounded-lg transition-colors',
-                            block.listStyle === 'bullet' ? 'bg-slate-100 text-slate-700' : 'text-slate-500 hover:bg-slate-50'
+                            block.listStyle === 'bullet' ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200' : 'text-slate-500 hover:bg-slate-50'
                           ]"
                           @click.stop="block.listStyle = 'bullet'"
                         >
@@ -1140,7 +1140,7 @@ onMounted(() => {
                         <button
                           :class="[
                             'flex-1 text-xs px-2 py-1.5 rounded-lg transition-colors',
-                            block.listStyle === 'number' ? 'bg-slate-100 text-slate-700' : 'text-slate-500 hover:bg-slate-50'
+                            block.listStyle === 'number' ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200' : 'text-slate-500 hover:bg-slate-50'
                           ]"
                           @click.stop="block.listStyle = 'number'"
                         >
@@ -1160,9 +1160,9 @@ onMounted(() => {
                         :readonly="!canEdit"
                         :class="[
                           'w-full bg-transparent border-0 focus:outline-none focus:ring-0 py-1',
-                          block.level === 1 ? 'text-2xl font-bold text-slate-900' : '',
-                          block.level === 2 ? 'text-xl font-semibold text-slate-900' : '',
-                          block.level === 3 ? 'text-lg font-medium text-slate-800' : '',
+                          block.level === 1 ? 'text-2xl font-bold text-slate-900 dark:text-zinc-100' : '',
+                          block.level === 2 ? 'text-xl font-semibold text-slate-900 dark:text-zinc-100' : '',
+                          block.level === 3 ? 'text-lg font-medium text-slate-800 dark:text-zinc-200' : '',
                         ]"
                         placeholder="Heading"
                         @keydown="handleBlockKeydown($event, block, index)"
@@ -1170,7 +1170,7 @@ onMounted(() => {
 
                       <!-- List item -->
                       <div v-else-if="block.type === 'list-item'" class="flex items-start gap-2 py-0.5" :style="{ paddingLeft: `${(block.indent ?? 0) * 24}px` }">
-                        <span class="mt-1 text-slate-400 select-none w-4 text-center flex-shrink-0">
+                        <span class="mt-1 text-slate-400 dark:text-zinc-600 select-none w-4 text-center flex-shrink-0">
                           {{ block.listStyle === 'number' ? '1.' : '•' }}
                         </span>
                         <textarea
@@ -1178,7 +1178,7 @@ onMounted(() => {
                           :ref="setBlockRef(block.id)"
                           rows="1"
                           :readonly="!canEdit"
-                          class="flex-1 text-[15px] leading-relaxed text-slate-700 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none py-0"
+                          class="flex-1 text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none py-0"
                           placeholder="List item"
                           @input="handleBlockInput"
                           @keydown="handleBlockKeydown($event, block, index)"
@@ -1187,14 +1187,14 @@ onMounted(() => {
 
                       <!-- Table -->
                       <div v-else-if="block.type === 'table'" class="py-2">
-                        <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-white/[0.06]">
                           <table class="w-full text-sm">
-                            <thead class="bg-slate-50">
+                            <thead class="bg-slate-50 dark:bg-white/[0.04]">
                               <tr>
                                 <th
                                   v-for="(cell, colIndex) in block.table?.[0]"
                                   :key="colIndex"
-                                  class="px-3 py-2 text-left font-medium text-slate-600 border-b border-slate-200"
+                                  class="px-3 py-2 text-left font-medium text-slate-600 dark:text-zinc-400 border-b border-slate-200 dark:border-white/[0.06]"
                                 >
                                   <input
                                     v-model="block.table![0][colIndex]"
@@ -1209,14 +1209,14 @@ onMounted(() => {
                               </tr>
                             </thead>
                             <tbody>
-                              <tr v-for="(row, rowIndex) in block.table?.slice(1)" :key="rowIndex" class="border-t border-slate-100">
+                              <tr v-for="(row, rowIndex) in block.table?.slice(1)" :key="rowIndex" class="border-t border-slate-100 dark:border-white/[0.04]">
                                 <td v-for="(cell, colIndex) in row" :key="colIndex" class="px-3 py-2">
                                   <input
                                     v-model="block.table![rowIndex + 1][colIndex]"
                                     :ref="setTableRef(`${block.id}-${rowIndex + 1}-${colIndex}`)"
                                     type="text"
                                     :readonly="!canEdit"
-                                    class="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-slate-700"
+                                    class="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-slate-700 dark:text-zinc-300"
                                     placeholder="Cell"
                                     @keydown="handleTableKeydown($event, block, index, rowIndex + 1, colIndex)"
                                   />
@@ -1227,14 +1227,14 @@ onMounted(() => {
                         </div>
                         <div v-if="canEdit" class="flex items-center gap-2 mt-2">
                           <button
-                            class="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                            class="text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
                             @click="addTableRow(block)"
                           >
                             + Add row
                           </button>
-                          <span class="text-slate-200">|</span>
+                          <span class="text-slate-200 dark:text-zinc-700">|</span>
                           <button
-                            class="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                            class="text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
                             @click="addTableColumn(block)"
                           >
                             + Add column
@@ -1244,7 +1244,7 @@ onMounted(() => {
 
                       <!-- Divider -->
                       <div v-else-if="block.type === 'divider'" class="py-4">
-                        <hr class="border-slate-200" />
+                        <hr class="border-slate-200 dark:border-white/[0.06]" />
                       </div>
 
                       <!-- Paragraph (default) -->
@@ -1254,7 +1254,7 @@ onMounted(() => {
                           :ref="setBlockRef(block.id)"
                           rows="1"
                           :readonly="!canEdit"
-                          class="w-full text-[15px] leading-relaxed text-slate-700 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none py-1"
+                          class="w-full text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none py-1"
                           placeholder="Type something, or press '/' for commands..."
                           @input="handleBlockInput"
                           @keydown="handleBlockKeydown($event, block, index)"
@@ -1272,10 +1272,10 @@ onMounted(() => {
                           <div
                             v-if="slashMenuBlockIndex === index"
                             data-slash-menu
-                            class="absolute left-0 top-full mt-1 z-30 w-72 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden"
+                            class="absolute left-0 top-full mt-1 z-30 w-72 rounded-xl border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card shadow-xl overflow-hidden"
                           >
-                            <div class="px-3 py-2 border-b border-slate-100">
-                              <span class="text-xs font-medium text-slate-400">Block types</span>
+                            <div class="px-3 py-2 border-b border-slate-100 dark:border-white/[0.06]">
+                              <span class="text-xs font-medium text-slate-400 dark:text-zinc-500">Block types</span>
                             </div>
                             <div class="py-1 max-h-64 overflow-y-auto">
                               <button
@@ -1284,17 +1284,17 @@ onMounted(() => {
                                 :ref="setSlashMenuOptionRef(optionIndex)"
                                 :class="[
                                   'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
-                                  slashMenuSelectedIndex === optionIndex ? 'bg-slate-100' : 'hover:bg-slate-50'
+                                  slashMenuSelectedIndex === optionIndex ? 'bg-slate-100 dark:bg-white/[0.08]' : 'hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                                 ]"
                                 @click="selectSlashOption(optionIndex)"
                                 @mouseenter="slashMenuSelectedIndex = optionIndex"
                               >
-                                <span class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-medium text-slate-500 flex-shrink-0">
+                                <span class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center text-sm font-medium text-slate-500 dark:text-zinc-400 flex-shrink-0">
                                   {{ option.icon }}
                                 </span>
                                 <div class="min-w-0">
-                                  <div class="text-sm font-medium text-slate-700">{{ option.label }}</div>
-                                  <div class="text-xs text-slate-400 truncate">{{ option.description }}</div>
+                                  <div class="text-sm font-medium text-slate-700 dark:text-zinc-200">{{ option.label }}</div>
+                                  <div class="text-xs text-slate-400 dark:text-zinc-500 truncate">{{ option.description }}</div>
                                 </div>
                               </button>
                             </div>
@@ -1306,10 +1306,10 @@ onMounted(() => {
                 </div>
 
                 <!-- Add new block (bottom) -->
-                <div v-if="canEdit" class="mt-8 pt-4 border-t border-dashed border-slate-200">
+                <div v-if="canEdit" class="mt-8 pt-4 border-t border-dashed border-slate-200 dark:border-white/[0.06]">
                   <button
                     @click="insertBlock('paragraph')"
-                    class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+                    class="flex items-center gap-2 text-sm text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
                   >
                     <Icon name="heroicons:plus" class="w-4 h-4" />
                     Add a new block
@@ -1329,12 +1329,12 @@ onMounted(() => {
             >
               <div
                 v-if="showVersions"
-                class="w-80 border-l border-slate-100 bg-slate-50/80 backdrop-blur-sm flex flex-col"
+                class="w-80 border-l border-slate-100 dark:border-white/[0.06] bg-slate-50/80 dark:bg-dm-card/80 backdrop-blur-sm flex flex-col"
               >
-                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                  <h3 class="text-sm font-medium text-slate-800">Version History</h3>
+                <div class="px-4 py-3 border-b border-slate-100 dark:border-white/[0.04] flex items-center justify-between">
+                  <h3 class="text-sm font-medium text-slate-800 dark:text-zinc-200">Version History</h3>
                   <button
-                    class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    class="w-6 h-6 flex items-center justify-center rounded text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100"
                     @click="showVersions = false"
                   >
                     <Icon name="heroicons:x-mark" class="w-4 h-4" />
@@ -1343,34 +1343,34 @@ onMounted(() => {
 
                 <div class="flex-1 overflow-y-auto p-4">
                   <div v-if="versions.length === 0" class="text-center py-8">
-                    <Icon name="heroicons:clock" class="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                    <p class="text-sm text-slate-400">No saved versions yet</p>
-                    <p class="text-xs text-slate-300 mt-1">Click the bookmark icon to save a version</p>
+                    <Icon name="heroicons:clock" class="w-8 h-8 text-slate-200 dark:text-zinc-700 mx-auto mb-2" />
+                    <p class="text-sm text-slate-400 dark:text-zinc-500">No saved versions yet</p>
+                    <p class="text-xs text-slate-300 dark:text-zinc-600 mt-1">Click the bookmark icon to save a version</p>
                   </div>
 
                   <div v-else class="space-y-3">
                     <button
                       v-for="version in versions"
                       :key="version.id"
-                      class="w-full text-left p-3 rounded-xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all"
+                      class="w-full text-left p-3 rounded-xl bg-white dark:bg-dm-surface border border-slate-100 dark:border-white/[0.04] hover:border-slate-200 dark:hover:border-white/[0.08] hover:shadow-sm transition-all"
                       @click="canEdit && restoreVersion(version)"
                     >
                       <div class="flex items-center gap-2">
                         <span
                           :class="[
                             'w-2 h-2 rounded-full flex-shrink-0',
-                            version.type === 'major' ? 'bg-rose-400' : 'bg-slate-300'
+                            version.type === 'major' ? 'bg-rose-400' : 'bg-slate-300 dark:bg-zinc-600'
                           ]"
                         />
-                        <span class="text-sm font-medium text-slate-700 truncate">
+                        <span class="text-sm font-medium text-slate-700 dark:text-zinc-300 truncate">
                           {{ version.label || (version.type === 'major' ? 'Major version' : 'Minor update') }}
                         </span>
                       </div>
-                      <div class="mt-1 text-xs text-slate-400">
+                      <div class="mt-1 text-xs text-slate-400 dark:text-zinc-500">
                         {{ formatRelativeTime(version.createdAt) }}
                         <span v-if="version.createdBy"> · {{ version.createdBy.name }}</span>
                       </div>
-                      <p v-if="version.notes" class="mt-2 text-xs text-slate-500 line-clamp-2">{{ version.notes }}</p>
+                      <p v-if="version.notes" class="mt-2 text-xs text-slate-500 dark:text-zinc-400 line-clamp-2">{{ version.notes }}</p>
                       <span v-if="canEdit" class="mt-2 inline-block text-xs text-blue-600">Click to restore</span>
                     </button>
                   </div>
@@ -1389,11 +1389,11 @@ onMounted(() => {
             leave-to-class="opacity-0"
           >
             <div v-if="showVersionModal" class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4">
-              <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 class="text-base font-semibold text-slate-800">Save Version</h3>
+              <div class="bg-white dark:bg-dm-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+                  <h3 class="text-base font-semibold text-slate-800 dark:text-zinc-100">Save Version</h3>
                   <button
-                    class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100"
                     @click="showVersionModal = false"
                   >
                     <Icon name="heroicons:x-mark" class="w-4 h-4" />
@@ -1402,34 +1402,34 @@ onMounted(() => {
 
                 <div class="p-5 space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Version name</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Version name</label>
                     <input
                       v-model="versionLabel"
                       type="text"
-                      class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all"
+                      class="w-full text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-surface dark:text-zinc-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-zinc-700 focus:border-slate-300 dark:focus:border-zinc-600 transition-all"
                       placeholder="e.g., Final draft, Review ready..."
                     />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Notes <span class="font-normal text-slate-400">(optional)</span></label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Notes <span class="font-normal text-slate-400 dark:text-zinc-500">(optional)</span></label>
                     <textarea
                       v-model="versionNotes"
                       rows="3"
-                      class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all resize-none"
+                      class="w-full text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-surface dark:text-zinc-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-zinc-700 focus:border-slate-300 dark:focus:border-zinc-600 transition-all resize-none"
                       placeholder="What changed in this version?"
                     />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Version type</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">Version type</label>
                     <div class="flex gap-2">
                       <button
                         :class="[
                           'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border',
                           versionType === 'minor'
-                            ? 'bg-slate-100 border-slate-200 text-slate-700'
-                            : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                            ? 'bg-slate-100 dark:bg-white/[0.08] border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-zinc-200'
+                            : 'border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-zinc-500 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                         ]"
                         @click="versionType = 'minor'"
                       >
@@ -1440,7 +1440,7 @@ onMounted(() => {
                           'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border',
                           versionType === 'major'
                             ? 'bg-rose-50 border-rose-200 text-rose-700'
-                            : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                            : 'border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-zinc-500 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                         ]"
                         @click="versionType = 'major'"
                       >
@@ -1450,15 +1450,15 @@ onMounted(() => {
                   </div>
                 </div>
 
-                <div class="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <div class="px-5 py-4 bg-slate-50 dark:bg-white/[0.04] border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-end gap-3">
                   <button
-                    class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
+                    class="px-4 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
                     @click="showVersionModal = false"
                   >
                     Cancel
                   </button>
                   <button
-                    class="px-5 py-2 text-sm font-medium rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                    class="px-5 py-2 text-sm font-medium rounded-xl bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
                     @click="saveVersion"
                   >
                     Save Version

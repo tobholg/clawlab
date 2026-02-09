@@ -111,22 +111,22 @@ const healthMeta = (project: ItemNode) => {
     return {
       score,
       label: 'Complete',
-      textClass: 'text-emerald-600',
+      textClass: 'text-emerald-600 dark:text-emerald-400',
       barClass: 'from-emerald-500 via-emerald-400 to-emerald-200',
-      trackClass: 'bg-emerald-50',
+      trackClass: 'bg-emerald-50 dark:bg-emerald-500/10',
     }
   }
 
   if (score >= 85) {
-    return { score, label: 'Excellent', textClass: 'text-emerald-600', barClass: 'from-emerald-500 via-emerald-400 to-emerald-200', trackClass: 'bg-emerald-50' }
+    return { score, label: 'Excellent', textClass: 'text-emerald-600 dark:text-emerald-400', barClass: 'from-emerald-500 via-emerald-400 to-emerald-200', trackClass: 'bg-emerald-50 dark:bg-emerald-500/10' }
   }
   if (score >= 70) {
-    return { score, label: 'Good', textClass: 'text-teal-600', barClass: 'from-teal-500 via-teal-400 to-teal-200', trackClass: 'bg-teal-50' }
+    return { score, label: 'Good', textClass: 'text-teal-600 dark:text-teal-400', barClass: 'from-teal-500 via-teal-400 to-teal-200', trackClass: 'bg-teal-50 dark:bg-teal-500/10' }
   }
   if (score >= 55) {
-    return { score, label: 'Watch', textClass: 'text-amber-600', barClass: 'from-amber-500 via-amber-400 to-amber-200', trackClass: 'bg-amber-50' }
+    return { score, label: 'Watch', textClass: 'text-amber-600 dark:text-amber-400', barClass: 'from-amber-500 via-amber-400 to-amber-200', trackClass: 'bg-amber-50 dark:bg-amber-500/10' }
   }
-  return { score, label: 'Risk', textClass: 'text-rose-600', barClass: 'from-rose-500 via-rose-400 to-rose-200', trackClass: 'bg-rose-50' }
+  return { score, label: 'Risk', textClass: 'text-rose-600 dark:text-rose-400', barClass: 'from-rose-500 via-rose-400 to-rose-200', trackClass: 'bg-rose-50 dark:bg-rose-500/10' }
 }
 </script>
 
@@ -137,20 +137,20 @@ const healthMeta = (project: ItemNode) => {
       <div
         v-for="project in sortedProjects"
         :key="project.id"
-        class="group relative overflow-hidden bg-white/90 rounded-2xl border border-slate-100 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+        class="group relative overflow-hidden bg-white/90 dark:bg-dm-card/90 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] dark:shadow-[0_10px_30px_-20px_rgba(0,0,0,0.6)] hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] dark:hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
         @click="emit('openProject', project)"
       >
         <div class="p-5 relative">
           <!-- Title -->
           <div class="flex items-start justify-between mb-3">
             <div class="min-w-0">
-              <h3 class="text-[15px] font-semibold text-slate-800 leading-snug group-hover:text-slate-900 transition-colors truncate">
+              <h3 class="text-[15px] font-semibold text-slate-800 dark:text-zinc-200 leading-snug group-hover:text-slate-900 dark:group-hover:text-zinc-100 transition-colors truncate">
                 {{ project.title }}
               </h3>
             </div>
             <button
               @click.stop="emit('openDetail', project)"
-              class="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-all flex-shrink-0 ml-3 -mr-1 -mt-1"
+              class="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all flex-shrink-0 ml-3 -mr-1 -mt-1"
             >
               <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
             </button>
@@ -158,7 +158,7 @@ const healthMeta = (project: ItemNode) => {
 
           <!-- Project Health -->
           <div class="mb-4">
-            <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
+            <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 mb-1.5">
               <span>Project health</span>
               <span class="font-semibold" :class="healthMeta(project).textClass">
                 {{ healthMeta(project).score }}% · {{ healthMeta(project).label }}
@@ -174,7 +174,7 @@ const healthMeta = (project: ItemNode) => {
           </div>
 
           <!-- Heatmap (central focus) -->
-          <div class="mb-4 rounded-xl border border-slate-100 bg-white p-3">
+          <div class="mb-4 rounded-xl border border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card p-3">
             <UiCompletionHeatmap :item-id="project.id" :days="14" />
           </div>
 
@@ -202,17 +202,17 @@ const healthMeta = (project: ItemNode) => {
           </div>
 
           <!-- Footer -->
-          <div class="flex items-center justify-between text-xs text-slate-500">
+          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
             <!-- Left: Owner -->
             <div class="flex items-center gap-2">
               <template v-if="project.owner">
                 <div
-                  class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center border border-slate-100"
+                  class="w-6 h-6 rounded-full bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center border border-slate-100 dark:border-white/[0.08]"
                   :title="project.owner.name"
                 >
-                  <span class="text-[10px] text-slate-500 font-medium">{{ project.owner.name?.[0] ?? '?' }}</span>
+                  <span class="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">{{ project.owner.name?.[0] ?? '?' }}</span>
                 </div>
-                <span class="text-slate-600">{{ project.owner.name?.split(' ')[0] }}</span>
+                <span class="text-slate-600 dark:text-zinc-300">{{ project.owner.name?.split(' ')[0] }}</span>
               </template>
               <span v-else class="text-slate-400">No owner</span>
             </div>
@@ -233,12 +233,12 @@ const healthMeta = (project: ItemNode) => {
       <button
         v-if="showCreateCard"
         @click="emit('createProject')"
-        class="flex flex-col items-center justify-center min-h-[200px] bg-gradient-to-br from-slate-50 via-white to-slate-50 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 hover:shadow-sm transition-all group"
+        class="flex flex-col items-center justify-center min-h-[200px] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-dm-card dark:via-dm-card/50 dark:to-dm-card rounded-2xl border border-dashed border-slate-300 dark:border-white/[0.08] hover:border-slate-400 dark:hover:border-white/[0.1] hover:shadow-sm transition-all group"
       >
-        <div class="w-10 h-10 rounded-full bg-slate-200 group-hover:bg-slate-300 flex items-center justify-center mb-2 transition-colors">
-          <Icon name="heroicons:plus" class="w-5 h-5 text-slate-500 group-hover:text-slate-600" />
+        <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/[0.08] group-hover:bg-slate-300 dark:group-hover:bg-white/[0.08] flex items-center justify-center mb-2 transition-colors">
+          <Icon name="heroicons:plus" class="w-5 h-5 text-slate-500 dark:text-zinc-400 group-hover:text-slate-600 dark:group-hover:text-zinc-300" />
         </div>
-        <span class="text-sm text-slate-500 group-hover:text-slate-600">New Project</span>
+        <span class="text-sm text-slate-500 dark:text-zinc-400 group-hover:text-slate-600 dark:group-hover:text-zinc-300">New Project</span>
       </button>
     </div>
   </div>

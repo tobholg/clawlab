@@ -5,8 +5,8 @@
     :class="[
       'fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-50',
       isOpen
-        ? 'bg-slate-900 text-white scale-90 rotate-90'
-        : 'bg-white text-slate-600 hover:scale-105 hover:shadow-xl border border-slate-200'
+        ? 'bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 scale-90 rotate-90'
+        : 'bg-white text-slate-600 dark:bg-dm-card dark:text-zinc-300 dark:border-white/[0.06] hover:scale-105 hover:shadow-xl border border-slate-200'
     ]"
   >
     <Icon

@@ -25,11 +25,11 @@ const { data: completionData } = useFetch(`/api/items/${props.itemId}/completion
 
 // Intensity to color mapping (using emerald/green for completions)
 const intensityColors = [
-  'bg-slate-100',      // 0 - no completions
-  'bg-emerald-200',    // 1 - 1 completion
-  'bg-emerald-300',    // 2 - 2 completions
-  'bg-emerald-400',    // 3 - 3 completions
-  'bg-emerald-500',    // 4+ - many completions
+  'bg-slate-100 dark:bg-white/[0.08]',      // 0 - no completions
+  'bg-emerald-200 dark:bg-emerald-800',  // 1 - 1 completion
+  'bg-emerald-300 dark:bg-emerald-600',  // 2 - 2 completions
+  'bg-emerald-400 dark:bg-emerald-500',  // 3 - 3 completions
+  'bg-emerald-500 dark:bg-emerald-400',  // 4+ - many completions
 ]
 
 const getColor = (intensity: number) => intensityColors[Math.min(intensity, 4)]
@@ -107,13 +107,13 @@ const formatDate = (dateStr: string): string => {
         <div
           v-for="i in (days ?? 14)"
           :key="i"
-          class="w-3 h-3 rounded-sm bg-slate-100 animate-pulse"
+          class="w-3 h-3 rounded-sm bg-slate-100 dark:bg-white/[0.08] animate-pulse"
         />
       </template>
     </div>
 
     <!-- Summary text -->
-    <div class="flex items-center justify-between mt-2.5 text-xs text-slate-400">
+    <div class="flex items-center justify-between mt-2.5 text-xs text-slate-400 dark:text-zinc-500">
       <span>{{ completionData?.totalCompletions ?? 0 }} completed</span>
       <span>{{ days ?? 14 }} days</span>
     </div>

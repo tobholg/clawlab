@@ -3,24 +3,24 @@
     <div
       v-if="isOpen"
       ref="bubbleRef"
-      class="fixed z-40 w-[400px] h-[min(70vh,600px)] rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/50 shadow-2xl flex flex-col overflow-hidden"
+      class="fixed z-40 w-[400px] h-[min(70vh,600px)] rounded-2xl bg-white/95 dark:bg-dm-surface/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/[0.06] shadow-2xl flex flex-col overflow-hidden"
       :style="bubbleStyle"
     >
       <!-- Header (drag handle) -->
       <div
         ref="headerRef"
-        class="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white/80 cursor-move select-none shrink-0"
+        class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/[0.06] bg-white/80 dark:bg-dm-surface/80 cursor-move select-none shrink-0"
         @mousedown="startDrag"
       >
         <div class="flex items-center gap-2">
           <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-4 h-4 text-ctx-500" />
-          <span class="text-sm font-medium text-slate-700">Quick Chat</span>
+          <span class="text-sm font-medium text-slate-700 dark:text-zinc-300">Quick Chat</span>
         </div>
         <div class="flex items-center gap-1">
           <!-- Menu Button -->
           <div ref="menuRef" class="relative">
             <button
-              class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+              class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
               title="Menu"
               @click.stop="menuOpen = !menuOpen"
             >
@@ -31,10 +31,10 @@
             <Transition name="menu">
               <div
                 v-if="menuOpen"
-                class="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white border border-slate-200 shadow-lg py-1 z-10"
+                class="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] shadow-lg py-1 z-10"
               >
                 <button
-                  class="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                  class="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                   :class="{ 'opacity-50 cursor-not-allowed': !hasMessages }"
                   :disabled="!hasMessages"
                   @click="handleClear"
@@ -43,9 +43,9 @@
                   <span>Clear Chat</span>
                 </button>
 
-                <div v-if="hasCustomPosition" class="border-t border-slate-100 mt-1 pt-1">
+                <div v-if="hasCustomPosition" class="border-t border-slate-100 dark:border-white/[0.06] mt-1 pt-1">
                   <button
-                    class="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                    class="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                     @click="handleResetPosition"
                   >
                     <Icon name="heroicons:arrows-pointing-out" class="w-4 h-4 text-slate-400" />
@@ -58,7 +58,7 @@
 
           <!-- Close Button -->
           <button
-            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
             title="Close"
             @click="close"
           >
@@ -87,7 +87,7 @@
         
         <!-- Thinking indicator -->
         <div v-if="sending && messages.length > 0 && !messages[messages.length - 1]?.content" class="flex justify-start">
-          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-ctx-50 text-slate-500 text-sm">
+          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-ctx-50 dark:bg-ctx-900/30 text-slate-500 text-sm">
             <span class="inline-flex items-center gap-1">
               <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
               <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
@@ -98,14 +98,14 @@
       </div>
 
       <!-- Input -->
-      <div class="flex items-center gap-2 px-4 py-3 shrink-0 border-t border-slate-100 bg-white">
+      <div class="flex items-center gap-2 px-4 py-3 shrink-0 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-surface">
         <textarea
           ref="inputRef"
           v-model="inputMessage"
           rows="1"
           placeholder="Ask anything..."
           :disabled="sending"
-          class="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none disabled:opacity-50 resize-none max-h-32"
+          class="flex-1 bg-transparent text-sm text-slate-700 dark:text-zinc-200 placeholder:text-slate-400 focus:outline-none disabled:opacity-50 resize-none max-h-32"
           @keydown.enter.exact.prevent="handleSend"
           @input="autoResize"
         />

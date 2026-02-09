@@ -15,12 +15,12 @@ const props = defineProps<{
     leave-to-class="opacity-0 -translate-y-1"
   >
     <div v-if="pending" class="px-4 py-1.5">
-      <div class="max-w-3xl mx-auto flex items-center gap-2 text-xs text-slate-500">
+      <div class="max-w-3xl mx-auto flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
         <div class="w-5 h-5 rounded-full bg-black flex items-center justify-center">
           <svg class="w-3 h-3" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <span class="text-slate-600">Context AI</span>
-        <span class="text-slate-400">{{ label || 'thinking' }}</span>
+        <span class="text-slate-600 dark:text-zinc-300">Context AI</span>
+        <span class="text-slate-400 dark:text-zinc-500">{{ label || 'thinking' }}</span>
         <span class="ai-dot" style="--delay: 0ms" />
         <span class="ai-dot" style="--delay: 120ms" />
         <span class="ai-dot" style="--delay: 240ms" />

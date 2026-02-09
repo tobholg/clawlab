@@ -357,13 +357,13 @@ onMounted(() => {
             'w-3.5 h-3.5 transition-colors',
             i === breadcrumbs.length - 1
               ? (i === 0 ? 'text-slate-500' : i === 1 ? 'text-blue-500' : 'text-emerald-500')
-              : 'text-slate-300'
+              : 'text-slate-300 dark:text-zinc-600'
           ]"
         />
         <span
           :class="[
-            'hover:text-slate-900 transition-colors',
-            i === breadcrumbs.length - 1 ? 'text-slate-800 font-medium' : 'text-slate-400'
+            'hover:text-slate-900 dark:hover:text-zinc-100 transition-colors',
+            i === breadcrumbs.length - 1 ? 'text-slate-800 dark:text-zinc-200 font-medium' : 'text-slate-400 dark:text-zinc-500'
           ]"
         >
           {{ crumb.title }}
@@ -371,7 +371,7 @@ onMounted(() => {
         <Icon
           v-if="i < breadcrumbs.length - 1"
           name="heroicons:chevron-right"
-          class="w-3 h-3 text-slate-300"
+          class="w-3 h-3 text-slate-300 dark:text-zinc-600"
         />
       </button>
     </nav>
@@ -383,7 +383,7 @@ onMounted(() => {
           <!-- Title: display or edit -->
           <h1
             v-if="!editingTitle"
-            class="text-xl font-medium text-slate-900 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 transition-colors"
+            class="text-xl font-medium text-slate-900 dark:text-zinc-100 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 transition-colors"
             @click="editingTitle = true; nextTick(() => titleInputRef?.focus())"
           >
             {{ editedProjectTitle || 'Untitled project' }}
@@ -393,7 +393,7 @@ onMounted(() => {
             ref="titleInputRef"
             v-model="editedProjectTitle"
             type="text"
-            class="text-xl font-medium text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 p-0 px-1 -mx-1 w-full"
+            class="text-xl font-medium text-slate-900 dark:text-zinc-100 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 dark:placeholder-zinc-600 p-0 px-1 -mx-1 w-full"
             placeholder="Project title..."
             @blur="editingTitle = false"
             @keydown.enter="editingTitle = false"
@@ -405,12 +405,12 @@ onMounted(() => {
               <MarkdownRenderer
                 v-if="editedProjectDescription"
                 :content="editedProjectDescription"
-                class="text-sm text-slate-500 line-clamp-2 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                class="text-sm text-slate-500 dark:text-zinc-400 line-clamp-1 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
                 @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
               />
               <p
                 v-else
-                class="text-sm text-slate-400 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                class="text-sm text-slate-400 dark:text-zinc-500 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
                 @click="editingDescription = true; nextTick(() => descriptionRef?.focus())"
               >
                 Add a description...
@@ -418,7 +418,7 @@ onMounted(() => {
               <button
                 v-if="descriptionNeedsTruncation"
                 @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
-                class="text-xs text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
+                class="text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors mt-0.5"
               >
                 Show more
               </button>
@@ -428,7 +428,7 @@ onMounted(() => {
                 ref="descriptionRef"
                 v-model="editedProjectDescription"
                 rows="1"
-                class="text-sm text-slate-500 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 p-0 px-1 -mx-1 w-full resize-none overflow-hidden"
+                class="text-sm text-slate-500 dark:text-zinc-400 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-zinc-600 p-0 px-1 -mx-1 w-full resize-none overflow-hidden"
                 placeholder="Add a description..."
                 @input="(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }"
                 @blur="editingDescription = false"
@@ -436,7 +436,7 @@ onMounted(() => {
               <button
                 v-if="descriptionNeedsTruncation"
                 @mousedown.prevent="editingDescription = false"
-                class="text-xs text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
+                class="text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors mt-0.5"
               >
                 Show less
               </button>
@@ -451,23 +451,23 @@ onMounted(() => {
           <div
             v-for="assignee in currentScope.assignees.slice(0, 3)"
             :key="assignee.id"
-            class="w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center"
+            class="w-8 h-8 rounded-full border-2 border-white dark:border-dm bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center"
             :title="assignee.name"
           >
             <span class="text-xs text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
           </div>
           <div
             v-if="currentScope.assignees.length > 3"
-            class="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center"
+            class="w-8 h-8 rounded-full border-2 border-white dark:border-dm bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center"
           >
-            <span class="text-xs text-slate-600 font-medium">+{{ currentScope.assignees.length - 3 }}</span>
+            <span class="text-xs text-slate-600 dark:text-zinc-400 font-medium">+{{ currentScope.assignees.length - 3 }}</span>
           </div>
         </div>
 
         <!-- Settings button -->
         <button
           @click="selectedItem = currentScope; showDetailModal = true"
-          class="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          class="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
           title="Edit project details"
         >
           <Icon name="heroicons:cog-6-tooth" class="w-4 h-4 block" />
@@ -477,7 +477,7 @@ onMounted(() => {
         <button
           v-if="canCreate && activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'"
           @click="showCreateModal = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
         >
           <Icon name="heroicons:plus" class="w-4 h-4" />
           <span>New</span>
@@ -486,7 +486,7 @@ onMounted(() => {
         <button
           v-else-if="activeView === 'documents'"
           @click="createDocumentFromHeader"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
         >
           <Icon name="heroicons:document-text" class="w-4 h-4" />
           <span>New document</span>
@@ -496,7 +496,7 @@ onMounted(() => {
         <div class="group relative">
           <!-- Active view trigger -->
           <button
-            class="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 hover:border-slate-300 transition-all"
+            class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg text-slate-700 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-white/[0.1] transition-all"
           >
             <Icon :name="activeViewOption.icon" class="w-4 h-4 block" />
             <span class="text-sm font-medium">{{ activeViewOption.label }}</span>
@@ -504,7 +504,7 @@ onMounted(() => {
           </button>
 
           <!-- Dropdown options -->
-          <div class="absolute top-full right-0 mt-1 py-1 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[140px] z-50">
+          <div class="absolute top-full right-0 mt-1 py-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[140px] z-50">
             <button
               v-for="option in viewOptions"
               :key="option.key"
@@ -512,8 +512,8 @@ onMounted(() => {
               :class="[
                 'flex items-center gap-2.5 w-full px-3 py-2 text-left transition-colors',
                 option.key === activeView
-                  ? 'bg-slate-50 text-slate-900'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-slate-50 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-zinc-200'
               ]"
             >
               <Icon :name="option.icon" class="w-4 h-4 block" />
@@ -521,7 +521,7 @@ onMounted(() => {
               <Icon
                 v-if="option.key === activeView"
                 name="heroicons:check"
-                class="w-4 h-4 ml-auto text-slate-500"
+                class="w-4 h-4 ml-auto text-slate-500 dark:text-zinc-400"
               />
             </button>
           </div>
@@ -533,35 +533,35 @@ onMounted(() => {
     <div v-if="activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'" class="flex items-center gap-2">
       <!-- Category -->
       <div class="group/category relative">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 group-hover/category:shadow-sm">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 dark:group-hover/category:border-white/[0.1] group-hover/category:shadow-sm">
           <div
             class="w-1.5 h-1.5 rounded-full"
             :class="filterCategory ? (categoryDotColors[filterCategory] || 'bg-slate-400') : 'bg-slate-300'"
           />
-          <span class="text-xs font-normal text-slate-600">{{ filterCategory || 'Category' }}</span>
+          <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ filterCategory || 'Category' }}</span>
           <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/category:rotate-180" />
         </div>
-        <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/category:opacity-100 group-hover/category:visible group-hover/category:translate-y-0">
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/category:opacity-100 group-hover/category:visible group-hover/category:translate-y-0">
           <div class="py-1">
             <button
               @click="filterCategory = null"
               class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
               :class="!filterCategory
-                ? 'bg-slate-100 text-slate-900 font-medium'
-                : 'text-slate-600 hover:bg-slate-50'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
             >
               <div class="w-2 h-2 rounded-full bg-slate-300" />
               <span>All categories</span>
             </button>
-            <div class="border-t border-slate-100 my-1" />
+            <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
             <button
               v-for="cat in categories"
               :key="cat"
               @click="filterCategory = cat"
               class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
               :class="filterCategory === cat
-                ? 'bg-slate-100 text-slate-900 font-medium'
-                : 'text-slate-600 hover:bg-slate-50'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
             >
               <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400'" />
               <span>{{ cat }}</span>
@@ -572,35 +572,35 @@ onMounted(() => {
 
       <!-- Priority -->
       <div class="group/priority relative">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/priority:border-slate-300 group-hover/priority:shadow-sm">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/priority:border-slate-300 dark:group-hover/priority:border-white/[0.1] group-hover/priority:shadow-sm">
           <div
             class="w-1.5 h-1.5 rounded-full"
             :class="filterPriority ? (priorityDotColors[filterPriority] || 'bg-slate-400') : 'bg-slate-300'"
           />
-          <span class="text-xs font-normal text-slate-600">{{ priorityLabel }}</span>
+          <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ priorityLabel }}</span>
           <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/priority:rotate-180" />
         </div>
-        <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/priority:opacity-100 group-hover/priority:visible group-hover/priority:translate-y-0">
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/priority:opacity-100 group-hover/priority:visible group-hover/priority:translate-y-0">
           <div class="py-1">
             <button
               @click="filterPriority = null"
               class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
               :class="!filterPriority
-                ? 'bg-slate-100 text-slate-900 font-medium'
-                : 'text-slate-600 hover:bg-slate-50'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
             >
               <div class="w-2 h-2 rounded-full bg-slate-300" />
               <span>All priorities</span>
             </button>
-            <div class="border-t border-slate-100 my-1" />
+            <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
             <button
               v-for="opt in PRIORITY_OPTIONS"
               :key="opt.value"
               @click="filterPriority = opt.value"
               class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
               :class="filterPriority === opt.value
-                ? 'bg-slate-100 text-slate-900 font-medium'
-                : 'text-slate-600 hover:bg-slate-50'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
             >
               <div class="w-2 h-2 rounded-full" :class="priorityDotColors[opt.value] || 'bg-slate-400'" />
               <span>{{ opt.label }}</span>
@@ -611,22 +611,22 @@ onMounted(() => {
 
       <!-- Complexity -->
       <div class="group/complexity relative">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/complexity:border-slate-300 group-hover/complexity:shadow-sm">
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/complexity:border-slate-300 dark:group-hover/complexity:border-white/[0.1] group-hover/complexity:shadow-sm">
           <div
             class="w-1.5 h-1.5 rounded-full"
             :class="filterComplexity && filterComplexity !== 'NONE' ? (complexityDotColors[filterComplexity] || 'bg-slate-400') : 'bg-slate-300'"
           />
-          <span class="text-xs font-normal text-slate-600">{{ complexityLabel }}</span>
+          <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ complexityLabel }}</span>
           <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/complexity:rotate-180" />
         </div>
-        <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/complexity:opacity-100 group-hover/complexity:visible group-hover/complexity:translate-y-0">
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/complexity:opacity-100 group-hover/complexity:visible group-hover/complexity:translate-y-0">
           <div class="py-1">
             <button
               @click="filterComplexity = null"
               class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
               :class="!filterComplexity
-                ? 'bg-slate-100 text-slate-900 font-medium'
-                : 'text-slate-600 hover:bg-slate-50'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
             >
               <div class="w-2 h-2 rounded-full bg-slate-300" />
               <span>All complexity</span>
@@ -635,21 +635,21 @@ onMounted(() => {
               @click="filterComplexity = 'NONE'"
               class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
               :class="filterComplexity === 'NONE'
-                ? 'bg-slate-100 text-slate-900 font-medium'
-                : 'text-slate-600 hover:bg-slate-50'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
             >
               <div class="w-2 h-2 rounded-full bg-slate-300" />
               <span>No complexity</span>
             </button>
-            <div class="border-t border-slate-100 my-1" />
+            <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
             <button
               v-for="opt in COMPLEXITY_OPTIONS"
               :key="opt.value"
               @click="filterComplexity = opt.value"
               class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
               :class="filterComplexity === opt.value
-                ? 'bg-slate-100 text-slate-900 font-medium'
-                : 'text-slate-600 hover:bg-slate-50'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
             >
               <div class="w-2 h-2 rounded-full" :class="complexityDotColors[opt.value] || 'bg-slate-400'" />
               <span>{{ opt.label }}</span>
@@ -668,12 +668,12 @@ onMounted(() => {
             v-model="searchQuery"
             type="text"
             placeholder="Search..."
-            class="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-full focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 w-48 transition-all"
+            class="pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-full focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 focus:border-slate-300 dark:focus:border-zinc-600 dark:text-zinc-200 dark:placeholder-zinc-500 w-48 transition-all"
           />
         </div>
         <button
           @click="showSuggestedWorkOrder = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-normal rounded-full hover:bg-slate-800 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-normal rounded-full hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
         >
           <Icon name="heroicons:sparkles" class="w-3.5 h-3.5" />
           Suggested order

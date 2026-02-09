@@ -343,14 +343,14 @@ const handleWhatDidIMiss = () => {
     <div :class="['flex flex-col relative min-h-0', activeThread ? 'flex-1 min-w-0' : 'flex-1']">
 
       <!-- Channel Header -->
-      <header class="relative z-10 border-b border-slate-200 px-6 py-3 flex items-center justify-between bg-white">
+      <header class="relative z-10 border-b border-slate-200 dark:border-white/[0.06] px-6 py-3 flex items-center justify-between bg-white dark:bg-dm-surface">
         <div class="flex items-center gap-2.5">
-          <Icon :name="channelIcon" class="w-4 h-4 text-slate-400" />
+          <Icon :name="channelIcon" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
           <div class="flex items-center gap-2">
-            <h1 class="text-sm font-medium text-slate-900">
+            <h1 class="text-sm font-medium text-slate-900 dark:text-zinc-100">
               {{ currentChannel?.displayName || 'Loading...' }}
             </h1>
-            <span v-if="currentChannel?.description" class="text-sm text-slate-400">
+            <span v-if="currentChannel?.description" class="text-sm text-slate-400 dark:text-zinc-500">
               {{ currentChannel.description }}
             </span>
           </div>
@@ -361,7 +361,7 @@ const handleWhatDidIMiss = () => {
           <ChannelsPresenceIndicator :users="channelPresence" />
 
           <!-- Settings -->
-          <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center">
+          <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded-lg transition-colors flex items-center justify-center">
             <Icon name="heroicons:cog-6-tooth" class="w-5 h-5" />
           </button>
         </div>
@@ -401,15 +401,15 @@ const handleWhatDidIMiss = () => {
             v-if="showMissedPrompt"
             class="absolute left-0 right-0 -top-12 z-20 flex justify-center pointer-events-none"
           >
-            <div class="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 shadow-sm backdrop-blur">
+            <div class="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white/95 dark:bg-dm-card/95 px-3 py-1.5 shadow-sm backdrop-blur">
               <button
-                class="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                class="text-sm font-medium text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
                 @click="handleWhatDidIMiss"
               >
                 What did I miss?
               </button>
               <button
-                class="inline-flex h-5 w-5 items-center justify-center rounded text-slate-400 leading-none hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                class="inline-flex h-5 w-5 items-center justify-center rounded text-slate-400 leading-none hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-colors"
                 aria-label="Dismiss missed messages prompt"
                 @click="handleMissedPromptDismiss"
               >

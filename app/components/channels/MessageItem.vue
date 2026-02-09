@@ -36,29 +36,29 @@ const isAiMessage = computed(() => {
 const bubbleColor = computed(() => {
   if (isOwnMessage.value) {
     // Smooth green-to-near-white gradient for own messages
-    return 'bg-[linear-gradient(90deg,rgba(209,250,229,0.7)_0%,rgba(236,253,245,0.48)_52%,rgba(248,250,252,0.94)_100%)] text-slate-800 border border-emerald-100/60 shadow-sm'
+    return 'bg-[linear-gradient(90deg,rgba(209,250,229,0.7)_0%,rgba(236,253,245,0.48)_52%,rgba(248,250,252,0.94)_100%)] dark:bg-[linear-gradient(90deg,rgba(6,78,59,0.4)_0%,rgba(6,78,59,0.2)_52%,rgba(24,24,27,0.7)_100%)] text-slate-800 dark:text-zinc-200 border border-emerald-100/60 dark:border-emerald-800/40 shadow-sm'
   }
   // White for everyone else
-  return 'bg-white text-slate-800 shadow-sm border border-slate-100'
+  return 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-200 shadow-sm border border-slate-100 dark:border-white/[0.06]'
 })
 
 // Username colors for other users (hash-based)
 const usernameColor = computed(() => {
   if (isOwnMessage.value) {
-    return 'text-emerald-600'
+    return 'text-emerald-600 dark:text-emerald-400'
   }
   if (isAiMessage.value) {
-    return 'text-violet-600'
+    return 'text-violet-600 dark:text-violet-400'
   }
   const colors = [
-    'text-blue-600',
-    'text-rose-600',
-    'text-amber-600',
-    'text-cyan-600',
-    'text-pink-600',
-    'text-indigo-600',
-    'text-teal-600',
-    'text-orange-600',
+    'text-blue-600 dark:text-blue-400',
+    'text-rose-600 dark:text-rose-400',
+    'text-amber-600 dark:text-amber-400',
+    'text-cyan-600 dark:text-cyan-400',
+    'text-pink-600 dark:text-pink-400',
+    'text-indigo-600 dark:text-indigo-400',
+    'text-teal-600 dark:text-teal-400',
+    'text-orange-600 dark:text-orange-400',
   ]
   const id = props.message.userId || props.message.id || 'default'
   const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
@@ -91,13 +91,13 @@ const escapeHtml = (value: string) =>
 const renderInline = (value: string) => {
   let content = value
   // Inline code (`...`)
-  content = content.replace(/`([^`]+)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-xs">$1</code>')
+  content = content.replace(/`([^`]+)`/g, '<code class="bg-slate-100 dark:bg-white/[0.08] px-1 py-0.5 rounded text-xs">$1</code>')
   // Bold (**...**)
   content = content.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   // Italic (*...*)
   content = content.replace(/\*([^*]+)\*/g, '<em>$1</em>')
   // Links [text](url)
-  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-emerald-700 hover:underline">$1</a>')
+  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-emerald-700 dark:text-emerald-400 hover:underline">$1</a>')
   return content
 }
 
@@ -109,7 +109,7 @@ const renderedAiContent = computed(() => {
   const codeBlocks: string[] = []
   content = content.replace(/```(\w*)\n?([\s\S]*?)```/g, (_match, _lang, code) => {
     const escaped = escapeHtml(code.trim())
-    const html = `<pre class="bg-slate-100 rounded-lg p-2 my-2 overflow-x-auto text-xs"><code>${escaped}</code></pre>`
+    const html = `<pre class="bg-slate-100 dark:bg-white/[0.08] rounded-lg p-2 my-2 overflow-x-auto text-xs"><code>${escaped}</code></pre>`
     const index = codeBlocks.length
     codeBlocks.push(html)
     return `__CODEBLOCK_${index}__`
@@ -221,7 +221,7 @@ const renderedAiContent = computed(() => {
           ]"
         >
           <button
-            class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded transition-colors"
             title="Reply in thread"
             @click="emit('reply', message)"
           >
@@ -229,7 +229,7 @@ const renderedAiContent = computed(() => {
           </button>
           <div class="relative flex items-center">
             <button
-              class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+              class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded transition-colors"
               title="Add reaction"
               @click.stop="showEmojiPicker = !showEmojiPicker"
             >
@@ -243,7 +243,7 @@ const renderedAiContent = computed(() => {
             </div>
           </div>
           <button
-            class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            class="p-1 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded transition-colors"
             title="More options"
           >
             <Icon name="heroicons:ellipsis-horizontal" class="w-3.5 h-3.5" />
@@ -261,7 +261,7 @@ const renderedAiContent = computed(() => {
           ]"
         >
           <!-- Message text -->
-          <div v-if="isAiMessage" class="text-sm leading-relaxed prose prose-sm prose-slate max-w-none">
+          <div v-if="isAiMessage" class="text-sm leading-relaxed prose prose-sm prose-slate dark:prose-invert max-w-none">
             <div v-if="message.content" v-html="renderedAiContent" />
           </div>
           <p v-else class="text-sm whitespace-pre-wrap break-words leading-relaxed">
@@ -273,12 +273,12 @@ const renderedAiContent = computed(() => {
             'flex items-center gap-1 mt-1',
             isOwnMessage ? 'justify-end' : 'justify-start'
           ]">
-            <span class="text-[10px] text-slate-400">
+            <span class="text-[10px] text-slate-400 dark:text-zinc-500">
               {{ formattedTime }}
             </span>
             <span
               v-if="message.editedAt"
-              class="text-[10px] text-slate-400"
+              class="text-[10px] text-slate-400 dark:text-zinc-500"
             >
               · edited
             </span>
@@ -307,7 +307,7 @@ const renderedAiContent = computed(() => {
         <button
           v-if="message.replyCount > 0 && !isThread"
           :class="[
-            'mt-1 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 hover:underline',
+            'mt-1 flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline',
             isOwnMessage ? 'ml-auto' : ''
           ]"
           @click="emit('reply', message)"

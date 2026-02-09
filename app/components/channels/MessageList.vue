@@ -221,12 +221,12 @@ defineExpose({ scrollToBottom, scrollToMessage, scrollToMissedDivider })
     <div v-if="hasMore" class="py-4 text-center max-w-3xl mx-auto">
       <button
         v-if="!loading"
-        class="text-sm text-slate-500 hover:text-slate-700"
+        class="text-sm text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
         @click="emit('loadMore')"
       >
         Load older messages
       </button>
-      <div v-else class="flex items-center justify-center gap-2 text-sm text-slate-400">
+      <div v-else class="flex items-center justify-center gap-2 text-sm text-slate-400 dark:text-zinc-500">
         <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
         Loading...
       </div>
@@ -249,20 +249,20 @@ defineExpose({ scrollToBottom, scrollToMessage, scrollToMissedDivider })
         >
           <!-- Date separator -->
           <div v-if="group.type === 'date'" class="flex items-center px-4 py-3">
-            <div class="flex-1 h-px bg-slate-200" />
-            <span class="px-4 text-xs font-medium text-slate-500">
+            <div class="flex-1 h-px bg-slate-200 dark:bg-white/[0.08]" />
+            <span class="px-4 text-xs font-medium text-slate-500 dark:text-zinc-400">
               {{ group.date }}
             </span>
-            <div class="flex-1 h-px bg-slate-200" />
+            <div class="flex-1 h-px bg-slate-200 dark:bg-white/[0.08]" />
           </div>
 
           <!-- Missed divider -->
           <div v-else-if="group.type === 'missed'" data-missed-divider="true" class="flex items-center px-4 py-3">
-            <div class="flex-1 h-px bg-amber-200/80" />
-            <span class="px-4 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">
+            <div class="flex-1 h-px bg-amber-200/80 dark:bg-amber-700/50" />
+            <span class="px-4 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700 dark:text-amber-400">
               {{ group.missedLabel }}
             </span>
-            <div class="flex-1 h-px bg-amber-200/80" />
+            <div class="flex-1 h-px bg-amber-200/80 dark:bg-amber-700/50" />
           </div>
 
           <!-- Message -->
@@ -282,7 +282,7 @@ defineExpose({ scrollToBottom, scrollToMessage, scrollToMissedDivider })
     <!-- Empty state -->
     <div 
       v-if="messages.length === 0 && !loading" 
-      class="flex flex-col items-center justify-center h-full text-slate-400"
+      class="flex flex-col items-center justify-center h-full text-slate-400 dark:text-zinc-500"
     >
       <Icon name="heroicons:chat-bubble-left-right" class="w-12 h-12 mb-3" />
       <p class="text-sm">No messages yet</p>
@@ -301,7 +301,7 @@ defineExpose({ scrollToBottom, scrollToMessage, scrollToMissedDivider })
     >
       <button
         v-if="showScrollButton"
-        class="absolute bottom-4 right-4 w-10 h-10 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:shadow-xl transition-all"
+        class="absolute bottom-4 right-4 w-10 h-10 bg-white dark:bg-dm-card rounded-full shadow-lg border border-slate-200 dark:border-white/[0.06] flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 hover:shadow-xl transition-all"
         @click="scrollToBottom(true)"
       >
         <Icon name="heroicons:chevron-down" class="w-5 h-5" />

@@ -34,11 +34,11 @@ const handleUpdate = async () => {
 // Status helpers
 const statusPillClass = (status: string) => {
   switch (status) {
-    case 'DONE': return 'bg-emerald-100 text-emerald-700'
-    case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700'
-    case 'BLOCKED': return 'bg-red-100 text-red-700'
-    case 'PAUSED': return 'bg-amber-100 text-amber-700'
-    default: return 'bg-slate-100 text-slate-600'
+    case 'DONE': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+    case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    case 'BLOCKED': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    case 'PAUSED': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+    default: return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
   }
 }
 
@@ -68,11 +68,11 @@ const formatDate = (date: string | null) => {
   <div class="flex-1 flex flex-col">
     <!-- Header -->
     <div class="px-8 pt-8 pb-4">
-      <h1 class="text-2xl font-semibold text-slate-900 mb-4">My Work</h1>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-4">My Work</h1>
 
       <div class="flex items-center justify-between gap-4">
         <!-- Status filter tabs -->
-        <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+        <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
           <button
             v-for="opt in [
               { value: 'active', label: 'Active' },
@@ -82,8 +82,8 @@ const formatDate = (date: string | null) => {
             @click="statusFilter = opt.value as any"
             class="px-3 py-1.5 text-sm rounded-md transition-colors"
             :class="statusFilter === opt.value
-              ? 'bg-white text-slate-900 shadow-sm font-medium'
-              : 'text-slate-500 hover:text-slate-700'"
+              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm font-medium'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'"
           >
             {{ opt.label }}
             <span v-if="opt.value === 'active' && activeCount > 0" class="ml-1 text-xs text-slate-400">{{ activeCount }}</span>
@@ -93,7 +93,7 @@ const formatDate = (date: string | null) => {
         <!-- Sort dropdown -->
         <select
           v-model="sortBy"
-          class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+          class="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
         >
           <option value="updatedAt">Recently Updated</option>
           <option value="dueDate">Due Date</option>
@@ -105,15 +105,15 @@ const formatDate = (date: string | null) => {
     <!-- Body -->
     <div class="flex-1 overflow-y-auto px-8 pb-8">
       <!-- Loading -->
-      <div v-if="loading && !groups.length" class="py-12 text-center text-slate-400">
+      <div v-if="loading && !groups.length" class="py-12 text-center text-slate-400 dark:text-slate-500">
         Loading tasks...
       </div>
 
       <!-- Empty state -->
       <div v-else-if="!groups.length" class="py-16 text-center">
-        <Icon name="heroicons:clipboard-document-check" class="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <p class="text-slate-500">No tasks found</p>
-        <p class="text-sm text-slate-400 mt-1">Tasks assigned to you will appear here</p>
+        <Icon name="heroicons:clipboard-document-check" class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+        <p class="text-slate-500 dark:text-slate-400">No tasks found</p>
+        <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">Tasks assigned to you will appear here</p>
       </div>
 
       <!-- Project groups -->
@@ -121,19 +121,19 @@ const formatDate = (date: string | null) => {
         <div
           v-for="group in groups"
           :key="group.project.id"
-          class="bg-white rounded-xl border border-slate-200 overflow-hidden"
+          class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
         >
           <!-- Project header -->
           <button
             @click="toggleGroup(group.project.id)"
-            class="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors"
+            class="w-full flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
           >
             <Icon
               :name="isGroupExpanded(group.project.id) ? 'heroicons:chevron-down' : 'heroicons:chevron-right'"
               class="w-4 h-4 text-slate-400 flex-shrink-0"
             />
-            <span class="font-medium text-slate-900 flex-1 text-left">{{ group.project.title }}</span>
-            <span class="text-xs text-slate-400">{{ group.tasks.length }} task{{ group.tasks.length !== 1 ? 's' : '' }}</span>
+            <span class="font-medium text-slate-900 dark:text-slate-100 flex-1 text-left">{{ group.project.title }}</span>
+            <span class="text-xs text-slate-400 dark:text-slate-500">{{ group.tasks.length }} task{{ group.tasks.length !== 1 ? 's' : '' }}</span>
             <NuxtLink
               v-if="group.project.id"
               :to="`/workspace/projects/${group.project.id}`"
@@ -145,12 +145,12 @@ const formatDate = (date: string | null) => {
           </button>
 
           <!-- Task rows -->
-          <div v-if="isGroupExpanded(group.project.id)" class="border-t border-slate-100">
+          <div v-if="isGroupExpanded(group.project.id)" class="border-t border-slate-100 dark:border-slate-700">
             <button
               v-for="task in group.tasks"
               :key="task.id"
               @click="openTask(task)"
-              class="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0"
+              class="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-50 dark:border-slate-700/50 last:border-b-0"
             >
               <!-- Status dot -->
               <div
@@ -165,7 +165,7 @@ const formatDate = (date: string | null) => {
               />
 
               <!-- Title -->
-              <span class="flex-1 text-left text-sm text-slate-800 truncate">{{ task.title }}</span>
+              <span class="flex-1 text-left text-sm text-slate-800 dark:text-slate-200 truncate">{{ task.title }}</span>
 
               <!-- Status pill -->
               <span
@@ -189,7 +189,7 @@ const formatDate = (date: string | null) => {
 
               <!-- Progress bar -->
               <div v-if="task.progress > 0" class="w-16 flex-shrink-0">
-                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
                     class="h-full rounded-full transition-all"
                     :class="task.progress >= 100 ? 'bg-emerald-400' : 'bg-blue-400'"

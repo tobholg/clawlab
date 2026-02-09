@@ -15,16 +15,16 @@ const rendered = computed(() => {
 
   // Code blocks (``` ... ```)
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
-    return `<pre class="bg-slate-100 rounded-lg px-3 py-2 text-xs font-mono overflow-x-auto my-2"><code>${code.trim()}</code></pre>`
+    return `<pre class="bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-2 text-xs font-mono overflow-x-auto my-2"><code>${code.trim()}</code></pre>`
   })
 
   // Inline code (`...`)
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-slate-100 text-slate-700 px-1 py-0.5 rounded text-xs font-mono">$1</code>')
+  html = html.replace(/`([^`]+)`/g, '<code class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1 py-0.5 rounded text-xs font-mono">$1</code>')
 
   // Headings (###, ##, #)
-  html = html.replace(/^### (.+)$/gm, '<h4 class="text-sm font-semibold text-slate-900 mt-3 mb-1">$1</h4>')
-  html = html.replace(/^## (.+)$/gm, '<h3 class="text-sm font-semibold text-slate-900 mt-3 mb-1">$1</h3>')
-  html = html.replace(/^# (.+)$/gm, '<h3 class="text-base font-semibold text-slate-900 mt-3 mb-1">$1</h3>')
+  html = html.replace(/^### (.+)$/gm, '<h4 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-3 mb-1">$1</h4>')
+  html = html.replace(/^## (.+)$/gm, '<h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-3 mb-1">$1</h3>')
+  html = html.replace(/^# (.+)$/gm, '<h3 class="text-base font-semibold text-slate-900 dark:text-slate-100 mt-3 mb-1">$1</h3>')
 
   // Bold + italic (***text***)
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong class="font-semibold"><em>$1</em></strong>')
@@ -37,7 +37,7 @@ const rendered = computed(() => {
   html = html.replace(/~~(.+?)~~/g, '<del class="line-through text-slate-400">$1</del>')
 
   // Links [text](url)
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-blue-600 hover:underline">$1</a>')
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">$1</a>')
 
   // Unordered lists (- item or * item)
   html = html.replace(/^[\-\*] (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
@@ -48,10 +48,10 @@ const rendered = computed(() => {
   html = html.replace(/(<li class="ml-4 list-decimal">.*<\/li>\n?)+/g, (match) => `<ol class="my-1 space-y-0.5">${match}</ol>`)
 
   // Blockquotes (> text)
-  html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="border-l-2 border-slate-300 pl-3 text-slate-500 italic my-1">$1</blockquote>')
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="border-l-2 border-slate-300 dark:border-slate-600 pl-3 text-slate-500 dark:text-slate-400 italic my-1">$1</blockquote>')
 
   // Horizontal rules (--- or ***)
-  html = html.replace(/^(---|\*\*\*)$/gm, '<hr class="border-slate-200 my-3" />')
+  html = html.replace(/^(---|\*\*\*)$/gm, '<hr class="border-slate-200 dark:border-slate-700 my-3" />')
 
   // Line breaks: double newline = paragraph break, single newline = <br>
   html = html.replace(/\n\n/g, '</p><p class="mt-2">')

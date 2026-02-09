@@ -62,13 +62,13 @@ onMounted(() => {
   <div ref="dropdownRef" class="relative">
     <button
       @click="toggle"
-      class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+      class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
     >
-      <div class="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0">
+      <div class="w-7 h-7 bg-slate-900 dark:bg-white/[0.1] rounded-lg flex items-center justify-center flex-shrink-0">
         <svg class="w-4 h-4" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="flex-1 min-w-0 text-left">
-        <div class="text-sm font-medium text-slate-900 truncate">
+        <div class="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">
           {{ currentWorkspace?.name ?? 'Select workspace' }}
         </div>
       </div>
@@ -86,11 +86,11 @@ onMounted(() => {
     >
       <div
         v-if="showDropdown"
-        class="absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 max-h-72 overflow-y-auto"
+        class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.08] py-1 z-50 max-h-72 overflow-y-auto"
       >
         <template v-for="(group, gi) in groupedWorkspaces" :key="group.orgId">
           <!-- Org divider between groups -->
-          <div v-if="gi > 0" class="border-t border-slate-100 my-1" />
+          <div v-if="gi > 0" class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
 
           <!-- Org header -->
           <div class="px-3 pt-2 pb-1 flex items-center gap-1.5">
@@ -105,11 +105,11 @@ onMounted(() => {
             @click="selectWorkspace(ws.id)"
             class="w-full flex items-center gap-2.5 pl-5 pr-3 py-1.5 text-sm transition-colors"
             :class="ws.id === currentWorkspaceId
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-700 hover:bg-slate-50'"
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+              : 'text-slate-700 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
           >
-            <div class="w-5 h-5 rounded bg-slate-200 flex items-center justify-center flex-shrink-0">
-              <span class="text-[10px] font-semibold text-slate-600">{{ ws.name.charAt(0).toUpperCase() }}</span>
+            <div class="w-5 h-5 rounded bg-slate-200 dark:bg-white/[0.1] flex items-center justify-center flex-shrink-0">
+              <span class="text-[10px] font-semibold text-slate-600 dark:text-zinc-300">{{ ws.name.charAt(0).toUpperCase() }}</span>
             </div>
             <span class="flex-1 text-left truncate">{{ ws.name }}</span>
             <span class="text-xs text-slate-400">{{ ws.memberCount }}</span>
@@ -117,10 +117,10 @@ onMounted(() => {
           </button>
         </template>
 
-        <div v-if="isOrgAdmin" class="border-t border-slate-100 mt-1 pt-1">
+        <div v-if="isOrgAdmin" class="border-t border-slate-100 dark:border-white/[0.06] mt-1 pt-1">
           <button
             @click="openCreate"
-            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
           >
             <Icon name="heroicons:plus" class="w-5 h-5 text-slate-400" />
             <span>Create workspace</span>

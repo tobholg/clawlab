@@ -330,9 +330,9 @@ const riskLabel = computed(() => {
 })
 
 const riskClasses = computed(() => {
-  if (riskLevel.value === 'high') return 'bg-rose-100 text-rose-700'
-  if (riskLevel.value === 'medium') return 'bg-amber-100 text-amber-700'
-  return 'bg-emerald-100 text-emerald-700'
+  if (riskLevel.value === 'high') return 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400'
+  if (riskLevel.value === 'medium') return 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400'
+  return 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
 })
 
 const rangeClasses = computed(() => {
@@ -818,15 +818,15 @@ const formatRelativeTime = (dateStr: string) => {
         />
 
         <!-- Slide-in Panel -->
-        <div class="panel relative bg-white shadow-2xl w-full max-w-xl 2xl:max-w-3xl h-full flex flex-col">
+        <div class="panel relative bg-white dark:bg-dm-surface shadow-2xl w-full max-w-xl 2xl:max-w-3xl h-full flex flex-col">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
             <div class="flex items-center gap-2">
               <!-- Back button (when navigated within modal) -->
               <button
                 v-if="navigationHistory.length > 0"
                 @click="navigateBack"
-                class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-white/[0.06] rounded-md transition-colors"
               >
                 <Icon name="heroicons:arrow-left" class="w-3.5 h-3.5" />
                 Back
@@ -834,7 +834,7 @@ const formatRelativeTime = (dateStr: string) => {
 
               <!-- Status Pill -->
               <div class="group/status relative">
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/status:border-slate-300 group-hover/status:shadow-sm">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/status:border-slate-300 dark:group-hover/status:border-white/[0.1] group-hover/status:shadow-sm">
                   <div
                     class="w-1.5 h-1.5 rounded-full"
                     :class="{
@@ -845,10 +845,10 @@ const formatRelativeTime = (dateStr: string) => {
                       'bg-emerald-500': editedStatus === 'done',
                     }"
                   />
-                  <span class="text-xs font-normal text-slate-600">{{ STATUS_CONFIG[editedStatus as keyof typeof STATUS_CONFIG]?.label || 'Status' }}</span>
+                  <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ STATUS_CONFIG[editedStatus as keyof typeof STATUS_CONFIG]?.label || 'Status' }}</span>
                   <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/status:rotate-180" />
                 </div>
-                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/status:opacity-100 group-hover/status:visible group-hover/status:translate-y-0 min-w-[120px]">
+                <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/status:opacity-100 group-hover/status:visible group-hover/status:translate-y-0 min-w-[120px]">
                   <div class="py-1">
                     <button
                       v-for="opt in statusOptions"
@@ -856,8 +856,8 @@ const formatRelativeTime = (dateStr: string) => {
                       @click="editedStatus = opt.value"
                       class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
                       :class="editedStatus === opt.value
-                        ? 'bg-slate-100 text-slate-900 font-medium'
-                        : 'text-slate-600 hover:bg-slate-50'"
+                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
                     >
                       <div
                         class="w-1.5 h-1.5 rounded-full"
@@ -877,26 +877,26 @@ const formatRelativeTime = (dateStr: string) => {
 
               <!-- Stage Pill -->
               <div v-if="Object.keys(availableSubStatuses).length > 0" class="group/stage relative">
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/stage:border-slate-300 group-hover/stage:shadow-sm">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/stage:border-slate-300 dark:group-hover/stage:border-white/[0.1] group-hover/stage:shadow-sm">
                   <Icon
                     v-if="editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus]"
                     :name="SUB_STATUS_CONFIG[editedSubStatus].icon"
                     class="w-3 h-3 text-slate-500"
                   />
-                  <div v-else class="w-3 h-3 rounded-full border border-dashed border-slate-300" />
-                  <span class="text-xs font-normal text-slate-600">{{ editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus] ? SUB_STATUS_CONFIG[editedSubStatus].label : 'Stage' }}</span>
+                  <div v-else class="w-3 h-3 rounded-full border border-dashed border-slate-300 dark:border-white/[0.1]" />
+                  <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus] ? SUB_STATUS_CONFIG[editedSubStatus].label : 'Stage' }}</span>
                   <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/stage:rotate-180" />
                 </div>
-                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/stage:opacity-100 group-hover/stage:visible group-hover/stage:translate-y-0 min-w-[130px]">
+                <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/stage:opacity-100 group-hover/stage:visible group-hover/stage:translate-y-0 min-w-[130px]">
                   <div class="py-1">
                     <button
                       @click="editedSubStatus = null"
                       class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
                       :class="!editedSubStatus
-                        ? 'bg-slate-100 text-slate-900 font-medium'
-                        : 'text-slate-600 hover:bg-slate-50'"
+                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
                     >
-                      <div class="w-3 h-3 rounded-full border border-dashed border-slate-300" />
+                      <div class="w-3 h-3 rounded-full border border-dashed border-slate-300 dark:border-white/[0.1]" />
                       <span>None</span>
                     </button>
                     <button
@@ -905,8 +905,8 @@ const formatRelativeTime = (dateStr: string) => {
                       @click="editedSubStatus = key as string"
                       class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
                       :class="editedSubStatus === key
-                        ? 'bg-slate-100 text-slate-900 font-medium'
-                        : 'text-slate-600 hover:bg-slate-50'"
+                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
                     >
                       <Icon :name="config.icon" class="w-3 h-3 text-slate-500" />
                       <span>{{ config.label }}</span>
@@ -918,36 +918,36 @@ const formatRelativeTime = (dateStr: string) => {
               <!-- Category Pill -->
               <div class="group/category relative">
                 <div
-                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 group-hover/category:shadow-sm"
+                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 dark:group-hover/category:border-white/[0.1] group-hover/category:shadow-sm"
                 >
                   <div
                     class="w-1.5 h-1.5 rounded-full"
                     :class="editedCategory ? (categoryDotColors[editedCategory] || 'bg-slate-400') : 'bg-slate-300'"
                   />
-                  <span class="text-xs font-normal text-slate-600">{{ editedCategory || 'Category' }}</span>
+                  <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ editedCategory || 'Category' }}</span>
                   <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/category:rotate-180" />
                 </div>
-                <div class="absolute top-full left-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/category:opacity-100 group-hover/category:visible group-hover/category:translate-y-0">
+                <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 min-w-[160px] max-h-56 overflow-y-auto opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/category:opacity-100 group-hover/category:visible group-hover/category:translate-y-0">
                   <div class="py-1">
                     <button
                       @click="editedCategory = ''"
                       class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
                       :class="!editedCategory
-                        ? 'bg-slate-100 text-slate-900 font-medium'
-                        : 'text-slate-600 hover:bg-slate-50'"
+                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
                     >
                       <div class="w-2 h-2 rounded-full bg-slate-300" />
                       <span>No category</span>
                     </button>
-                    <div class="border-t border-slate-100 my-1" />
+                    <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
                     <button
                       v-for="cat in categoryOptions"
                       :key="cat"
                       @click="editedCategory = cat"
                       class="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors"
                       :class="editedCategory === cat
-                        ? 'bg-slate-100 text-slate-900 font-medium'
-                        : 'text-slate-600 hover:bg-slate-50'"
+                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
                     >
                       <div class="w-2 h-2 rounded-full" :class="categoryDotColors[cat] || 'bg-slate-400'" />
                       <span>{{ cat }}</span>
@@ -982,7 +982,7 @@ const formatRelativeTime = (dateStr: string) => {
               <!-- Close button -->
               <button
                 @click="handleClose"
-                class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-colors"
               >
                 <Icon name="heroicons:x-mark" class="w-5 h-5" />
               </button>
@@ -991,14 +991,14 @@ const formatRelativeTime = (dateStr: string) => {
           
           <!-- Content -->
           <div class="p-6 space-y-6 flex-1 overflow-y-auto">
-            <div v-if="statusError" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            <div v-if="statusError" class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-400">
               {{ statusError }}
             </div>
             <!-- Title -->
             <input
               v-model="editedTitle"
               type="text"
-              class="w-full text-xl font-medium text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300"
+              class="w-full text-xl font-medium text-slate-900 dark:text-zinc-100 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 dark:placeholder-zinc-600"
               placeholder="Task title..."
             />
             
@@ -1007,12 +1007,12 @@ const formatRelativeTime = (dateStr: string) => {
               <MarkdownRenderer
                 v-if="editedDescription"
                 :content="editedDescription"
-                class="text-sm text-slate-600 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                class="text-sm text-slate-600 dark:text-zinc-400 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
                 @click="editingDescription = true; nextTick(() => { autoResizeDescription(); descriptionRef?.focus() })"
               />
               <p
                 v-else
-                class="text-sm text-slate-400 cursor-text hover:bg-slate-50 rounded px-1 -mx-1 py-0.5 transition-colors"
+                class="text-sm text-slate-400 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
                 @click="editingDescription = true; nextTick(() => descriptionRef?.focus())"
               >
                 Add a description...
@@ -1023,7 +1023,7 @@ const formatRelativeTime = (dateStr: string) => {
               ref="descriptionRef"
               v-model="editedDescription"
               rows="1"
-              class="w-full text-sm text-slate-600 bg-transparent px-0 py-1 border-0 focus:outline-none resize-none placeholder-slate-400"
+              class="w-full text-sm text-slate-600 dark:text-zinc-400 bg-transparent px-0 py-1 border-0 focus:outline-none resize-none placeholder-slate-400 dark:placeholder-zinc-600"
               placeholder="Add a description..."
               @input="autoResizeDescription"
               @blur="editingDescription = false"
@@ -1033,22 +1033,22 @@ const formatRelativeTime = (dateStr: string) => {
             <div class="grid grid-cols-2 gap-6">
               <!-- Start Date -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Started</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Started</label>
                 <input
                   v-model="editedStartDate"
                   type="date"
-                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-300"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card dark:text-zinc-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600"
                 />
               </div>
               
               <!-- Due Date -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Due Date</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Due Date</label>
                 <input
                   v-model="editedDueDate"
                   type="date"
-                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-300"
-                  :class="editedDueDate && new Date(editedDueDate) < new Date() ? 'border-rose-300 bg-rose-50' : ''"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card dark:text-zinc-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600"
+                  :class="editedDueDate && new Date(editedDueDate) < new Date() ? 'border-rose-300 bg-rose-50 dark:border-rose-700 dark:bg-rose-900/20' : ''"
                 />
               </div>
             </div>
@@ -1057,31 +1057,31 @@ const formatRelativeTime = (dateStr: string) => {
             <div class="grid grid-cols-2 gap-6">
               <!-- Priority -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Priority</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Priority</label>
                 <div class="relative" ref="priorityDropdownRef">
                   <button
                     @click.stop="showPriorityDropdown = !showPriorityDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card rounded-lg text-sm hover:border-slate-300 dark:hover:border-white/[0.1] transition-colors"
                   >
                     <div
                       class="w-2 h-2 rounded-full"
                       :class="priorityDotColors[editedPriority] || 'bg-slate-300'"
                     />
-                    <span class="flex-1 text-left text-slate-700">{{ priorityLabel }}</span>
+                    <span class="flex-1 text-left text-slate-700 dark:text-zinc-300">{{ priorityLabel }}</span>
                     <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
                   </button>
 
                   <Transition name="dropdown">
                     <div
                       v-if="showPriorityDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
                     >
                       <button
                         v-for="opt in priorityOptions"
                         :key="opt.value"
                         @click="editedPriority = opt.value; showPriorityDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        :class="editedPriority === opt.value ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        :class="editedPriority === opt.value ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
                       >
                         <div class="w-2 h-2 rounded-full" :class="priorityDotColors[opt.value] || 'bg-slate-400'" />
                         <span>{{ opt.label }}</span>
@@ -1093,40 +1093,40 @@ const formatRelativeTime = (dateStr: string) => {
 
               <!-- Complexity -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Complexity</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Complexity</label>
                 <div class="relative" ref="complexityDropdownRef">
                   <button
                     @click.stop="showComplexityDropdown = !showComplexityDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm hover:border-slate-300 transition-colors"
+                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card rounded-lg text-sm hover:border-slate-300 dark:hover:border-white/[0.1] transition-colors"
                   >
                     <div
                       class="w-2 h-2 rounded-full"
                       :class="editedComplexity ? (complexityDotColors[editedComplexity] || 'bg-slate-400') : 'bg-slate-300'"
                     />
-                    <span class="flex-1 text-left text-slate-700">{{ complexityLabel }}</span>
+                    <span class="flex-1 text-left text-slate-700 dark:text-zinc-300">{{ complexityLabel }}</span>
                     <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
                   </button>
 
                   <Transition name="dropdown">
                     <div
                       v-if="showComplexityDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
                     >
                       <button
                         @click="editedComplexity = ''; showComplexityDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors"
-                        :class="!editedComplexity ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        :class="!editedComplexity ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
                       >
                         <div class="w-2 h-2 rounded-full bg-slate-300" />
                         <span>No complexity</span>
                       </button>
-                      <div class="border-t border-slate-100 my-1" />
+                      <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
                       <button
                         v-for="opt in complexityOptions"
                         :key="opt.value"
                         @click="editedComplexity = opt.value; showComplexityDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        :class="editedComplexity === opt.value ? 'bg-slate-100 text-slate-900 font-medium' : ''"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        :class="editedComplexity === opt.value ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
                       >
                         <div class="w-2 h-2 rounded-full" :class="complexityDotColors[opt.value] || 'bg-slate-400'" />
                         <span>{{ opt.label }}</span>
@@ -1141,23 +1141,23 @@ const formatRelativeTime = (dateStr: string) => {
             <div class="grid grid-cols-2 gap-6">
               <!-- Owner -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Owner</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Owner</label>
                 <div class="relative" ref="ownerDropdownRef">
                   <button
                     @click.stop="canEditItem && (showOwnerDropdown = !showOwnerDropdown)"
                     :class="[
-                      'w-full flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm transition-colors',
-                      canEditItem ? 'hover:border-slate-300 cursor-pointer' : 'cursor-default'
+                      'w-full flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card rounded-lg text-sm transition-colors',
+                      canEditItem ? 'hover:border-slate-300 dark:hover:border-white/[0.1] cursor-pointer' : 'cursor-default'
                     ]"
                   >
                     <template v-if="itemDetail?.owner">
                       <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
                         <span class="text-[10px] text-white font-medium">{{ itemDetail.owner.name?.[0] ?? 'U' }}</span>
                       </div>
-                      <span class="flex-1 text-left text-slate-700">{{ itemDetail.owner.name }}</span>
+                      <span class="flex-1 text-left text-slate-700 dark:text-zinc-300">{{ itemDetail.owner.name }}</span>
                     </template>
                     <template v-else>
-                      <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+                      <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center">
                         <Icon name="heroicons:user" class="w-3.5 h-3.5 text-slate-400" />
                       </div>
                       <span class="flex-1 text-left text-slate-400">No owner</span>
@@ -1169,25 +1169,25 @@ const formatRelativeTime = (dateStr: string) => {
                   <Transition name="dropdown">
                     <div 
                       v-if="showOwnerDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
                     >
                       <!-- Clear owner option -->
                       <button
                         v-if="itemDetail?.owner"
                         @click="updateOwner(null)"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                       >
                         <Icon name="heroicons:x-mark" class="w-5 h-5 text-slate-400" />
                         <span>Remove owner</span>
                       </button>
-                      <div v-if="itemDetail?.owner" class="border-t border-slate-100 my-1" />
+                      <div v-if="itemDetail?.owner" class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
                       
                       <button
                         v-for="user in availableUsers"
                         :key="user.id"
                         @click="updateOwner(user.id)"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        :class="{ 'bg-amber-50': user.id === editedOwnerId }"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        :class="{ 'bg-amber-50 dark:bg-amber-500/10': user.id === editedOwnerId }"
                       >
                         <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
                           <span class="text-[10px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
@@ -1202,14 +1202,14 @@ const formatRelativeTime = (dateStr: string) => {
               
               <!-- Assignees -->
               <div>
-                <label class="block text-xs font-medium text-slate-500 mb-2">Assignees</label>
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Assignees</label>
                 <div class="flex flex-wrap gap-2">
                   <div class="max-h-24 overflow-y-auto pr-1 flex flex-wrap gap-2">
                     <template v-if="itemDetail?.assignees?.length">
                       <div 
                         v-for="assignee in itemDetail.assignees" 
                         :key="assignee.id"
-                        class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-full text-xs"
+                        class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-dm-card rounded-full text-xs text-slate-700 dark:text-zinc-300"
                       >
                         <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                           <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
@@ -1218,7 +1218,7 @@ const formatRelativeTime = (dateStr: string) => {
                         <button
                           v-if="canEditItem"
                           @click="removeAssignee(assignee.id)"
-                          class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-all"
+                          class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 dark:hover:bg-white/[0.08] rounded transition-all"
                         >
                           <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
                         </button>
@@ -1230,7 +1230,7 @@ const formatRelativeTime = (dateStr: string) => {
                   <div v-if="canEditItem" class="relative" ref="assigneeDropdownRef">
                     <button
                       @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
-                      class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors"
+                      class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 dark:border-white/[0.1] rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors"
                     >
                       <Icon name="heroicons:plus" class="w-3 h-3" />
                       Add
@@ -1240,7 +1240,7 @@ const formatRelativeTime = (dateStr: string) => {
                     <Transition name="dropdown">
                       <div 
                         v-if="showAssigneeDropdown"
-                        class="absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10"
+                        class="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
                       >
                         <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400">
                           No more users to add
@@ -1249,7 +1249,7 @@ const formatRelativeTime = (dateStr: string) => {
                           v-for="user in unassignedUsers"
                           :key="user.id"
                           @click="assignUser(user.id)"
-                          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                         >
                           <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                             <span class="text-[10px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
@@ -1268,12 +1268,12 @@ const formatRelativeTime = (dateStr: string) => {
               <!-- Progress -->
               <div>
                 <div class="flex items-center justify-between mb-2">
-                  <label class="text-xs font-medium text-slate-500">Progress</label>
-                  <span class="text-xs font-medium text-slate-700">{{ editedProgress }}%</span>
+                  <label class="text-xs font-medium text-slate-500 dark:text-zinc-400">Progress</label>
+                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300">{{ editedProgress }}%</span>
                 </div>
                 <div class="relative">
-                  <div class="h-2 bg-slate-200 rounded-lg overflow-hidden">
-                    <div 
+                  <div class="h-2 bg-slate-200 dark:bg-white/[0.08] rounded-lg overflow-hidden">
+                    <div
                       class="h-full bg-gradient-to-r from-blue-400 to-blue-500 transition-all"
                       :style="{ width: `${editedProgress}%` }"
                     />
@@ -1291,12 +1291,12 @@ const formatRelativeTime = (dateStr: string) => {
               <!-- Confidence -->
               <div>
                 <div class="flex items-center justify-between mb-2">
-                  <label class="text-xs font-medium text-slate-500">Confidence</label>
-                  <span class="text-xs font-medium text-slate-700">{{ editedConfidence }}%</span>
+                  <label class="text-xs font-medium text-slate-500 dark:text-zinc-400">Confidence</label>
+                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300">{{ editedConfidence }}%</span>
                 </div>
                 <div class="relative">
-                  <div class="h-2 bg-slate-200 rounded-lg overflow-hidden">
-                    <div 
+                  <div class="h-2 bg-slate-200 dark:bg-white/[0.08] rounded-lg overflow-hidden">
+                    <div
                       class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all"
                       :style="{ width: `${editedConfidence}%` }"
                     />
@@ -1313,13 +1313,13 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
             
             <!-- Forecast Card -->
-            <div v-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 bg-white">
+            <div v-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card">
               <div v-if="estimatedCompletion.complete" class="flex items-center justify-between">
                 <div>
                   <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
-                  <div class="text-sm font-medium text-emerald-700">Complete</div>
+                  <div class="text-sm font-medium text-emerald-700 dark:text-emerald-400">Complete</div>
                 </div>
-                <div class="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium">
                   <Icon name="heroicons:check-circle" class="w-3.5 h-3.5" />
                   Done
                 </div>
@@ -1329,7 +1329,7 @@ const formatRelativeTime = (dateStr: string) => {
                 <div class="flex items-start justify-between gap-3">
                   <div>
                     <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
-                    <div class="text-sm font-medium text-slate-800">
+                    <div class="text-sm font-medium text-slate-800 dark:text-zinc-200">
                       Est. finish: {{ estimatedCompletion.isExact ? estimatedCompletion.baseDate : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` }}
                     </div>
                     <div class="mt-1 flex items-center gap-2 text-xs text-slate-500">
@@ -1341,7 +1341,7 @@ const formatRelativeTime = (dateStr: string) => {
                     </div>
                   </div>
                   <button
-                    class="text-xs text-slate-500 hover:text-slate-700 transition-colors"
+                    class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
                     @click="showForecastDetails = !showForecastDetails"
                   >
                     {{ showForecastDetails ? 'Hide details' : 'Details' }}
@@ -1349,7 +1349,7 @@ const formatRelativeTime = (dateStr: string) => {
                 </div>
 
                 <div class="mt-4">
-                  <div class="relative h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div class="relative h-2 rounded-full bg-slate-100 dark:bg-white/[0.08] overflow-hidden">
                     <div
                       v-if="forecastBar"
                       class="absolute inset-y-0 rounded-full bg-gradient-to-r"
@@ -1358,7 +1358,7 @@ const formatRelativeTime = (dateStr: string) => {
                     />
                     <div
                       v-if="forecastBar"
-                      class="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-700 shadow"
+                      class="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-700 dark:bg-zinc-300 shadow"
                       :style="{ left: `calc(${forecastBar.basePos}% - 4px)` }"
                     />
                     <div
@@ -1377,16 +1377,16 @@ const formatRelativeTime = (dateStr: string) => {
 
                 <div v-if="showForecastDetails" class="mt-4 space-y-3">
                   <div class="grid grid-cols-3 gap-2 text-center">
-                    <div class="bg-slate-50 rounded-lg p-2">
-                      <div class="text-sm font-semibold text-slate-700">{{ estimatedCompletion.daysSpent }}</div>
+                    <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
+                      <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.daysSpent }}</div>
                       <div class="text-[10px] uppercase tracking-wide text-slate-400">Spent</div>
                     </div>
-                    <div class="bg-slate-50 rounded-lg p-2">
-                      <div class="text-sm font-semibold text-slate-700">{{ estimatedCompletion.totalEstimate }}</div>
+                    <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
+                      <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.totalEstimate }}</div>
                       <div class="text-[10px] uppercase tracking-wide text-slate-400">Total</div>
                     </div>
-                    <div class="bg-slate-50 rounded-lg p-2">
-                      <div class="text-sm font-semibold text-slate-700">{{ estimatedCompletion.remainingDays }}</div>
+                    <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
+                      <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.remainingDays }}</div>
                       <div class="text-[10px] uppercase tracking-wide text-slate-400">Left</div>
                     </div>
                   </div>
@@ -1411,11 +1411,11 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
             
             <!-- No estimate message -->
-            <div v-else-if="editedDueDate" class="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-200 text-center">
+            <div v-else-if="editedDueDate" class="bg-slate-50 dark:bg-white/[0.04] rounded-xl p-4 border border-dashed border-slate-200 dark:border-white/[0.06] text-center">
               <Icon name="heroicons:calculator" class="w-6 h-6 text-slate-300 mx-auto mb-2" />
               <p class="text-xs text-slate-400">Needs estimate. Add a start date and progress to see completion.</p>
             </div>
-            <div v-else class="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-200 text-center">
+            <div v-else class="bg-slate-50 dark:bg-white/[0.04] rounded-xl p-4 border border-dashed border-slate-200 dark:border-white/[0.06] text-center">
               <Icon name="heroicons:calculator" class="w-6 h-6 text-slate-300 mx-auto mb-2" />
               <p class="text-xs text-slate-400">Add a start date and progress to see a forecast.</p>
             </div>
@@ -1436,7 +1436,7 @@ const formatRelativeTime = (dateStr: string) => {
                 <button
                   v-if="canPromote"
                   @click.stop="promoteItem"
-                  class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                  class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded transition-colors"
                   title="Move up one level (become sibling of parent)"
                 >
                   <Icon name="heroicons:arrow-up-on-square" class="w-3.5 h-3.5" />
@@ -1445,15 +1445,15 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
               <div 
                 class="group flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer"
-                :class="isParentProject 
-                  ? 'bg-blue-50 hover:bg-blue-100 border border-blue-100' 
-                  : 'bg-emerald-50 hover:bg-emerald-100 border border-emerald-100'"
+                :class="isParentProject
+                  ? 'bg-blue-50 hover:bg-blue-100 border border-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-800'
+                  : 'bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 dark:border-emerald-800'"
                 @click="navigateToItem(parentDetail.id)"
               >
                 <!-- Icon -->
                 <div 
                   class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  :class="isParentProject ? 'bg-blue-100' : 'bg-emerald-100'"
+                  :class="isParentProject ? 'bg-blue-100 dark:bg-blue-500/15' : 'bg-emerald-100 dark:bg-emerald-500/15'"
                 >
                   <Icon 
                     :name="isParentProject ? 'heroicons:folder' : 'heroicons:clipboard-document-list'" 
@@ -1466,14 +1466,14 @@ const formatRelativeTime = (dateStr: string) => {
                 <div class="flex-1 min-w-0">
                   <span 
                     class="text-sm font-medium truncate block"
-                    :class="isParentProject ? 'text-blue-700' : 'text-emerald-700'"
+                    :class="isParentProject ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-700 dark:text-emerald-300'"
                   >
                     {{ parentDetail.title }}
                   </span>
                   <div class="flex items-center gap-2 mt-0.5">
                     <span 
                       class="text-[10px]"
-                      :class="isParentProject ? 'text-blue-500' : 'text-emerald-500'"
+                      :class="isParentProject ? 'text-blue-500 dark:text-blue-400' : 'text-emerald-500 dark:text-emerald-400'"
                     >
                       {{ parentDetail.progress ?? 0 }}% complete
                     </span>
@@ -1497,16 +1497,16 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
             
             <!-- Project-level indicator -->
-            <div v-if="itemDetail && !itemDetail.parentId" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+            <div v-if="itemDetail && !itemDetail.parentId" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-800">
               <Icon name="heroicons:folder" class="w-4 h-4 text-blue-500" />
-              <span class="text-xs font-medium text-blue-700">Top-level project</span>
-              <span class="text-xs text-blue-500">{{ itemDetail.childrenCount || 0 }} items inside</span>
+              <span class="text-xs font-medium text-blue-700 dark:text-blue-300">Top-level project</span>
+              <span class="text-xs text-blue-500 dark:text-blue-400">{{ itemDetail.childrenCount || 0 }} items inside</span>
             </div>
 
             <!-- Subtasks Section -->
             <div v-if="itemDetail?.children?.length > 0 || itemDetail?.childrenCount > 0">
               <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-medium text-slate-700">
+                <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300">
                   Subtasks
                   <span class="text-slate-400 font-normal">({{ itemDetail.children?.length || itemDetail.childrenCount }})</span>
                 </h3>
@@ -1519,10 +1519,10 @@ const formatRelativeTime = (dateStr: string) => {
               <div v-if="itemDetail.children?.length" class="mb-3">
                 <div class="flex items-center gap-3 text-xs text-slate-500 mb-2">
                   <span>{{ itemDetail.children.filter((c: any) => c.status === 'done').length }} of {{ itemDetail.children.length }} complete</span>
-                  <span class="text-slate-300">•</span>
+                  <span class="text-slate-300 dark:text-zinc-600">•</span>
                   <span>{{ Math.round(itemDetail.children.filter((c: any) => c.status === 'done').length / itemDetail.children.length * 100) }}%</span>
                 </div>
-                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-1.5 bg-slate-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
                   <div 
                     class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
                     :style="{ width: `${itemDetail.children.filter((c: any) => c.status === 'done').length / itemDetail.children.length * 100}%` }"
@@ -1535,7 +1535,7 @@ const formatRelativeTime = (dateStr: string) => {
                 <div 
                   v-for="subtask in itemDetail.children" 
                   :key="subtask.id"
-                  class="group flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                  class="group flex items-center gap-3 p-3 bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
                   @click="navigateToItem(subtask.id)"
                 >
                   <!-- Status checkbox -->
@@ -1545,10 +1545,10 @@ const formatRelativeTime = (dateStr: string) => {
                       subtask.status === 'done' 
                         ? 'bg-emerald-500 border-emerald-500' 
                         : subtask.status === 'blocked'
-                          ? 'bg-rose-100 border-rose-300'
+                          ? 'bg-rose-100 dark:bg-rose-500/10 border-rose-300 dark:border-rose-700'
                           : subtask.status === 'in_progress'
-                            ? 'bg-blue-100 border-blue-400'
-                            : 'bg-white border-slate-300'
+                            ? 'bg-blue-100 dark:bg-blue-500/10 border-blue-400 dark:border-blue-600'
+                            : 'bg-white dark:bg-dm-card border-slate-300 dark:border-white/[0.1]'
                     ]"
                   >
                     <Icon 
@@ -1573,7 +1573,7 @@ const formatRelativeTime = (dateStr: string) => {
                       <span 
                         :class="[
                           'text-sm font-medium truncate',
-                          subtask.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700'
+                          subtask.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-zinc-300'
                         ]"
                       >
                         {{ subtask.title }}
@@ -1591,7 +1591,7 @@ const formatRelativeTime = (dateStr: string) => {
                     <div class="flex items-center gap-2 mt-1">
                       <!-- Progress bar (if in progress) -->
                       <div v-if="subtask.status === 'in_progress' && subtask.progress > 0" class="flex items-center gap-1.5">
-                        <div class="w-16 h-1 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="w-16 h-1 bg-slate-200 dark:bg-white/[0.08] rounded-full overflow-hidden">
                           <div 
                             class="h-full bg-blue-400 rounded-full"
                             :style="{ width: `${subtask.progress}%` }"
@@ -1628,7 +1628,7 @@ const formatRelativeTime = (dateStr: string) => {
                   <!-- Chevron -->
                   <Icon 
                     name="heroicons:chevron-right" 
-                    class="w-4 h-4 text-slate-300 group-hover:text-slate-500 flex-shrink-0 transition-colors" 
+                    class="w-4 h-4 text-slate-300 dark:text-zinc-600 group-hover:text-slate-500 dark:group-hover:text-zinc-400 flex-shrink-0 transition-colors" 
                   />
                 </div>
               </div>
@@ -1636,7 +1636,7 @@ const formatRelativeTime = (dateStr: string) => {
               <!-- View all button -->
               <button 
                 v-if="itemDetail.children?.length > 5"
-                class="w-full mt-3 py-2 text-xs text-slate-500 hover:text-slate-700 font-medium text-center bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+                class="w-full mt-3 py-2 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 font-medium text-center bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
                 @click="$emit('viewFull', item)"
               >
                 View all {{ itemDetail.childrenCount }} subtasks
@@ -1645,7 +1645,7 @@ const formatRelativeTime = (dateStr: string) => {
             
             <!-- Comments Section -->
             <div>
-              <h3 class="text-sm font-medium text-slate-700 mb-3">
+              <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
                 Comments
                 <span v-if="itemDetail?.comments?.length" class="text-slate-400 font-normal">
                   ({{ itemDetail.comments.length }})
@@ -1661,7 +1661,7 @@ const formatRelativeTime = (dateStr: string) => {
                   <textarea
                     v-model="newComment"
                     rows="2"
-                    class="w-full text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 resize-none placeholder-slate-400"
+                    class="w-full text-sm text-slate-700 bg-slate-50 dark:bg-dm-card rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20 focus:border-blue-300 dark:focus:border-blue-500/30 resize-none placeholder-slate-400 dark:placeholder-zinc-500"
                     placeholder="Write a comment..."
                     @keydown.meta.enter="submitComment"
                     @keydown.ctrl.enter="submitComment"
@@ -1686,32 +1686,32 @@ const formatRelativeTime = (dateStr: string) => {
                   class="group"
                 >
                   <div class="flex gap-3">
-                    <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                      <span class="text-xs text-slate-600 font-medium">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+                      <span class="text-xs text-slate-600 dark:text-zinc-400 font-medium">
                         {{ comment.user?.name?.[0] ?? 'U' }}
                       </span>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 mb-1">
-                        <span class="text-sm font-medium text-slate-800">{{ comment.user?.name ?? 'User' }}</span>
+                        <span class="text-sm font-medium text-slate-800 dark:text-zinc-200">{{ comment.user?.name ?? 'User' }}</span>
                         <span class="text-xs text-slate-400">{{ formatRelativeTime(comment.createdAt) }}</span>
                       </div>
-                      <MarkdownRenderer :content="comment.content" class="text-sm text-slate-600" />
+                      <MarkdownRenderer :content="comment.content" class="text-sm text-slate-600 dark:text-zinc-400" />
                       
                       <!-- Reply button -->
                       <button
                         @click="replyingTo = replyingTo === comment.id ? null : comment.id"
-                        class="text-xs text-slate-400 hover:text-slate-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         Reply
                       </button>
                       
                       <!-- Reply input -->
-                      <div v-if="replyingTo === comment.id" class="mt-2 ml-2 pl-3 border-l-2 border-slate-200">
+                      <div v-if="replyingTo === comment.id" class="mt-2 ml-2 pl-3 border-l-2 border-slate-200 dark:border-white/[0.06]">
                         <textarea
                           v-model="replyText"
                           rows="2"
-                          class="w-full text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 resize-none placeholder-slate-400"
+                          class="w-full text-sm text-slate-700 bg-slate-50 dark:bg-dm-card rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20 focus:border-blue-300 dark:focus:border-blue-500/30 resize-none placeholder-slate-400 dark:placeholder-zinc-500"
                           placeholder="Write a reply..."
                           @keydown.meta.enter="submitReply(comment.id)"
                           @keydown.ctrl.enter="submitReply(comment.id)"
@@ -1719,14 +1719,14 @@ const formatRelativeTime = (dateStr: string) => {
                         <div class="flex justify-end gap-2 mt-2">
                           <button
                             @click="replyingTo = null; replyText = ''"
-                            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700"
+                            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300"
                           >
                             Cancel
                           </button>
                           <button
                             @click="submitReply(comment.id)"
                             :disabled="!replyText.trim()"
-                            class="px-2 py-1 text-xs font-medium text-white bg-slate-700 rounded hover:bg-slate-800 transition-colors disabled:opacity-50"
+                            class="px-2 py-1 text-xs font-medium text-white bg-slate-700 dark:bg-zinc-600 rounded hover:bg-slate-800 dark:hover:bg-zinc-500 transition-colors disabled:opacity-50"
                           >
                             Reply
                           </button>
@@ -1734,23 +1734,23 @@ const formatRelativeTime = (dateStr: string) => {
                       </div>
                       
                       <!-- Nested replies -->
-                      <div v-if="comment.replies?.length" class="mt-3 ml-2 pl-3 border-l-2 border-slate-100 space-y-3">
+                      <div v-if="comment.replies?.length" class="mt-3 ml-2 pl-3 border-l-2 border-slate-100 dark:border-white/[0.06] space-y-3">
                         <div 
                           v-for="reply in comment.replies" 
                           :key="reply.id"
                           class="flex gap-2"
                         >
-                          <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                            <span class="text-[10px] text-slate-600 font-medium">
+                          <div class="w-6 h-6 rounded-full bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+                            <span class="text-[10px] text-slate-600 dark:text-zinc-400 font-medium">
                               {{ reply.user?.name?.[0] ?? 'U' }}
                             </span>
                           </div>
                           <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-0.5">
-                              <span class="text-xs font-medium text-slate-700">{{ reply.user?.name ?? 'User' }}</span>
+                              <span class="text-xs font-medium text-slate-700 dark:text-zinc-300">{{ reply.user?.name ?? 'User' }}</span>
                               <span class="text-[10px] text-slate-400">{{ formatRelativeTime(reply.createdAt) }}</span>
                             </div>
-                            <MarkdownRenderer :content="reply.content" class="text-xs text-slate-600" />
+                            <MarkdownRenderer :content="reply.content" class="text-xs text-slate-600 dark:text-zinc-400" />
                           </div>
                         </div>
                       </div>
@@ -1767,40 +1767,40 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
 
             <!-- Delete Item -->
-            <div v-if="canDeleteItem" class="pt-6 mt-6 border-t border-slate-100">
+            <div v-if="canDeleteItem" class="pt-6 mt-6 border-t border-slate-100 dark:border-white/[0.06]">
               <div v-if="!showDeleteConfirm" class="flex items-center justify-between gap-3">
                 <div class="text-xs text-slate-400">
                   Deleting removes this item permanently.
                 </div>
                 <button
                   @click="showDeleteConfirm = true; deleteError = null"
-                  class="flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                  class="flex items-center gap-2 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                 >
                   <Icon name="heroicons:trash" class="w-4 h-4" />
                   Delete
                 </button>
               </div>
 
-              <div v-else class="rounded-xl border border-rose-200 bg-rose-50/60 p-4">
+              <div v-else class="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/60 dark:bg-rose-900/20 p-4">
                 <div class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+                  <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center">
                     <Icon name="heroicons:trash" class="w-4 h-4" />
                   </div>
                   <div class="flex-1">
-                    <div class="text-sm font-medium text-rose-700">Delete this item?</div>
-                    <p class="text-xs text-rose-600 mt-1">
+                    <div class="text-sm font-medium text-rose-700 dark:text-rose-400">Delete this item?</div>
+                    <p class="text-xs text-rose-600 dark:text-rose-400 mt-1">
                       This action cannot be undone.
                     </p>
-                    <p v-if="itemDetail?.childrenCount > 0" class="text-xs text-rose-600 mt-2">
+                    <p v-if="itemDetail?.childrenCount > 0" class="text-xs text-rose-600 dark:text-rose-400 mt-2">
                       This will also delete all {{ itemDetail.childrenCount }} child items and their data.
                     </p>
-                    <p v-if="deleteError" class="text-xs text-rose-700 mt-2">
+                    <p v-if="deleteError" class="text-xs text-rose-700 dark:text-rose-400 mt-2">
                       {{ deleteError }}
                     </p>
                     <div class="mt-3 flex items-center gap-2">
                       <button
                         @click="showDeleteConfirm = false; deleteError = null"
-                        class="px-3 py-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-100/70 rounded-md transition-colors"
+                        class="px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100/70 dark:hover:bg-rose-900/30 rounded-md transition-colors"
                       >
                         Cancel
                       </button>
@@ -1821,10 +1821,10 @@ const formatRelativeTime = (dateStr: string) => {
           <!-- Footer - View Full Board button -->
           <button
             @click="handleViewFull"
-            class="w-full px-6 py-4 border-t border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors flex items-center justify-center gap-2 group"
+            class="w-full px-6 py-4 border-t border-slate-100 dark:border-white/[0.06] bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-500/10 dark:to-indigo-500/10 dark:hover:from-blue-500/15 dark:hover:to-indigo-500/15 transition-colors flex items-center justify-center gap-2 group"
           >
             <Icon name="heroicons:arrow-top-right-on-square" class="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
-            <span class="text-sm font-medium text-blue-600 group-hover:text-blue-700">
+            <span class="text-sm font-medium text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300">
               View Full Board
             </span>
             <!-- Auto-save indicator -->

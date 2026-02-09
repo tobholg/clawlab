@@ -35,7 +35,7 @@ const getAvatarColor = (userId: string) => {
       <div
         v-for="user in displayUsers"
         :key="user.id"
-        class="w-7 h-7 rounded-full border-2 border-white bg-gradient-to-br flex items-center justify-center relative"
+        class="w-7 h-7 rounded-full border-2 border-white dark:border-dm-surface bg-gradient-to-br flex items-center justify-center relative"
         :class="getAvatarColor(user.id)"
         :title="user.name || 'Unknown'"
       >
@@ -43,20 +43,20 @@ const getAvatarColor = (userId: string) => {
           {{ (user.name || 'U')[0].toUpperCase() }}
         </span>
         <!-- Online dot -->
-        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full" />
+        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-dm-surface rounded-full" />
       </div>
       
       <!-- Overflow count -->
       <div
         v-if="remainingCount > 0"
-        class="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center"
+        class="w-7 h-7 rounded-full border-2 border-white dark:border-dm-surface bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center"
       >
-        <span class="text-[10px] text-slate-600 font-medium">+{{ remainingCount }}</span>
+        <span class="text-[10px] text-slate-600 dark:text-zinc-300 font-medium">+{{ remainingCount }}</span>
       </div>
     </div>
     
     <!-- Text label -->
-    <span class="text-xs text-slate-500">
+    <span class="text-xs text-slate-500 dark:text-zinc-400">
       {{ users.length }} online
     </span>
   </div>

@@ -20,11 +20,11 @@ const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
 
 // Subtle column styling
 const columnStyles: Record<Item['status'], { bg: string; headerColor: string; dropBg: string }> = {
-  todo: { bg: 'bg-slate-100', headerColor: 'text-slate-600', dropBg: 'bg-slate-200' },
-  in_progress: { bg: 'bg-blue-100/50', headerColor: 'text-blue-600', dropBg: 'bg-blue-200' },
-  blocked: { bg: 'bg-rose-100/50', headerColor: 'text-rose-600', dropBg: 'bg-rose-200' },
-  paused: { bg: 'bg-amber-100/50', headerColor: 'text-amber-600', dropBg: 'bg-amber-200' },
-  done: { bg: 'bg-emerald-100/50', headerColor: 'text-emerald-600', dropBg: 'bg-emerald-200' },
+  todo: { bg: 'bg-slate-100 dark:bg-white/[0.01]', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
+  in_progress: { bg: 'bg-blue-100/50 dark:bg-white/[0.01]', headerColor: 'text-blue-600 dark:text-blue-400', dropBg: 'bg-blue-200 dark:bg-white/[0.06]' },
+  blocked: { bg: 'bg-rose-100/50 dark:bg-white/[0.01]', headerColor: 'text-rose-600 dark:text-rose-400', dropBg: 'bg-rose-200 dark:bg-white/[0.06]' },
+  paused: { bg: 'bg-amber-100/50 dark:bg-white/[0.01]', headerColor: 'text-amber-600 dark:text-amber-400', dropBg: 'bg-amber-200 dark:bg-white/[0.06]' },
+  done: { bg: 'bg-emerald-100/50 dark:bg-white/[0.01]', headerColor: 'text-emerald-600 dark:text-emerald-400', dropBg: 'bg-emerald-200 dark:bg-white/[0.06]' },
 }
 
 // Track collapsed state for each section (key: "status:subStatus" or "done:timeGroup")
@@ -347,7 +347,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       :class="[
         'flex flex-col min-w-0 rounded-xl p-3 transition-colors duration-150',
         dragOverColumn === status && draggedItem && !(draggedItem.status === status || (status === 'in_progress' && draggedItem.status === 'paused'))
-          ? columnStyles[status].dropBg + ' ring-2 ring-inset ring-slate-300'
+          ? columnStyles[status].dropBg + ' ring-2 ring-inset ring-slate-300 dark:ring-zinc-600'
           : columnStyles[status].bg
       ]"
       @dragover="handleDragOver($event, status)"
@@ -360,7 +360,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
           <h2 :class="['text-xs font-medium uppercase tracking-wider', columnStyles[status].headerColor]">
             {{ STATUS_CONFIG[status].label }}
           </h2>
-          <span class="text-[10px] font-normal text-slate-400 bg-white/80 px-1.5 py-0.5 rounded">
+          <span class="text-[10px] font-normal text-slate-400 bg-white/80 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded">
             {{ getItemsByStatus(status).length }}
           </span>
         </div>
@@ -368,7 +368,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
           <button
             v-if="isAllCollapsedInColumn(status)"
             @click="expandAllInColumn(status)"
-            class="p-1 rounded text-slate-300 hover:text-slate-500 transition-colors"
+            class="p-1 rounded text-slate-300 hover:text-slate-500 dark:text-zinc-600 dark:hover:text-zinc-400 transition-colors"
             title="Expand all"
           >
             <Icon name="heroicons:bars-arrow-down" class="w-3.5 h-3.5" />
@@ -376,7 +376,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
           <button
             v-else
             @click="collapseAllInColumn(status)"
-            class="p-1 rounded text-slate-300 hover:text-slate-500 transition-colors"
+            class="p-1 rounded text-slate-300 hover:text-slate-500 dark:text-zinc-600 dark:hover:text-zinc-400 transition-colors"
             title="Collapse all"
           >
             <Icon name="heroicons:bars-arrow-up" class="w-3.5 h-3.5" />
@@ -391,7 +391,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
             <!-- Time group header (collapsible) -->
             <button 
               v-if="hasMultipleGroups('done')"
-              class="flex items-center gap-2 px-2 py-1.5 bg-white/60 hover:bg-white/80 rounded-lg border border-white/80 transition-colors text-left w-full"
+              class="flex items-center gap-2 px-2 py-1.5 bg-white/60 hover:bg-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] rounded-lg border border-white/80 dark:border-white/[0.06] transition-colors text-left w-full"
               @click="toggleSection(`done:${group.key}`)"
             >
               <Icon 
@@ -403,10 +403,10 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                 :name="group.icon" 
                 class="w-3.5 h-3.5 text-emerald-500" 
               />
-              <span class="text-[11px] font-medium text-slate-600 flex-1">{{ group.label }}</span>
-              <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{{ group.items.length }}</span>
+              <span class="text-[11px] font-medium text-slate-600 dark:text-zinc-300 flex-1">{{ group.label }}</span>
+              <span class="text-[10px] text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">{{ group.items.length }}</span>
             </button>
-            
+
             <!-- Items in this time group -->
             <div
               v-show="!isSectionCollapsed(`done:${group.key}`)"
@@ -442,10 +442,10 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
           <!-- Empty state for Done -->
           <div 
             v-if="getItemsByStatus('done').length === 0"
-            class="flex-1 rounded-xl border border-dashed border-slate-200 flex items-center justify-center transition-colors"
-            :class="{ 'border-slate-400 bg-slate-100/50': dragOverColumn === 'done' }"
+            class="flex-1 rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06] flex items-center justify-center transition-colors"
+            :class="{ 'border-slate-400 bg-slate-100/50 dark:border-white/[0.1] dark:bg-white/[0.04]': dragOverColumn === 'done' }"
           >
-            <span class="text-xs text-slate-300">
+            <span class="text-xs text-slate-300 dark:text-zinc-600">
               {{ dragOverColumn === 'done' ? 'Drop here' : 'No items' }}
             </span>
           </div>
@@ -461,8 +461,8 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
               v-if="group.label"
               class="flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-colors text-left w-full"
               :class="dragOverColumn === status && dragOverSubStatus === group.subStatus && draggedItem && !(draggedItem.status === status && draggedItem.subStatus === group.subStatus)
-                ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200'
-                : 'bg-white/60 hover:bg-white/80 border-white/80'"
+                ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30 dark:ring-blue-500/20'
+                : 'bg-white/60 hover:bg-white/80 border-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] dark:border-white/[0.06]'"
               :data-substatus="group.subStatus"
               @click="toggleSection(group.sectionKey)"
               @dragover.stop="handleDragOver($event, status, group.subStatus)"
@@ -478,16 +478,16 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                 :name="group.icon" 
                 class="w-3.5 h-3.5 text-slate-400" 
               />
-              <span class="text-[11px] font-medium text-slate-500 flex-1">{{ group.label }}</span>
-              <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{{ group.items.length }}</span>
+              <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400 flex-1">{{ group.label }}</span>
+              <span class="text-[10px] text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">{{ group.items.length }}</span>
             </button>
-            
+
             <!-- Items in this group -->
             <div
               v-show="!isSectionCollapsed(group.sectionKey)"
               class="flex flex-col gap-2 rounded-lg transition-colors"
               :class="dragOverColumn === status && dragOverSubStatus === group.subStatus && draggedItem && !(draggedItem.status === status && draggedItem.subStatus === group.subStatus)
-                ? 'bg-blue-50/50'
+                ? 'bg-blue-50/50 dark:bg-blue-500/[0.06]'
                 : ''"
               :data-substatus="group.subStatus"
               @dragover.stop="handleDragOver($event, status, group.subStatus)"
@@ -523,10 +523,10 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
           <!-- Drop zone / Empty state -->
           <div 
             v-if="getItemsByStatus(status).length === 0"
-            class="flex-1 rounded-xl border border-dashed border-slate-200 flex items-center justify-center transition-colors"
-            :class="{ 'border-slate-400 bg-slate-100/50': dragOverColumn === status }"
+            class="flex-1 rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06] flex items-center justify-center transition-colors"
+            :class="{ 'border-slate-400 bg-slate-100/50 dark:border-white/[0.1] dark:bg-white/[0.04]': dragOverColumn === status }"
           >
-            <span class="text-xs text-slate-300">
+            <span class="text-xs text-slate-300 dark:text-zinc-600">
               {{ dragOverColumn === status ? 'Drop here' : 'No items' }}
             </span>
           </div>

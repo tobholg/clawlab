@@ -126,11 +126,11 @@ const handleCardClick = () => {
     class="group p-4 rounded-xl border transition-all duration-200 cursor-pointer"
     :class="[
       isPaused
-        ? 'bg-slate-50 border-slate-200 opacity-75'
-        : 'bg-white',
+        ? 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.04] opacity-75'
+        : 'bg-white dark:bg-dm-card',
       isCurrentlyFocused
-        ? 'border-amber-300 ring-2 ring-amber-100 shadow-sm'
-        : !isPaused && 'border-slate-100 hover:border-slate-200 hover:shadow-sm'
+        ? 'border-amber-300 dark:border-amber-500/40 ring-2 ring-amber-100 dark:ring-amber-500/15 shadow-sm'
+        : !isPaused && 'border-slate-100 dark:border-white/[0.06] hover:border-slate-200 dark:hover:border-white/[0.1] dark:hover:bg-white/[0.02] hover:shadow-sm'
     ]"
     @click="handleCardClick"
   >
@@ -148,14 +148,14 @@ const handleCardClick = () => {
         <div class="flex items-center gap-1.5">
           <h3
             class="text-sm font-medium leading-snug truncate"
-            :class="isPaused ? 'text-slate-500' : 'text-slate-800'"
+            :class="isPaused ? 'text-slate-500 dark:text-zinc-500' : 'text-slate-800 dark:text-zinc-200'"
           >
             {{ item.title }}
           </h3>
           <!-- Paused badge -->
           <span
             v-if="isPaused"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded text-[10px] font-medium flex-shrink-0"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-200 dark:bg-white/[0.08] text-slate-500 dark:text-zinc-500 rounded text-[10px] font-medium flex-shrink-0"
           >
             <Icon name="heroicons:pause" class="w-3 h-3" />
             Paused
@@ -180,7 +180,7 @@ const handleCardClick = () => {
       <button
         v-if="!isCurrentlyFocused"
         @click="handleFocusClick"
-        class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+        class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 text-slate-300 dark:text-zinc-600 hover:text-amber-500 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
         title="Focus on this"
       >
         <Icon name="heroicons:bolt" class="w-4 h-4" />
@@ -191,7 +191,7 @@ const handleCardClick = () => {
     <div v-if="hasChildren" class="flex flex-wrap items-center gap-2 text-[10px] mb-1.5">
       <button
         class="flex items-center gap-1.5 transition-colors"
-        :class="allChildrenCompleted ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'"
+        :class="allChildrenCompleted ? 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'"
         @click.stop="emit('drillDown', item)"
       >
         <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
@@ -233,13 +233,13 @@ const handleCardClick = () => {
         
         <!-- Stakeholders -->
         <template v-if="item.stakeholders && item.stakeholders.length > 0">
-          <div class="w-px h-3 bg-slate-200 mx-1" />
+          <div class="w-px h-3 bg-slate-200 dark:bg-white/[0.08] mx-1" />
           <div class="flex -space-x-1">
             <div 
               v-for="person in item.stakeholders.slice(0, 2)" 
               :key="person.id"
               :class="[
-                'w-5 h-5 rounded-full flex items-center justify-center border border-white flex-shrink-0',
+                'w-5 h-5 rounded-full flex items-center justify-center border border-white dark:border-dm-card flex-shrink-0',
                 getAvatarColor(person.id)
               ]"
               :title="person.name"
@@ -250,9 +250,9 @@ const handleCardClick = () => {
             </div>
             <div 
               v-if="item.stakeholders.length > 2"
-              class="w-5 h-5 rounded-full bg-slate-200 border border-white flex items-center justify-center flex-shrink-0"
+              class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/[0.08] border border-white dark:border-dm-card flex items-center justify-center flex-shrink-0"
             >
-              <span class="text-[9px] text-slate-600 font-medium">+{{ item.stakeholders.length - 2 }}</span>
+              <span class="text-[9px] text-slate-600 dark:text-zinc-500 font-medium">+{{ item.stakeholders.length - 2 }}</span>
             </div>
           </div>
         </template>
@@ -277,7 +277,7 @@ const handleCardClick = () => {
               stroke="currentColor"
               fill="transparent"
               stroke-width="1.5"
-              class="text-slate-100"
+              class="text-slate-100 dark:text-zinc-700"
               r="8.5"
               cx="10"
               cy="10"

@@ -37,8 +37,8 @@ const getUsers = (reaction: MessageReaction) => {
         :class="[
           'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs transition-colors',
           hasReacted(reaction)
-            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/15'
+            : 'bg-slate-100 dark:bg-dm-card text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-white/[0.06]'
         ]"
         @click="emit('toggle', reaction.emoji)"
       >

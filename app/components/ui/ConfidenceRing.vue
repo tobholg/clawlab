@@ -26,7 +26,7 @@ const colorClass = computed(() => {
         stroke="currentColor"
         fill="transparent"
         :stroke-width="stroke"
-        class="text-slate-100"
+        class="text-slate-100 dark:text-slate-700"
         :r="normalizedRadius"
         :cx="radius"
         :cy="radius"

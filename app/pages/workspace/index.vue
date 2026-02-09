@@ -143,8 +143,8 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     <div class="flex items-start justify-between gap-6">
       <div class="flex items-start gap-4 flex-1 min-w-0">
         <div class="flex-1 min-w-0 max-w-3xl">
-          <h1 class="text-xl font-medium text-slate-900">{{ currentScope?.title || 'Projects' }}</h1>
-          <p v-if="currentWorkspace?.description" class="text-sm text-slate-500 mt-1">{{ currentWorkspace.description }}</p>
+          <h1 class="text-xl font-medium text-slate-900 dark:text-zinc-100">{{ currentScope?.title || 'Projects' }}</h1>
+          <p v-if="currentWorkspace?.description" class="text-sm text-slate-500 dark:text-zinc-400 mt-1">{{ currentWorkspace.description }}</p>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
         <button
           v-if="canCreate"
           @click="showTemplateModal = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-normal rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-zinc-300 text-sm font-normal rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.1] transition-colors"
         >
           <Icon name="heroicons:document-duplicate" class="w-4 h-4" />
           <span>From Template</span>
@@ -163,7 +163,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
         <button
           v-if="canCreate"
           @click="showCreateModal = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-normal rounded-lg hover:bg-slate-800 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
         >
           <Icon name="heroicons:plus" class="w-4 h-4" />
           <span>New Project</span>
@@ -173,7 +173,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
         <div class="group relative">
           <!-- Active view trigger -->
           <button
-            class="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 hover:border-slate-300 transition-all"
+            class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg text-slate-700 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-white/[0.1] transition-all"
           >
             <Icon :name="activeViewOption.icon" class="w-4 h-4 block" />
             <span class="text-sm font-medium">{{ activeViewOption.label }}</span>
@@ -181,7 +181,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
           </button>
 
           <!-- Dropdown options -->
-          <div class="absolute top-full right-0 mt-1 py-1 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[140px] z-50">
+          <div class="absolute top-full right-0 mt-1 py-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[140px] z-50">
             <button
               v-for="option in viewOptions"
               :key="option.key"
@@ -189,8 +189,8 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
               :class="[
                 'flex items-center gap-2.5 w-full px-3 py-2 text-left transition-colors',
                 option.key === activeView
-                  ? 'bg-slate-50 text-slate-900'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-slate-50 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-zinc-200'
               ]"
             >
               <Icon :name="option.icon" class="w-4 h-4 block" />
@@ -207,7 +207,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     </div>
 
     <!-- Tabs -->
-    <div class="flex items-center gap-1 border-b border-slate-200 -mx-6 px-6">
+    <div class="flex items-center gap-1 border-b border-slate-200 dark:border-white/[0.06] -mx-6 px-6">
       <button
         v-for="tab in [
           { key: 'in_progress', label: 'In Progress', count: tabCounts.in_progress },
@@ -218,17 +218,17 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
         @click="activeTab = tab.key as typeof activeTab"
         class="relative px-3 py-2.5 text-sm font-medium transition-colors"
         :class="activeTab === tab.key
-          ? 'text-slate-900'
-          : 'text-slate-400 hover:text-slate-600'"
+          ? 'text-slate-900 dark:text-zinc-100'
+          : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'"
       >
         {{ tab.label }}
         <span
           class="ml-1.5 text-xs tabular-nums"
-          :class="activeTab === tab.key ? 'text-slate-500' : 'text-slate-300'"
+          :class="activeTab === tab.key ? 'text-slate-500 dark:text-zinc-400' : 'text-slate-300 dark:text-zinc-600'"
         >{{ tab.count }}</span>
         <div
           v-if="activeTab === tab.key"
-          class="absolute bottom-0 left-3 right-3 h-0.5 bg-slate-900 rounded-full"
+          class="absolute bottom-0 left-3 right-3 h-0.5 bg-slate-900 dark:bg-zinc-100 rounded-full"
         />
       </button>
     </div>
@@ -240,55 +240,55 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     <div v-if="!itemsLoading && !filteredProjects?.length" class="flex items-center justify-center min-h-full pb-24">
       <!-- Completed tab: simple empty state -->
       <div v-if="activeTab === 'completed'" class="text-center max-w-sm">
-        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+        <div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-dm-card flex items-center justify-center mx-auto mb-4">
           <Icon name="heroicons:check-circle" class="w-6 h-6 text-slate-400" />
         </div>
-        <h3 class="text-sm font-medium text-slate-700 mb-1">No completed projects</h3>
-        <p class="text-xs text-slate-400">Completed projects will appear here.</p>
+        <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1">No completed projects</h3>
+        <p class="text-xs text-slate-400 dark:text-zinc-500">Completed projects will appear here.</p>
       </div>
 
       <!-- In Progress / Backlog tabs: full onboarding empty state -->
       <div v-else class="w-full max-w-2xl text-center">
-        <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-5">
+        <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-dm-card flex items-center justify-center mx-auto mb-5">
           <Icon name="heroicons:rocket-launch" class="w-7 h-7 text-slate-400" />
         </div>
-        <h2 class="text-lg font-medium text-slate-900 mb-2">
+        <h2 class="text-lg font-medium text-slate-900 dark:text-zinc-100 mb-2">
           {{ activeTab === 'backlog' ? 'No projects in backlog' : 'No projects in progress' }}
         </h2>
-        <p class="text-sm text-slate-500 mb-8 leading-relaxed">
+        <p class="text-sm text-slate-500 dark:text-zinc-400 mb-8 leading-relaxed">
           Get started by creating a project from scratch or use a template to hit the ground running.
         </p>
         <div v-if="canCreate" class="flex items-center justify-center gap-3">
           <button
             @click="showTemplateModal = true"
-            class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors"
+            class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-zinc-300 text-sm font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.1] transition-colors"
           >
             <Icon name="heroicons:document-duplicate" class="w-4 h-4" />
             Start from template
           </button>
           <button
             @click="showCreateModal = true"
-            class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+            class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
           >
             <Icon name="heroicons:plus" class="w-4 h-4" />
             Create project
           </button>
         </div>
         <div class="mt-10 grid grid-cols-3 gap-5 text-left w-full">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06]">
             <Icon name="heroicons:view-columns" class="w-5 h-5 text-blue-500 mb-2.5" />
-            <h3 class="text-sm font-medium text-slate-700">Kanban boards</h3>
-            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Organize and move tasks visually across stages</p>
+            <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300">Kanban boards</h3>
+            <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1 leading-relaxed">Organize and move tasks visually across stages</p>
           </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06]">
             <Icon name="heroicons:users" class="w-5 h-5 text-violet-500 mb-2.5" />
-            <h3 class="text-sm font-medium text-slate-700">Stakeholder spaces</h3>
-            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Keep external collaborators in the loop effortlessly</p>
+            <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300">Stakeholder spaces</h3>
+            <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1 leading-relaxed">Keep external collaborators in the loop effortlessly</p>
           </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06]">
             <Icon name="heroicons:bolt" class="w-5 h-5 text-emerald-500 mb-2.5" />
-            <h3 class="text-sm font-medium text-slate-700">Focus tracking</h3>
-            <p class="text-xs text-slate-400 mt-1 leading-relaxed">See where your team spends time across projects</p>
+            <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300">Focus tracking</h3>
+            <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1 leading-relaxed">See where your team spends time across projects</p>
           </div>
         </div>
       </div>

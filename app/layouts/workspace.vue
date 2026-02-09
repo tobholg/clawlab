@@ -160,12 +160,12 @@ const tempDotClass = (temp: string) => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-[#FAFAFA] font-sans text-slate-900 overflow-hidden">
+  <div class="flex h-screen bg-[#FAFAFA] dark:bg-dm-surface font-sans text-slate-900 dark:text-zinc-100 overflow-hidden">
 
     <!-- Sidebar -->
     <aside
       :class="[
-        'border-r border-slate-200 bg-white flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        'border-r border-slate-200 dark:border-white/[0.09] bg-white dark:bg-dm flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
         sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
       ]"
     >
@@ -173,7 +173,7 @@ const tempDotClass = (temp: string) => {
       <div :class="['mb-4 flex items-center', sidebarCollapsed ? 'flex-col gap-3' : 'px-3 justify-between']">
         <template v-if="sidebarCollapsed">
           <NuxtLink to="/workspace" class="flex items-center justify-center w-full">
-            <div class="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div class="w-7 h-7 bg-slate-900 dark:bg-white/[0.1] rounded-lg flex items-center justify-center flex-shrink-0">
               <svg class="w-4 h-4" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
           </NuxtLink>
@@ -181,7 +181,7 @@ const tempDotClass = (temp: string) => {
         <WorkspaceSwitcher v-else class="flex-1 min-w-0" />
         <button
           @click="toggleSidebar"
-          class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex items-center justify-center"
+          class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-colors flex items-center justify-center"
         >
           <Icon :name="sidebarCollapsed ? 'heroicons:chevron-right' : 'heroicons:chevron-left'" class="w-4 h-4" />
         </button>
@@ -197,11 +197,11 @@ const tempDotClass = (temp: string) => {
       <div v-if="!sidebarCollapsed" class="px-3 mb-3">
         <button
           @click="openSearch"
-          class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all duration-200"
+          class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200"
         >
           <Icon name="heroicons:magnifying-glass" class="w-4 h-4" />
           <span class="flex-1 text-left">Search</span>
-          <kbd class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+          <kbd class="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
         </button>
       </div>
 
@@ -210,14 +210,14 @@ const tempDotClass = (temp: string) => {
         <div :class="['flex items-center justify-between px-3', isSectionCollapsed('focus') ? '' : 'mb-2']">
           <button
             @click="focusSidebarRef?.openTimeline()"
-            class="text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
+            class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 uppercase tracking-wider hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
           >
             Focus
             <Icon name="heroicons:clock" class="w-3 h-3" />
           </button>
           <button
             @click="toggleSection('focus')"
-            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
           >
             <Icon :name="isSectionCollapsed('focus') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
           </button>
@@ -232,14 +232,14 @@ const tempDotClass = (temp: string) => {
         <div :class="['flex items-center justify-between', isSectionCollapsed('projects') ? '' : 'mb-2']">
           <button
             @click="handleProjectsClick"
-            class="text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
+            class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 uppercase tracking-wider hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
           >
             Projects
             <Icon name="heroicons:squares-2x2" class="w-3 h-3" />
           </button>
           <button
             @click="toggleSection('projects')"
-            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
           >
             <Icon :name="isSectionCollapsed('projects') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
           </button>
@@ -251,22 +251,22 @@ const tempDotClass = (temp: string) => {
             @click="handleProjectClick(project.id)"
             class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
             :class="currentProjectId === project.id
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+              : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
           >
-            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <div
                 class="w-2 h-2 rounded-full"
                 :class="project.status === 'done' ? 'bg-emerald-400' : project.status === 'in_progress' ? 'bg-blue-400' : 'bg-slate-300'"
               />
             </div>
             <span class="flex-1 text-left truncate">{{ project.title }}</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </button>
           <button
             v-if="!recentProjects.length"
             @click="router.push('/workspace')"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-500 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
           >
             <Icon name="heroicons:plus" class="w-4 h-4" />
             <span>Create new project</span>
@@ -274,9 +274,9 @@ const tempDotClass = (temp: string) => {
           <NuxtLink
             v-if="hasMoreProjects"
             to="/workspace"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
           >
-            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <Icon name="heroicons:arrow-right" class="w-3 h-3" />
             </div>
             <span class="flex-1 text-left">View all {{ allActiveProjects.length }}</span>
@@ -289,14 +289,14 @@ const tempDotClass = (temp: string) => {
         <div :class="['flex items-center justify-between', isSectionCollapsed('myTasks') ? '' : 'mb-2']">
           <NuxtLink
             to="/workspace/my-work"
-            class="text-[10px] font-medium text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors flex items-center gap-1"
+            class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 uppercase tracking-wider hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
           >
             My Tasks
             <Icon name="heroicons:clipboard-document-check" class="w-3 h-3" />
           </NuxtLink>
           <button
             @click="toggleSection('myTasks')"
-            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
           >
             <Icon :name="isSectionCollapsed('myTasks') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
           </button>
@@ -307,9 +307,9 @@ const tempDotClass = (temp: string) => {
               v-for="task in sidebarPreview"
               :key="task.id"
               @click="handleSidebarTaskClick(task)"
-              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200 text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200 text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]"
             >
-              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
                 <div class="w-2 h-2 rounded-full" :class="statusDotClass(task.status)" />
               </div>
               <span class="flex-1 text-left truncate">{{ task.title }}</span>
@@ -318,32 +318,32 @@ const tempDotClass = (temp: string) => {
                 class="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 :class="tempDotClass(task.temperature)"
               />
-              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
             </button>
             <NuxtLink
               v-if="hasMoreTasks"
               to="/workspace/my-work"
-              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200"
+              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
             >
-              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
                 <Icon name="heroicons:arrow-right" class="w-3 h-3" />
               </div>
               <span class="flex-1 text-left">View all {{ myTasksActiveCount }}</span>
             </NuxtLink>
           </template>
-          <p v-else class="px-3 py-2 text-xs text-slate-400 italic">No active tasks</p>
+          <p v-else class="px-3 py-2 text-xs text-slate-400 dark:text-zinc-600 italic">No active tasks</p>
         </div>
       </div>
 
       <!-- Channels Section -->
       <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('channels') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('channels') ? '' : 'mb-2']">
-          <h3 class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+          <h3 class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 uppercase tracking-wider">
             Channels
           </h3>
           <button
             @click="toggleSection('channels')"
-            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
           >
             <Icon :name="isSectionCollapsed('channels') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
           </button>
@@ -354,10 +354,10 @@ const tempDotClass = (temp: string) => {
               :to="`/workspace/channels/${channel.id}`"
               class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
               :class="currentChannelId === channel.id
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+                : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
             >
-              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
                 <Icon
                   :name="channel.visibility === 'private' ? 'heroicons:lock-closed' : channel.type === 'project' ? 'heroicons:folder' : 'heroicons:hashtag'"
                   class="w-4 h-4"
@@ -366,11 +366,11 @@ const tempDotClass = (temp: string) => {
               <span class="flex-1 text-left truncate">{{ channel.displayName }}</span>
               <span
                 v-if="channel.unreadCount && channel.unreadCount > 0"
-                class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full"
+                class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400 px-1.5 py-0.5 rounded-full"
               >
                 {{ channel.unreadCount }}
               </span>
-              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
             </NuxtLink>
 
             <!-- Nested channels -->
@@ -381,8 +381,8 @@ const tempDotClass = (temp: string) => {
                 :to="`/workspace/channels/${child.id}`"
                 class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
                 :class="currentChannelId === child.id
-                  ? 'bg-slate-100 text-slate-900'
-                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+                  ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+                  : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
               >
                 <Icon
                   :name="child.visibility === 'private' ? 'heroicons:lock-closed' : child.type === 'project' ? 'heroicons:folder' : 'heroicons:hashtag'"
@@ -392,7 +392,7 @@ const tempDotClass = (temp: string) => {
               </NuxtLink>
             </div>
           </template>
-          <div v-if="!channelTree.length && !channelsLoading" class="px-3 py-2 text-xs text-slate-500 italic">
+          <div v-if="!channelTree.length && !channelsLoading" class="px-3 py-2 text-xs text-slate-500 dark:text-zinc-600 italic">
             No channels yet
           </div>
         </div>
@@ -401,12 +401,12 @@ const tempDotClass = (temp: string) => {
       <!-- Workspace links -->
       <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('workspace') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('workspace') ? '' : 'mb-2']">
-          <h3 class="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+          <h3 class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 uppercase tracking-wider">
             Workspace
           </h3>
           <button
             @click="toggleSection('workspace')"
-            class="p-0.5 rounded text-slate-400 hover:text-slate-600 transition-colors"
+            class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
           >
             <Icon :name="isSectionCollapsed('workspace') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
           </button>
@@ -416,51 +416,51 @@ const tempDotClass = (temp: string) => {
             to="/workspace/my-work"
             class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
             :class="isMyWork
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+              : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
           >
-            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <Icon name="heroicons:clipboard-document-check" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">My Work</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </NuxtLink>
           <NuxtLink
             to="/workspace/activities"
             class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
             :class="route.path === '/workspace/activities'
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+              : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
           >
-            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <Icon name="heroicons:clock" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">Activity</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </NuxtLink>
           <NuxtLink
             v-if="isWorkspaceAdmin"
             to="/workspace/team"
             class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
             :class="isTeamFocus
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+              : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
           >
-            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <Icon name="heroicons:users" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">Team focus</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 flex-shrink-0" />
+            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </NuxtLink>
           <NuxtLink
             v-if="isWorkspaceAdmin"
             to="/workspace/settings"
             class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
             :class="route.path === '/workspace/settings'
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+              : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
           >
-            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <Icon name="heroicons:cog-6-tooth" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">Settings</span>
@@ -470,10 +470,10 @@ const tempDotClass = (temp: string) => {
             to="/org"
             class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
             :class="route.path === '/org'
-              ? 'bg-slate-100 text-slate-900'
-              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'"
+              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+              : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
           >
-            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0">
+            <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <Icon name="heroicons:building-office-2" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">Organization</span>
@@ -494,7 +494,7 @@ const tempDotClass = (temp: string) => {
         <button
           @click="showUserSettings = true"
           :class="[
-            'w-full flex items-center rounded-lg hover:bg-slate-50 cursor-pointer transition-all duration-200',
+            'w-full flex items-center rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-all duration-200',
             sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
           ]"
         >
@@ -502,7 +502,7 @@ const tempDotClass = (temp: string) => {
             <span class="text-xs font-medium text-white">{{ userInitial }}</span>
           </div>
           <div :class="['flex-1 min-w-0 transition-all duration-300 overflow-hidden', sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100']">
-            <div class="text-sm font-normal text-slate-800 truncate text-left">{{ userName }}</div>
+            <div class="text-sm font-normal text-slate-800 dark:text-zinc-200 truncate text-left">{{ userName }}</div>
           </div>
           <Icon
             v-if="!sidebarCollapsed"
@@ -514,7 +514,7 @@ const tempDotClass = (temp: string) => {
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white">
+    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white dark:from-dm-surface dark:to-dm-surface">
       <Transition name="content-fade">
         <div :key="route.path" class="absolute inset-0 flex flex-col overflow-auto">
           <slot />
