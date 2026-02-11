@@ -135,11 +135,11 @@ const formatDate = (dateStr: string): string => {
             transform: showBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)'
           }"
         >
-          <div class="bg-slate-900 text-white rounded-lg shadow-xl px-3 py-2 max-w-xs relative">
+          <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg shadow-black/10 dark:shadow-black/50 border border-slate-200/80 dark:border-zinc-700 px-3 py-2.5 max-w-xs relative">
             <!-- Date header -->
-            <div class="text-xs font-medium text-slate-300 mb-1.5 pb-1.5 border-b border-slate-700">
+            <div class="text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5 pb-1.5 border-b border-slate-100 dark:border-zinc-700">
               {{ formatDate(hoveredDay.date) }}
-              <span class="text-emerald-400 ml-1">{{ hoveredDay.count }} completed</span>
+              <span class="text-emerald-600 dark:text-emerald-400 ml-1">{{ hoveredDay.count }} completed</span>
             </div>
 
             <!-- Completions list -->
@@ -149,10 +149,10 @@ const formatDate = (dateStr: string): string => {
                 :key="completion.id"
                 class="flex items-start gap-2"
               >
-                <Icon name="heroicons:check-circle" class="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <Icon name="heroicons:check-circle" class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm text-white truncate">{{ completion.title }}</div>
-                  <div class="text-xs text-slate-400">
+                  <div class="text-[13px] text-slate-800 dark:text-zinc-100 truncate">{{ completion.title }}</div>
+                  <div class="text-[11px] text-slate-500 dark:text-zinc-400">
                     {{ formatTimeWorked(completion.timeWorked) }} worked
                   </div>
                 </div>
@@ -162,11 +162,11 @@ const formatDate = (dateStr: string): string => {
             <!-- Arrow (top or bottom depending on position) -->
             <div
               v-if="showBelow"
-              class="absolute left-1/2 -top-1.5 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45"
+              class="absolute left-1/2 -top-1.5 -translate-x-1/2 w-3 h-3 bg-white dark:bg-zinc-800 border-t border-l border-slate-200/80 dark:border-zinc-700 rotate-45"
             />
             <div
               v-else
-              class="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45"
+              class="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 bg-white dark:bg-zinc-800 border-b border-r border-slate-200/80 dark:border-zinc-700 rotate-45"
             />
           </div>
         </div>

@@ -210,7 +210,7 @@ const tempDotClass = (temp: string) => {
         <div :class="['flex items-center justify-between px-3', isSectionCollapsed('focus') ? '' : 'mb-2']">
           <button
             @click="focusSidebarRef?.openTimeline()"
-            class="text-xs font-medium text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
+            class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
           >
             Focus
             <Icon name="heroicons:clock" class="w-3 h-3" />
@@ -232,7 +232,7 @@ const tempDotClass = (temp: string) => {
         <div :class="['flex items-center justify-between', isSectionCollapsed('projects') ? '' : 'mb-2']">
           <button
             @click="handleProjectsClick"
-            class="text-xs font-medium text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
+            class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
           >
             Projects
             <Icon name="heroicons:squares-2x2" class="w-3 h-3" />
@@ -289,7 +289,7 @@ const tempDotClass = (temp: string) => {
         <div :class="['flex items-center justify-between', isSectionCollapsed('myTasks') ? '' : 'mb-2']">
           <NuxtLink
             to="/workspace/my-work"
-            class="text-xs font-medium text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
+            class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
           >
             My Tasks
             <Icon name="heroicons:clipboard-document-check" class="w-3 h-3" />
@@ -338,7 +338,7 @@ const tempDotClass = (temp: string) => {
       <!-- Channels Section -->
       <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('channels') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('channels') ? '' : 'mb-2']">
-          <button @click="toggleSection('channels')" class="text-xs font-medium text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors">
+          <button @click="toggleSection('channels')" class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors">
             Channels
           </button>
           <button
@@ -401,7 +401,7 @@ const tempDotClass = (temp: string) => {
       <!-- Workspace links -->
       <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('workspace') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('workspace') ? '' : 'mb-2']">
-          <button @click="toggleSection('workspace')" class="text-xs font-medium text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors">
+          <button @click="toggleSection('workspace')" class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors">
             Workspace
           </button>
           <button
