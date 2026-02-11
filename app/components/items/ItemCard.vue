@@ -11,6 +11,7 @@ const emit = defineEmits<{
   drillDown: [item: ItemNode]
   openDetail: [item: ItemNode]
   openAttention: [item: ItemNode, mode: 'at-risk' | 'blocked']
+  openDocs: [item: ItemNode]
 }>()
 
 const { isFocusedOnTask, startTaskFocus, focusState } = useFocus()
@@ -176,15 +177,26 @@ const handleCardClick = () => {
         </div>
       </div>
       
-      <!-- Focus button (on hover) -->
-      <button
-        v-if="!isCurrentlyFocused"
-        @click="handleFocusClick"
-        class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 text-slate-300 dark:text-zinc-600 hover:text-amber-500 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-        title="Focus on this"
-      >
-        <Icon name="heroicons:bolt" class="w-4 h-4" />
-      </button>
+      <!-- Hover actions -->
+      <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <!-- View full button -->
+        <button
+          @click.stop="emit('drillDown', item)"
+          class="w-6 h-6 rounded flex items-center justify-center text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+          title="View full board"
+        >
+          <Icon name="heroicons:arrows-pointing-out" class="w-3.5 h-3.5" />
+        </button>
+        <!-- Focus button -->
+        <button
+          v-if="!isCurrentlyFocused"
+          @click="handleFocusClick"
+          class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 text-slate-300 dark:text-zinc-600 hover:text-amber-500 transition-colors"
+          title="Focus on this"
+        >
+          <Icon name="heroicons:bolt" class="w-4 h-4" />
+        </button>
+      </div>
     </div>
     
     <!-- Children indicator -->
@@ -212,7 +224,25 @@ const handleCardClick = () => {
       >
         {{ item.blockedChildrenCount }} blocked
       </button>
+      <button
+        v-if="item.documentCount"
+        class="flex items-center gap-1 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+        @click.stop="emit('openDocs', item)"
+      >
+        <Icon name="heroicons:document-text" class="w-3 h-3" />
+        {{ item.documentCount }}
+      </button>
     </div>
+
+    <!-- Document indicator (when no children but has docs) -->
+    <button
+      v-else-if="item.documentCount"
+      class="flex items-center gap-1 text-[10px] text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors mb-1.5"
+      @click.stop="emit('openDocs', item)"
+    >
+      <Icon name="heroicons:document-text" class="w-3 h-3" />
+      {{ item.documentCount }} {{ item.documentCount === 1 ? 'doc' : 'docs' }}
+    </button>
     
     <!-- Footer -->
     <div class="flex items-center justify-between pt-2">

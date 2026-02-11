@@ -1,5 +1,5 @@
 <template>
-  <div :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
+  <div v-if="message.role === 'user' || message.content" :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
     <div
       :class="[
         'max-w-[85%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap',
@@ -12,11 +12,10 @@
       <template v-if="message.role === 'user'">
         {{ message.content }}
       </template>
-      
+
       <!-- Assistant message: render as HTML (markdown processed) -->
       <template v-else>
-        <div v-if="message.content" v-html="renderedContent" />
-        <span v-else class="text-slate-400 animate-pulse">Thinking...</span>
+        <div v-html="renderedContent" />
       </template>
     </div>
   </div>

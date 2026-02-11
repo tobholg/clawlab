@@ -8,21 +8,25 @@ const childrenInclude = {
   owner: true,
   assignees: { include: { user: true } },
   blockedBy: true,
+  _count: { select: { documents: true } },
   children: {
     include: {
       owner: true,
       assignees: { include: { user: true } },
       blockedBy: true,
+      _count: { select: { documents: true } },
       children: {
         include: {
           owner: true,
           assignees: { include: { user: true } },
           blockedBy: true,
+          _count: { select: { documents: true } },
           children: {
             include: {
               owner: true,
               assignees: { include: { user: true } },
               blockedBy: true,
+              _count: { select: { documents: true } },
             }
           }
         }
@@ -57,6 +61,7 @@ export default defineEventHandler(async (event) => {
         include: { user: true }
       },
       blockedBy: true,
+      _count: { select: { documents: true } },
       children: {
         include: childrenInclude
       },
@@ -72,6 +77,8 @@ export default defineEventHandler(async (event) => {
     const completedCount = countByStatus(item, 'DONE')
     const atRiskCount = countAtRisk(item)
     const needsEstimateCount = countNeedsEstimate(item)
+    const docCount = item._count?.documents ?? 0
+    const totalDocCount = countAllDocuments(item)
 
     return {
       id: item.id,
@@ -122,6 +129,9 @@ export default defineEventHandler(async (event) => {
       atRiskChildrenCount: atRiskCount,
       needsEstimateChildrenCount: needsEstimateCount,
       hasChildren: (item.children?.length ?? 0) > 0,
+      // Document counts
+      documentCount: docCount,
+      totalDocumentCount: totalDocCount,
       // Recursive children (up to 4 levels)
       children: depth < 4 && item.children?.length
         ? item.children.map((child: any) => transformItem(child, depth + 1))
@@ -140,6 +150,12 @@ export default defineEventHandler(async (event) => {
     return transformed
   })
 })
+
+function countAllDocuments(item: any): number {
+  const own = item._count?.documents ?? 0
+  if (!item.children?.length) return own
+  return own + item.children.reduce((sum: number, c: any) => sum + countAllDocuments(c), 0)
+}
 
 function countAllChildren(item: any): number {
   if (!item.children?.length) return 0

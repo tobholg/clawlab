@@ -14,6 +14,7 @@ const emit = defineEmits<{
   parentChange: [itemId: string, newParentId: string]
   openAttention: [item: ItemNode, mode: 'at-risk' | 'blocked']
   requestComplete: [item: ItemNode]
+  openDocs: [item: ItemNode]
 }>()
 
 const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
@@ -434,6 +435,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                   @drill-down="emit('drillDown', item)"
                   @open-detail="emit('openDetail', item)"
                   @open-attention="(target, mode) => emit('openAttention', target, mode)"
+                  @open-docs="(target) => emit('openDocs', target)"
                 />
               </div>
             </div>
@@ -515,6 +517,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                   @drill-down="emit('drillDown', item)"
                   @open-detail="emit('openDetail', item)"
                   @open-attention="(target, mode) => emit('openAttention', target, mode)"
+                  @open-docs="(target) => emit('openDocs', target)"
                 />
               </div>
             </div>

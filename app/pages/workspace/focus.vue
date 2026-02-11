@@ -77,10 +77,10 @@ const saveComment = async (sessionId: string) => {
 
 // Formatters
 const formatTime = (iso: string) => {
-  return new Date(iso).toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: false 
+    hour12: false
   })
 }
 
@@ -103,11 +103,11 @@ const formatDate = (dateStr: string) => {
 
   if (date.toDateString() === today.toDateString()) return 'Today'
   if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
-  
-  return date.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'short', 
-    day: 'numeric' 
+
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric'
   })
 }
 
@@ -123,32 +123,33 @@ const getActivityIcon = (session: any) => {
   return 'heroicons:question-mark-circle'
 }
 
-const getActivityColor = (session: any) => {
-  if (session.activityType === 'TASK') return 'emerald'
-  if (session.lane === 'MEETING') return 'purple'
-  if (session.lane === 'BREAK') return 'sky'
-  return 'slate'
+// Activity color classes (avoids dynamic class generation)
+const activityIconClasses = (session: any) => {
+  if (session.activityType === 'TASK') return 'bg-emerald-100 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400'
+  if (session.lane === 'MEETING') return 'bg-purple-100 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400'
+  if (session.lane === 'BREAK') return 'bg-sky-100 text-sky-500 dark:bg-sky-500/10 dark:text-sky-400'
+  return 'bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-zinc-400'
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="min-h-screen bg-slate-50 dark:bg-dm-surface">
     <!-- Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <header class="bg-white dark:bg-dm-card border-b border-slate-200 dark:border-white/[0.06] sticky top-0 z-10">
       <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <NuxtLink to="/workspace" class="p-1 text-slate-400 hover:text-slate-600">
+          <NuxtLink to="/workspace" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">
             <Icon name="heroicons:arrow-left" class="w-5 h-5" />
           </NuxtLink>
-          <h1 class="text-lg font-medium text-slate-900">Focus Timeline</h1>
+          <h1 class="text-lg font-medium text-slate-900 dark:text-zinc-100">Focus Timeline</h1>
         </div>
-        
+
         <!-- Date range selector -->
         <div class="flex items-center gap-2">
-          <span class="text-sm text-slate-500">Show:</span>
-          <select 
+          <span class="text-sm text-slate-500 dark:text-zinc-400">Show:</span>
+          <select
             v-model="daysBack"
-            class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
+            class="text-sm border border-slate-200 dark:border-white/[0.06] rounded-lg px-3 py-1.5 bg-white dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-zinc-600"
           >
             <option v-for="d in daysOptions" :key="d" :value="d">
               {{ d }} days
@@ -161,32 +162,32 @@ const getActivityColor = (session: any) => {
     <main class="max-w-4xl mx-auto px-6 py-8">
       <!-- Stats -->
       <div class="grid grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-xl p-4 border border-slate-200">
-          <p class="text-2xl font-semibold text-slate-900">{{ stats.totalHours }}h</p>
-          <p class="text-xs text-slate-500">Total focused</p>
+        <div class="bg-white dark:bg-dm-card rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
+          <p class="text-2xl font-semibold text-slate-900 dark:text-zinc-100">{{ stats.totalHours }}h</p>
+          <p class="text-xs text-slate-500 dark:text-zinc-500">Total focused</p>
         </div>
-        <div class="bg-white rounded-xl p-4 border border-slate-200">
-          <p class="text-2xl font-semibold text-emerald-600">{{ stats.taskHours }}h</p>
-          <p class="text-xs text-slate-500">On tasks</p>
+        <div class="bg-white dark:bg-dm-card rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
+          <p class="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">{{ stats.taskHours }}h</p>
+          <p class="text-xs text-slate-500 dark:text-zinc-500">On tasks</p>
         </div>
-        <div class="bg-white rounded-xl p-4 border border-slate-200">
-          <p class="text-2xl font-semibold text-purple-600">{{ stats.meetingHours }}h</p>
-          <p class="text-xs text-slate-500">In meetings</p>
+        <div class="bg-white dark:bg-dm-card rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
+          <p class="text-2xl font-semibold text-purple-600 dark:text-purple-400">{{ stats.meetingHours }}h</p>
+          <p class="text-xs text-slate-500 dark:text-zinc-500">In meetings</p>
         </div>
-        <div class="bg-white rounded-xl p-4 border border-slate-200">
-          <p class="text-2xl font-semibold text-slate-600">{{ stats.sessions }}</p>
-          <p class="text-xs text-slate-500">Sessions</p>
+        <div class="bg-white dark:bg-dm-card rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
+          <p class="text-2xl font-semibold text-slate-600 dark:text-zinc-300">{{ stats.sessions }}</p>
+          <p class="text-xs text-slate-500 dark:text-zinc-500">Sessions</p>
         </div>
       </div>
 
       <!-- Loading -->
-      <div v-if="pending" class="text-center py-12 text-slate-400">
+      <div v-if="pending" class="text-center py-12 text-slate-400 dark:text-zinc-500">
         <Icon name="heroicons:arrow-path" class="w-6 h-6 mx-auto mb-2 animate-spin" />
         <p class="text-sm">Loading...</p>
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="!timeline.length" class="text-center py-12 text-slate-400">
+      <div v-else-if="!timeline.length" class="text-center py-12 text-slate-400 dark:text-zinc-500">
         <Icon name="heroicons:clock" class="w-10 h-10 mx-auto mb-3" />
         <p class="text-sm">No focus sessions in this period</p>
       </div>
@@ -196,31 +197,31 @@ const getActivityColor = (session: any) => {
         <div v-for="day in timelineSorted" :key="day.date">
           <!-- Date header -->
           <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-sm font-medium text-slate-900">
+            <h2 class="text-sm font-medium text-slate-900 dark:text-zinc-100">
               {{ formatDate(day.date) }}
             </h2>
-            <div class="text-xs text-slate-400 font-normal">
+            <div class="text-xs text-slate-400 dark:text-zinc-500 font-normal">
               {{ formatSummaryDuration(day.sessions.reduce((sum: number, s: any) => sum + s.durationMins, 0)) }}
             </div>
           </div>
 
           <!-- Sessions -->
-          <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
-            <div 
-              v-for="session in day.sessions" 
+          <div class="bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06] divide-y divide-slate-100 dark:divide-white/[0.04]">
+            <div
+              v-for="session in day.sessions"
               :key="session.id"
-              class="group flex items-start gap-4 px-4 py-3 hover:bg-slate-50 transition-colors"
-              :class="session.isActive && 'bg-emerald-50'"
+              class="group flex items-start gap-4 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
+              :class="session.isActive && 'bg-emerald-50 dark:bg-emerald-500/5'"
             >
               <!-- Time -->
-              <span class="text-sm text-slate-400 w-14 flex-shrink-0 pt-0.5 font-mono">
+              <span class="text-sm text-slate-400 dark:text-zinc-500 w-14 flex-shrink-0 pt-0.5 font-mono">
                 {{ formatTime(session.startedAt) }}
               </span>
 
               <!-- Icon -->
-              <div 
+              <div
                 class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                :class="`bg-${getActivityColor(session)}-100 text-${getActivityColor(session)}-500`"
+                :class="activityIconClasses(session)"
               >
                 <Icon :name="getActivityIcon(session)" class="w-4 h-4" />
               </div>
@@ -228,28 +229,28 @@ const getActivityColor = (session: any) => {
               <!-- Content -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-slate-900">
+                  <span class="text-sm font-medium text-slate-900 dark:text-zinc-200">
                     {{ getActivityLabel(session) }}
                   </span>
-                  <span 
-                    v-if="session.endReason === 'COMPLETED'" 
-                    class="text-xs text-emerald-500 font-medium"
+                  <span
+                    v-if="session.endReason === 'COMPLETED'"
+                    class="text-xs text-emerald-500 dark:text-emerald-400 font-medium"
                   >Done</span>
-                  <span 
-                    v-if="session.isActive" 
-                    class="text-xs text-emerald-500 font-medium animate-pulse"
+                  <span
+                    v-if="session.isActive"
+                    class="text-xs text-emerald-500 dark:text-emerald-400 font-medium animate-pulse"
                   >Active</span>
                 </div>
-                
+
                 <!-- Project -->
-                <p v-if="session.project" class="text-xs text-slate-400 mt-0.5">
+                <p v-if="session.project" class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
                   {{ session.project.title }}
                 </p>
 
                 <!-- Comment display -->
-                <div 
-                  v-if="session.comment && editingSessionId !== session.id" 
-                  class="mt-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2"
+                <div
+                  v-if="session.comment && editingSessionId !== session.id"
+                  class="mt-2 text-sm text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-white/[0.04] rounded-lg px-3 py-2"
                 >
                   {{ session.comment }}
                 </div>
@@ -260,17 +261,17 @@ const getActivityColor = (session: any) => {
                     v-model="editComment"
                     placeholder="What did you work on? Any notes?"
                     rows="2"
-                    class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
+                    class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-white/[0.04] dark:text-zinc-200 dark:placeholder:text-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-zinc-600 resize-none"
                     @keyup.escape="cancelEdit"
                   />
                   <div class="flex gap-2 mt-2">
-                    <button 
+                    <button
                       @click="saveComment(session.id)"
-                      class="px-3 py-1 text-xs font-medium bg-slate-900 text-white rounded-lg"
+                      class="px-3 py-1 text-xs font-medium bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg"
                     >Save</button>
-                    <button 
+                    <button
                       @click="cancelEdit"
-                      class="px-3 py-1 text-xs text-slate-500 hover:bg-slate-100 rounded-lg"
+                      class="px-3 py-1 text-xs text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg"
                     >Cancel</button>
                   </div>
                 </div>
@@ -278,13 +279,13 @@ const getActivityColor = (session: any) => {
 
               <!-- Duration + Actions -->
               <div class="flex items-center gap-3 flex-shrink-0">
-                <span class="text-sm text-slate-500">
+                <span class="text-sm text-slate-500 dark:text-zinc-500">
                   {{ formatDuration(session.durationMins) }}
                 </span>
                 <button
                   v-if="!editingSessionId"
                   @click="startEditComment(session)"
-                  class="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-all"
+                  class="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded transition-all"
                   :title="session.comment ? 'Edit note' : 'Add note'"
                 >
                   <Icon :name="session.comment ? 'heroicons:pencil' : 'heroicons:chat-bubble-left'" class="w-4 h-4" />

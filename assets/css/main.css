@@ -120,6 +120,13 @@
   }
 }
 
+/* Fix native date input icons in dark mode */
+@media (prefers-color-scheme: dark) {
+  .dark-date-input {
+    color-scheme: dark;
+  }
+}
+
 @layer utilities {
   /* Activity heatmap cell styles */
   .activity-cell {

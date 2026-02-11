@@ -13,6 +13,7 @@ const emit = defineEmits<{
   openDetail: [project: ItemNode]
   createProject: []
   openAttention: [project: ItemNode, mode: 'at-risk' | 'blocked']
+  openDocs: [project: ItemNode]
 }>()
 
 // Sort projects: those needing attention first, then by progress
@@ -137,7 +138,7 @@ const healthMeta = (project: ItemNode) => {
       <div
         v-for="project in sortedProjects"
         :key="project.id"
-        class="group relative overflow-hidden bg-white/90 dark:bg-dm-card/90 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] dark:shadow-[0_10px_30px_-20px_rgba(0,0,0,0.6)] hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] dark:hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+        class="group relative overflow-hidden bg-white/90 dark:bg-dm-card/90 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] dark:shadow-[0_10px_30px_-20px_rgba(0,0,0,0.6)] hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] dark:hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.7)] dark:hover:border-white/[0.1] dark:hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
         @click="emit('openProject', project)"
       >
         <div class="p-5 relative">
@@ -150,7 +151,7 @@ const healthMeta = (project: ItemNode) => {
             </div>
             <button
               @click.stop="emit('openDetail', project)"
-              class="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all flex-shrink-0 ml-3 -mr-1 -mt-1"
+              class="opacity-0 group-hover:opacity-100 w-7 h-7 rounded flex items-center justify-center text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all flex-shrink-0 ml-3 -mr-1 -mt-1"
             >
               <Icon name="heroicons:ellipsis-horizontal" class="w-4 h-4" />
             </button>
@@ -224,6 +225,14 @@ const healthMeta = (project: ItemNode) => {
                 <span v-if="hasAllChildrenCompleted(project)" class="text-emerald-600">All items completed</span>
                 <span v-else class="text-slate-400">{{ getActiveChildrenCount(project) }} items</span>
               </template>
+              <button
+                v-if="project.totalDocumentCount"
+                @click.stop="emit('openDocs', project)"
+                class="flex items-center gap-1 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                <Icon name="heroicons:document-text" class="w-3 h-3" />
+                {{ project.totalDocumentCount }}
+              </button>
             </div>
           </div>
         </div>

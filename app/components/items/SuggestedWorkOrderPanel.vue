@@ -108,62 +108,62 @@ const handleSelect = (item: ItemNode) => {
       <div v-if="open" class="fixed inset-0 z-50 flex justify-end">
         <div class="absolute inset-0 bg-black/30" @click="$emit('close')" />
 
-        <div class="panel relative bg-white w-full max-w-lg h-full flex flex-col shadow-2xl">
-          <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+        <div class="panel relative bg-white dark:bg-dm-card w-full max-w-lg h-full flex flex-col shadow-2xl border-l border-transparent dark:border-white/[0.06]">
+          <div class="px-6 py-5 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
             <div>
-              <div class="text-xs uppercase tracking-wider text-slate-400">Suggested work order</div>
-              <div class="text-lg font-medium text-slate-900 mt-1">Focus next, with confidence</div>
-              <p class="text-xs text-slate-500 mt-1">
+              <div class="text-xs uppercase tracking-wider text-slate-400 dark:text-zinc-500">Suggested work order</div>
+              <div class="text-lg font-medium text-slate-900 dark:text-zinc-100 mt-1">Focus next, with confidence</div>
+              <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
                 Ranked by priority and effort for the current level and one level down.
               </p>
             </div>
             <button
               @click="$emit('close')"
-              class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
             >
               <Icon name="heroicons:x-mark" class="w-5 h-5" />
             </button>
           </div>
 
           <div class="p-6 space-y-3 overflow-y-auto flex-1">
-            <div v-if="suggestedItems.length === 0" class="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+            <div v-if="suggestedItems.length === 0" class="rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.03] p-6 text-center text-sm text-slate-500 dark:text-zinc-400">
               No suggested items yet.
             </div>
 
             <button
               v-for="(entry, index) in suggestedItems"
               :key="entry.item.id"
-              class="w-full text-left rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-sm transition-all"
+              class="w-full text-left rounded-xl border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] p-4 hover:border-slate-300 dark:hover:border-white/[0.1] hover:shadow-sm transition-all"
               @click="handleSelect(entry.item)"
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="text-sm font-medium text-slate-900 truncate">{{ entry.item.title }}</div>
-                  <div v-if="entry.isChild" class="text-[11px] text-slate-400 mt-0.5">
+                  <div class="text-sm font-medium text-slate-900 dark:text-zinc-200 truncate">{{ entry.item.title }}</div>
+                  <div v-if="entry.isChild" class="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
                     Under {{ entry.parentTitle }}
                   </div>
                 </div>
                 <div
                   class="text-xs font-medium px-2.5 py-1 rounded-full shrink-0"
                   :class="entry.score >= 80
-                    ? 'bg-rose-100 text-rose-700'
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
                     : entry.score >= 65
-                      ? 'bg-orange-100 text-orange-700'
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400'
                       : entry.score >= 50
-                        ? 'bg-amber-100 text-amber-700'
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
                         : entry.score >= 35
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-slate-100 text-slate-600'"
+                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
+                          : 'bg-slate-100 text-slate-600 dark:bg-white/[0.06] dark:text-zinc-400'"
                 >
                   Score {{ entry.score }}
                 </div>
               </div>
 
-              <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-zinc-400">
                 <div class="flex items-center gap-1.5">
                   <div
                     class="w-2 h-2 rounded-full"
-                    :class="entry.item.category ? 'bg-slate-400' : 'bg-slate-300'"
+                    :class="entry.item.category ? 'bg-slate-400 dark:bg-zinc-500' : 'bg-slate-300 dark:bg-zinc-600'"
                   />
                   <span>{{ entry.item.category || 'No category' }}</span>
                 </div>

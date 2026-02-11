@@ -163,19 +163,19 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         @click="showProjectPicker = true"
         class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
         :class="hasProjectFocus
-          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200'
-          : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'"
+          ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-900 dark:text-blue-300'
+          : 'text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
       >
-        <div 
+        <div
           class="w-4 h-4 flex items-center justify-center flex-shrink-0"
-          :class="hasProjectFocus ? 'text-blue-500' : 'text-slate-400'"
+          :class="hasProjectFocus ? 'text-blue-500 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'"
         >
           <Icon name="heroicons:folder" class="w-4 h-4" />
         </div>
         <span class="flex-1 text-left truncate">
           {{ focusState.project?.title || 'No project' }}
         </span>
-        <Icon name="heroicons:chevron-right" class="w-3 h-3 flex-shrink-0" :class="hasProjectFocus ? 'text-blue-400' : 'text-slate-400'" />
+        <Icon name="heroicons:chevron-right" class="w-3 h-3 flex-shrink-0" :class="hasProjectFocus ? 'text-blue-400 dark:text-blue-500' : 'text-slate-400 dark:text-zinc-500'" />
       </button>
 
       <!-- Task/Lane Focus -->
@@ -184,35 +184,35 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         @click="hasTaskFocus ? handleTaskAction() : showLanePicker = true"
         class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
         :class="hasTaskFocus
-          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
-          : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'"
+          ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/15'
+          : 'text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
       >
-        <div 
+        <div
           class="w-4 h-4 flex items-center justify-center flex-shrink-0"
-          :class="hasTaskFocus ? 'text-emerald-500' : 'text-slate-400'"
+          :class="hasTaskFocus ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-zinc-500'"
         >
-          <Icon 
-            :name="hasTaskFocus ? 'heroicons:bolt' : LANE_ICONS[focusState.lane?.type || 'GENERAL']" 
+          <Icon
+            :name="hasTaskFocus ? 'heroicons:bolt' : LANE_ICONS[focusState.lane?.type || 'GENERAL']"
             class="w-4 h-4"
           />
         </div>
         <span class="flex-1 text-left truncate">
           {{ activityLabel }}
         </span>
-        <span class="text-[10px] flex-shrink-0" :class="hasTaskFocus ? 'text-emerald-500' : 'text-slate-400'">
+        <span class="text-[10px] flex-shrink-0" :class="hasTaskFocus ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-zinc-500'">
           {{ durationDisplay }}
         </span>
-        <Icon 
-          name="heroicons:chevron-right" 
-          class="w-3 h-3 flex-shrink-0" 
-          :class="hasTaskFocus ? 'text-emerald-400' : 'text-slate-400'" 
+        <Icon
+          name="heroicons:chevron-right"
+          class="w-3 h-3 flex-shrink-0"
+          :class="hasTaskFocus ? 'text-emerald-400 dark:text-emerald-500' : 'text-slate-400 dark:text-zinc-500'"
         />
       </button>
 
       <!-- No Focus State -->
-      <div 
+      <div
         v-if="!hasProjectFocus"
-        class="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 italic"
+        class="px-3 py-2 text-[10px] text-slate-400 dark:text-zinc-500 italic"
       >
         Select a project to start
       </div>
@@ -225,39 +225,39 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         class="fixed inset-0 z-50 flex items-start justify-center pt-16"
         @click.self="showProjectPicker = false"
       >
-        <div class="absolute inset-0 bg-black/20" @click="showProjectPicker = false"></div>
-        <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-80 max-h-96 overflow-hidden">
-          <div class="p-4 border-b border-slate-100 dark:border-slate-700">
-            <h3 class="text-sm font-medium text-slate-900 dark:text-slate-100">Select Project</h3>
+        <div class="absolute inset-0 bg-black/20 dark:bg-black/40" @click="showProjectPicker = false"></div>
+        <div class="relative bg-white dark:bg-dm-card rounded-xl shadow-xl dark:shadow-2xl w-80 max-h-96 overflow-hidden border border-transparent dark:border-white/[0.06]">
+          <div class="p-4 border-b border-slate-100 dark:border-white/[0.06]">
+            <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Select Project</h3>
           </div>
           <div class="p-2 max-h-72 overflow-y-auto">
             <button
               v-if="hasProjectFocus"
               @click="clearProjectFocus(); showProjectPicker = false"
-              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-left text-slate-400 text-sm"
+              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] text-left text-slate-400 dark:text-zinc-500 text-sm"
             >
               <Icon name="heroicons:x-mark" class="w-4 h-4" />
               Clear focus
             </button>
-            <div v-if="hasProjectFocus" class="my-1 border-t border-slate-100 dark:border-slate-700"></div>
+            <div v-if="hasProjectFocus" class="my-1 border-t border-slate-100 dark:border-white/[0.06]"></div>
             <button
               v-for="project in projects"
               :key="project.id"
               @click="selectProject(project.id)"
-              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-left text-sm"
-              :class="focusState.project?.id === project.id && 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200'"
+              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] text-left text-sm dark:text-zinc-300"
+              :class="focusState.project?.id === project.id && 'bg-blue-50 dark:bg-blue-500/10 text-blue-900 dark:text-blue-300'"
             >
-              <div class="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+              <div class="w-5 h-5 rounded bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center flex-shrink-0">
                 <span class="text-[10px] text-blue-600 dark:text-blue-400 font-medium">{{ project.title.charAt(0) }}</span>
               </div>
               <span class="truncate">{{ project.title }}</span>
-              <Icon 
+              <Icon
                 v-if="focusState.project?.id === project.id"
-                name="heroicons:check" 
-                class="w-4 h-4 text-blue-500 ml-auto" 
+                name="heroicons:check"
+                class="w-4 h-4 text-blue-500 ml-auto"
               />
             </button>
-            <div v-if="!projects.length" class="px-3 py-6 text-sm text-slate-400 dark:text-slate-500 text-center">
+            <div v-if="!projects.length" class="px-3 py-6 text-sm text-slate-400 dark:text-zinc-500 text-center">
               No projects
             </div>
           </div>
@@ -272,20 +272,20 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         class="fixed inset-0 z-50 flex items-start justify-center pt-16"
         @click.self="showLanePicker = false"
       >
-        <div class="absolute inset-0 bg-black/20" @click="showLanePicker = false"></div>
-        <div class="relative bg-white dark:bg-slate-800 rounded-xl shadow-xl w-64 overflow-hidden">
-          <div class="p-4 border-b border-slate-100 dark:border-slate-700">
-            <h3 class="text-sm font-medium text-slate-900 dark:text-slate-100">Activity</h3>
+        <div class="absolute inset-0 bg-black/20 dark:bg-black/40" @click="showLanePicker = false"></div>
+        <div class="relative bg-white dark:bg-dm-card rounded-xl shadow-xl dark:shadow-2xl w-64 overflow-hidden border border-transparent dark:border-white/[0.06]">
+          <div class="p-4 border-b border-slate-100 dark:border-white/[0.06]">
+            <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Activity</h3>
           </div>
           <div class="p-2">
             <button
               v-for="lane in lanes"
               :key="lane"
               @click="selectLane(lane)"
-              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-sm dark:text-slate-300"
-              :class="focusState.lane?.type === lane && 'bg-slate-100 dark:bg-slate-700'"
+              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] text-sm dark:text-zinc-300"
+              :class="focusState.lane?.type === lane && 'bg-slate-100 dark:bg-white/[0.08]'"
             >
-              <Icon :name="LANE_ICONS[lane]" class="w-4 h-4 text-slate-400" />
+              <Icon :name="LANE_ICONS[lane]" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
               <span>{{ LANE_LABELS[lane] }}</span>
             </button>
           </div>
@@ -300,14 +300,14 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         @click.self="showTaskActionModal = false"
       >
-        <div class="absolute inset-0 bg-black/25" @click="showTaskActionModal = false"></div>
-        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div class="absolute inset-0 bg-black/25 dark:bg-black/50" @click="showTaskActionModal = false"></div>
+        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-transparent dark:border-white/[0.06]">
           <!-- Header -->
           <div class="px-5 pt-5 pb-4">
-            <p class="text-base font-medium text-slate-900 dark:text-slate-100 leading-snug">
+            <p class="text-base font-medium text-slate-900 dark:text-zinc-100 leading-snug">
               {{ focusState.task?.title }}
             </p>
-            <p class="text-xs text-slate-400 mt-1">{{ durationDisplay }}</p>
+            <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">{{ durationDisplay }}</p>
           </div>
 
           <!-- Note -->
@@ -316,16 +316,16 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
               v-model="actionComment"
               type="text"
               placeholder="Add a note..."
-              class="w-full px-0 py-2 text-sm border-0 border-b border-slate-200 dark:border-slate-600 focus:outline-none focus:border-slate-400 bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-200"
+              class="w-full px-0 py-2 text-sm border-0 border-b border-slate-200 dark:border-white/[0.06] focus:outline-none focus:border-slate-400 dark:focus:border-zinc-500 bg-transparent placeholder:text-slate-300 dark:placeholder:text-zinc-600 dark:text-zinc-200"
             />
-            <p v-if="actionError" class="text-xs text-rose-600 mt-2">
+            <p v-if="actionError" class="text-xs text-rose-600 dark:text-rose-400 mt-2">
               {{ actionError }}
             </p>
           </div>
 
           <!-- Next Lane Selection -->
           <div class="px-5 pb-4">
-            <p class="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Next</p>
+            <p class="text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Next</p>
             <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="lane in lanes"
@@ -333,8 +333,8 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
                 @click="selectedNextLane = lane"
                 class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-full transition-colors"
                 :class="selectedNextLane === lane
-                  ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'"
+                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+                  : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/[0.1]'"
               >
                 <Icon :name="LANE_ICONS[lane]" class="w-3.5 h-3.5" />
                 {{ LANE_LABELS[lane] }}
@@ -343,19 +343,19 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
           </div>
 
           <!-- Actions -->
-          <div class="flex border-t border-slate-100 dark:border-slate-700">
+          <div class="flex border-t border-slate-100 dark:border-white/[0.06]">
             <button
               @click="handleSwitch"
-              class="flex-1 px-4 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              class="flex-1 px-4 py-3 text-sm font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
             >
               Switch
             </button>
-            <div class="w-px bg-slate-100 dark:bg-slate-700"></div>
+            <div class="w-px bg-slate-100 dark:bg-white/[0.06]"></div>
             <button
               @click="handleComplete"
-              class="flex-1 px-4 py-3 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+              class="flex-1 px-4 py-3 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
             >
-              Complete ✓
+              Complete &#10003;
             </button>
           </div>
         </div>
@@ -379,30 +379,30 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         class="fixed inset-0 z-50 flex items-start justify-center pt-8 pb-8"
         @click.self="showTimeline = false"
       >
-        <div class="absolute inset-0 bg-black/25" @click="showTimeline = false"></div>
-        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-full overflow-hidden flex flex-col">
+        <div class="absolute inset-0 bg-black/25 dark:bg-black/50" @click="showTimeline = false"></div>
+        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-2xl w-full max-w-lg max-h-full overflow-hidden flex flex-col border border-transparent dark:border-white/[0.06]">
           <!-- Header -->
-          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
-            <h2 class="text-base font-medium text-slate-900 dark:text-slate-100">Focus Timeline</h2>
-            <button 
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between flex-shrink-0">
+            <h2 class="text-base font-medium text-slate-900 dark:text-zinc-100">Focus Timeline</h2>
+            <button
               @click="showTimeline = false"
-              class="p-1 text-slate-400 hover:text-slate-600"
+              class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
             >
               <Icon name="heroicons:x-mark" class="w-5 h-5" />
             </button>
           </div>
-          
+
           <!-- Timeline content -->
           <div class="flex-1 overflow-y-auto p-4">
             <FocusTimeline />
           </div>
 
           <!-- Footer -->
-          <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">
+          <div class="px-5 py-3 border-t border-slate-100 dark:border-white/[0.06] flex-shrink-0">
             <NuxtLink
               to="/workspace/focus"
               @click="showTimeline = false"
-              class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-center gap-1"
+              class="text-sm text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-300 flex items-center justify-center gap-1"
             >
               View all
               <Icon name="heroicons:arrow-right" class="w-4 h-4" />

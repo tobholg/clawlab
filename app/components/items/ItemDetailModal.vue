@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
-import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, getSubStatusesForStatus, COMPLEXITY_OPTIONS, PRIORITY_OPTIONS } from '~/types'
+import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, SUB_STATUS_BY_STATUS, getSubStatusesForStatus, COMPLEXITY_OPTIONS, PRIORITY_OPTIONS } from '~/types'
 
 const props = defineProps<{
   open: boolean
@@ -20,7 +20,7 @@ const router = useRouter()
 const { focusState, startTaskFocus, completeTask, isFocusedOnTask, isLoading: focusLoading, currentUserId } = useFocus()
 
 // Role-based permission checks
-const { isWorkspaceAdmin, currentRole } = useWorkspaces()
+const { isWorkspaceAdmin, currentRole, currentWorkspaceId } = useWorkspaces()
 const canDeleteItem = computed(() => {
   if (isWorkspaceAdmin.value) return true
   // Item owner can delete
@@ -244,6 +244,7 @@ const showComplexityDropdown = ref(false)
 const showPriorityDropdown = ref(false)
 const descriptionRef = ref<HTMLTextAreaElement | null>(null)
 const editingDescription = ref(false)
+const activeTab = ref<'subtasks' | 'comments' | 'docs'>('subtasks')
 
 // Auto-resize description textarea
 const autoResizeDescription = () => {
@@ -284,6 +285,8 @@ watch(itemDetail, (detail) => {
     editedDueDate.value = detail.dueDate?.split('T')[0] ?? ''
     editedStartDate.value = detail.startDate?.split('T')[0] ?? ''
     editedOwnerId.value = detail.owner?.id ?? null
+    // Smart tab default: subtasks if item has children, else comments
+    activeTab.value = (detail.children?.length > 0 || detail.childrenCount > 0) ? 'subtasks' : 'comments'
     // Allow auto-save after a tick
     nextTick(() => {
       isInitializing.value = false
@@ -306,6 +309,8 @@ watch(() => props.open, (isOpen) => {
     editedConfidence.value = props.item.confidence ?? 70
     editedDueDate.value = props.item.dueDate?.split('T')[0] ?? ''
     hasUnsavedChanges.value = false
+    showAddSubtask.value = false
+    newSubtaskTitle.value = ''
   }
 })
 
@@ -613,7 +618,6 @@ const assignUser = async (userId: string) => {
       body: { userId }
     })
     await refreshItem()
-    showAssigneeDropdown.value = false
   } catch (e) {
     console.error('Failed to assign user:', e)
   }
@@ -638,6 +642,47 @@ const unassignedUsers = computed(() => {
   const assignedIds = new Set(itemDetail.value.assignees.map((a: any) => a.id))
   return availableUsers.value.filter((u: any) => !assignedIds.has(u.id))
 })
+
+// Add subtask inline
+const showAddSubtask = ref(false)
+const newSubtaskTitle = ref('')
+const addingSubtask = ref(false)
+const addSubtaskInput = ref<HTMLInputElement | null>(null)
+
+const startAddSubtask = () => {
+  showAddSubtask.value = true
+  newSubtaskTitle.value = ''
+  nextTick(() => addSubtaskInput.value?.focus())
+}
+
+const cancelAddSubtask = () => {
+  showAddSubtask.value = false
+  newSubtaskTitle.value = ''
+}
+
+const submitSubtask = async () => {
+  const title = newSubtaskTitle.value.trim()
+  const parentId = itemDetail.value?.id
+  if (!title || !parentId || !currentWorkspaceId.value) return
+  addingSubtask.value = true
+  try {
+    await $fetch('/api/items', {
+      method: 'POST',
+      body: {
+        workspaceId: currentWorkspaceId.value,
+        parentId,
+        title,
+      }
+    })
+    newSubtaskTitle.value = ''
+    await refreshItem()
+    nextTick(() => addSubtaskInput.value?.focus())
+  } catch (e) {
+    console.error('Failed to create subtask:', e)
+  } finally {
+    addingSubtask.value = false
+  }
+}
 
 // Comments
 const submitComment = async () => {
@@ -832,7 +877,7 @@ const formatRelativeTime = (dateStr: string) => {
                 Back
               </button>
 
-              <!-- Status Pill -->
+              <!-- Status + Stage Pill (cascading) -->
               <div class="group/status relative">
                 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/status:border-slate-300 dark:group-hover/status:border-white/[0.1] group-hover/status:shadow-sm">
                   <div
@@ -845,72 +890,76 @@ const formatRelativeTime = (dateStr: string) => {
                       'bg-emerald-500': editedStatus === 'done',
                     }"
                   />
-                  <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ STATUS_CONFIG[editedStatus as keyof typeof STATUS_CONFIG]?.label || 'Status' }}</span>
+                  <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">
+                    {{ STATUS_CONFIG[editedStatus as keyof typeof STATUS_CONFIG]?.label || 'Status' }}
+                    <template v-if="editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus]">
+                      <span class="text-slate-300 dark:text-zinc-600 mx-0.5">/</span>
+                      {{ SUB_STATUS_CONFIG[editedSubStatus].label }}
+                    </template>
+                  </span>
                   <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/status:rotate-180" />
                 </div>
-                <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/status:opacity-100 group-hover/status:visible group-hover/status:translate-y-0 min-w-[120px]">
+                <!-- Dropdown -->
+                <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/status:opacity-100 group-hover/status:visible group-hover/status:translate-y-0 min-w-[130px]">
                   <div class="py-1">
-                    <button
+                    <div
                       v-for="opt in statusOptions"
                       :key="opt.value"
-                      @click="editedStatus = opt.value"
-                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
-                      :class="editedStatus === opt.value
-                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
-                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
+                      class="group/row relative"
                     >
+                      <button
+                        @click="editedStatus = opt.value; if (opt.value === 'done') editedSubStatus = null"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                        :class="editedStatus === opt.value
+                          ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                          : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
+                      >
+                        <div
+                          class="w-1.5 h-1.5 rounded-full"
+                          :class="{
+                            'bg-slate-400': opt.value === 'todo',
+                            'bg-blue-500': opt.value === 'in_progress',
+                            'bg-rose-500': opt.value === 'blocked',
+                            'bg-amber-500': opt.value === 'paused',
+                            'bg-emerald-500': opt.value === 'done',
+                          }"
+                        />
+                        <span class="flex-1 text-left">{{ opt.label }}</span>
+                        <Icon
+                          v-if="opt.value !== 'done'"
+                          name="heroicons:chevron-right"
+                          class="w-3 h-3 text-slate-300 dark:text-zinc-600"
+                        />
+                      </button>
+                      <!-- Sub-status flyout -->
                       <div
-                        class="w-1.5 h-1.5 rounded-full"
-                        :class="{
-                          'bg-slate-400': opt.value === 'todo',
-                          'bg-blue-500': opt.value === 'in_progress',
-                          'bg-rose-500': opt.value === 'blocked',
-                          'bg-amber-500': opt.value === 'paused',
-                          'bg-emerald-500': opt.value === 'done',
-                        }"
-                      />
-                      <span>{{ opt.label }}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Stage Pill -->
-              <div v-if="Object.keys(availableSubStatuses).length > 0" class="group/stage relative">
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/stage:border-slate-300 dark:group-hover/stage:border-white/[0.1] group-hover/stage:shadow-sm">
-                  <Icon
-                    v-if="editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus]"
-                    :name="SUB_STATUS_CONFIG[editedSubStatus].icon"
-                    class="w-3 h-3 text-slate-500"
-                  />
-                  <div v-else class="w-3 h-3 rounded-full border border-dashed border-slate-300 dark:border-white/[0.1]" />
-                  <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">{{ editedSubStatus && SUB_STATUS_CONFIG[editedSubStatus] ? SUB_STATUS_CONFIG[editedSubStatus].label : 'Stage' }}</span>
-                  <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/stage:rotate-180" />
-                </div>
-                <div class="absolute top-full left-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg overflow-hidden z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/stage:opacity-100 group-hover/stage:visible group-hover/stage:translate-y-0 min-w-[130px]">
-                  <div class="py-1">
-                    <button
-                      @click="editedSubStatus = null"
-                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
-                      :class="!editedSubStatus
-                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
-                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
-                    >
-                      <div class="w-3 h-3 rounded-full border border-dashed border-slate-300 dark:border-white/[0.1]" />
-                      <span>None</span>
-                    </button>
-                    <button
-                      v-for="(config, key) in availableSubStatuses"
-                      :key="key"
-                      @click="editedSubStatus = key as string"
-                      class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
-                      :class="editedSubStatus === key
-                        ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
-                        : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
-                    >
-                      <Icon :name="config.icon" class="w-3 h-3 text-slate-500" />
-                      <span>{{ config.label }}</span>
-                    </button>
+                        v-if="opt.value !== 'done' && Object.keys(SUB_STATUS_BY_STATUS[opt.value as keyof typeof SUB_STATUS_BY_STATUS] ?? {}).length > 0"
+                        class="absolute left-full top-0 ml-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg min-w-[140px] py-1 z-30 opacity-0 invisible transition-all duration-100 group-hover/row:opacity-100 group-hover/row:visible"
+                      >
+                        <button
+                          @click="editedStatus = opt.value; editedSubStatus = null"
+                          class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                          :class="editedStatus === opt.value && !editedSubStatus
+                            ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                            : 'text-slate-500 dark:text-zinc-500 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
+                        >
+                          <div class="w-3 h-3 rounded-full border border-dashed border-slate-300 dark:border-white/[0.1]" />
+                          <span>None</span>
+                        </button>
+                        <button
+                          v-for="(config, key) in (SUB_STATUS_BY_STATUS[opt.value as keyof typeof SUB_STATUS_BY_STATUS] ?? {})"
+                          :key="key"
+                          @click="editedStatus = opt.value; editedSubStatus = key as string"
+                          class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                          :class="editedStatus === opt.value && editedSubStatus === key
+                            ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                            : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
+                        >
+                          <Icon :name="config.icon" class="w-3 h-3 text-slate-500" />
+                          <span>{{ config.label }}</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -964,19 +1013,34 @@ const formatRelativeTime = (dateStr: string) => {
                 v-if="!isFocusedOnTask(item.id)"
                 @click="startTaskFocus(item.id)"
                 :disabled="focusLoading"
-                class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 shadow-sm"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:text-amber-400 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+                title="Start focus"
               >
-                <Icon name="heroicons:bolt" class="w-3.5 h-3.5" />
-                Focus
+                <Icon name="heroicons:bolt" class="w-4 h-4" />
               </button>
               <button
                 v-else
                 @click="handleCompleteFocus"
                 :disabled="focusLoading"
-                class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-xs font-medium hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50 shadow-sm"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-emerald-400 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+                title="Complete focus"
               >
-                <Icon name="heroicons:check" class="w-3.5 h-3.5" />
-                Complete
+                <Icon name="heroicons:check" class="w-4 h-4" />
+              </button>
+
+              <!-- Auto-save indicator -->
+              <span v-if="isSaving" class="flex items-center gap-1 text-xs text-slate-400">
+                <Icon name="heroicons:arrow-path" class="w-3 h-3 animate-spin" />
+              </span>
+              <span v-else-if="hasUnsavedChanges" class="text-[10px] text-amber-500">unsaved</span>
+
+              <!-- View Full Board -->
+              <button
+                @click="handleViewFull"
+                class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:text-blue-400 dark:hover:bg-white/[0.06] transition-colors"
+                title="View Full Board"
+              >
+                <Icon name="heroicons:arrows-pointing-out" class="w-4 h-4" />
               </button>
 
               <!-- Close button -->
@@ -990,7 +1054,7 @@ const formatRelativeTime = (dateStr: string) => {
           </div>
           
           <!-- Content -->
-          <div class="p-6 space-y-6 flex-1 overflow-y-auto">
+          <div class="p-6 space-y-6 flex-1 overflow-y-auto overflow-x-hidden">
             <div v-if="statusError" class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-400">
               {{ statusError }}
             </div>
@@ -1029,58 +1093,33 @@ const formatRelativeTime = (dateStr: string) => {
               @blur="editingDescription = false"
             />
 
-            <!-- Dates Row -->
-            <div class="grid grid-cols-2 gap-6">
-              <!-- Start Date -->
-              <div>
-                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Started</label>
-                <input
-                  v-model="editedStartDate"
-                  type="date"
-                  class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card dark:text-zinc-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600"
-                />
-              </div>
-              
-              <!-- Due Date -->
-              <div>
-                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Due Date</label>
-                <input
-                  v-model="editedDueDate"
-                  type="date"
-                  class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card dark:text-zinc-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600"
-                  :class="editedDueDate && new Date(editedDueDate) < new Date() ? 'border-rose-300 bg-rose-50 dark:border-rose-700 dark:bg-rose-900/20' : ''"
-                />
-              </div>
-            </div>
-
-            <!-- Priority & Complexity Row -->
-            <div class="grid grid-cols-2 gap-6">
+            <!-- Property Table -->
+            <div class="divide-y divide-slate-100 dark:divide-white/[0.04]">
               <!-- Priority -->
-              <div>
-                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Priority</label>
-                <div class="relative" ref="priorityDropdownRef">
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Priority</span>
+                <div class="flex-1 min-w-0 relative" ref="priorityDropdownRef">
                   <button
                     @click.stop="showPriorityDropdown = !showPriorityDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card rounded-lg text-sm hover:border-slate-300 dark:hover:border-white/[0.1] transition-colors"
+                    class="flex items-center gap-2 py-0.5 text-sm text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     <div
                       class="w-2 h-2 rounded-full"
                       :class="priorityDotColors[editedPriority] || 'bg-slate-300'"
                     />
-                    <span class="flex-1 text-left text-slate-700 dark:text-zinc-300">{{ priorityLabel }}</span>
-                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                    <span>{{ priorityLabel }}</span>
+                    <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
                   </button>
-
                   <Transition name="dropdown">
                     <div
                       v-if="showPriorityDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 mt-1 w-44 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
                     >
                       <button
                         v-for="opt in priorityOptions"
                         :key="opt.value"
                         @click="editedPriority = opt.value; showPriorityDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                         :class="editedPriority === opt.value ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
                       >
                         <div class="w-2 h-2 rounded-full" :class="priorityDotColors[opt.value] || 'bg-slate-400'" />
@@ -1092,29 +1131,28 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
 
               <!-- Complexity -->
-              <div>
-                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Complexity</label>
-                <div class="relative" ref="complexityDropdownRef">
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Complexity</span>
+                <div class="flex-1 min-w-0 relative" ref="complexityDropdownRef">
                   <button
                     @click.stop="showComplexityDropdown = !showComplexityDropdown"
-                    class="w-full flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card rounded-lg text-sm hover:border-slate-300 dark:hover:border-white/[0.1] transition-colors"
+                    class="flex items-center gap-2 py-0.5 text-sm text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
                   >
                     <div
                       class="w-2 h-2 rounded-full"
                       :class="editedComplexity ? (complexityDotColors[editedComplexity] || 'bg-slate-400') : 'bg-slate-300'"
                     />
-                    <span class="flex-1 text-left text-slate-700 dark:text-zinc-300">{{ complexityLabel }}</span>
-                    <Icon name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                    <span>{{ complexityLabel }}</span>
+                    <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
                   </button>
-
                   <Transition name="dropdown">
                     <div
                       v-if="showComplexityDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 mt-1 w-44 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
                     >
                       <button
                         @click="editedComplexity = ''; showComplexityDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                         :class="!editedComplexity ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
                       >
                         <div class="w-2 h-2 rounded-full bg-slate-300" />
@@ -1125,7 +1163,7 @@ const formatRelativeTime = (dateStr: string) => {
                         v-for="opt in complexityOptions"
                         :key="opt.value"
                         @click="editedComplexity = opt.value; showComplexityDropdown = false"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                         :class="editedComplexity === opt.value ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
                       >
                         <div class="w-2 h-2 rounded-full" :class="complexityDotColors[opt.value] || 'bg-slate-400'" />
@@ -1135,62 +1173,55 @@ const formatRelativeTime = (dateStr: string) => {
                   </Transition>
                 </div>
               </div>
-            </div>
-            
-            <!-- Owner & Assignees Row -->
-            <div class="grid grid-cols-2 gap-6">
+
               <!-- Owner -->
-              <div>
-                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Owner</label>
-                <div class="relative" ref="ownerDropdownRef">
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Owner</span>
+                <div class="flex-1 min-w-0 relative" ref="ownerDropdownRef">
                   <button
                     @click.stop="canEditItem && (showOwnerDropdown = !showOwnerDropdown)"
                     :class="[
-                      'w-full flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card rounded-lg text-sm transition-colors',
-                      canEditItem ? 'hover:border-slate-300 dark:hover:border-white/[0.1] cursor-pointer' : 'cursor-default'
+                      'flex items-center gap-2 py-0.5 text-sm transition-colors',
+                      canEditItem ? 'cursor-pointer hover:text-slate-900 dark:hover:text-zinc-100' : 'cursor-default'
                     ]"
                   >
                     <template v-if="itemDetail?.owner">
-                      <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                        <span class="text-[10px] text-white font-medium">{{ itemDetail.owner.name?.[0] ?? 'U' }}</span>
+                      <div class="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                        <span class="text-[9px] text-white font-medium">{{ itemDetail.owner.name?.[0] ?? 'U' }}</span>
                       </div>
-                      <span class="flex-1 text-left text-slate-700 dark:text-zinc-300">{{ itemDetail.owner.name }}</span>
+                      <span class="text-slate-700 dark:text-zinc-300">{{ itemDetail.owner.name }}</span>
                     </template>
                     <template v-else>
-                      <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center">
-                        <Icon name="heroicons:user" class="w-3.5 h-3.5 text-slate-400" />
+                      <div class="w-5 h-5 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center">
+                        <Icon name="heroicons:user" class="w-3 h-3 text-slate-400" />
                       </div>
-                      <span class="flex-1 text-left text-slate-400">No owner</span>
+                      <span class="text-slate-400">No owner</span>
                     </template>
-                    <Icon v-if="canEditItem" name="heroicons:chevron-down" class="w-4 h-4 text-slate-400" />
+                    <Icon v-if="canEditItem" name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
                   </button>
-
-                  <!-- Owner Dropdown -->
                   <Transition name="dropdown">
-                    <div 
+                    <div
                       v-if="showOwnerDropdown"
-                      class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
+                      class="absolute top-full left-0 mt-1 w-52 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10 max-h-48 overflow-y-auto"
                     >
-                      <!-- Clear owner option -->
                       <button
                         v-if="itemDetail?.owner"
                         @click="updateOwner(null)"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                       >
-                        <Icon name="heroicons:x-mark" class="w-5 h-5 text-slate-400" />
+                        <Icon name="heroicons:x-mark" class="w-4 h-4 text-slate-400" />
                         <span>Remove owner</span>
                       </button>
                       <div v-if="itemDetail?.owner" class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
-                      
                       <button
                         v-for="user in availableUsers"
                         :key="user.id"
                         @click="updateOwner(user.id)"
-                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                         :class="{ 'bg-amber-50 dark:bg-amber-500/10': user.id === editedOwnerId }"
                       >
-                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                          <span class="text-[10px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
+                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                          <span class="text-[9px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
                         </div>
                         <span>{{ user.name }}</span>
                         <Icon v-if="user.id === editedOwnerId" name="heroicons:check" class="w-4 h-4 text-amber-500 ml-auto" />
@@ -1199,46 +1230,40 @@ const formatRelativeTime = (dateStr: string) => {
                   </Transition>
                 </div>
               </div>
-              
+
               <!-- Assignees -->
-              <div>
-                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Assignees</label>
-                <div class="flex flex-wrap gap-2">
-                  <div class="max-h-24 overflow-y-auto pr-1 flex flex-wrap gap-2">
-                    <template v-if="itemDetail?.assignees?.length">
-                      <div 
-                        v-for="assignee in itemDetail.assignees" 
-                        :key="assignee.id"
-                        class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-dm-card rounded-full text-xs text-slate-700 dark:text-zinc-300"
-                      >
-                        <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                          <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
-                        </div>
-                        <span>{{ assignee.name }}</span>
-                        <button
-                          v-if="canEditItem"
-                          @click="removeAssignee(assignee.id)"
-                          class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 dark:hover:bg-white/[0.08] rounded transition-all"
-                        >
-                          <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
-                        </button>
+              <div class="flex items-start py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0 pt-0.5">Assignees</span>
+                <div class="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
+                  <template v-if="itemDetail?.assignees?.length">
+                    <div
+                      v-for="assignee in itemDetail.assignees"
+                      :key="assignee.id"
+                      class="group flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 dark:bg-white/[0.06] rounded-full text-xs text-slate-700 dark:text-zinc-300 max-w-full"
+                    >
+                      <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                        <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
                       </div>
-                    </template>
-                  </div>
-                  
-                  <!-- Add button with dropdown -->
+                      <span class="truncate">{{ assignee.name }}</span>
+                      <button
+                        v-if="canEditItem"
+                        @click="removeAssignee(assignee.id)"
+                        class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 dark:hover:bg-white/[0.08] rounded transition-all"
+                      >
+                        <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
+                      </button>
+                    </div>
+                  </template>
                   <div v-if="canEditItem" class="relative" ref="assigneeDropdownRef">
                     <button
                       @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
-                      class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 dark:border-white/[0.1] rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors"
+                      class="flex items-center gap-0.5 px-1.5 py-0.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
                     >
                       <Icon name="heroicons:plus" class="w-3 h-3" />
                       Add
                     </button>
-                    
-                    <!-- Dropdown -->
                     <Transition name="dropdown">
-                      <div 
+                      <div
                         v-if="showAssigneeDropdown"
                         class="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
                       >
@@ -1249,10 +1274,10 @@ const formatRelativeTime = (dateStr: string) => {
                           v-for="user in unassignedUsers"
                           :key="user.id"
                           @click="assignUser(user.id)"
-                          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                          class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                         >
-                          <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                            <span class="text-[10px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
+                          <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                            <span class="text-[9px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
                           </div>
                           <span>{{ user.name }}</span>
                         </button>
@@ -1261,59 +1286,81 @@ const formatRelativeTime = (dateStr: string) => {
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <!-- Progress & Confidence Sliders -->
-            <div class="grid grid-cols-2 gap-6">
-              <!-- Progress -->
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-xs font-medium text-slate-500 dark:text-zinc-400">Progress</label>
-                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300">{{ editedProgress }}%</span>
-                </div>
-                <div class="relative">
-                  <div class="h-2 bg-slate-200 dark:bg-white/[0.08] rounded-lg overflow-hidden">
-                    <div
-                      class="h-full bg-gradient-to-r from-blue-400 to-blue-500 transition-all"
-                      :style="{ width: `${editedProgress}%` }"
-                    />
-                  </div>
+
+              <!-- Due Date -->
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Due</span>
+                <div class="flex-1 min-w-0">
                   <input
-                    v-model.number="editedProgress"
-                    type="range"
-                    min="0"
-                    max="100"
-                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    v-model="editedDueDate"
+                    type="date"
+                    class="text-sm bg-transparent border-0 p-0 text-slate-700 dark:text-zinc-300 dark-date-input focus:outline-none focus:ring-0 cursor-pointer"
+                    :class="editedDueDate && new Date(editedDueDate) < new Date() ? 'text-rose-600 dark:text-rose-400' : ''"
                   />
                 </div>
               </div>
-              
-              <!-- Confidence -->
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-xs font-medium text-slate-500 dark:text-zinc-400">Confidence</label>
-                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300">{{ editedConfidence }}%</span>
+
+              <!-- Start Date -->
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Started</span>
+                <div class="flex-1 min-w-0">
+                  <input
+                    v-model="editedStartDate"
+                    type="date"
+                    class="text-sm bg-transparent border-0 p-0 text-slate-700 dark:text-zinc-300 dark-date-input focus:outline-none focus:ring-0 cursor-pointer"
+                  />
                 </div>
-                <div class="relative">
-                  <div class="h-2 bg-slate-200 dark:bg-white/[0.08] rounded-lg overflow-hidden">
-                    <div
-                      class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all"
-                      :style="{ width: `${editedConfidence}%` }"
+              </div>
+
+              <!-- Progress -->
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Progress</span>
+                <div class="flex-1 min-w-0 flex items-center gap-3">
+                  <div class="relative flex-1">
+                    <div class="h-1.5 bg-slate-200 dark:bg-white/[0.08] rounded-full overflow-hidden">
+                      <div
+                        class="h-full bg-gradient-to-r from-blue-400 to-blue-500 transition-all"
+                        :style="{ width: `${editedProgress}%` }"
+                      />
+                    </div>
+                    <input
+                      v-model.number="editedProgress"
+                      type="range"
+                      min="0"
+                      max="100"
+                      class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                   </div>
-                  <input
-                    v-model.number="editedConfidence"
-                    type="range"
-                    min="0"
-                    max="100"
-                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
+                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300 w-8 text-right tabular-nums">{{ editedProgress }}%</span>
+                </div>
+              </div>
+
+              <!-- Confidence -->
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Confidence</span>
+                <div class="flex-1 min-w-0 flex items-center gap-3">
+                  <div class="relative flex-1">
+                    <div class="h-1.5 bg-slate-200 dark:bg-white/[0.08] rounded-full overflow-hidden">
+                      <div
+                        class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all"
+                        :style="{ width: `${editedConfidence}%` }"
+                      />
+                    </div>
+                    <input
+                      v-model.number="editedConfidence"
+                      type="range"
+                      min="0"
+                      max="100"
+                      class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                  </div>
+                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300 w-8 text-right tabular-nums">{{ editedConfidence }}%</span>
                 </div>
               </div>
             </div>
             
             <!-- Forecast Card -->
-            <div v-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card">
+            <div v-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
               <div v-if="estimatedCompletion.complete" class="flex items-center justify-between">
                 <div>
                   <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
@@ -1420,238 +1467,301 @@ const formatRelativeTime = (dateStr: string) => {
               <p class="text-xs text-slate-400">Add a start date and progress to see a forecast.</p>
             </div>
 
-            <!-- Documents Section -->
-            <DocumentsSection
-              :item-id="itemDetail?.id ?? null"
-              compact
-            />
-            
             <!-- Parent Section -->
             <div v-if="parentDetail" class="mb-6">
               <div class="flex items-center justify-between mb-2">
                 <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wide">
                   {{ isParentProject ? 'Parent Project' : 'Parent Task' }}
                 </h3>
-                <!-- Promote Button -->
-                <button
-                  v-if="canPromote"
-                  @click.stop="promoteItem"
-                  class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded transition-colors"
-                  title="Move up one level (become sibling of parent)"
-                >
-                  <Icon name="heroicons:arrow-up-on-square" class="w-3.5 h-3.5" />
-                  Promote
-                </button>
+                <div class="flex items-center gap-1">
+                  <!-- View from parent -->
+                  <button
+                    @click.stop="emit('viewFull', parentDetail); emit('close')"
+                    class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded transition-colors"
+                    title="View in parent's board"
+                  >
+                    <Icon name="heroicons:arrows-pointing-out" class="w-3.5 h-3.5" />
+                    View board
+                  </button>
+                  <!-- Promote Button -->
+                  <button
+                    v-if="canPromote"
+                    @click.stop="promoteItem"
+                    class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded transition-colors"
+                    title="Move up one level (become sibling of parent)"
+                  >
+                    <Icon name="heroicons:arrow-up-on-square" class="w-3.5 h-3.5" />
+                    Promote
+                  </button>
+                </div>
               </div>
-              <div 
+              <div
                 class="group flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer"
                 :class="isParentProject
-                  ? 'bg-blue-50 hover:bg-blue-100 border border-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 dark:border-blue-800'
-                  : 'bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 dark:border-emerald-800'"
+                  ? 'bg-blue-50 hover:bg-blue-100 border border-blue-100 dark:bg-white/[0.03] dark:hover:bg-white/[0.05] dark:border-white/[0.06]'
+                  : 'bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 dark:bg-white/[0.03] dark:hover:bg-white/[0.05] dark:border-white/[0.06]'"
                 @click="navigateToItem(parentDetail.id)"
               >
                 <!-- Icon -->
-                <div 
+                <div
                   class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  :class="isParentProject ? 'bg-blue-100 dark:bg-blue-500/15' : 'bg-emerald-100 dark:bg-emerald-500/15'"
+                  :class="isParentProject ? 'bg-blue-100 dark:bg-white/[0.06]' : 'bg-emerald-100 dark:bg-white/[0.06]'"
                 >
-                  <Icon 
-                    :name="isParentProject ? 'heroicons:folder' : 'heroicons:clipboard-document-list'" 
+                  <Icon
+                    :name="isParentProject ? 'heroicons:folder' : 'heroicons:clipboard-document-list'"
                     class="w-4 h-4"
-                    :class="isParentProject ? 'text-blue-500' : 'text-emerald-500'"
+                    :class="isParentProject ? 'text-blue-500 dark:text-zinc-400' : 'text-emerald-500 dark:text-zinc-400'"
                   />
                 </div>
-                
+
                 <!-- Content -->
                 <div class="flex-1 min-w-0">
-                  <span 
+                  <span
                     class="text-sm font-medium truncate block"
-                    :class="isParentProject ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-700 dark:text-emerald-300'"
+                    :class="isParentProject ? 'text-blue-700 dark:text-zinc-200' : 'text-emerald-700 dark:text-zinc-200'"
                   >
                     {{ parentDetail.title }}
                   </span>
                   <div class="flex items-center gap-2 mt-0.5">
-                    <span 
+                    <span
                       class="text-[10px]"
-                      :class="isParentProject ? 'text-blue-500 dark:text-blue-400' : 'text-emerald-500 dark:text-emerald-400'"
+                      :class="isParentProject ? 'text-blue-500 dark:text-zinc-500' : 'text-emerald-500 dark:text-zinc-500'"
                     >
                       {{ parentDetail.progress ?? 0 }}% complete
                     </span>
-                    <span 
-                      v-if="parentDetail.childrenCount" 
+                    <span
+                      v-if="parentDetail.childrenCount"
                       class="text-[10px]"
-                      :class="isParentProject ? 'text-blue-400' : 'text-emerald-400'"
+                      :class="isParentProject ? 'text-blue-400 dark:text-zinc-500' : 'text-emerald-400 dark:text-zinc-500'"
                     >
                       · {{ parentDetail.childrenCount }} items
                     </span>
                   </div>
                 </div>
-                
+
                 <!-- Arrow -->
-                <Icon 
-                  name="heroicons:arrow-up-right" 
+                <Icon
+                  name="heroicons:arrow-up-right"
                   class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                  :class="isParentProject ? 'text-blue-400' : 'text-emerald-400'"
+                  :class="isParentProject ? 'text-blue-400 dark:text-zinc-500' : 'text-emerald-400 dark:text-zinc-500'"
                 />
               </div>
             </div>
             
             <!-- Project-level indicator -->
-            <div v-if="itemDetail && !itemDetail.parentId" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-800">
-              <Icon name="heroicons:folder" class="w-4 h-4 text-blue-500" />
-              <span class="text-xs font-medium text-blue-700 dark:text-blue-300">Top-level project</span>
-              <span class="text-xs text-blue-500 dark:text-blue-400">{{ itemDetail.childrenCount || 0 }} items inside</span>
+            <div v-if="itemDetail && !itemDetail.parentId" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-white/[0.03] border border-blue-100 dark:border-white/[0.06]">
+              <Icon name="heroicons:folder" class="w-4 h-4 text-blue-500 dark:text-zinc-400" />
+              <span class="text-xs font-medium text-blue-700 dark:text-zinc-300">Top-level project</span>
+              <span class="text-xs text-blue-500 dark:text-zinc-500">{{ itemDetail.childrenCount || 0 }} items inside</span>
             </div>
 
-            <!-- Subtasks Section -->
-            <div v-if="itemDetail?.children?.length > 0 || itemDetail?.childrenCount > 0">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300">
-                  Subtasks
-                  <span class="text-slate-400 font-normal">({{ itemDetail.children?.length || itemDetail.childrenCount }})</span>
-                </h3>
-                <button class="text-xs text-emerald-500 hover:text-emerald-600 font-medium transition-colors">
+            <!-- Tab Bar -->
+            <div class="flex items-center gap-1 border-b border-slate-200 dark:border-white/[0.06]">
+              <button
+                @click="activeTab = 'subtasks'"
+                class="px-3 py-2 text-xs transition-colors relative"
+                :class="activeTab === 'subtasks'
+                  ? 'text-slate-900 dark:text-zinc-100 font-medium'
+                  : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'"
+              >
+                Subtasks
+                <span v-if="itemDetail?.children?.length || itemDetail?.childrenCount" class="ml-1 text-slate-400 dark:text-zinc-500 font-normal">({{ itemDetail.children?.length || itemDetail.childrenCount }})</span>
+                <div v-if="activeTab === 'subtasks'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
+              </button>
+              <button
+                @click="activeTab = 'comments'"
+                class="px-3 py-2 text-xs transition-colors relative"
+                :class="activeTab === 'comments'
+                  ? 'text-slate-900 dark:text-zinc-100 font-medium'
+                  : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'"
+              >
+                Comments
+                <span v-if="itemDetail?.comments?.length" class="ml-1 text-slate-400 dark:text-zinc-500 font-normal">({{ itemDetail.comments.length }})</span>
+                <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
+              </button>
+              <button
+                @click="activeTab = 'docs'"
+                class="px-3 py-2 text-xs transition-colors relative"
+                :class="activeTab === 'docs'
+                  ? 'text-slate-900 dark:text-zinc-100 font-medium'
+                  : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'"
+              >
+                Docs
+                <div v-if="activeTab === 'docs'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
+              </button>
+            </div>
+
+            <!-- Tab Content: Subtasks -->
+            <div v-if="activeTab === 'subtasks'">
+              <div v-if="itemDetail?.children?.length > 0 || itemDetail?.childrenCount > 0">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-3 text-xs text-slate-500">
+                    <span v-if="itemDetail.children?.length">{{ itemDetail.children.filter((c: any) => c.status === 'done').length }} of {{ itemDetail.children.length }} complete</span>
+                  </div>
+                  <button v-if="canEditItem" @click="startAddSubtask" class="text-xs text-emerald-500 hover:text-emerald-600 font-medium transition-colors">
+                    + Add subtask
+                  </button>
+                </div>
+
+                <!-- Subtasks progress overview -->
+                <div v-if="itemDetail.children?.length" class="mb-3">
+                  <div class="h-1.5 bg-slate-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
+                      :style="{ width: `${itemDetail.children.filter((c: any) => c.status === 'done').length / itemDetail.children.length * 100}%` }"
+                    />
+                  </div>
+                </div>
+
+                <!-- Subtasks list -->
+                <div class="space-y-2">
+                  <div
+                    v-for="subtask in itemDetail.children"
+                    :key="subtask.id"
+                    class="group flex items-center gap-3 p-3 bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
+                    @click="navigateToItem(subtask.id)"
+                  >
+                    <!-- Status checkbox -->
+                    <div
+                      :class="[
+                        'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+                        subtask.status === 'done'
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : subtask.status === 'blocked'
+                            ? 'bg-rose-100 dark:bg-rose-500/10 border-rose-300 dark:border-rose-700'
+                            : subtask.status === 'in_progress'
+                              ? 'bg-blue-100 dark:bg-blue-500/10 border-blue-400 dark:border-blue-600'
+                              : 'bg-white dark:bg-dm-card border-slate-300 dark:border-white/[0.1]'
+                      ]"
+                    >
+                      <Icon
+                        v-if="subtask.status === 'done'"
+                        name="heroicons:check"
+                        class="w-3 h-3 text-white"
+                      />
+                      <Icon
+                        v-else-if="subtask.status === 'blocked'"
+                        name="heroicons:no-symbol"
+                        class="w-3 h-3 text-rose-500"
+                      />
+                      <div
+                        v-else-if="subtask.status === 'in_progress'"
+                        class="w-2 h-2 rounded-full bg-blue-500"
+                      />
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span
+                          :class="[
+                            'text-sm font-medium truncate',
+                            subtask.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-zinc-300'
+                          ]"
+                        >
+                          {{ subtask.title }}
+                        </span>
+                        <span
+                          v-if="subtask.childrenCount > 0"
+                          class="flex items-center gap-0.5 text-[10px] text-slate-400"
+                        >
+                          <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
+                          {{ subtask.childrenCount }}
+                        </span>
+                      </div>
+
+                      <!-- Meta row -->
+                      <div class="flex items-center gap-2 mt-1">
+                        <div v-if="subtask.status === 'in_progress' && subtask.progress > 0" class="flex items-center gap-1.5">
+                          <div class="w-16 h-1 bg-slate-200 dark:bg-white/[0.08] rounded-full overflow-hidden">
+                            <div
+                              class="h-full bg-blue-400 rounded-full"
+                              :style="{ width: `${subtask.progress}%` }"
+                            />
+                          </div>
+                          <span class="text-[10px] text-slate-400">{{ subtask.progress }}%</span>
+                        </div>
+                        <span
+                          v-if="subtask.dueDate"
+                          :class="[
+                            'text-[10px]',
+                            new Date(subtask.dueDate) < new Date() && subtask.status !== 'done'
+                              ? 'text-rose-500'
+                              : 'text-slate-400'
+                          ]"
+                        >
+                          {{ new Date(subtask.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Assignee -->
+                    <div v-if="subtask.assignee" class="flex-shrink-0">
+                      <div
+                        class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center"
+                        :title="subtask.assignee.name"
+                      >
+                        <span class="text-[10px] text-white font-medium">{{ subtask.assignee.name?.[0] }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Chevron -->
+                    <Icon
+                      name="heroicons:chevron-right"
+                      class="w-4 h-4 text-slate-300 dark:text-zinc-600 group-hover:text-slate-500 dark:group-hover:text-zinc-400 flex-shrink-0 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <!-- Inline add subtask -->
+                <div v-if="showAddSubtask" class="mt-2 flex items-center gap-2">
+                  <div class="w-5 h-5 rounded-full border-2 border-dashed border-slate-300 dark:border-white/[0.1] flex-shrink-0" />
+                  <input
+                    ref="addSubtaskInput"
+                    v-model="newSubtaskTitle"
+                    type="text"
+                    maxlength="255"
+                    placeholder="Subtask title..."
+                    class="flex-1 text-sm px-3 py-2 border border-slate-200 dark:border-white/[0.06] rounded-lg bg-white dark:bg-white/[0.04] text-slate-900 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-zinc-700 transition-all"
+                    :disabled="addingSubtask"
+                    @keyup.enter="submitSubtask"
+                    @keyup.escape="cancelAddSubtask"
+                  />
+                </div>
+
+                <!-- View all button -->
+                <button
+                  v-if="itemDetail.children?.length > 5"
+                  class="w-full mt-3 py-2 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 font-medium text-center bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
+                  @click="$emit('viewFull', item)"
+                >
+                  View all {{ itemDetail.childrenCount }} subtasks
+                </button>
+              </div>
+              <div v-else class="text-center py-8 text-slate-400">
+                <Icon name="heroicons:square-3-stack-3d" class="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p class="text-xs mb-3">No subtasks yet.</p>
+                <div v-if="showAddSubtask" class="flex items-center gap-2 max-w-sm mx-auto">
+                  <input
+                    ref="addSubtaskInput"
+                    v-model="newSubtaskTitle"
+                    type="text"
+                    maxlength="255"
+                    placeholder="Subtask title..."
+                    class="flex-1 text-sm px-3 py-2 border border-slate-200 dark:border-white/[0.06] rounded-lg bg-white dark:bg-white/[0.04] text-slate-900 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-zinc-700 transition-all"
+                    :disabled="addingSubtask"
+                    @keyup.enter="submitSubtask"
+                    @keyup.escape="cancelAddSubtask"
+                  />
+                </div>
+                <button v-else-if="canEditItem" @click="startAddSubtask" class="text-xs text-emerald-500 hover:text-emerald-600 font-medium transition-colors">
                   + Add subtask
                 </button>
               </div>
-              
-              <!-- Subtasks progress overview -->
-              <div v-if="itemDetail.children?.length" class="mb-3">
-                <div class="flex items-center gap-3 text-xs text-slate-500 mb-2">
-                  <span>{{ itemDetail.children.filter((c: any) => c.status === 'done').length }} of {{ itemDetail.children.length }} complete</span>
-                  <span class="text-slate-300 dark:text-zinc-600">•</span>
-                  <span>{{ Math.round(itemDetail.children.filter((c: any) => c.status === 'done').length / itemDetail.children.length * 100) }}%</span>
-                </div>
-                <div class="h-1.5 bg-slate-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
-                  <div 
-                    class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
-                    :style="{ width: `${itemDetail.children.filter((c: any) => c.status === 'done').length / itemDetail.children.length * 100}%` }"
-                  />
-                </div>
-              </div>
-              
-              <!-- Subtasks list -->
-              <div class="space-y-2">
-                <div 
-                  v-for="subtask in itemDetail.children" 
-                  :key="subtask.id"
-                  class="group flex items-center gap-3 p-3 bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
-                  @click="navigateToItem(subtask.id)"
-                >
-                  <!-- Status checkbox -->
-                  <div 
-                    :class="[
-                      'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                      subtask.status === 'done' 
-                        ? 'bg-emerald-500 border-emerald-500' 
-                        : subtask.status === 'blocked'
-                          ? 'bg-rose-100 dark:bg-rose-500/10 border-rose-300 dark:border-rose-700'
-                          : subtask.status === 'in_progress'
-                            ? 'bg-blue-100 dark:bg-blue-500/10 border-blue-400 dark:border-blue-600'
-                            : 'bg-white dark:bg-dm-card border-slate-300 dark:border-white/[0.1]'
-                    ]"
-                  >
-                    <Icon 
-                      v-if="subtask.status === 'done'" 
-                      name="heroicons:check" 
-                      class="w-3 h-3 text-white" 
-                    />
-                    <Icon 
-                      v-else-if="subtask.status === 'blocked'" 
-                      name="heroicons:no-symbol" 
-                      class="w-3 h-3 text-rose-500" 
-                    />
-                    <div 
-                      v-else-if="subtask.status === 'in_progress'" 
-                      class="w-2 h-2 rounded-full bg-blue-500"
-                    />
-                  </div>
-                  
-                  <!-- Content -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span 
-                        :class="[
-                          'text-sm font-medium truncate',
-                          subtask.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-zinc-300'
-                        ]"
-                      >
-                        {{ subtask.title }}
-                      </span>
-                      <span 
-                        v-if="subtask.childrenCount > 0" 
-                        class="flex items-center gap-0.5 text-[10px] text-slate-400"
-                      >
-                        <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
-                        {{ subtask.childrenCount }}
-                      </span>
-                    </div>
-                    
-                    <!-- Meta row -->
-                    <div class="flex items-center gap-2 mt-1">
-                      <!-- Progress bar (if in progress) -->
-                      <div v-if="subtask.status === 'in_progress' && subtask.progress > 0" class="flex items-center gap-1.5">
-                        <div class="w-16 h-1 bg-slate-200 dark:bg-white/[0.08] rounded-full overflow-hidden">
-                          <div 
-                            class="h-full bg-blue-400 rounded-full"
-                            :style="{ width: `${subtask.progress}%` }"
-                          />
-                        </div>
-                        <span class="text-[10px] text-slate-400">{{ subtask.progress }}%</span>
-                      </div>
-                      
-                      <!-- Due date -->
-                      <span 
-                        v-if="subtask.dueDate" 
-                        :class="[
-                          'text-[10px]',
-                          new Date(subtask.dueDate) < new Date() && subtask.status !== 'done' 
-                            ? 'text-rose-500' 
-                            : 'text-slate-400'
-                        ]"
-                      >
-                        {{ new Date(subtask.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <!-- Assignee -->
-                  <div v-if="subtask.assignee" class="flex-shrink-0">
-                    <div 
-                      class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center"
-                      :title="subtask.assignee.name"
-                    >
-                      <span class="text-[10px] text-white font-medium">{{ subtask.assignee.name?.[0] }}</span>
-                    </div>
-                  </div>
-                  
-                  <!-- Chevron -->
-                  <Icon 
-                    name="heroicons:chevron-right" 
-                    class="w-4 h-4 text-slate-300 dark:text-zinc-600 group-hover:text-slate-500 dark:group-hover:text-zinc-400 flex-shrink-0 transition-colors" 
-                  />
-                </div>
-              </div>
-              
-              <!-- View all button -->
-              <button 
-                v-if="itemDetail.children?.length > 5"
-                class="w-full mt-3 py-2 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 font-medium text-center bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
-                @click="$emit('viewFull', item)"
-              >
-                View all {{ itemDetail.childrenCount }} subtasks
-              </button>
             </div>
-            
-            <!-- Comments Section -->
-            <div>
-              <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300 mb-3">
-                Comments
-                <span v-if="itemDetail?.comments?.length" class="text-slate-400 font-normal">
-                  ({{ itemDetail.comments.length }})
-                </span>
-              </h3>
-              
+
+            <!-- Tab Content: Comments -->
+            <div v-else-if="activeTab === 'comments'">
               <!-- New comment input -->
               <div class="flex gap-3 mb-4">
                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
@@ -1677,11 +1787,11 @@ const formatRelativeTime = (dateStr: string) => {
                   </div>
                 </div>
               </div>
-              
+
               <!-- Comments list -->
               <div v-if="itemDetail?.comments?.length" class="space-y-4">
-                <div 
-                  v-for="comment in itemDetail.comments" 
+                <div
+                  v-for="comment in itemDetail.comments"
                   :key="comment.id"
                   class="group"
                 >
@@ -1697,7 +1807,7 @@ const formatRelativeTime = (dateStr: string) => {
                         <span class="text-xs text-slate-400">{{ formatRelativeTime(comment.createdAt) }}</span>
                       </div>
                       <MarkdownRenderer :content="comment.content" class="text-sm text-slate-600 dark:text-zinc-400" />
-                      
+
                       <!-- Reply button -->
                       <button
                         @click="replyingTo = replyingTo === comment.id ? null : comment.id"
@@ -1705,7 +1815,7 @@ const formatRelativeTime = (dateStr: string) => {
                       >
                         Reply
                       </button>
-                      
+
                       <!-- Reply input -->
                       <div v-if="replyingTo === comment.id" class="mt-2 ml-2 pl-3 border-l-2 border-slate-200 dark:border-white/[0.06]">
                         <textarea
@@ -1732,11 +1842,11 @@ const formatRelativeTime = (dateStr: string) => {
                           </button>
                         </div>
                       </div>
-                      
+
                       <!-- Nested replies -->
                       <div v-if="comment.replies?.length" class="mt-3 ml-2 pl-3 border-l-2 border-slate-100 dark:border-white/[0.06] space-y-3">
-                        <div 
-                          v-for="reply in comment.replies" 
+                        <div
+                          v-for="reply in comment.replies"
                           :key="reply.id"
                           class="flex gap-2"
                         >
@@ -1758,12 +1868,20 @@ const formatRelativeTime = (dateStr: string) => {
                   </div>
                 </div>
               </div>
-              
+
               <!-- Empty state -->
               <div v-else class="text-center py-6 text-slate-400">
                 <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p class="text-xs">No comments yet. Start the conversation!</p>
               </div>
+            </div>
+
+            <!-- Tab Content: Docs -->
+            <div v-else-if="activeTab === 'docs'">
+              <DocumentsSection
+                :item-id="itemDetail?.id ?? null"
+                compact
+              />
             </div>
 
             <!-- Delete Item -->
@@ -1818,23 +1936,6 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
           </div>
 
-          <!-- Footer - View Full Board button -->
-          <button
-            @click="handleViewFull"
-            class="w-full px-6 py-4 border-t border-slate-100 dark:border-white/[0.06] bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-500/10 dark:to-indigo-500/10 dark:hover:from-blue-500/15 dark:hover:to-indigo-500/15 transition-colors flex items-center justify-center gap-2 group"
-          >
-            <Icon name="heroicons:arrow-top-right-on-square" class="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
-            <span class="text-sm font-medium text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300">
-              View Full Board
-            </span>
-            <!-- Auto-save indicator -->
-            <span v-if="isSaving" class="ml-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <Icon name="heroicons:arrow-path" class="w-3 h-3 animate-spin" />
-            </span>
-            <span v-else-if="hasUnsavedChanges" class="ml-2 text-[10px] text-amber-500">
-              (unsaved)
-            </span>
-          </button>
         </div>
       </div>
     </Transition>

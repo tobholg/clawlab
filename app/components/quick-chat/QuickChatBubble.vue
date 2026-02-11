@@ -86,12 +86,12 @@
         />
         
         <!-- Thinking indicator -->
-        <div v-if="sending && messages.length > 0 && !messages[messages.length - 1]?.content" class="flex justify-start">
-          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-ctx-50 dark:bg-ctx-900/30 text-slate-500 text-sm">
-            <span class="inline-flex items-center gap-1">
-              <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
-              <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
-              <span class="w-1.5 h-1.5 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
+        <div v-if="sending && (!messages.length || !messages[messages.length - 1]?.content)" class="flex justify-start">
+          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-ctx-50 dark:bg-ctx-900/30">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2 h-2 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
+              <span class="w-2 h-2 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
+              <span class="w-2 h-2 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
             </span>
           </div>
         </div>
@@ -340,4 +340,5 @@ const handleResetPosition = () => {
   opacity: 0;
   transform: translateY(-4px);
 }
+
 </style>

@@ -113,7 +113,7 @@ const getStatusColor = (status: string) => {
     case 'IN_PROGRESS': return 'bg-blue-400'
     case 'BLOCKED': return 'bg-red-400'
     case 'PAUSED': return 'bg-amber-400'
-    default: return 'bg-slate-300'
+    default: return 'bg-slate-300 dark:bg-zinc-500'
   }
 }
 </script>
@@ -134,42 +134,42 @@ const getStatusColor = (status: string) => {
         v-if="open"
         class="fixed top-[15%] left-1/2 -translate-x-1/2 z-[101] w-full max-w-xl"
       >
-        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div class="bg-white dark:bg-dm-card rounded-xl shadow-2xl border border-slate-200 dark:border-white/[0.06] overflow-hidden">
           <!-- Search input -->
-          <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-            <Icon name="heroicons:magnifying-glass" class="w-5 h-5 text-slate-400 flex-shrink-0" />
+          <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-white/[0.06]">
+            <Icon name="heroicons:magnifying-glass" class="w-5 h-5 text-slate-400 dark:text-zinc-500 flex-shrink-0" />
             <input
               ref="searchInput"
               v-model="query"
               type="text"
               placeholder="Search projects, tasks, channels..."
-              class="flex-1 text-sm bg-transparent border-0 outline-none placeholder-slate-400"
+              class="flex-1 text-sm bg-transparent border-0 outline-none placeholder-slate-400 dark:placeholder-zinc-500 text-slate-900 dark:text-zinc-200"
               @keydown="handleInputKeydown"
             />
-            <kbd class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono">ESC</kbd>
+            <kbd class="text-[10px] text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded font-mono">ESC</kbd>
           </div>
 
           <!-- Results -->
           <div class="max-h-[360px] overflow-y-auto">
             <!-- Loading -->
-            <div v-if="loading" class="px-4 py-6 text-center text-sm text-slate-400">
+            <div v-if="loading" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-zinc-500">
               Searching...
             </div>
 
             <!-- Empty state -->
-            <div v-else-if="query.length >= 2 && !flatResults.length" class="px-4 py-6 text-center text-sm text-slate-400">
+            <div v-else-if="query.length >= 2 && !flatResults.length" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-zinc-500">
               No results for "{{ query }}"
             </div>
 
             <!-- Default state -->
-            <div v-else-if="query.length < 2" class="px-4 py-6 text-center text-sm text-slate-400">
+            <div v-else-if="query.length < 2" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-zinc-500">
               Type to search across your workspace
             </div>
 
             <template v-else>
               <!-- Items -->
               <div v-if="results.items.length">
-                <div class="px-3 pt-3 pb-1 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                <div class="px-3 pt-3 pb-1 text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
                   Projects & Tasks
                 </div>
                 <button
@@ -179,8 +179,8 @@ const getStatusColor = (status: string) => {
                   :class="[
                     'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
                     flatResults.indexOf(flatResults.find(r => r.type === 'item' && r.data.id === item.id)!) === selectedIndex
-                      ? 'bg-slate-100'
-                      : 'hover:bg-slate-50'
+                      ? 'bg-slate-100 dark:bg-white/[0.08]'
+                      : 'hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                   ]"
                 >
                   <div
@@ -188,12 +188,12 @@ const getStatusColor = (status: string) => {
                     :class="getStatusColor(item.status)"
                   />
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm text-slate-900 truncate">{{ item.title }}</div>
-                    <div v-if="item.parentTitle" class="text-xs text-slate-400 truncate">
+                    <div class="text-sm text-slate-900 dark:text-zinc-200 truncate">{{ item.title }}</div>
+                    <div v-if="item.parentTitle" class="text-xs text-slate-400 dark:text-zinc-500 truncate">
                       in {{ item.parentTitle }}
                     </div>
                   </div>
-                  <span class="text-[10px] text-slate-400 flex-shrink-0">
+                  <span class="text-[10px] text-slate-400 dark:text-zinc-500 flex-shrink-0">
                     {{ item.isProject ? 'Project' : 'Task' }}
                   </span>
                 </button>
@@ -201,7 +201,7 @@ const getStatusColor = (status: string) => {
 
               <!-- Channels -->
               <div v-if="results.channels.length">
-                <div class="px-3 pt-3 pb-1 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                <div class="px-3 pt-3 pb-1 text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
                   Channels
                 </div>
                 <button
@@ -211,21 +211,21 @@ const getStatusColor = (status: string) => {
                   :class="[
                     'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
                     flatResults.indexOf(flatResults.find(r => r.type === 'channel' && r.data.id === ch.id)!) === selectedIndex
-                      ? 'bg-slate-100'
-                      : 'hover:bg-slate-50'
+                      ? 'bg-slate-100 dark:bg-white/[0.08]'
+                      : 'hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                   ]"
                 >
                   <Icon
                     :name="ch.visibility === 'private' ? 'heroicons:lock-closed' : 'heroicons:hashtag'"
-                    class="w-4 h-4 text-slate-400 flex-shrink-0"
+                    class="w-4 h-4 text-slate-400 dark:text-zinc-500 flex-shrink-0"
                   />
-                  <span class="text-sm text-slate-900 truncate">{{ ch.name }}</span>
+                  <span class="text-sm text-slate-900 dark:text-zinc-200 truncate">{{ ch.name }}</span>
                 </button>
               </div>
 
               <!-- Members -->
               <div v-if="results.members.length">
-                <div class="px-3 pt-3 pb-1 text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                <div class="px-3 pt-3 pb-1 text-[10px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
                   People
                 </div>
                 <div
@@ -234,17 +234,17 @@ const getStatusColor = (status: string) => {
                   :class="[
                     'flex items-center gap-3 px-3 py-2 transition-colors',
                     flatResults.indexOf(flatResults.find(r => r.type === 'member' && r.data.id === m.id)!) === selectedIndex
-                      ? 'bg-slate-100'
-                      : 'hover:bg-slate-50'
+                      ? 'bg-slate-100 dark:bg-white/[0.08]'
+                      : 'hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                   ]"
                 >
-                  <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-                    <span class="text-[10px] font-medium text-slate-600">
+                  <div class="w-6 h-6 rounded-full bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+                    <span class="text-[10px] font-medium text-slate-600 dark:text-zinc-400">
                       {{ (m.name || m.email)?.[0]?.toUpperCase() || '?' }}
                     </span>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <span class="text-sm text-slate-900 truncate">{{ m.name || m.email }}</span>
+                    <span class="text-sm text-slate-900 dark:text-zinc-200 truncate">{{ m.name || m.email }}</span>
                   </div>
                 </div>
               </div>
@@ -252,15 +252,15 @@ const getStatusColor = (status: string) => {
           </div>
 
           <!-- Footer -->
-          <div class="px-4 py-2 border-t border-slate-100 flex items-center gap-4 text-[10px] text-slate-400">
+          <div class="px-4 py-2 border-t border-slate-100 dark:border-white/[0.06] flex items-center gap-4 text-[10px] text-slate-400 dark:text-zinc-500">
             <span class="flex items-center gap-1">
-              <kbd class="bg-slate-100 px-1 py-0.5 rounded font-mono">↑↓</kbd> navigate
+              <kbd class="bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded font-mono">↑↓</kbd> navigate
             </span>
             <span class="flex items-center gap-1">
-              <kbd class="bg-slate-100 px-1 py-0.5 rounded font-mono">↵</kbd> open
+              <kbd class="bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded font-mono">↵</kbd> open
             </span>
             <span class="flex items-center gap-1">
-              <kbd class="bg-slate-100 px-1 py-0.5 rounded font-mono">esc</kbd> close
+              <kbd class="bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded font-mono">esc</kbd> close
             </span>
           </div>
         </div>

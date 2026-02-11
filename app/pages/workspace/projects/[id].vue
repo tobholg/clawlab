@@ -51,6 +51,8 @@ const documentsSectionRef = ref<any>(null)
 const attentionPaneOpen = ref(false)
 const attentionPaneMode = ref<'at-risk' | 'blocked'>('at-risk')
 const attentionPaneRoot = ref<any>(null)
+const showDocsModal = ref(false)
+const docsItem = ref<any>(null)
 const showCompleteWithChildren = ref(false)
 const completeWithChildrenLoading = ref(false)
 const completeWithChildrenError = ref<string | null>(null)
@@ -287,6 +289,11 @@ const handleOpenAttention = (item: any, mode: 'at-risk' | 'blocked') => {
   attentionPaneOpen.value = true
 }
 
+const handleOpenDocs = (item: any) => {
+  docsItem.value = item
+  showDocsModal.value = true
+}
+
 // Handle item update from modal
 const handleUpdateItem = async (_id: string, data: any) => {
   await refreshItems()
@@ -445,7 +452,16 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
+        <!-- Settings button -->
+        <button
+          @click="selectedItem = currentScope; showDetailModal = true"
+          class="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+          title="Edit project details"
+        >
+          <Icon name="heroicons:cog-6-tooth" class="w-4 h-4 block" />
+        </button>
+
         <!-- Team avatars -->
         <div v-if="currentScope?.assignees?.length" class="flex -space-x-2">
           <div
@@ -464,20 +480,11 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Settings button -->
-        <button
-          @click="selectedItem = currentScope; showDetailModal = true"
-          class="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
-          title="Edit project details"
-        >
-          <Icon name="heroicons:cog-6-tooth" class="w-4 h-4 block" />
-        </button>
-
         <!-- New item button -->
         <button
           v-if="canCreate && activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'"
           @click="showCreateModal = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white/[0.08] text-white dark:text-zinc-200 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-white/[0.12] transition-colors"
         >
           <Icon name="heroicons:plus" class="w-4 h-4" />
           <span>New</span>
@@ -486,7 +493,7 @@ onMounted(() => {
         <button
           v-else-if="activeView === 'documents'"
           @click="createDocumentFromHeader"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white/[0.08] text-white dark:text-zinc-200 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-white/[0.12] transition-colors"
         >
           <Icon name="heroicons:document-text" class="w-4 h-4" />
           <span>New document</span>
@@ -673,7 +680,7 @@ onMounted(() => {
         </div>
         <button
           @click="showSuggestedWorkOrder = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-normal rounded-full hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white/[0.08] text-white dark:text-zinc-200 text-xs font-normal rounded-full hover:bg-slate-800 dark:hover:bg-white/[0.12] transition-colors"
         >
           <Icon name="heroicons:sparkles" class="w-3.5 h-3.5" />
           Suggested order
@@ -705,6 +712,7 @@ onMounted(() => {
       @parent-change="handleParentChange"
       @open-attention="handleOpenAttention"
       @request-complete="handleRequestComplete"
+      @open-docs="handleOpenDocs"
     />
 
     <!-- Timeline View -->
@@ -787,5 +795,12 @@ onMounted(() => {
     :items="scopedItems"
     @close="showSuggestedWorkOrder = false"
     @select="handleSuggestedSelect"
+  />
+
+  <!-- Documents Modal (for task card doc counts) -->
+  <DocumentsProjectDocumentsModal
+    :open="showDocsModal"
+    :project="docsItem"
+    @close="showDocsModal = false"
   />
 </template>

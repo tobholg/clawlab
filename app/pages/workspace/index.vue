@@ -59,6 +59,8 @@ const attentionPaneMode = ref<'at-risk' | 'blocked'>('at-risk')
 const attentionPaneRoot = ref<any>(null)
 const showUpgradeModal = ref(false)
 const upgradeMessage = ref('')
+const showDocsModal = ref(false)
+const docsProject = ref<any>(null)
 
 // View options configuration
 const viewOptions = [
@@ -100,6 +102,11 @@ const handleOpenDetail = (item: any) => {
   selectedItem.value = item
   showDetailModal.value = true
   attentionPaneOpen.value = false
+}
+
+const handleOpenDocs = (project: any) => {
+  docsProject.value = project
+  showDocsModal.value = true
 }
 
 const handleOpenAttention = (item: any, mode: 'at-risk' | 'blocked') => {
@@ -303,6 +310,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
       @open-detail="handleOpenDetail"
       @create-project="showCreateModal = true"
       @open-attention="handleOpenAttention"
+      @open-docs="handleOpenDocs"
     />
 
     <!-- Timeline View -->
@@ -359,6 +367,13 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     @close="attentionPaneOpen = false"
     @open-detail="handleOpenDetail"
     @drill-down="handleDrillDown"
+  />
+
+  <!-- Project Documents Modal -->
+  <DocumentsProjectDocumentsModal
+    :open="showDocsModal"
+    :project="docsProject"
+    @close="showDocsModal = false"
   />
 
   <!-- Upgrade Modal -->
