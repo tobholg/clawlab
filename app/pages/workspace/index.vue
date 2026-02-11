@@ -170,7 +170,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
         <button
           v-if="canCreate"
           @click="showCreateModal = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white/[0.1] text-white dark:text-zinc-200 text-sm font-normal rounded-lg hover:bg-slate-800 dark:hover:bg-white/[0.15] transition-colors"
         >
           <Icon name="heroicons:plus" class="w-4 h-4" />
           <span>New Project</span>

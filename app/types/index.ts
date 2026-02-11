@@ -28,6 +28,7 @@ export interface Person {
   name: string
   avatar: string
   role?: string
+  position?: string | null
 }
 
 export interface DocumentSummary {

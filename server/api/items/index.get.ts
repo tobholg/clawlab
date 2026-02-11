@@ -103,6 +103,7 @@ export default defineEventHandler(async (event) => {
         id: item.owner.id,
         name: item.owner.name,
         avatar: item.owner.avatar,
+        position: item.owner.position ?? null,
       } : null,
       // Legacy assignee field (for backwards compatibility)
       assignee: item.owner ? {

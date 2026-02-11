@@ -24,6 +24,23 @@ const activeChildrenCount = computed(() => {
 const allChildrenCompleted = computed(() => hasChildren.value && activeChildrenCount.value === 0)
 const isCurrentlyFocused = computed(() => isFocusedOnTask(props.item.id))
 const isPaused = computed(() => props.item.status === 'paused')
+const showOwnerTooltip = ref(false)
+const ownerAvatarRef = ref<HTMLElement | null>(null)
+const tooltipPos = ref({ top: 0, left: 0 })
+
+const onOwnerEnter = () => {
+  if (ownerAvatarRef.value) {
+    const rect = ownerAvatarRef.value.getBoundingClientRect()
+    tooltipPos.value = {
+      top: rect.top,
+      left: rect.left + rect.width / 2,
+    }
+  }
+  showOwnerTooltip.value = true
+}
+const onOwnerLeave = () => {
+  showOwnerTooltip.value = false
+}
 const estimateMeta = computed(() => getItemEstimateMeta(props.item))
 const needsEstimate = computed(() => estimateMeta.value.needsEstimate)
 
@@ -248,17 +265,23 @@ const handleCardClick = () => {
     <div class="flex items-center justify-between pt-2">
       <div class="flex items-center gap-1">
         <!-- Owner -->
-        <div 
+        <div
           v-if="item.owner"
-          :class="[
-            'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0',
-            getAvatarColor(item.owner.id)
-          ]"
-          :title="`Owner: ${item.owner.name}`"
+          ref="ownerAvatarRef"
+          class="flex-shrink-0"
+          @mouseenter="onOwnerEnter"
+          @mouseleave="onOwnerLeave"
         >
-          <span class="text-[9px] text-white font-medium">
-            {{ getInitials(item.owner.name) }}
-          </span>
+          <div
+            :class="[
+              'w-5 h-5 rounded-full flex items-center justify-center',
+              getAvatarColor(item.owner.id)
+            ]"
+          >
+            <span class="text-[9px] text-white font-medium">
+              {{ getInitials(item.owner.name) }}
+            </span>
+          </div>
         </div>
         
         <!-- Stakeholders -->
@@ -335,4 +358,41 @@ const handleCardClick = () => {
       </div>
     </div>
   </div>
+
+  <!-- Owner tooltip (teleported to avoid overflow clipping) -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0 translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-1"
+    >
+      <div
+        v-if="showOwnerTooltip && item.owner"
+        class="fixed z-[100] pointer-events-none -translate-x-1/2"
+        :style="{ top: `${tooltipPos.top - 8}px`, left: `${tooltipPos.left}px`, transform: 'translate(-50%, -100%)' }"
+      >
+        <div class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-zinc-800 rounded-xl shadow-lg shadow-black/10 dark:shadow-black/50 border border-slate-200/80 dark:border-zinc-700 whitespace-nowrap">
+          <div
+            :class="[
+              'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0',
+              getAvatarColor(item.owner.id)
+            ]"
+          >
+            <span class="text-[10px] text-white font-semibold">{{ getInitials(item.owner.name) }}</span>
+          </div>
+          <div class="min-w-0">
+            <div class="text-[13px] font-medium text-slate-800 dark:text-zinc-100">{{ item.owner.name }}</div>
+            <div v-if="item.owner.position" class="text-[11px] text-slate-500 dark:text-zinc-400">{{ item.owner.position }}</div>
+            <div v-else class="text-[11px] text-slate-500 dark:text-zinc-400">Owner</div>
+          </div>
+        </div>
+        <div class="flex justify-center -mt-px">
+          <div class="w-2 h-2 bg-white dark:bg-zinc-800 border-b border-r border-slate-200/80 dark:border-zinc-700 rotate-45 -translate-y-1"></div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
