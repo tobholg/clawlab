@@ -323,7 +323,7 @@ const fetchDocument = async () => {
     documentData.value = doc
     editedTitle.value = doc.title
     blocks.value = parseMarkdownToBlocks(doc.content)
-    isReadMode.value = doc.isLocked && !isOwner.value
+    isReadMode.value = doc.isLocked
     await nextTick()
   } catch (e) {
     console.error('Failed to fetch document:', e)
@@ -331,6 +331,7 @@ const fetchDocument = async () => {
     isLoading.value = false
     isInitializing.value = false
     fetchVersions()
+    autoResizeAllTextareas()
   }
 }
 
@@ -383,7 +384,7 @@ const toggleLock = async () => {
       },
     }) as DocumentDetail
     documentData.value = updated
-    if (updated.isLocked && !isOwner.value) {
+    if (updated.isLocked) {
       isReadMode.value = true
     }
     emit('updated')
@@ -501,6 +502,18 @@ const handleBlockInput = (event: Event) => {
   if (!target) return
   target.style.height = 'auto'
   target.style.height = `${target.scrollHeight}px`
+}
+
+// Auto-resize all textareas to fit their content
+const autoResizeAllTextareas = () => {
+  nextTick(() => {
+    for (const el of Object.values(blockRefs.value)) {
+      if (el && el.tagName === 'TEXTAREA') {
+        el.style.height = 'auto'
+        el.style.height = `${el.scrollHeight}px`
+      }
+    }
+  })
 }
 
 const handleBlockKeydown = (event: KeyboardEvent, block: Block, index: number) => {
@@ -843,6 +856,13 @@ watch([serializedMarkdown, editedTitle], () => {
   scheduleSave()
 })
 
+// Auto-resize textareas when switching to edit mode
+watch(isReadMode, (readMode) => {
+  if (!readMode) {
+    autoResizeAllTextareas()
+  }
+})
+
 // Close on escape and handle click outside
 onMounted(() => {
   const handleKeydown = (event: KeyboardEvent) => {
@@ -879,7 +899,7 @@ onMounted(() => {
       <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" @click="handleClose" />
 
-        <div class="relative w-full max-w-5xl h-[85vh] mx-4 bg-white dark:bg-dm-surface rounded-2xl shadow-2xl border border-slate-100 dark:border-white/[0.06] flex flex-col overflow-hidden">
+        <div class="relative w-full max-w-5xl h-[85vh] mx-4 bg-white dark:bg-dm-card rounded-2xl shadow-2xl border border-slate-100 dark:border-white/[0.06] flex flex-col overflow-hidden">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
             <div class="flex items-start justify-between gap-4">
@@ -919,8 +939,8 @@ onMounted(() => {
 
               <!-- Actions -->
               <div class="flex items-center gap-1">
-                <!-- Edit/Read toggle -->
-                <div class="flex items-center bg-slate-100 dark:bg-white/[0.08] rounded-lg p-0.5 mr-2">
+                <!-- Edit/Read toggle (hidden when locked) -->
+                <div v-if="!documentData?.isLocked" class="flex items-center bg-slate-100 dark:bg-white/[0.08] rounded-lg p-0.5 mr-2">
                   <button
                     @click="isReadMode = false"
                     :class="[
@@ -946,7 +966,7 @@ onMounted(() => {
                   @click="showVersions = !showVersions"
                   :class="[
                     'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    showVersions ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100'
+                    showVersions ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]'
                   ]"
                   title="Version history"
                 >
@@ -978,7 +998,7 @@ onMounted(() => {
                   @click="toggleLock"
                   :class="[
                     'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    documentData?.isLocked ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100'
+                    documentData?.isLocked ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]'
                   ]"
                   :title="documentData?.isLocked ? 'Unlock document' : 'Lock document'"
                 >
@@ -1334,7 +1354,7 @@ onMounted(() => {
                 <div class="px-4 py-3 border-b border-slate-100 dark:border-white/[0.04] flex items-center justify-between">
                   <h3 class="text-sm font-medium text-slate-800 dark:text-zinc-200">Version History</h3>
                   <button
-                    class="w-6 h-6 flex items-center justify-center rounded text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100"
+                    class="w-6 h-6 flex items-center justify-center rounded text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
                     @click="showVersions = false"
                   >
                     <Icon name="heroicons:x-mark" class="w-4 h-4" />
@@ -1393,7 +1413,7 @@ onMounted(() => {
                 <div class="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
                   <h3 class="text-base font-semibold text-slate-800 dark:text-zinc-100">Save Version</h3>
                   <button
-                    class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
                     @click="showVersionModal = false"
                   >
                     <Icon name="heroicons:x-mark" class="w-4 h-4" />
@@ -1439,7 +1459,7 @@ onMounted(() => {
                         :class="[
                           'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border',
                           versionType === 'major'
-                            ? 'bg-rose-50 border-rose-200 text-rose-700'
+                            ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400'
                             : 'border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-zinc-500 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                         ]"
                         @click="versionType = 'major'"
@@ -1458,7 +1478,7 @@ onMounted(() => {
                     Cancel
                   </button>
                   <button
-                    class="px-5 py-2 text-sm font-medium rounded-xl bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+                    class="px-5 py-2 text-sm font-medium rounded-xl bg-slate-900 dark:bg-white/[0.1] text-white dark:text-zinc-200 hover:bg-slate-800 dark:hover:bg-white/[0.15] transition-colors"
                     @click="saveVersion"
                   >
                     Save Version

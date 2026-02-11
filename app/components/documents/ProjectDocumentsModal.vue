@@ -150,7 +150,7 @@ const getDocInitials = (title: string) => {
           >
             <div
               v-if="open"
-              class="relative bg-white dark:bg-dm-surface rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden border border-slate-200/60 dark:border-white/[0.06]"
+              class="relative bg-white dark:bg-dm-card rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden border border-slate-200/60 dark:border-white/[0.06]"
             >
               <!-- Header -->
               <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/[0.06]">

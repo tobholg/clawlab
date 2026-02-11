@@ -3,13 +3,13 @@
     <div
       v-if="isOpen"
       ref="bubbleRef"
-      class="fixed z-40 w-[400px] h-[min(70vh,600px)] rounded-2xl bg-white/95 dark:bg-dm-surface/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/[0.06] shadow-2xl flex flex-col overflow-hidden"
+      class="fixed z-40 w-[400px] h-[min(70vh,600px)] rounded-2xl bg-white/95 dark:bg-dm-card/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/[0.06] shadow-2xl flex flex-col overflow-hidden"
       :style="bubbleStyle"
     >
       <!-- Header (drag handle) -->
       <div
         ref="headerRef"
-        class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/[0.06] bg-white/80 dark:bg-dm-surface/80 cursor-move select-none shrink-0"
+        class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/[0.06] bg-white/80 dark:bg-dm-card/80 cursor-move select-none shrink-0"
         @mousedown="startDrag"
       >
         <div class="flex items-center gap-2">
@@ -98,7 +98,7 @@
       </div>
 
       <!-- Input -->
-      <div class="flex items-center gap-2 px-4 py-3 shrink-0 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-surface">
+      <div class="flex items-center gap-2 px-4 py-3 shrink-0 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card">
         <textarea
           ref="inputRef"
           v-model="inputMessage"
