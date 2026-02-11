@@ -76,6 +76,57 @@ const hasAllChildrenCompleted = (project: ItemNode) => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
+// Owner tooltip state
+const tooltipProjectId = ref<string | null>(null)
+const tooltipPos = ref({ top: 0, left: 0 })
+const ownerAvatarRefs = ref<Record<string, HTMLElement>>({})
+
+const setOwnerRef = (projectId: string) => (el: any) => {
+  if (el) ownerAvatarRefs.value[projectId] = el
+}
+
+const onOwnerEnter = (project: ItemNode) => {
+  const el = ownerAvatarRefs.value[project.id]
+  if (el) {
+    const rect = el.getBoundingClientRect()
+    tooltipPos.value = {
+      top: rect.top,
+      left: rect.left + rect.width / 2,
+    }
+  }
+  tooltipProjectId.value = project.id
+}
+
+const onOwnerLeave = () => {
+  tooltipProjectId.value = null
+}
+
+const tooltipProject = computed(() => {
+  if (!tooltipProjectId.value) return null
+  return props.projects.find(p => p.id === tooltipProjectId.value) ?? null
+})
+
+// Avatar colors (deterministic based on id)
+const avatarColors = [
+  'bg-blue-500',
+  'bg-emerald-500',
+  'bg-violet-500',
+  'bg-rose-500',
+  'bg-amber-500',
+  'bg-cyan-500',
+  'bg-pink-500',
+  'bg-indigo-500',
+]
+
+const getAvatarColor = (id: string) => {
+  const hash = (id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return avatarColors[hash % avatarColors.length]
+}
+
+const getInitials = (name: string) => {
+  return (name || '').split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || '?'
+}
+
 const calculateHealthScore = (project: ItemNode) => {
   if (project.status === 'done') return 100
 
@@ -208,14 +259,17 @@ const healthMeta = (project: ItemNode) => {
             <div class="flex items-center gap-2">
               <template v-if="project.owner">
                 <div
-                  class="w-6 h-6 rounded-full bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center border border-slate-100 dark:border-white/[0.08]"
-                  :title="project.owner.name"
+                  :ref="setOwnerRef(project.id)"
+                  class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 cursor-default"
+                  :class="getAvatarColor(project.owner.id)"
+                  @mouseenter="onOwnerEnter(project)"
+                  @mouseleave="onOwnerLeave"
                 >
-                  <span class="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">{{ project.owner.name?.[0] ?? '?' }}</span>
+                  <span class="text-[9px] text-white font-semibold">{{ getInitials(project.owner.name) }}</span>
                 </div>
                 <span class="text-slate-600 dark:text-zinc-300">{{ project.owner.name?.split(' ')[0] }}</span>
               </template>
-              <span v-else class="text-slate-400">No owner</span>
+              <span v-else class="text-slate-400 dark:text-zinc-500">No owner</span>
             </div>
 
             <!-- Right: Meta -->
@@ -250,5 +304,42 @@ const healthMeta = (project: ItemNode) => {
         <span class="text-sm text-slate-500 dark:text-zinc-400 group-hover:text-slate-600 dark:group-hover:text-zinc-300">New Project</span>
       </button>
     </div>
+
+    <!-- Owner tooltip (teleported to avoid overflow clipping) -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0 translate-y-1"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-1"
+      >
+        <div
+          v-if="tooltipProject?.owner"
+          class="fixed z-[100] pointer-events-none"
+          :style="{ top: `${tooltipPos.top - 8}px`, left: `${tooltipPos.left}px`, transform: 'translate(-50%, -100%)' }"
+        >
+          <div class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-zinc-800 rounded-xl shadow-lg shadow-black/10 dark:shadow-black/50 border border-slate-200/80 dark:border-zinc-700 whitespace-nowrap">
+            <div
+              :class="[
+                'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0',
+                getAvatarColor(tooltipProject.owner.id)
+              ]"
+            >
+              <span class="text-[10px] text-white font-semibold">{{ getInitials(tooltipProject.owner.name) }}</span>
+            </div>
+            <div class="min-w-0">
+              <div class="text-[13px] font-medium text-slate-800 dark:text-zinc-100">{{ tooltipProject.owner.name }}</div>
+              <div v-if="tooltipProject.owner.position" class="text-[11px] text-slate-500 dark:text-zinc-400">{{ tooltipProject.owner.position }}</div>
+              <div v-else class="text-[11px] text-slate-500 dark:text-zinc-400">Owner</div>
+            </div>
+          </div>
+          <div class="flex justify-center -mt-px">
+            <div class="w-2 h-2 bg-white dark:bg-zinc-800 border-b border-r border-slate-200/80 dark:border-zinc-700 rotate-45 -translate-y-1"></div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

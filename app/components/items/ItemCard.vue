@@ -145,7 +145,7 @@ const handleCardClick = () => {
     :class="[
       isPaused
         ? 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.04] opacity-75'
-        : 'bg-white dark:bg-dm-card',
+        : 'bg-white dark:bg-white/[0.05]',
       isCurrentlyFocused
         ? 'border-amber-300 dark:border-amber-500/40 ring-2 ring-amber-100 dark:ring-amber-500/15 shadow-sm'
         : !isPaused && 'border-slate-100 dark:border-white/[0.06] hover:border-slate-200 dark:hover:border-white/[0.1] dark:hover:bg-white/[0.02] hover:shadow-sm'
