@@ -1418,19 +1418,28 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
             
             <!-- Forecast Card -->
-            <div v-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
-              <div v-if="estimatedCompletion.complete" class="flex items-center justify-between">
-                <div>
-                  <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
-                  <div class="text-sm font-medium text-emerald-700 dark:text-emerald-400">Complete</div>
+            <!-- Completed state (has estimatedCompletion or status is done) -->
+            <div v-if="editedStatus === 'done'" class="rounded-xl p-4 border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
+                    <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Completed</div>
+                    <div v-if="itemDetail?.completedAt" class="text-xs text-emerald-600/70 dark:text-emerald-400/60">
+                      {{ formatShortDate(itemDetail.completedAt) }}
+                    </div>
+                  </div>
                 </div>
-                <div class="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium">
-                  <Icon name="heroicons:check-circle" class="w-3.5 h-3.5" />
-                  Done
+                <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                  100%
                 </div>
               </div>
+            </div>
 
-              <template v-else>
+            <div v-else-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
+              <template>
                 <div class="flex items-start justify-between gap-3">
                   <div>
                     <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
@@ -1515,26 +1524,6 @@ const formatRelativeTime = (dateStr: string) => {
               </template>
             </div>
             
-            <!-- Done state (no forecast needed) -->
-            <div v-else-if="editedStatus === 'done'" class="rounded-xl p-4 border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
-                    <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <div class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Completed</div>
-                    <div v-if="itemDetail?.completedAt" class="text-xs text-emerald-600/70 dark:text-emerald-400/60">
-                      {{ formatShortDate(itemDetail.completedAt) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-1 rounded-full">
-                  100%
-                </div>
-              </div>
-            </div>
-
             <!-- No estimate message -->
             <div v-else-if="editedDueDate" class="bg-slate-50 dark:bg-white/[0.04] rounded-xl p-4 border border-dashed border-slate-200 dark:border-white/[0.06] text-center">
               <Icon name="heroicons:calculator" class="w-6 h-6 text-slate-300 mx-auto mb-2" />

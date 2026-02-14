@@ -35,6 +35,7 @@ watch(projectId, (id) => {
 }, { immediate: true })
 
 const activeView = ref<'kanban' | 'timeline' | 'list' | 'documents' | 'external' | 'inbound'>('kanban')
+const viewSwitchPulse = ref(false)
 const inboundQueueRef = ref<any>(null)
 
 // Check if this is a root project (can have external spaces)
@@ -94,15 +95,15 @@ const createDocumentFromHeader = async () => {
 // View options configuration
 const viewOptions = computed(() => {
   const base = [
-    { key: 'kanban', icon: 'heroicons:view-columns', label: 'Kanban' },
-    { key: 'timeline', icon: 'heroicons:calendar', label: 'Timeline' },
-    { key: 'list', icon: 'heroicons:bars-3', label: 'List' },
-    { key: 'documents', icon: 'heroicons:document-text', label: 'Documents' },
+    { key: 'kanban', icon: 'heroicons:view-columns', label: 'Kanban', shortcut: 'K' },
+    { key: 'timeline', icon: 'heroicons:calendar', label: 'Timeline', shortcut: 'T' },
+    { key: 'list', icon: 'heroicons:bars-3', label: 'List', shortcut: 'L' },
+    { key: 'documents', icon: 'heroicons:document-text', label: 'Documents', shortcut: 'D' },
   ]
   if (isRootProject.value) {
     base.push(
-      { key: 'external', icon: 'heroicons:globe-alt', label: 'External' },
-      { key: 'inbound', icon: 'heroicons:inbox-arrow-down', label: 'Inbound' }
+      { key: 'external', icon: 'heroicons:globe-alt', label: 'External', shortcut: 'E' },
+      { key: 'inbound', icon: 'heroicons:inbox-arrow-down', label: 'Inbound', shortcut: 'I' }
     )
   }
   return base
@@ -359,6 +360,19 @@ onMounted(() => {
       } else {
         router.push('/workspace')
       }
+      return
+    }
+
+    // View switching shortcuts (plain letter, no modifiers)
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    const tag = (e.target as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable) return
+
+    const match = viewOptions.value.find(v => v.shortcut.toLowerCase() === e.key.toLowerCase())
+    if (match) {
+      activeView.value = match.key as typeof activeView.value
+      viewSwitchPulse.value = false
+      void nextTick(() => { viewSwitchPulse.value = true })
     }
   }
   window.addEventListener('keydown', handleKeydown)
@@ -534,7 +548,11 @@ onMounted(() => {
         <div class="group relative">
           <!-- Active view trigger -->
           <button
-            class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg text-slate-700 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-white/[0.1] transition-all"
+            :class="[
+              'flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg text-slate-700 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-white/[0.1] transition-all',
+              viewSwitchPulse && 'view-switch-pulse'
+            ]"
+            @animationend="viewSwitchPulse = false"
           >
             <Icon :name="activeViewOption.icon" class="w-4 h-4 block" />
             <span class="text-sm font-medium">{{ activeViewOption.label }}</span>
@@ -556,11 +574,7 @@ onMounted(() => {
             >
               <Icon :name="option.icon" class="w-4 h-4 block" />
               <span class="text-sm">{{ option.label }}</span>
-              <Icon
-                v-if="option.key === activeView"
-                name="heroicons:check"
-                class="w-4 h-4 ml-auto text-slate-500 dark:text-zinc-400"
-              />
+              <kbd class="ml-auto text-[10px] text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded font-mono">{{ option.shortcut }}</kbd>
             </button>
           </div>
         </div>
@@ -871,3 +885,21 @@ onMounted(() => {
     </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+.view-switch-pulse {
+  animation: viewPulse 0.4s ease-out;
+}
+@keyframes viewPulse {
+  0% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.4); background-color: rgba(100, 116, 139, 0.08); }
+  50% { box-shadow: 0 0 0 5px rgba(100, 116, 139, 0); background-color: rgba(100, 116, 139, 0.04); }
+  100% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0); }
+}
+@media (prefers-color-scheme: dark) {
+  @keyframes viewPulse {
+    0% { box-shadow: 0 0 0 0 rgba(148, 163, 184, 0.3); background-color: rgba(255, 255, 255, 0.1); }
+    50% { box-shadow: 0 0 0 5px rgba(148, 163, 184, 0); background-color: rgba(255, 255, 255, 0.05); }
+    100% { box-shadow: 0 0 0 0 rgba(148, 163, 184, 0); }
+  }
+}
+</style>

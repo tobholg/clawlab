@@ -168,7 +168,7 @@ const statusDotClass = (status: string) => {
       ]"
     >
       <!-- Workspace Switcher -->
-      <div :class="['mb-4', sidebarCollapsed ? 'flex justify-center' : 'px-3']">
+      <div :class="['mb-4', sidebarCollapsed ? 'flex justify-center' : 'px-4']">
         <template v-if="sidebarCollapsed">
           <NuxtLink to="/workspace" class="flex items-center justify-center w-full">
             <div class="w-7 h-7 bg-slate-900 dark:bg-white/[0.1] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -186,10 +186,10 @@ const statusDotClass = (status: string) => {
       >
 
       <!-- Search button -->
-      <div v-if="!sidebarCollapsed" class="px-3 mb-3">
+      <div v-if="!sidebarCollapsed" class="px-4 mb-3">
         <button
           @click="openSearch"
-          class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200"
+          class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200"
         >
           <Icon name="heroicons:magnifying-glass" class="w-4 h-4" />
           <span class="flex-1 text-left">Search</span>
@@ -199,7 +199,7 @@ const statusDotClass = (status: string) => {
 
       <!-- Focus Section -->
       <div v-if="!sidebarCollapsed" :class="isSectionCollapsed('focus') ? 'mb-1' : ''">
-        <div :class="['flex items-center justify-between px-3', isSectionCollapsed('focus') ? '' : 'mb-2']">
+        <div :class="['flex items-center justify-between px-4', isSectionCollapsed('focus') ? '' : 'mb-2']">
           <button
             @click="focusSidebarRef?.openTimeline()"
             class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-1"
@@ -220,7 +220,7 @@ const statusDotClass = (status: string) => {
       </div>
 
       <!-- Projects Section -->
-      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('projects') ? 'mb-1' : 'mb-4']">
+      <div v-if="!sidebarCollapsed" :class="['px-4', isSectionCollapsed('projects') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('projects') ? '' : 'mb-2']">
           <button
             @click="handleProjectsClick"
@@ -241,7 +241,7 @@ const statusDotClass = (status: string) => {
             v-for="project in recentProjects"
             :key="project.id"
             @click="handleProjectClick(project.id)"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
             :class="currentProjectId === project.id
               ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
               : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -258,7 +258,7 @@ const statusDotClass = (status: string) => {
           <button
             v-if="!recentProjects.length"
             @click="router.push('/workspace')"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-500 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm text-slate-500 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
           >
             <Icon name="heroicons:plus" class="w-4 h-4" />
             <span>Create new project</span>
@@ -266,7 +266,7 @@ const statusDotClass = (status: string) => {
           <NuxtLink
             v-if="hasMoreProjects"
             to="/workspace"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
           >
             <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
               <Icon name="heroicons:arrow-right" class="w-3 h-3" />
@@ -277,7 +277,7 @@ const statusDotClass = (status: string) => {
       </div>
 
       <!-- My Tasks Section -->
-      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('myTasks') ? 'mb-1' : 'mb-4']">
+      <div v-if="!sidebarCollapsed" :class="['px-4', isSectionCollapsed('myTasks') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('myTasks') ? '' : 'mb-2']">
           <NuxtLink
             to="/workspace/my-work"
@@ -299,7 +299,7 @@ const statusDotClass = (status: string) => {
               v-for="task in sidebarPreview"
               :key="task.id"
               @click="handleSidebarTaskClick(task)"
-              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200 text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+              class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200 text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]"
             >
               <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
                 <div class="w-2 h-2 rounded-full" :class="statusDotClass(task.status)" />
@@ -310,7 +310,7 @@ const statusDotClass = (status: string) => {
             <NuxtLink
               v-if="hasMoreTasks"
               to="/workspace/my-work"
-              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
+              class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
             >
               <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
                 <Icon name="heroicons:arrow-right" class="w-3 h-3" />
@@ -318,12 +318,12 @@ const statusDotClass = (status: string) => {
               <span class="flex-1 text-left">View all {{ myTasksActiveCount }}</span>
             </NuxtLink>
           </template>
-          <p v-else class="px-3 py-2 text-xs text-slate-400 dark:text-zinc-600 italic">No active tasks</p>
+          <p v-else class="px-2 py-2 text-xs text-slate-400 dark:text-zinc-600 italic">No active tasks</p>
         </div>
       </div>
 
       <!-- Channels Section -->
-      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('channels') ? 'mb-1' : 'mb-4']">
+      <div v-if="!sidebarCollapsed" :class="['px-4', isSectionCollapsed('channels') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('channels') ? '' : 'mb-2']">
           <button @click="toggleSection('channels')" class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors">
             Channels
@@ -348,7 +348,7 @@ const statusDotClass = (status: string) => {
           <template v-for="channel in channelTree" :key="channel.id">
             <NuxtLink
               :to="`/workspace/channels/${channel.id}`"
-              class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+              class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
               :class="currentChannelId === channel.id
                 ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
                 : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -373,7 +373,7 @@ const statusDotClass = (status: string) => {
                 v-for="child in channel.children"
                 :key="child.id"
                 :to="`/workspace/channels/${child.id}`"
-                class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+                class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
                 :class="currentChannelId === child.id
                   ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
                   : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -386,14 +386,14 @@ const statusDotClass = (status: string) => {
               </NuxtLink>
             </div>
           </template>
-          <div v-if="!channelTree.length && !channelsLoading" class="px-3 py-2 text-xs text-slate-500 dark:text-zinc-600 italic">
+          <div v-if="!channelTree.length && !channelsLoading" class="px-2 py-2 text-xs text-slate-500 dark:text-zinc-600 italic">
             No channels yet
           </div>
         </div>
       </div>
 
       <!-- Workspace links -->
-      <div v-if="!sidebarCollapsed" :class="['px-3', isSectionCollapsed('workspace') ? 'mb-1' : 'mb-4']">
+      <div v-if="!sidebarCollapsed" :class="['px-4', isSectionCollapsed('workspace') ? 'mb-1' : 'mb-4']">
         <div :class="['flex items-center justify-between', isSectionCollapsed('workspace') ? '' : 'mb-2']">
           <button @click="toggleSection('workspace')" class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors">
             Workspace
@@ -408,7 +408,7 @@ const statusDotClass = (status: string) => {
         <div v-if="!isSectionCollapsed('workspace')">
           <NuxtLink
             to="/workspace/my-work"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
             :class="isMyWork
               ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
               : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -421,7 +421,7 @@ const statusDotClass = (status: string) => {
           </NuxtLink>
           <NuxtLink
             to="/workspace/activities"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
             :class="route.path === '/workspace/activities'
               ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
               : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -435,7 +435,7 @@ const statusDotClass = (status: string) => {
           <NuxtLink
             v-if="isWorkspaceAdmin"
             to="/workspace/team"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
             :class="isTeamFocus
               ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
               : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -449,7 +449,7 @@ const statusDotClass = (status: string) => {
           <NuxtLink
             v-if="isWorkspaceAdmin"
             to="/workspace/settings"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
             :class="route.path === '/workspace/settings'
               ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
               : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -462,7 +462,7 @@ const statusDotClass = (status: string) => {
           <NuxtLink
             v-if="isOrgAdmin"
             to="/org"
-            class="w-full flex items-center gap-2.5 px-3 py-1 rounded-lg text-sm transition-all duration-200"
+            class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
             :class="route.path === '/org'
               ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
               : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
@@ -484,12 +484,12 @@ const statusDotClass = (status: string) => {
       </div><!-- end scrollable content -->
 
       <!-- Collapse/Expand Toggle -->
-      <div class="px-3 mb-1">
+      <div class="px-4 mb-1">
         <button
           @click="toggleSidebar"
           :class="[
             'w-full flex items-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-all duration-200',
-            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-1'
+            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2 py-1'
           ]"
         >
           <Icon :name="sidebarCollapsed ? 'heroicons:chevron-right' : 'heroicons:chevron-left'" class="w-4 h-4 flex-shrink-0" />
@@ -498,12 +498,12 @@ const statusDotClass = (status: string) => {
       </div>
 
       <!-- User -->
-      <div class="px-3 pb-3">
+      <div class="px-4 pb-3">
         <button
           @click="showUserSettings = true"
           :class="[
             'w-full flex items-center rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] cursor-pointer transition-all duration-200',
-            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2'
+            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2 py-2'
           ]"
         >
           <div class="w-7 h-7 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center flex-shrink-0">

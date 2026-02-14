@@ -62,7 +62,7 @@ onMounted(() => {
   <div ref="dropdownRef" class="relative">
     <button
       @click="toggle"
-      class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+      class="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
     >
       <div class="w-7 h-7 bg-slate-900 dark:bg-white/[0.1] rounded-lg flex items-center justify-center flex-shrink-0">
         <svg class="w-4 h-4" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
