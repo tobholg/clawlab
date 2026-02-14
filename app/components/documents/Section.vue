@@ -79,6 +79,70 @@ const createDocument = async () => {
   }
 }
 
+// Import markdown on creation
+const showImportModal = ref(false)
+const importTab = ref<'file' | 'paste'>('file')
+const importPasteContent = ref('')
+
+const openImportModal = () => {
+  importTab.value = 'file'
+  importPasteContent.value = ''
+  showImportModal.value = true
+}
+
+const handleImportFile = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    createDocumentFromMarkdown(reader.result as string)
+    input.value = ''
+  }
+  reader.readAsText(file)
+}
+
+const handleImportPaste = () => {
+  if (!importPasteContent.value.trim()) return
+  createDocumentFromMarkdown(importPasteContent.value)
+}
+
+const createDocumentFromMarkdown = async (markdown: string) => {
+  if (!props.itemId) return
+
+  // Extract title from first heading if present
+  const lines = markdown.split('\n')
+  const firstLine = lines[0]?.trim()
+  let title = 'Untitled document'
+  let content = markdown
+
+  if (firstLine?.startsWith('# ')) {
+    title = firstLine.slice(2).trim()
+    content = lines.slice(1).join('\n').replace(/^\n+/, '')
+  }
+
+  try {
+    const created = await $fetch('/api/documents', {
+      method: 'POST',
+      body: {
+        itemId: props.itemId,
+        title,
+        content,
+        userId: currentUserId.value,
+      },
+    })
+    showImportModal.value = false
+    importPasteContent.value = ''
+    await fetchDocuments()
+    if (created?.id) {
+      openDocument(created.id)
+    }
+  } catch (e) {
+    console.error('Failed to create document from import:', e)
+  }
+}
+
 defineExpose({
   createDocument,
   openDocument,
@@ -127,14 +191,25 @@ const getDocColor = (id: string) => {
         Documents
         <span v-if="documents.length" class="text-slate-400 font-normal">({{ documents.length }})</span>
       </h3>
-      <button
-        v-if="itemId && showNewButton !== false"
-        @click="createDocument"
-        class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
-      >
-        <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
-        Add
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          v-if="itemId && showNewButton !== false"
+          @click="openImportModal"
+          class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
+          title="Import Markdown"
+        >
+          <Icon name="heroicons:arrow-up-tray" class="w-3.5 h-3.5" />
+          Import
+        </button>
+        <button
+          v-if="itemId && showNewButton !== false"
+          @click="createDocument"
+          class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
+        >
+          <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
+          Add
+        </button>
+      </div>
     </div>
 
     <!-- Full Header -->
@@ -152,14 +227,25 @@ const getDocColor = (id: string) => {
         </div>
       </div>
 
-      <button
-        v-if="itemId && showNewButton !== false"
-        @click="createDocument"
-        class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-all"
-      >
-        <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
-        {{ newButtonLabel || 'New doc' }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          v-if="itemId && showNewButton !== false"
+          @click="openImportModal"
+          class="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-zinc-400 text-xs font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all"
+          title="Import Markdown"
+        >
+          <Icon name="heroicons:arrow-up-tray" class="w-3.5 h-3.5" />
+          Import
+        </button>
+        <button
+          v-if="itemId && showNewButton !== false"
+          @click="createDocument"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-all"
+        >
+          <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
+          {{ newButtonLabel || 'New doc' }}
+        </button>
+      </div>
     </div>
 
     <!-- Content -->
@@ -272,7 +358,7 @@ const getDocColor = (id: string) => {
     </div>
 
     <!-- Full Document Grid -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
       <!-- Document cards -->
       <button
         v-for="doc in documents"
@@ -301,16 +387,15 @@ const getDocColor = (id: string) => {
               >
                 <Icon name="heroicons:lock-closed" class="w-2.5 h-2.5" />
               </span>
+              <span class="flex-1" />
+              <span v-if="doc.versionCount > 0" class="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-white/[0.08] text-slate-500 dark:text-zinc-400 rounded flex-shrink-0">
+                {{ doc.versionCount }} {{ doc.versionCount === 1 ? 'version' : 'versions' }}
+              </span>
             </div>
             <div class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
               <span>{{ formatRelativeTime(doc.updatedAt) }}</span>
               <span v-if="doc.createdBy" class="text-slate-300 dark:text-zinc-600">·</span>
               <span v-if="doc.createdBy" class="truncate">{{ doc.createdBy.name }}</span>
-            </div>
-            <div v-if="doc.versionCount > 0" class="mt-2">
-              <span class="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-white/[0.08] text-slate-500 dark:text-zinc-400 rounded">
-                {{ doc.versionCount }} {{ doc.versionCount === 1 ? 'version' : 'versions' }}
-              </span>
             </div>
           </div>
         </div>
@@ -337,4 +422,102 @@ const getDocColor = (id: string) => {
     @updated="handleUpdated"
     @deleted="closeDocument"
   />
+
+  <!-- Import Markdown Modal -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40" @click="showImportModal = false" />
+        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+            <h3 class="text-base font-semibold text-slate-800 dark:text-zinc-100">Import Markdown</h3>
+            <button
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+              @click="showImportModal = false"
+            >
+              <Icon name="heroicons:x-mark" class="w-4 h-4" />
+            </button>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <!-- Tab selector -->
+            <div class="flex items-center bg-slate-100 dark:bg-white/[0.08] rounded-lg p-0.5">
+              <button
+                @click="importTab = 'file'"
+                :class="[
+                  'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                  importTab === 'file' ? 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
+                ]"
+              >
+                <Icon name="heroicons:document-arrow-up" class="w-3.5 h-3.5" />
+                From file
+              </button>
+              <button
+                @click="importTab = 'paste'"
+                :class="[
+                  'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                  importTab === 'paste' ? 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
+                ]"
+              >
+                <Icon name="heroicons:clipboard-document" class="w-3.5 h-3.5" />
+                Paste text
+              </button>
+            </div>
+
+            <!-- File upload tab -->
+            <div v-if="importTab === 'file'">
+              <label
+                class="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-slate-200 dark:border-white/[0.08] rounded-xl cursor-pointer hover:border-slate-300 dark:hover:border-white/[0.12] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
+              >
+                <Icon name="heroicons:arrow-up-tray" class="w-8 h-8 text-slate-300 dark:text-zinc-600" />
+                <span class="text-sm text-slate-500 dark:text-zinc-400">Choose a .md or .txt file</span>
+                <span class="text-xs text-slate-400 dark:text-zinc-500">or drag and drop</span>
+                <input
+                  type="file"
+                  accept=".md,.markdown,.txt,.text"
+                  class="hidden"
+                  @change="handleImportFile"
+                />
+              </label>
+              <p class="text-[11px] text-slate-400 dark:text-zinc-500 mt-2">A new document will be created from the imported file.</p>
+            </div>
+
+            <!-- Paste tab -->
+            <div v-if="importTab === 'paste'">
+              <textarea
+                v-model="importPasteContent"
+                rows="10"
+                class="w-full text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-surface dark:text-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-zinc-700 focus:border-slate-300 dark:focus:border-zinc-600 transition-all resize-none font-mono"
+                placeholder="Paste your markdown content here..."
+              />
+              <p class="text-[11px] text-slate-400 dark:text-zinc-500 mt-2">A new document will be created from the pasted content.</p>
+            </div>
+          </div>
+
+          <div v-if="importTab === 'paste'" class="px-5 py-4 bg-slate-50 dark:bg-white/[0.04] border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-end gap-3">
+            <button
+              class="px-4 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
+              @click="showImportModal = false"
+            >
+              Cancel
+            </button>
+            <button
+              :disabled="!importPasteContent.trim()"
+              class="px-5 py-2 text-sm font-medium rounded-xl bg-slate-900 dark:bg-white/[0.1] text-white dark:text-zinc-200 hover:bg-slate-800 dark:hover:bg-white/[0.15] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              @click="handleImportPaste"
+            >
+              Import
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>

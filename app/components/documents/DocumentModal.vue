@@ -409,6 +409,69 @@ const deleteDocument = async () => {
   }
 }
 
+// Download as markdown
+const downloadAsMarkdown = () => {
+  const title = editedTitle.value || 'Untitled document'
+  const markdown = serializedMarkdown.value
+  const content = `# ${title}\n\n${markdown}`
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${title.replace(/[^a-zA-Z0-9\s-_]/g, '').replace(/\s+/g, '-').toLowerCase()}.md`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// Import markdown
+const showImportModal = ref(false)
+const importTab = ref<'file' | 'paste'>('file')
+const importPasteContent = ref('')
+const importFileInput = ref<HTMLInputElement | null>(null)
+
+const openImportModal = () => {
+  importTab.value = 'file'
+  importPasteContent.value = ''
+  showImportModal.value = true
+}
+
+const handleImportFile = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    const text = reader.result as string
+    applyImportedMarkdown(text)
+    input.value = ''
+  }
+  reader.readAsText(file)
+}
+
+const handleImportPaste = () => {
+  if (!importPasteContent.value.trim()) return
+  applyImportedMarkdown(importPasteContent.value)
+}
+
+const applyImportedMarkdown = (markdown: string) => {
+  // Check if the markdown starts with a heading — use it as title if current is untitled
+  const lines = markdown.split('\n')
+  const firstLine = lines[0]?.trim()
+  if (firstLine?.startsWith('# ') && (!editedTitle.value || editedTitle.value === 'Untitled document')) {
+    editedTitle.value = firstLine.slice(2).trim()
+    markdown = lines.slice(1).join('\n').replace(/^\n+/, '')
+  }
+
+  blocks.value = parseMarkdownToBlocks(markdown)
+  showImportModal.value = false
+  importPasteContent.value = ''
+  scheduleSave()
+  nextTick(() => autoResizeAllTextareas())
+}
+
 const saveVersion = async () => {
   if (!documentData.value) return
   try {
@@ -982,6 +1045,26 @@ onMounted(() => {
                   <Icon name="heroicons:bookmark" class="w-4 h-4" />
                 </button>
 
+                <!-- Download as markdown -->
+                <button
+                  v-if="documentData"
+                  @click="downloadAsMarkdown"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+                  title="Download as Markdown"
+                >
+                  <Icon name="heroicons:arrow-down-tray" class="w-4 h-4" />
+                </button>
+
+                <!-- Import markdown -->
+                <button
+                  v-if="canEdit && !isReadMode"
+                  @click="openImportModal"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+                  title="Import Markdown"
+                >
+                  <Icon name="heroicons:arrow-up-tray" class="w-4 h-4" />
+                </button>
+
                 <!-- Delete -->
                 <button
                   v-if="documentData"
@@ -1482,6 +1565,102 @@ onMounted(() => {
                     @click="saveVersion"
                   >
                     Save Version
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- Import Markdown Modal -->
+          <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+          >
+            <div v-if="showImportModal" class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4">
+              <div class="bg-white dark:bg-dm-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+                  <h3 class="text-base font-semibold text-slate-800 dark:text-zinc-100">Import Markdown</h3>
+                  <button
+                    class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+                    @click="showImportModal = false"
+                  >
+                    <Icon name="heroicons:x-mark" class="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div class="p-5 space-y-4">
+                  <!-- Tab selector -->
+                  <div class="flex items-center bg-slate-100 dark:bg-white/[0.08] rounded-lg p-0.5">
+                    <button
+                      @click="importTab = 'file'"
+                      :class="[
+                        'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                        importTab === 'file' ? 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
+                      ]"
+                    >
+                      <Icon name="heroicons:document-arrow-up" class="w-3.5 h-3.5" />
+                      From file
+                    </button>
+                    <button
+                      @click="importTab = 'paste'"
+                      :class="[
+                        'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                        importTab === 'paste' ? 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-100 shadow-sm' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
+                      ]"
+                    >
+                      <Icon name="heroicons:clipboard-document" class="w-3.5 h-3.5" />
+                      Paste text
+                    </button>
+                  </div>
+
+                  <!-- File upload tab -->
+                  <div v-if="importTab === 'file'">
+                    <label
+                      class="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-slate-200 dark:border-white/[0.08] rounded-xl cursor-pointer hover:border-slate-300 dark:hover:border-white/[0.12] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
+                    >
+                      <Icon name="heroicons:arrow-up-tray" class="w-8 h-8 text-slate-300 dark:text-zinc-600" />
+                      <span class="text-sm text-slate-500 dark:text-zinc-400">Choose a .md or .txt file</span>
+                      <span class="text-xs text-slate-400 dark:text-zinc-500">or drag and drop</span>
+                      <input
+                        ref="importFileInput"
+                        type="file"
+                        accept=".md,.markdown,.txt,.text"
+                        class="hidden"
+                        @change="handleImportFile"
+                      />
+                    </label>
+                    <p class="text-[11px] text-slate-400 dark:text-zinc-500 mt-2">This will replace the current document content.</p>
+                  </div>
+
+                  <!-- Paste tab -->
+                  <div v-if="importTab === 'paste'">
+                    <textarea
+                      v-model="importPasteContent"
+                      rows="10"
+                      class="w-full text-sm border border-slate-200 dark:border-white/[0.06] dark:bg-dm-surface dark:text-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-zinc-700 focus:border-slate-300 dark:focus:border-zinc-600 transition-all resize-none font-mono"
+                      placeholder="Paste your markdown content here..."
+                    />
+                    <p class="text-[11px] text-slate-400 dark:text-zinc-500 mt-2">This will replace the current document content.</p>
+                  </div>
+                </div>
+
+                <div v-if="importTab === 'paste'" class="px-5 py-4 bg-slate-50 dark:bg-white/[0.04] border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-end gap-3">
+                  <button
+                    class="px-4 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
+                    @click="showImportModal = false"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    :disabled="!importPasteContent.trim()"
+                    class="px-5 py-2 text-sm font-medium rounded-xl bg-slate-900 dark:bg-white/[0.1] text-white dark:text-zinc-200 hover:bg-slate-800 dark:hover:bg-white/[0.15] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    @click="handleImportPaste"
+                  >
+                    Import
                   </button>
                 </div>
               </div>

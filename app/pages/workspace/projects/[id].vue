@@ -463,6 +463,17 @@ onMounted(() => {
           <Icon name="heroicons:cog-6-tooth" class="w-4 h-4 block" />
         </button>
 
+        <!-- Document count indicator -->
+        <button
+          v-if="currentScope?.documentCount && currentScope.documentCount > 0"
+          @click="activeView = 'documents'"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors text-sm"
+          title="View documents"
+        >
+          <Icon name="heroicons:document-text" class="w-4 h-4 block" />
+          <span class="font-medium">{{ currentScope.documentCount }}</span>
+        </button>
+
         <!-- Team avatars -->
         <div v-if="currentScope?.assignees?.length" class="flex -space-x-2">
           <div

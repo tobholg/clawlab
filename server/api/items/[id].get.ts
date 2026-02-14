@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
       blockedBy: { include: { blockingItem: true } },
       blocks: { include: { blockedItem: true } },
       parent: true,
+      _count: { select: { documents: true } },
       children: {
         include: {
           owner: true,
@@ -98,6 +99,7 @@ export default defineEventHandler(async (event) => {
       title: d.blockedItem.title,
     })),
     childrenCount: item.children.length,
+    documentCount: item._count?.documents ?? 0,
     children: item.children.map(child => ({
       id: child.id,
       title: child.title,
