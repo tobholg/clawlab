@@ -1439,89 +1439,87 @@ const formatRelativeTime = (dateStr: string) => {
             </div>
 
             <div v-else-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
-              <template>
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
-                    <div class="text-sm font-medium text-slate-800 dark:text-zinc-200">
-                      Est. finish: {{ estimatedCompletion.isExact ? estimatedCompletion.baseDate : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` }}
-                    </div>
-                    <div class="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                      <span v-if="editedDueDate">Due {{ formatShortDate(editedDueDate) }}</span>
-                      <span v-if="editedDueDate">•</span>
-                      <span :class="['px-2 py-0.5 rounded-full text-[10px] font-medium', riskClasses]">
-                        {{ riskLabel }}
-                      </span>
-                    </div>
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-[10px] uppercase tracking-wider text-slate-400">Forecast</div>
+                  <div class="text-sm font-medium text-slate-800 dark:text-zinc-200">
+                    Est. finish: {{ estimatedCompletion.isExact ? estimatedCompletion.baseDate : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` }}
                   </div>
-                  <button
-                    class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
-                    @click="showForecastDetails = !showForecastDetails"
-                  >
-                    {{ showForecastDetails ? 'Hide details' : 'Details' }}
-                  </button>
-                </div>
-
-                <div class="mt-4">
-                  <div class="relative h-2 rounded-full bg-slate-100 dark:bg-white/[0.08] overflow-hidden">
-                    <div
-                      v-if="forecastBar"
-                      class="absolute inset-y-0 rounded-full bg-gradient-to-r"
-                      :class="rangeClasses"
-                      :style="{ left: `${forecastBar.rangeLeft}%`, width: `${forecastBar.rangeWidth}%` }"
-                    />
-                    <div
-                      v-if="forecastBar"
-                      class="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-700 dark:bg-zinc-300 shadow"
-                      :style="{ left: `calc(${forecastBar.basePos}% - 4px)` }"
-                    />
-                    <div
-                      v-if="forecastBar && forecastBar.duePos !== null"
-                      class="absolute -top-1 w-[2px] h-4"
-                      :class="dueMarkerClasses"
-                      :style="{ left: `calc(${forecastBar.duePos}% - 1px)` }"
-                    />
-                  </div>
-                  <div class="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>Now</span>
+                  <div class="mt-1 flex items-center gap-2 text-xs text-slate-500">
                     <span v-if="editedDueDate">Due {{ formatShortDate(editedDueDate) }}</span>
-                    <span v-else>—</span>
-                  </div>
-                </div>
-
-                <div v-if="showForecastDetails" class="mt-4 space-y-3">
-                  <div class="grid grid-cols-3 gap-2 text-center">
-                    <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
-                      <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.daysSpent }}</div>
-                      <div class="text-[10px] uppercase tracking-wide text-slate-400">Spent</div>
-                    </div>
-                    <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
-                      <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.totalEstimate }}</div>
-                      <div class="text-[10px] uppercase tracking-wide text-slate-400">Total</div>
-                    </div>
-                    <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
-                      <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.remainingDays }}</div>
-                      <div class="text-[10px] uppercase tracking-wide text-slate-400">Left</div>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                    <span v-if="!estimatedCompletion.isExact">
-                      ±{{ Math.floor(estimatedCompletion.bandDays / 2) }}d @ {{ editedConfidence }}% confidence
+                    <span v-if="editedDueDate">•</span>
+                    <span :class="['px-2 py-0.5 rounded-full text-[10px] font-medium', riskClasses]">
+                      {{ riskLabel }}
                     </span>
-                    <span>•</span>
-                    <span>Miss risk {{ estimatedCompletion.missProb }}%</span>
-                  </div>
-
-                  <div v-if="editedDueDate" class="text-[11px] text-slate-500">
-                    Due in {{ estimatedCompletion.daysUntilDue }} days, est. {{ estimatedCompletion.remainingDays }} days remaining
-                  </div>
-
-                  <div class="text-[11px] text-slate-500">
-                    {{ displayProgress }}% over {{ estimatedCompletion.daysSpent }} days = {{ estimatedCompletion.velocity }}%/day velocity {{ estimatedCompletion.missProb <= 33 ? '✨' : '' }}
                   </div>
                 </div>
-              </template>
+                <button
+                  class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
+                  @click="showForecastDetails = !showForecastDetails"
+                >
+                  {{ showForecastDetails ? 'Hide details' : 'Details' }}
+                </button>
+              </div>
+
+              <div class="mt-4">
+                <div class="relative h-2 rounded-full bg-slate-100 dark:bg-white/[0.08] overflow-hidden">
+                  <div
+                    v-if="forecastBar"
+                    class="absolute inset-y-0 rounded-full bg-gradient-to-r"
+                    :class="rangeClasses"
+                    :style="{ left: `${forecastBar.rangeLeft}%`, width: `${forecastBar.rangeWidth}%` }"
+                  />
+                  <div
+                    v-if="forecastBar"
+                    class="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-700 dark:bg-zinc-300 shadow"
+                    :style="{ left: `calc(${forecastBar.basePos}% - 4px)` }"
+                  />
+                  <div
+                    v-if="forecastBar && forecastBar.duePos !== null"
+                    class="absolute -top-1 w-[2px] h-4"
+                    :class="dueMarkerClasses"
+                    :style="{ left: `calc(${forecastBar.duePos}% - 1px)` }"
+                  />
+                </div>
+                <div class="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+                  <span>Now</span>
+                  <span v-if="editedDueDate">Due {{ formatShortDate(editedDueDate) }}</span>
+                  <span v-else>—</span>
+                </div>
+              </div>
+
+              <div v-if="showForecastDetails" class="mt-4 space-y-3">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                  <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
+                    <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.daysSpent }}</div>
+                    <div class="text-[10px] uppercase tracking-wide text-slate-400">Spent</div>
+                  </div>
+                  <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
+                    <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.totalEstimate }}</div>
+                    <div class="text-[10px] uppercase tracking-wide text-slate-400">Total</div>
+                  </div>
+                  <div class="bg-slate-50 dark:bg-white/[0.04] rounded-lg p-2">
+                    <div class="text-sm font-semibold text-slate-700 dark:text-zinc-300">{{ estimatedCompletion.remainingDays }}</div>
+                    <div class="text-[10px] uppercase tracking-wide text-slate-400">Left</div>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                  <span v-if="!estimatedCompletion.isExact">
+                    ±{{ Math.floor(estimatedCompletion.bandDays / 2) }}d @ {{ editedConfidence }}% confidence
+                  </span>
+                  <span>•</span>
+                  <span>Miss risk {{ estimatedCompletion.missProb }}%</span>
+                </div>
+
+                <div v-if="editedDueDate" class="text-[11px] text-slate-500">
+                  Due in {{ estimatedCompletion.daysUntilDue }} days, est. {{ estimatedCompletion.remainingDays }} days remaining
+                </div>
+
+                <div class="text-[11px] text-slate-500">
+                  {{ displayProgress }}% over {{ estimatedCompletion.daysSpent }} days = {{ estimatedCompletion.velocity }}%/day velocity {{ estimatedCompletion.missProb <= 33 ? '✨' : '' }}
+                </div>
+              </div>
             </div>
             
             <!-- No estimate message -->

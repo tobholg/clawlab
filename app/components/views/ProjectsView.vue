@@ -249,7 +249,7 @@ const healthMeta = (project: ItemNode) => {
               </button>
             </template>
             <span v-else-if="project.status !== 'done' && project.status !== 'todo'" class="text-emerald-500">
-              healthy
+              Healthy
             </span>
           </div>
 
