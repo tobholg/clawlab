@@ -68,6 +68,22 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // Auto-add to project channel if this is a root project (has a linked channel)
+  const projectChannel = await prisma.channel.findFirst({
+    where: { projectId: item.projectId ?? id },
+    select: { id: true },
+  })
+  if (projectChannel) {
+    const existingMember = await prisma.channelMember.findUnique({
+      where: { channelId_userId: { channelId: projectChannel.id, userId } },
+    })
+    if (!existingMember) {
+      await prisma.channelMember.create({
+        data: { channelId: projectChannel.id, userId, role: 'MEMBER' },
+      })
+    }
+  }
+
   return {
     id: assignment.id,
     userId: assignment.userId,

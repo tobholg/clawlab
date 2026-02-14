@@ -226,6 +226,7 @@ const editedStatus = ref('')
 const editedSubStatus = ref<string | null>(null)
 const editedCategory = ref('')
 const editedProgress = ref(0)
+const displayProgress = computed(() => editedStatus.value === 'done' ? 100 : editedProgress.value)
 const editedConfidence = ref(70)
 const editedDueDate = ref('')
 const editedStartDate = ref('')
@@ -290,6 +291,9 @@ const isInitializing = ref(true) // Prevent auto-save during initial load
 // Owner editing
 const editedOwnerId = ref<string | null>(null)
 
+// Track last loaded item ID to avoid resetting tab on refresh
+const lastLoadedItemId = ref<string | null>(null)
+
 // Load form data from itemDetail (full API data) when it loads
 watch(itemDetail, (detail) => {
   if (detail) {
@@ -308,8 +312,11 @@ watch(itemDetail, (detail) => {
     editedOwnerId.value = detail.owner?.id ?? null
     editingDescription.value = false
     descriptionExpanded.value = false
-    // Smart tab default: subtasks if item has children, else comments
-    activeTab.value = (detail.children?.length > 0 || detail.childrenCount > 0) ? 'subtasks' : 'comments'
+    // Only reset tab when navigating to a different item, not on refresh
+    if (detail.id !== lastLoadedItemId.value) {
+      activeTab.value = (detail.children?.length > 0 || detail.childrenCount > 0) ? 'subtasks' : 'comments'
+      lastLoadedItemId.value = detail.id
+    }
     // Allow auto-save after a tick
     nextTick(() => {
       isInitializing.value = false
@@ -334,6 +341,8 @@ watch(() => props.open, (isOpen) => {
     hasUnsavedChanges.value = false
     showAddSubtask.value = false
     newSubtaskTitle.value = ''
+  } else if (!isOpen) {
+    lastLoadedItemId.value = null
   }
 })
 
@@ -1336,6 +1345,18 @@ const formatRelativeTime = (dateStr: string) => {
                 </div>
               </div>
 
+              <!-- Start Date -->
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Started</span>
+                <div class="flex-1 min-w-0">
+                  <input
+                    v-model="editedStartDate"
+                    type="date"
+                    class="text-sm bg-transparent border-0 p-0 text-slate-700 dark:text-zinc-300 dark-date-input focus:outline-none focus:ring-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
               <!-- Due Date -->
               <div class="flex items-center py-2.5">
                 <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Due</span>
@@ -1349,18 +1370,6 @@ const formatRelativeTime = (dateStr: string) => {
                 </div>
               </div>
 
-              <!-- Start Date -->
-              <div class="flex items-center py-2.5">
-                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Started</span>
-                <div class="flex-1 min-w-0">
-                  <input
-                    v-model="editedStartDate"
-                    type="date"
-                    class="text-sm bg-transparent border-0 p-0 text-slate-700 dark:text-zinc-300 dark-date-input focus:outline-none focus:ring-0 cursor-pointer"
-                  />
-                </div>
-              </div>
-
               <!-- Progress -->
               <div class="flex items-center py-2.5">
                 <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Progress</span>
@@ -1369,7 +1378,7 @@ const formatRelativeTime = (dateStr: string) => {
                     <div class="h-1.5 bg-slate-200 dark:bg-white/[0.08] rounded-full overflow-hidden">
                       <div
                         class="h-full bg-gradient-to-r from-blue-400 to-blue-500 transition-all"
-                        :style="{ width: `${editedProgress}%` }"
+                        :style="{ width: `${displayProgress}%` }"
                       />
                     </div>
                     <input
@@ -1380,7 +1389,7 @@ const formatRelativeTime = (dateStr: string) => {
                       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                   </div>
-                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300 w-8 text-right tabular-nums">{{ editedProgress }}%</span>
+                  <span class="text-xs font-medium text-slate-700 dark:text-zinc-300 w-8 text-right tabular-nums">{{ displayProgress }}%</span>
                 </div>
               </div>
 
@@ -1500,12 +1509,32 @@ const formatRelativeTime = (dateStr: string) => {
                   </div>
 
                   <div class="text-[11px] text-slate-500">
-                    {{ editedProgress }}% over {{ estimatedCompletion.daysSpent }} days = {{ estimatedCompletion.velocity }}%/day velocity {{ estimatedCompletion.missProb <= 33 ? '✨' : '' }}
+                    {{ displayProgress }}% over {{ estimatedCompletion.daysSpent }} days = {{ estimatedCompletion.velocity }}%/day velocity {{ estimatedCompletion.missProb <= 33 ? '✨' : '' }}
                   </div>
                 </div>
               </template>
             </div>
             
+            <!-- Done state (no forecast needed) -->
+            <div v-else-if="editedStatus === 'done'" class="rounded-xl p-4 border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
+                    <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Completed</div>
+                    <div v-if="itemDetail?.completedAt" class="text-xs text-emerald-600/70 dark:text-emerald-400/60">
+                      {{ formatShortDate(itemDetail.completedAt) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                  100%
+                </div>
+              </div>
+            </div>
+
             <!-- No estimate message -->
             <div v-else-if="editedDueDate" class="bg-slate-50 dark:bg-white/[0.04] rounded-xl p-4 border border-dashed border-slate-200 dark:border-white/[0.06] text-center">
               <Icon name="heroicons:calculator" class="w-6 h-6 text-slate-300 mx-auto mb-2" />
@@ -1636,6 +1665,7 @@ const formatRelativeTime = (dateStr: string) => {
                   : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'"
               >
                 Docs
+                <span v-if="itemDetail?.documentCount" class="ml-1 text-slate-400 dark:text-zinc-500 font-normal">({{ itemDetail.documentCount }})</span>
                 <div v-if="activeTab === 'docs'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
               </button>
             </div>
@@ -1857,6 +1887,28 @@ const formatRelativeTime = (dateStr: string) => {
                       </div>
                       <MarkdownRenderer :content="comment.content" class="text-sm text-slate-600 dark:text-zinc-400" />
 
+                      <!-- Nested replies -->
+                      <div v-if="comment.replies?.length" class="mt-3 ml-2 pl-3 border-l-2 border-slate-100 dark:border-white/[0.06] space-y-3">
+                        <div
+                          v-for="reply in comment.replies"
+                          :key="reply.id"
+                          class="flex gap-3"
+                        >
+                          <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+                            <span class="text-xs text-slate-600 dark:text-zinc-400 font-medium">
+                              {{ reply.user?.name?.[0] ?? 'U' }}
+                            </span>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                              <span class="text-sm font-medium text-slate-700 dark:text-zinc-300">{{ reply.user?.name ?? 'User' }}</span>
+                              <span class="text-xs text-slate-400">{{ formatRelativeTime(reply.createdAt) }}</span>
+                            </div>
+                            <MarkdownRenderer :content="reply.content" class="text-sm text-slate-600 dark:text-zinc-400" />
+                          </div>
+                        </div>
+                      </div>
+
                       <!-- Reply button -->
                       <button
                         @click="replyingTo = replyingTo === comment.id ? null : comment.id"
@@ -1889,28 +1941,6 @@ const formatRelativeTime = (dateStr: string) => {
                           >
                             Reply
                           </button>
-                        </div>
-                      </div>
-
-                      <!-- Nested replies -->
-                      <div v-if="comment.replies?.length" class="mt-3 ml-2 pl-3 border-l-2 border-slate-100 dark:border-white/[0.06] space-y-3">
-                        <div
-                          v-for="reply in comment.replies"
-                          :key="reply.id"
-                          class="flex gap-2"
-                        >
-                          <div class="w-6 h-6 rounded-full bg-slate-200 dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0">
-                            <span class="text-[10px] text-slate-600 dark:text-zinc-400 font-medium">
-                              {{ reply.user?.name?.[0] ?? 'U' }}
-                            </span>
-                          </div>
-                          <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-0.5">
-                              <span class="text-xs font-medium text-slate-700 dark:text-zinc-300">{{ reply.user?.name ?? 'User' }}</span>
-                              <span class="text-[10px] text-slate-400">{{ formatRelativeTime(reply.createdAt) }}</span>
-                            </div>
-                            <MarkdownRenderer :content="reply.content" class="text-xs text-slate-600 dark:text-zinc-400" />
-                          </div>
                         </div>
                       </div>
                     </div>

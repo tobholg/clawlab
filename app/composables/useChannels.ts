@@ -52,6 +52,7 @@ export interface Channel {
   memberCount?: number
   messageCount?: number
   unreadCount?: number
+  hasUnread?: boolean
   parent?: { id: string; name: string; displayName: string } | null
   project?: { id: string; title: string } | null
   members?: ChannelMember[]

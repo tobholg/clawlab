@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { prisma } from '../../../utils/prisma'
-import { requireUser } from '../../../utils/auth'
+import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
 import { checkCanUseAICredit, consumeAICredit } from '../../../utils/planLimits'
 import { broadcastNewMessage } from '../../../utils/websocket'
 
@@ -31,13 +31,14 @@ type TaskProposal = {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
   const channelId = getRouterParam(event, 'id')
-  const body = await readBody<{ prompt?: string }>(event)
 
   if (!channelId) {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
+
+  const { user } = await requireWorkspaceMemberForChannel(event, channelId)
+  const body = await readBody<{ prompt?: string }>(event)
 
   const prompt = body?.prompt?.trim()
   if (!prompt) {

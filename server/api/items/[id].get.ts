@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
     priority: item.priority ?? null,
     dueDate: item.dueDate?.toISOString() ?? null,
     startDate: item.startDate?.toISOString() ?? null,
+    completedAt: item.completedAt?.toISOString() ?? null,
     confidence: item.confidence,
     progress: item.progress,
     temperature: calculateTemperature(item),

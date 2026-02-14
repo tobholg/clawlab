@@ -102,15 +102,6 @@ defineExpose({ focus })
 <template>
   <div class="border-t border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-surface px-4 py-3">
     <div class="max-w-3xl mx-auto flex items-center gap-2">
-      <!-- Attachment button -->
-      <button
-        class="flex-shrink-0 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded-lg transition-colors flex items-center justify-center"
-        title="Attach file (coming soon)"
-        disabled
-      >
-        <Icon name="heroicons:paper-clip" class="w-5 h-5" />
-      </button>
-
       <!-- Input area -->
       <div class="flex-1 relative flex items-center">
         <textarea
@@ -139,7 +130,7 @@ defineExpose({ focus })
     </div>
 
     <!-- Helper text -->
-    <p v-if="!hideHelper" class="mt-1.5 text-xs text-slate-400 dark:text-zinc-500 max-w-3xl mx-auto px-12">
+    <p v-if="!hideHelper" class="mt-1.5 text-xs text-slate-400 dark:text-zinc-500 max-w-3xl mx-auto">
       Type <kbd class="px-1 py-0.5 bg-slate-100 dark:bg-dm-card rounded text-[10px] font-mono">@ai</kbd> to get AI assistance
     </p>
   </div>

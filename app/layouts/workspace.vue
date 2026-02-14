@@ -8,10 +8,12 @@ const { toggleSection, isSectionCollapsed } = useSidebarSections()
 const { sidebarPreview, activeCount: myTasksActiveCount, hasMoreTasks, fetchMyTasks } = useMyTasks()
 
 // Fetch channels for sidebar
-const { channelTree, loading: channelsLoading } = useChannels(workspaceId)
+const { channels: allChannels, channelTree, loading: channelsLoading, fetchChannels: refreshChannels } = useChannels(workspaceId)
+provide('refreshSidebarChannels', refreshChannels)
 
 const sidebarCollapsed = ref(false)
 const showUserSettings = ref(false)
+const showCreateChannel = ref(false)
 
 const { user } = useAuth()
 const userInitial = computed(() => (user.value?.name || user.value?.email || '?').charAt(0).toUpperCase())
@@ -326,12 +328,21 @@ const statusDotClass = (status: string) => {
           <button @click="toggleSection('channels')" class="text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-white transition-colors">
             Channels
           </button>
-          <button
-            @click="toggleSection('channels')"
-            class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
-          >
-            <Icon :name="isSectionCollapsed('channels') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
-          </button>
+          <div class="flex items-center gap-0.5">
+            <button
+              @click.stop="showCreateChannel = true"
+              class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              title="Create channel"
+            >
+              <Icon name="heroicons:plus" class="w-3 h-3" />
+            </button>
+            <button
+              @click="toggleSection('channels')"
+              class="p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+            >
+              <Icon :name="isSectionCollapsed('channels') ? 'heroicons:chevron-right' : 'heroicons:chevron-down'" class="w-3 h-3" />
+            </button>
+          </div>
         </div>
         <div v-if="!isSectionCollapsed('channels')">
           <template v-for="channel in channelTree" :key="channel.id">
@@ -349,11 +360,9 @@ const statusDotClass = (status: string) => {
                 />
               </div>
               <span class="flex-1 text-left truncate">{{ channel.displayName }}</span>
-              <span
-                v-if="channel.unreadCount && channel.unreadCount > 0"
-                class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400 px-1.5 py-0.5 rounded-full"
-              >
-                {{ channel.unreadCount }}
+              <span v-if="channel.hasUnread && currentChannelId !== channel.id" class="relative flex-shrink-0 w-2 h-2">
+                <span class="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />
+                <span class="relative block w-2 h-2 rounded-full bg-emerald-400" />
               </span>
               <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
             </NuxtLink>
@@ -532,6 +541,15 @@ const statusDotClass = (status: string) => {
     <UserSettingsModal
       v-if="showUserSettings"
       @close="showUserSettings = false"
+    />
+
+    <!-- Create Channel Modal -->
+    <ChannelsCreateChannelModal
+      :open="showCreateChannel"
+      :workspace-id="workspaceId || ''"
+      :channels="allChannels.filter(c => !c.parentId).map(c => ({ id: c.id, displayName: c.displayName }))"
+      @close="showCreateChannel = false"
+      @created="refreshChannels()"
     />
 
     <!-- Sidebar Task Detail Modal -->

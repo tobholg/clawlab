@@ -1,5 +1,5 @@
 import { prisma } from '../../../../utils/prisma'
-import { requireUser } from '../../../../utils/auth'
+import { requireWorkspaceMemberForChannel } from '../../../../utils/auth'
 import { getDefaultSubStatus } from '../../../../utils/itemStage'
 
 type ProposedTask = {
@@ -15,13 +15,14 @@ type TaskProposal = {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event)
   const channelId = getRouterParam(event, 'id')
-  const body = await readBody<{ proposal?: TaskProposal }>(event)
 
   if (!channelId) {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
+
+  await requireWorkspaceMemberForChannel(event, channelId)
+  const body = await readBody<{ proposal?: TaskProposal }>(event)
 
   const proposal = body?.proposal
   if (!proposal) {

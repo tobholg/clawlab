@@ -1,13 +1,14 @@
 import { prisma } from '../../utils/prisma'
-import { getSessionUser } from '../../utils/auth'
+import { requireWorkspaceMemberForChannel } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
-  const sessionUser = await getSessionUser(event)
 
   if (!id) {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
+
+  const { user: sessionUser } = await requireWorkspaceMemberForChannel(event, id)
 
   const channel = await prisma.channel.findUnique({
     where: { id },
@@ -69,51 +70,49 @@ export default defineEventHandler(async (event) => {
     missedBoundaryMessageId: null,
   }
 
-  if (sessionUser) {
-    let readState = await prisma.channelReadState.findUnique({
+  let readState = await prisma.channelReadState.findUnique({
+    where: {
+      channelId_userId: {
+        channelId: channel.id,
+        userId: sessionUser.id,
+      },
+    },
+  })
+
+  if (!readState) {
+    const initialLastSeenAt = channel.messages[0]?.createdAt ?? new Date()
+    readState = await prisma.channelReadState.upsert({
       where: {
         channelId_userId: {
           channelId: channel.id,
           userId: sessionUser.id,
         },
       },
-    })
-
-    if (!readState) {
-      const initialLastSeenAt = channel.messages[0]?.createdAt ?? new Date()
-      readState = await prisma.channelReadState.upsert({
-        where: {
-          channelId_userId: {
-            channelId: channel.id,
-            userId: sessionUser.id,
-          },
-        },
-        update: {},
-        create: {
-          channelId: channel.id,
-          userId: sessionUser.id,
-          lastSeenAt: initialLastSeenAt,
-        },
-      })
-    }
-
-    const missedCount = await prisma.message.count({
-      where: {
+      update: {},
+      create: {
         channelId: channel.id,
-        deleted: false,
-        parentId: null,
-        createdAt: { gt: readState.lastSeenAt },
+        userId: sessionUser.id,
+        lastSeenAt: initialLastSeenAt,
       },
     })
+  }
 
-    const missedBoundaryMessageId =
-      chronologicalMessages.find((msg) => msg.createdAt > readState.lastSeenAt)?.id ?? null
+  const missedCount = await prisma.message.count({
+    where: {
+      channelId: channel.id,
+      deleted: false,
+      parentId: null,
+      createdAt: { gt: readState.lastSeenAt },
+    },
+  })
 
-    readStatePayload = {
-      lastSeenAt: readState.lastSeenAt.toISOString(),
-      missedCount,
-      missedBoundaryMessageId,
-    }
+  const missedBoundaryMessageId =
+    chronologicalMessages.find((msg) => msg.createdAt > readState.lastSeenAt)?.id ?? null
+
+  readStatePayload = {
+    lastSeenAt: readState.lastSeenAt.toISOString(),
+    missedCount,
+    missedBoundaryMessageId,
   }
 
   return {

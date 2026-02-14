@@ -1,5 +1,5 @@
 import { prisma } from '../../../utils/prisma'
-import { requireUser } from '../../../utils/auth'
+import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
 import { broadcastNewMessage } from '../../../utils/websocket'
 
 const MAX_MESSAGE_LENGTH = 5000
@@ -10,13 +10,15 @@ interface CreateMessageBody {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event)
   const channelId = getRouterParam(event, 'id')
-  const body = await readBody<CreateMessageBody>(event)
 
   if (!channelId) {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
+
+  const { user } = await requireWorkspaceMemberForChannel(event, channelId)
+
+  const body = await readBody<CreateMessageBody>(event)
 
   if (!body.content?.trim()) {
     throw createError({ statusCode: 400, message: 'content is required' })
@@ -24,15 +26,6 @@ export default defineEventHandler(async (event) => {
 
   if (body.content.length > MAX_MESSAGE_LENGTH) {
     throw createError({ statusCode: 400, message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer` })
-  }
-
-  // Verify channel exists
-  const channel = await prisma.channel.findUnique({
-    where: { id: channelId },
-  })
-
-  if (!channel) {
-    throw createError({ statusCode: 404, message: 'Channel not found' })
   }
 
   // If parentId provided, verify it exists

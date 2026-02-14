@@ -24,15 +24,42 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Assignment not found' })
   }
   
+  // Get item's projectId before deleting
+  const item = await prisma.item.findUnique({
+    where: { id },
+    select: { projectId: true },
+  })
+
   await prisma.itemAssignment.delete({
     where: { id: assignment.id }
   })
-  
+
   // Update item's lastActivityAt
   await prisma.item.update({
     where: { id },
     data: { lastActivityAt: new Date() }
   })
-  
+
+  // Remove from project channel if no longer assigned to any items in the project
+  const projectId = item?.projectId ?? id
+  const projectChannel = await prisma.channel.findFirst({
+    where: { projectId },
+    select: { id: true },
+  })
+  if (projectChannel) {
+    // Check if user is still assigned to any other item in this project
+    const otherAssignments = await prisma.itemAssignment.findFirst({
+      where: {
+        userId: userId!,
+        item: { OR: [{ id: projectId }, { projectId }] },
+      },
+    })
+    if (!otherAssignments) {
+      await prisma.channelMember.deleteMany({
+        where: { channelId: projectChannel.id, userId: userId!, role: 'MEMBER' },
+      })
+    }
+  }
+
   return { deleted: true, userId }
 })

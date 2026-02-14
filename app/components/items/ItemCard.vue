@@ -109,9 +109,15 @@ const estimatedCompletion = computed(() => {
   }
 })
 
+// Display progress: show 100% for done items regardless of stored value
+const displayProgress = computed(() => {
+  if (props.item.status === 'done') return 100
+  return props.item.progress ?? 0
+})
+
 // Progress ring color
 const progressColor = computed(() => {
-  const p = props.item.progress ?? 0
+  const p = displayProgress.value
   if (p >= 80) return 'text-emerald-400'
   if (p >= 50) return 'text-blue-400'
   if (p >= 25) return 'text-amber-400'
@@ -344,7 +350,7 @@ const handleCardClick = () => {
               fill="transparent"
               stroke-width="1.5"
               :stroke-dasharray="53.4"
-              :stroke-dashoffset="53.4 - ((item.progress ?? 0) / 100) * 53.4"
+              :stroke-dashoffset="53.4 - (displayProgress / 100) * 53.4"
               :class="[progressColor, 'transition-all duration-500']"
               stroke-linecap="round"
               r="8.5"
@@ -353,7 +359,7 @@ const handleCardClick = () => {
             />
           </svg>
           <span class="absolute text-[8px] font-normal text-slate-400">
-            {{ item.progress ?? 0 }}
+            {{ displayProgress }}
           </span>
         </div>
         

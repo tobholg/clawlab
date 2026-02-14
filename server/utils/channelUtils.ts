@@ -83,6 +83,14 @@ export async function createProjectChannel(
     suffix++
   }
 
+  // Find all assignees of the project to auto-add as members
+  const projectAssignees = await prisma.itemAssignment.findMany({
+    where: { item: { OR: [{ id: projectId }, { projectId }] } },
+    select: { userId: true },
+  })
+  const assigneeUserIds = [...new Set(projectAssignees.map(a => a.userId))]
+    .filter(uid => uid !== creatorUserId)
+
   const channel = await prisma.channel.create({
     data: {
       workspaceId,
@@ -92,10 +100,10 @@ export async function createProjectChannel(
       type: 'PROJECT',
       visibility: 'PUBLIC',
       members: {
-        create: {
-          userId: creatorUserId,
-          role: 'OWNER',
-        },
+        create: [
+          { userId: creatorUserId, role: 'OWNER' },
+          ...assigneeUserIds.map(uid => ({ userId: uid, role: 'MEMBER' as const })),
+        ],
       },
     },
     include: {

@@ -21,6 +21,10 @@ const {
   sendMessage,
 } = useChannels(workspaceId)
 
+const refreshSidebarChannels = inject<() => Promise<void>>('refreshSidebarChannels')
+
+const showSettings = ref(false)
+
 const AI_TRIGGER = /\B@ai\b/i
 const MISSED_PROMPT_THRESHOLD = 5
 const SEEN_HEARTBEAT_MS = 10000
@@ -290,10 +294,11 @@ onUnmounted(() => {
   void flushSeen(true)
 })
 
-onBeforeRouteLeave(() => {
+onBeforeRouteLeave(async () => {
   const latestMessageAt = messages.value[messages.value.length - 1]?.createdAt
   queueSeenAt(latestMessageAt)
-  void flushSeen(true)
+  await flushSeen(true)
+  refreshSidebarChannels?.()
 })
 
 // Presence for current channel
@@ -361,7 +366,10 @@ const handleWhatDidIMiss = () => {
           <ChannelsPresenceIndicator :users="channelPresence" />
 
           <!-- Settings -->
-          <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded-lg transition-colors flex items-center justify-center">
+          <button
+            @click="showSettings = true"
+            class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] rounded-lg transition-colors flex items-center justify-center"
+          >
             <Icon name="heroicons:cog-6-tooth" class="w-5 h-5" />
           </button>
         </div>
@@ -449,5 +457,15 @@ const handleWhatDidIMiss = () => {
         />
       </div>
     </Transition>
+
+    <!-- Channel Settings Panel -->
+    <ChannelsChannelSettingsPanel
+      :open="showSettings"
+      :channel="currentChannel"
+      :current-user-id="currentUser?.id || ''"
+      :workspace-id="workspaceId || ''"
+      @close="showSettings = false"
+      @updated="fetchChannel(channelId)"
+    />
   </div>
 </template>
