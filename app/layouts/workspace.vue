@@ -135,8 +135,10 @@ const handleSidebarTaskClick = (task: any) => {
   showTaskDetail.value = true
 }
 
-const handleTaskUpdate = async () => {
-  showTaskDetail.value = false
+const handleTaskUpdate = async (_id: string, opts?: { _close?: boolean }) => {
+  if (opts?._close) {
+    showTaskDetail.value = false
+  }
   await fetchMyTasks()
 }
 
@@ -151,12 +153,6 @@ const statusDotClass = (status: string) => {
   }
 }
 
-// Temperature dot - only show for hot/critical
-const tempDotClass = (temp: string) => {
-  if (temp === 'critical') return 'bg-red-500'
-  if (temp === 'hot') return 'bg-orange-400'
-  return ''
-}
 </script>
 
 <template>
@@ -165,7 +161,7 @@ const tempDotClass = (temp: string) => {
     <!-- Sidebar -->
     <aside
       :class="[
-        'border-r border-slate-200/60 dark:border-white/[0.06] bg-white dark:bg-[#020203] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        'border-r border-slate-200/60 dark:border-white/[0.06] bg-white dark:bg-[#010101] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
         sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
       ]"
     >
@@ -307,12 +303,7 @@ const tempDotClass = (temp: string) => {
                 <div class="w-2 h-2 rounded-full" :class="statusDotClass(task.status)" />
               </div>
               <span class="flex-1 text-left truncate">{{ task.title }}</span>
-              <div
-                v-if="tempDotClass(task.temperature)"
-                class="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                :class="tempDotClass(task.temperature)"
-              />
-              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
+              <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
             </button>
             <NuxtLink
               v-if="hasMoreTasks"

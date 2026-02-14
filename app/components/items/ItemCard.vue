@@ -316,7 +316,7 @@ const handleCardClick = () => {
         <span
           v-if="estimatedCompletion && !estimatedCompletion.complete"
           class="text-[10px] font-medium"
-          :class="estimateMeta.missProb >= 65 ? 'text-rose-500 dark:text-rose-400' : estimateMeta.missProb >= 33 ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400'"
+          :class="estimateMeta.missProb >= 65 ? 'text-rose-500 dark:text-rose-400' : estimateMeta.missProb >= 33 ? 'text-amber-500 dark:text-amber-400' : item.dueDate ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400'"
         >
           {{ estimatedCompletion.isExact ? estimatedCompletion.baseDate : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` }}
         </span>

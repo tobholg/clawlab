@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getItemEstimateMeta } from '~/utils/itemRisk'
+
 definePageMeta({ layout: 'workspace' })
 
 const router = useRouter()
@@ -26,8 +28,10 @@ const openTask = (task: any) => {
   showDetailModal.value = true
 }
 
-const handleUpdate = async () => {
-  showDetailModal.value = false
+const handleUpdate = async (_id: string, opts?: { _close?: boolean }) => {
+  if (opts?._close) {
+    showDetailModal.value = false
+  }
   await fetchMyTasks()
 }
 
@@ -61,6 +65,17 @@ const tempDotClass = (temp: string) => {
 const formatDate = (date: string | null) => {
   if (!date) return ''
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const dueDateClass = (task: any) => {
+  if (!task.dueDate) return ''
+  const meta = getItemEstimateMeta(task)
+  if (meta.missProb >= 66) return 'text-rose-500 dark:text-rose-400'
+  if (meta.missProb >= 33) return 'text-amber-500 dark:text-amber-400'
+  if (task.status === 'done' || task.status === 'DONE') return 'text-emerald-500 dark:text-emerald-400'
+  // Has due date with low risk
+  if (task.startDate && task.progress > 0) return 'text-emerald-500 dark:text-emerald-400'
+  return 'text-slate-400 dark:text-zinc-500'
 }
 </script>
 
@@ -183,7 +198,7 @@ const formatDate = (date: string | null) => {
               />
 
               <!-- Due date -->
-              <span v-if="task.dueDate" class="text-xs text-slate-400 dark:text-zinc-500 flex-shrink-0">
+              <span v-if="task.dueDate" class="text-xs font-medium flex-shrink-0" :class="dueDateClass(task)">
                 {{ formatDate(task.dueDate) }}
               </span>
 

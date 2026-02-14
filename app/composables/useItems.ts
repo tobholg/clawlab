@@ -138,6 +138,7 @@ export function useItems() {
     // If already at this scope, just refresh
     if (currentScopeId.value === targetId) {
       refreshItems()
+      if (targetId) fetchScopeDetails(targetId)
       return
     }
 

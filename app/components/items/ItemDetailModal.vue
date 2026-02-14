@@ -151,11 +151,11 @@ const openCompleteWithChildrenModal = (source: 'status' | 'focus') => {
 }
 
 const handleCompleteWithChildren = async () => {
-  if (!props.item?.id) return
+  if (!currentItemId.value) return
   completeWithChildrenLoading.value = true
   completeWithChildrenError.value = null
   try {
-    await $fetch(`/api/items/${props.item.id}/complete`, {
+    await $fetch(`/api/items/${currentItemId.value}/complete`, {
       method: 'POST',
       body: { cascade: true, maxDepth: 5 },
     })
@@ -165,7 +165,7 @@ const handleCompleteWithChildren = async () => {
     editedStatus.value = 'done'
     editedProgress.value = 100
     await refreshItem()
-    emit('update', props.item.id, { _saved: true, _close: false })
+    emit('update', currentItemId.value, { _saved: true, _close: false })
 
     if (completeWithChildrenSource.value === 'focus') {
       await completeTask(undefined, false)
@@ -244,6 +244,8 @@ const showComplexityDropdown = ref(false)
 const showPriorityDropdown = ref(false)
 const descriptionRef = ref<HTMLTextAreaElement | null>(null)
 const editingDescription = ref(false)
+const descriptionExpanded = ref(false)
+const descriptionContentRef = ref<HTMLElement | null>(null)
 const activeTab = ref<'subtasks' | 'comments' | 'docs'>('subtasks')
 
 // Auto-resize description textarea
@@ -254,9 +256,28 @@ const autoResizeDescription = () => {
   }
 }
 
+// Check if description content overflows the max height
+const descriptionOverflows = computed(() => {
+  // Rough heuristic: if content has >6 lines or >400 chars, it likely overflows 150px
+  if (!editedDescription.value) return false
+  const lineCount = editedDescription.value.split('\n').length
+  return lineCount > 6 || editedDescription.value.length > 400
+})
+
+const startEditingDescription = () => {
+  editingDescription.value = true
+  descriptionExpanded.value = false
+  nextTick(() => {
+    autoResizeDescription()
+    descriptionRef.value?.focus()
+  })
+}
+
 // Trigger resize when description loads
 watch(editedDescription, () => {
-  nextTick(autoResizeDescription)
+  if (editingDescription.value) {
+    nextTick(autoResizeDescription)
+  }
 })
 const newComment = ref('')
 const replyingTo = ref<string | null>(null)
@@ -285,6 +306,8 @@ watch(itemDetail, (detail) => {
     editedDueDate.value = detail.dueDate?.split('T')[0] ?? ''
     editedStartDate.value = detail.startDate?.split('T')[0] ?? ''
     editedOwnerId.value = detail.owner?.id ?? null
+    editingDescription.value = false
+    descriptionExpanded.value = false
     // Smart tab default: subtasks if item has children, else comments
     activeTab.value = (detail.children?.length > 0 || detail.childrenCount > 0) ? 'subtasks' : 'comments'
     // Allow auto-save after a tick
@@ -454,9 +477,9 @@ const estimatedCompletion = computed(() => {
 
 // Auto-save with debounce
 const saveChanges = async () => {
-  if (!props.item || !props.open) return
+  if (!currentItemId.value || !props.open) return
   isSaving.value = true
-  
+
   const payload = {
     title: editedTitle.value,
     description: editedDescription.value,
@@ -471,15 +494,15 @@ const saveChanges = async () => {
     startDate: editedStartDate.value || null,
     ownerId: editedOwnerId.value,
   }
-  
+
   try {
-    await $fetch(`/api/items/${props.item.id}`, {
+    await $fetch(`/api/items/${currentItemId.value}`, {
       method: 'PATCH',
       body: payload
     })
     hasUnsavedChanges.value = false
     // Emit update to refresh parent list (don't close modal)
-    emit('update', props.item.id, { _saved: true, _close: false })
+    emit('update', currentItemId.value, { _saved: true, _close: false })
   } catch (e) {
     console.error('Failed to save:', e)
   } finally {
@@ -576,23 +599,23 @@ const handleClose = async () => {
     await saveChanges()
   }
   // Signal parent to close and refresh
-  emit('update', props.item?.id ?? '', { _close: true })
+  emit('update', currentItemId.value ?? props.item?.id ?? '', { _close: true })
   emit('close')
 }
 
 // Delete item
 const deleteItem = async () => {
-  if (!props.item) return
+  if (!currentItemId.value) return
 
   const parentId = itemDetail.value?.parentId ?? null
 
   isDeleting.value = true
   deleteError.value = null
   try {
-    await $fetch(`/api/items/${props.item.id}`, {
+    await $fetch(`/api/items/${currentItemId.value}`, {
       method: 'DELETE',
     })
-    emit('deleted', props.item.id)
+    emit('deleted', currentItemId.value)
     emit('close')
 
     // Navigate to parent item page, or workspace root if top-level project
@@ -611,9 +634,9 @@ const deleteItem = async () => {
 
 // Assign user
 const assignUser = async (userId: string) => {
-  if (!props.item) return
+  if (!currentItemId.value) return
   try {
-    await $fetch(`/api/items/${props.item.id}/assignees`, {
+    await $fetch(`/api/items/${currentItemId.value}/assignees`, {
       method: 'POST',
       body: { userId }
     })
@@ -625,9 +648,9 @@ const assignUser = async (userId: string) => {
 
 // Remove assignee
 const removeAssignee = async (userId: string) => {
-  if (!props.item) return
+  if (!currentItemId.value) return
   try {
-    await $fetch(`/api/items/${props.item.id}/assignees/${userId}`, {
+    await $fetch(`/api/items/${currentItemId.value}/assignees/${userId}`, {
       method: 'DELETE'
     })
     await refreshItem()
@@ -686,10 +709,10 @@ const submitSubtask = async () => {
 
 // Comments
 const submitComment = async () => {
-  if (!newComment.value.trim() || !props.item) return
-  
+  if (!newComment.value.trim() || !currentItemId.value) return
+
   try {
-    await $fetch(`/api/items/${props.item.id}/comments`, {
+    await $fetch(`/api/items/${currentItemId.value}/comments`, {
       method: 'POST',
       body: { 
         content: newComment.value,
@@ -704,10 +727,10 @@ const submitComment = async () => {
 }
 
 const submitReply = async (parentId: string) => {
-  if (!replyText.value.trim() || !props.item) return
-  
+  if (!replyText.value.trim() || !currentItemId.value) return
+
   try {
-    await $fetch(`/api/items/${props.item.id}/comments`, {
+    await $fetch(`/api/items/${currentItemId.value}/comments`, {
       method: 'POST',
       body: { 
         content: replyText.value, 
@@ -1068,16 +1091,42 @@ const formatRelativeTime = (dateStr: string) => {
             
             <!-- Description -->
             <div v-if="!editingDescription">
-              <MarkdownRenderer
-                v-if="editedDescription"
-                :content="editedDescription"
-                class="text-sm text-slate-600 dark:text-zinc-400 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
-                @click="editingDescription = true; nextTick(() => { autoResizeDescription(); descriptionRef?.focus() })"
-              />
+              <div v-if="editedDescription" class="relative">
+                <div
+                  ref="descriptionContentRef"
+                  class="relative cursor-text rounded px-1 -mx-1 py-0.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                  :class="!descriptionExpanded && descriptionOverflows ? 'max-h-[220px] overflow-hidden' : ''"
+                  @click="startEditingDescription"
+                >
+                  <MarkdownRenderer
+                    :content="editedDescription"
+                    class="text-sm text-slate-600 dark:text-zinc-400"
+                  />
+                  <!-- Fade overlay when collapsed -->
+                  <div
+                    v-if="!descriptionExpanded && descriptionOverflows"
+                    class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-dm-card pointer-events-none rounded-b"
+                  />
+                </div>
+                <button
+                  v-if="!descriptionExpanded && descriptionOverflows"
+                  @click.stop="descriptionExpanded = true"
+                  class="mt-1 text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+                >
+                  View full description
+                </button>
+                <button
+                  v-else-if="descriptionExpanded && descriptionOverflows"
+                  @click.stop="descriptionExpanded = false"
+                  class="mt-1 text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+                >
+                  Show less
+                </button>
+              </div>
               <p
                 v-else
                 class="text-sm text-slate-400 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
-                @click="editingDescription = true; nextTick(() => descriptionRef?.focus())"
+                @click="startEditingDescription"
               >
                 Add a description...
               </p>
@@ -1086,9 +1135,9 @@ const formatRelativeTime = (dateStr: string) => {
               v-else
               ref="descriptionRef"
               v-model="editedDescription"
-              rows="1"
-              class="w-full text-sm text-slate-600 dark:text-zinc-400 bg-transparent px-0 py-1 border-0 focus:outline-none resize-none placeholder-slate-400 dark:placeholder-zinc-600"
-              placeholder="Add a description..."
+              rows="3"
+              class="w-full text-sm text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-white/[0.04] rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.06] focus:outline-none focus:border-slate-300 dark:focus:border-white/[0.1] focus:ring-0 resize-none placeholder-slate-400 dark:placeholder-zinc-600 font-mono"
+              placeholder="Add a description... (supports Markdown)"
               @input="autoResizeDescription"
               @blur="editingDescription = false"
             />

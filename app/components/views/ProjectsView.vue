@@ -185,11 +185,11 @@ const healthMeta = (project: ItemNode) => {
 <template>
   <div>
     <!-- Projects Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
       <div
         v-for="project in sortedProjects"
         :key="project.id"
-        class="group relative overflow-hidden bg-white/90 dark:bg-dm-card/90 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] dark:shadow-[0_10px_30px_-20px_rgba(0,0,0,0.6)] hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] dark:hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.7)] dark:hover:border-white/[0.1] dark:hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
+        class="group relative overflow-hidden bg-white/90 dark:bg-dm-card/90 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] dark:shadow-[0_10px_30px_-20px_rgba(0,0,0,0.6)] hover:bg-slate-50/80 hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] dark:hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.7)] dark:hover:border-white/[0.1] dark:hover:bg-white/[0.07] transition-all duration-200 cursor-pointer"
         @click="emit('openProject', project)"
       >
         <div class="p-5 relative">

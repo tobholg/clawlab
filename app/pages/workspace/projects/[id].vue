@@ -60,6 +60,24 @@ const completeWithChildrenError = ref<string | null>(null)
 const pendingCompleteItem = ref<any>(null)
 const editingTitle = ref(false)
 const editingDescription = ref(false)
+
+// Header assignee tooltip
+const headerTooltipAssignee = ref<{ id: string; name: string } | null>(null)
+const headerTooltipPos = ref({ top: 0, left: 0 })
+
+const onHeaderAssigneeEnter = (assignee: { id: string; name: string }, e: MouseEvent) => {
+  const el = e.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  headerTooltipPos.value = {
+    top: rect.bottom + 8,
+    left: rect.left + rect.width / 2,
+  }
+  headerTooltipAssignee.value = assignee
+}
+
+const onHeaderAssigneeLeave = () => {
+  headerTooltipAssignee.value = null
+}
 const titleInputRef = ref<HTMLInputElement | null>(null)
 const descriptionRef = ref<HTMLTextAreaElement | null>(null)
 const descriptionNeedsTruncation = computed(() => {
@@ -479,8 +497,9 @@ onMounted(() => {
           <div
             v-for="assignee in currentScope.assignees.slice(0, 3)"
             :key="assignee.id"
-            class="w-8 h-8 rounded-full border-2 border-white dark:border-dm bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center"
-            :title="assignee.name"
+            class="w-8 h-8 rounded-full border-2 border-white dark:border-dm bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center cursor-default"
+            @mouseenter="onHeaderAssigneeEnter(assignee, $event)"
+            @mouseleave="onHeaderAssigneeLeave"
           >
             <span class="text-xs text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
           </div>
@@ -826,4 +845,29 @@ onMounted(() => {
     @close="showArchiveModal = false"
     @open-detail="handleOpenDetail"
   />
+
+  <!-- Header assignee tooltip -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <div
+        v-if="headerTooltipAssignee"
+        class="fixed z-[100] pointer-events-none"
+        :style="{ top: `${headerTooltipPos.top}px`, left: `${headerTooltipPos.left}px`, transform: 'translateX(-50%)' }"
+      >
+        <div class="flex justify-center -mb-px">
+          <div class="w-2 h-2 bg-white dark:bg-zinc-800 border-t border-l border-slate-200/80 dark:border-zinc-700 rotate-45 translate-y-1" />
+        </div>
+        <div class="px-2.5 py-1.5 bg-white dark:bg-zinc-800 rounded-lg shadow-lg shadow-black/10 dark:shadow-black/50 border border-slate-200/80 dark:border-zinc-700 whitespace-nowrap">
+          <span class="text-xs font-medium text-slate-700 dark:text-zinc-200">{{ headerTooltipAssignee.name }}</span>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>

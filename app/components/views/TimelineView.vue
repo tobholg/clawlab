@@ -96,7 +96,6 @@ const displayItems = computed<DisplayItem[]>(() => {
     
     if (expandedItems.value.has(item.id) && item.children?.length) {
       item.children
-        .filter(c => c.status !== 'done')
         .forEach(child => {
           result.push({
             ...child,

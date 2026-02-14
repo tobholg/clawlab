@@ -23,11 +23,11 @@ const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
 
 // Subtle column styling
 const columnStyles: Record<Item['status'], { bg: string; headerColor: string; dropBg: string }> = {
-  todo: { bg: 'bg-slate-100 dark:bg-white/[0.02]', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
-  in_progress: { bg: 'bg-blue-100/50 dark:bg-white/[0.02]', headerColor: 'text-blue-600 dark:text-blue-400', dropBg: 'bg-blue-200 dark:bg-white/[0.06]' },
-  blocked: { bg: 'bg-rose-100/50 dark:bg-white/[0.02]', headerColor: 'text-rose-600 dark:text-rose-400', dropBg: 'bg-rose-200 dark:bg-white/[0.06]' },
-  paused: { bg: 'bg-amber-100/50 dark:bg-white/[0.02]', headerColor: 'text-amber-600 dark:text-amber-400', dropBg: 'bg-amber-200 dark:bg-white/[0.06]' },
-  done: { bg: 'bg-emerald-100/50 dark:bg-white/[0.02]', headerColor: 'text-emerald-600 dark:text-emerald-400', dropBg: 'bg-emerald-200 dark:bg-white/[0.06]' },
+  todo: { bg: 'bg-slate-100 dark:bg-white/[0.025]', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
+  in_progress: { bg: 'bg-blue-100/50 dark:bg-white/[0.025]', headerColor: 'text-blue-600 dark:text-blue-400', dropBg: 'bg-blue-200 dark:bg-white/[0.06]' },
+  blocked: { bg: 'bg-rose-100/50 dark:bg-white/[0.025]', headerColor: 'text-rose-600 dark:text-rose-400', dropBg: 'bg-rose-200 dark:bg-white/[0.06]' },
+  paused: { bg: 'bg-amber-100/50 dark:bg-white/[0.025]', headerColor: 'text-amber-600 dark:text-amber-400', dropBg: 'bg-amber-200 dark:bg-white/[0.06]' },
+  done: { bg: 'bg-emerald-100/50 dark:bg-white/[0.025]', headerColor: 'text-emerald-600 dark:text-emerald-400', dropBg: 'bg-emerald-200 dark:bg-white/[0.06]' },
 }
 
 // Track collapsed state for each section (key: "status:subStatus" or "done:timeGroup")
@@ -413,17 +413,25 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
           <!-- Empty state for Done -->
           <div
             v-if="getItemsByStatus('done').length === 0"
-            class="flex-1 rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06] flex items-center justify-center transition-colors"
+            class="flex-1 rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06] flex flex-col items-center justify-center gap-3 transition-colors"
             :class="{ 'border-slate-400 bg-slate-100/50 dark:border-white/[0.1] dark:bg-white/[0.04]': dragOverColumn === 'done' }"
           >
             <span class="text-xs text-slate-300 dark:text-zinc-600">
               {{ dragOverColumn === 'done' ? 'Drop here' : 'No items' }}
             </span>
+            <button
+              v-if="parentItemId"
+              @click="emit('openArchive')"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/[0.08] transition-colors text-xs"
+            >
+              <Icon name="heroicons:archive-box" class="w-3.5 h-3.5" />
+              <span>View completed archive</span>
+            </button>
           </div>
 
-          <!-- View completed archive button -->
+          <!-- View completed archive button (when column has items) -->
           <button
-            v-if="parentItemId"
+            v-if="parentItemId && getItemsByStatus('done').length > 0"
             @click="emit('openArchive')"
             class="flex items-center justify-center gap-1.5 px-3 py-2 mt-1 rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/[0.08] transition-colors text-xs"
           >

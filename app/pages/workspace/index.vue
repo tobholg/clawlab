@@ -275,13 +275,13 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
           </button>
           <button
             @click="showCreateModal = true"
-            class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+            class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-white/[0.1] text-white dark:text-zinc-100 text-sm font-medium rounded-lg hover:bg-slate-800 dark:hover:bg-white/[0.15] transition-colors"
           >
             <Icon name="heroicons:plus" class="w-4 h-4" />
             Create project
           </button>
         </div>
-        <div class="mt-10 grid grid-cols-3 gap-5 text-left w-full">
+        <div class="mt-10 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 text-left w-full">
           <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06]">
             <Icon name="heroicons:view-columns" class="w-5 h-5 text-blue-500 mb-2.5" />
             <h3 class="text-sm font-medium text-slate-700 dark:text-zinc-300">Kanban boards</h3>

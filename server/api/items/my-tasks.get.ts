@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
     status: item.status,
     temperature: calculateTemperature(item),
     progress: item.progress,
+    confidence: item.confidence,
     dueDate: item.dueDate,
     startDate: item.startDate,
     updatedAt: item.updatedAt,

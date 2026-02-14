@@ -46,7 +46,11 @@ const activeBlockMenuId = ref<string | null>(null)
 
 // Drag state for block reordering
 const draggedBlockIndex = ref<number | null>(null)
-const dragOverBlockIndex = ref<number | null>(null)
+const dropTargetIndex = ref<number | null>(null)
+const dropIndicatorTop = ref(0)
+const isDragging = ref(false)
+const blocksContainerRef = ref<HTMLElement | null>(null)
+const dragAreaRef = ref<HTMLElement | null>(null)
 
 // Slash command menu state
 const slashMenuBlockIndex = ref<number | null>(null)
@@ -839,40 +843,104 @@ const moveBlock = (index: number, direction: -1 | 1) => {
 // Drag handlers for block reordering
 const handleBlockDragStart = (e: DragEvent, index: number) => {
   draggedBlockIndex.value = index
+  isDragging.value = true
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', String(index))
   }
 }
 
-const handleBlockDragOver = (e: DragEvent, index: number) => {
+const handleContainerDragOver = (e: DragEvent) => {
   e.preventDefault()
-  if (draggedBlockIndex.value === null) return
-  if (draggedBlockIndex.value === index) return
-  dragOverBlockIndex.value = index
+  if (draggedBlockIndex.value === null || !blocksContainerRef.value) return
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+
+  const blockEls = blocksContainerRef.value.querySelectorAll<HTMLElement>('[data-block-index]')
+  if (!blockEls.length) return
+  const mouseY = e.clientY
+
+  // Find insertion index based on cursor position relative to block midpoints
+  // Cursor above all blocks → insert at 0, below all → insert at end
+  let insertAt = 0
+  for (let i = 0; i < blockEls.length; i++) {
+    const rect = blockEls[i].getBoundingClientRect()
+    const midY = rect.top + rect.height / 2
+    if (mouseY > midY) {
+      insertAt = i + 1
+    }
+  }
+
+  // Skip no-op positions (dropping at same place)
+  if (insertAt === draggedBlockIndex.value || insertAt === draggedBlockIndex.value + 1) {
+    dropTargetIndex.value = null
+    return
+  }
+
+  dropTargetIndex.value = insertAt
+
+  // Calculate indicator line position relative to blocks container
+  const containerRect = blocksContainerRef.value.getBoundingClientRect()
+  if (insertAt === 0) {
+    const firstBlock = blockEls[0]
+    if (firstBlock) {
+      dropIndicatorTop.value = firstBlock.getBoundingClientRect().top - containerRect.top - 2
+    }
+  } else if (insertAt >= blockEls.length) {
+    const lastBlock = blockEls[blockEls.length - 1]
+    if (lastBlock) {
+      dropIndicatorTop.value = lastBlock.getBoundingClientRect().bottom - containerRect.top + 2
+    }
+  } else {
+    const prevBlock = blockEls[insertAt - 1]
+    const nextBlock = blockEls[insertAt]
+    if (prevBlock && nextBlock) {
+      const prevBottom = prevBlock.getBoundingClientRect().bottom
+      const nextTop = nextBlock.getBoundingClientRect().top
+      dropIndicatorTop.value = (prevBottom + nextTop) / 2 - containerRect.top
+    }
+  }
 }
 
-const handleBlockDragLeave = () => {
-  dragOverBlockIndex.value = null
+const handleContainerDragLeave = () => {
+  // Intentionally empty — indicator persists until dragend or successful drop
+  // This allows dragging beyond the blocks area while keeping the indicator visible
 }
 
-const handleBlockDrop = (e: DragEvent, targetIndex: number) => {
-  e.preventDefault()
-  if (draggedBlockIndex.value === null) return
-  if (draggedBlockIndex.value === targetIndex) return
+const applyBlockDrop = () => {
+  if (draggedBlockIndex.value === null || dropTargetIndex.value === null) return
+
+  const fromIndex = draggedBlockIndex.value
+  let toIndex = dropTargetIndex.value
 
   const updated = [...blocks.value]
-  const [movedBlock] = updated.splice(draggedBlockIndex.value, 1)
-  updated.splice(targetIndex, 0, movedBlock)
+  const [movedBlock] = updated.splice(fromIndex, 1)
+
+  // Adjust target since we removed an item
+  if (fromIndex < toIndex) toIndex--
+
+  updated.splice(toIndex, 0, movedBlock)
   blocks.value = updated
 
   draggedBlockIndex.value = null
-  dragOverBlockIndex.value = null
+  dropTargetIndex.value = null
+  isDragging.value = false
+}
+
+const handleContainerDrop = (e: DragEvent) => {
+  e.preventDefault()
+  applyBlockDrop()
 }
 
 const handleBlockDragEnd = () => {
-  draggedBlockIndex.value = null
-  dragOverBlockIndex.value = null
+  // Apply the drop wherever the cursor ended up — if we have a valid
+  // drop target, commit the reorder even if the cursor left the container
+  if (dropTargetIndex.value !== null) {
+    applyBlockDrop()
+  } else {
+    draggedBlockIndex.value = null
+    dropTargetIndex.value = null
+    isDragging.value = false
+  }
 }
 
 const formatRelativeTime = (dateString?: string | null) => {
@@ -1024,69 +1092,67 @@ onMounted(() => {
                   </button>
                 </div>
 
-                <!-- Versions -->
-                <button
-                  @click="showVersions = !showVersions"
-                  :class="[
-                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    showVersions ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]'
-                  ]"
-                  title="Version history"
-                >
-                  <Icon name="heroicons:clock" class="w-4 h-4" />
-                </button>
-
-                <!-- Save version -->
-                <button
-                  @click="showVersionModal = true"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
-                  title="Save version"
-                >
-                  <Icon name="heroicons:bookmark" class="w-4 h-4" />
-                </button>
-
-                <!-- Download as markdown -->
-                <button
-                  v-if="documentData"
-                  @click="downloadAsMarkdown"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
-                  title="Download as Markdown"
-                >
-                  <Icon name="heroicons:arrow-down-tray" class="w-4 h-4" />
-                </button>
-
-                <!-- Import markdown -->
-                <button
-                  v-if="canEdit && !isReadMode"
-                  @click="openImportModal"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
-                  title="Import Markdown"
-                >
-                  <Icon name="heroicons:arrow-up-tray" class="w-4 h-4" />
-                </button>
-
-                <!-- Delete -->
-                <button
-                  v-if="documentData"
-                  @click="deleteDocument"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
-                  title="Delete document"
-                >
-                  <Icon name="heroicons:trash" class="w-4 h-4" />
-                </button>
-
-                <!-- Lock toggle -->
-                <button
-                  v-if="documentData && isOwner"
-                  @click="toggleLock"
-                  :class="[
-                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    documentData?.isLocked ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]'
-                  ]"
-                  :title="documentData?.isLocked ? 'Unlock document' : 'Lock document'"
-                >
-                  <Icon :name="documentData?.isLocked ? 'heroicons:lock-closed' : 'heroicons:lock-open'" class="w-4 h-4" />
-                </button>
+                <!-- Actions dropdown -->
+                <div class="group/actions relative">
+                  <button
+                    class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+                  >
+                    <Icon name="heroicons:ellipsis-horizontal" class="w-5 h-5" />
+                  </button>
+                  <div class="absolute top-full right-0 mt-1 w-52 bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06] shadow-xl z-30 py-1 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/actions:opacity-100 group-hover/actions:visible group-hover/actions:translate-y-0">
+                    <button
+                      @click="showVersions = !showVersions"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <Icon name="heroicons:clock" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                      <span>Version history</span>
+                    </button>
+                    <button
+                      @click="showVersionModal = true"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <Icon name="heroicons:bookmark" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                      <span>Save version</span>
+                    </button>
+                    <div v-if="documentData" class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
+                    <button
+                      v-if="documentData"
+                      @click="downloadAsMarkdown"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <Icon name="heroicons:arrow-down-tray" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                      <span>Download as Markdown</span>
+                    </button>
+                    <button
+                      v-if="canEdit && !isReadMode"
+                      @click="openImportModal"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <Icon name="heroicons:arrow-up-tray" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                      <span>Import Markdown</span>
+                    </button>
+                    <template v-if="documentData && isOwner">
+                      <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
+                      <button
+                        @click="toggleLock"
+                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                      >
+                        <Icon :name="documentData?.isLocked ? 'heroicons:lock-open' : 'heroicons:lock-closed'" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                        <span>{{ documentData?.isLocked ? 'Unlock document' : 'Lock document' }}</span>
+                      </button>
+                    </template>
+                    <template v-if="documentData">
+                      <div class="border-t border-slate-100 dark:border-white/[0.06] my-1" />
+                      <button
+                        @click="deleteDocument"
+                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                      >
+                        <Icon name="heroicons:trash" class="w-4 h-4" />
+                        <span>Delete document</span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
 
                 <!-- Close -->
                 <button
@@ -1101,7 +1167,13 @@ onMounted(() => {
 
           <!-- Content -->
           <div class="flex-1 overflow-hidden flex">
-            <div class="flex-1 overflow-y-auto px-8 py-6">
+            <div
+              ref="dragAreaRef"
+              class="flex-1 overflow-y-auto px-8 py-6"
+              @dragover="handleContainerDragOver"
+              @dragleave="handleContainerDragLeave"
+              @drop="handleContainerDrop"
+            >
               <div v-if="isLoading" class="space-y-3">
                 <div v-for="i in 5" :key="i" class="h-6 rounded bg-slate-50 dark:bg-white/[0.04] animate-pulse" />
               </div>
@@ -1175,18 +1247,31 @@ onMounted(() => {
                 </div>
 
                 <!-- Blocks -->
-                <div class="space-y-1">
+                <div
+                  ref="blocksContainerRef"
+                  class="relative space-y-1"
+                >
+                  <!-- Drop indicator line -->
+                  <div
+                    v-show="isDragging && dropTargetIndex !== null"
+                    class="absolute left-0 right-0 z-10 pointer-events-none"
+                    :class="dropTargetIndex !== null ? 'transition-[top] duration-150 ease-out' : ''"
+                    :style="{ top: dropIndicatorTop + 'px' }"
+                  >
+                    <div class="h-0.5 bg-blue-500 rounded-full relative">
+                      <div class="absolute -left-1 -top-[3px] w-2 h-2 rounded-full bg-blue-500" />
+                      <div class="absolute -right-1 -top-[3px] w-2 h-2 rounded-full bg-blue-500" />
+                    </div>
+                  </div>
+
                   <div
                     v-for="(block, index) in blocks"
                     :key="block.id"
+                    :data-block-index="index"
                     :class="[
-                      'group relative transition-all duration-150',
-                      dragOverBlockIndex === index ? 'border-t-2 border-blue-400 pt-1' : '',
-                      draggedBlockIndex === index ? 'opacity-50' : '',
+                      'group relative transition-all duration-200',
+                      draggedBlockIndex === index ? 'opacity-25 scale-[0.98]' : '',
                     ]"
-                    @dragover="handleBlockDragOver($event, index)"
-                    @dragleave="handleBlockDragLeave"
-                    @drop="handleBlockDrop($event, index)"
                   >
                     <!-- Block controls (left side, on hover) -->
                     <div

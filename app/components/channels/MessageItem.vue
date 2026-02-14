@@ -35,11 +35,11 @@ const isAiMessage = computed(() => {
 // Bubble background color - Telegram style
 const bubbleColor = computed(() => {
   if (isOwnMessage.value) {
-    // Smooth green-to-near-white gradient for own messages
-    return 'bg-[linear-gradient(90deg,rgba(209,250,229,0.7)_0%,rgba(236,253,245,0.48)_52%,rgba(248,250,252,0.94)_100%)] dark:bg-[linear-gradient(90deg,rgba(6,78,59,0.4)_0%,rgba(6,78,59,0.2)_52%,rgba(24,24,27,0.7)_100%)] text-slate-800 dark:text-zinc-200 border border-emerald-100/60 dark:border-emerald-800/40 shadow-sm'
+    // Smooth green gradient for own messages — stronger left, subtle green-tinted right
+    return 'bg-[linear-gradient(90deg,rgba(167,243,208,0.75)_0%,rgba(209,250,229,0.55)_50%,rgba(220,252,237,0.35)_100%)] dark:bg-[linear-gradient(90deg,rgba(6,78,59,0.5)_0%,rgba(6,78,59,0.3)_50%,rgba(6,78,59,0.15)_100%)] text-slate-800 dark:text-zinc-200 border border-emerald-200/60 dark:border-emerald-800/40 shadow-sm'
   }
   // White for everyone else
-  return 'bg-white dark:bg-dm-card text-slate-800 dark:text-zinc-200 shadow-sm border border-slate-100 dark:border-white/[0.06]'
+  return 'bg-white dark:bg-white/[0.06] text-slate-800 dark:text-zinc-200 shadow-sm border border-slate-100 dark:border-white/[0.08]'
 })
 
 // Username colors for other users (hash-based)
