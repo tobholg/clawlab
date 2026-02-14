@@ -280,6 +280,10 @@ const getEstimatedCompletion = (item: ItemNode | DisplayItem): EstimateMeta => {
     const totalEstimate = Math.round(daysSpent / (progress / 100))
     remainingDays = Math.max(1, totalEstimate - daysSpent)
     estimatedEnd = new Date(today.getTime() + remainingDays * 24 * 60 * 60 * 1000)
+  } else if (dueDate) {
+    // No progress but has due date — use due date as the estimated end
+    remainingDays = Math.max(1, Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
+    estimatedEnd = new Date(dueDate)
   } else {
     remainingDays = 14
     estimatedEnd = new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000)
@@ -433,6 +437,26 @@ const getRiskTextClass = (missProb: number) => {
   return 'text-emerald-400'
 }
 
+// Expand/collapse all
+const hasExpandableItems = computed(() =>
+  props.items.some(item => item.children && item.children.length > 0)
+)
+const allExpanded = computed(() => {
+  const expandable = props.items.filter(item => item.children && item.children.length > 0)
+  return expandable.length > 0 && expandable.every(item => expandedItems.value.has(item.id))
+})
+
+function toggleExpandAll() {
+  if (allExpanded.value) {
+    expandedItems.value = new Set()
+  } else {
+    const ids = props.items
+      .filter(item => item.children && item.children.length > 0)
+      .map(item => item.id)
+    expandedItems.value = new Set(ids)
+  }
+}
+
 // Scroll sync refs
 const headerScrollRef = ref<HTMLElement | null>(null)
 const timelineScrollRef = ref<HTMLElement | null>(null)
@@ -450,6 +474,38 @@ function syncHeaderScroll(event: Event) {
     timelineScrollRef.value.scrollLeft = target.scrollLeft
   }
 }
+
+// Drag-to-scroll on header
+const isDragging = ref(false)
+const dragStartX = ref(0)
+const dragStartScrollLeft = ref(0)
+
+function onHeaderPointerDown(event: PointerEvent) {
+  const el = headerScrollRef.value
+  if (!el) return
+  isDragging.value = true
+  dragStartX.value = event.clientX
+  dragStartScrollLeft.value = el.scrollLeft
+  el.setPointerCapture(event.pointerId)
+  el.style.cursor = 'grabbing'
+}
+
+function onHeaderPointerMove(event: PointerEvent) {
+  if (!isDragging.value) return
+  const el = headerScrollRef.value
+  if (!el) return
+  const dx = event.clientX - dragStartX.value
+  el.scrollLeft = dragStartScrollLeft.value - dx
+}
+
+function onHeaderPointerUp(event: PointerEvent) {
+  if (!isDragging.value) return
+  isDragging.value = false
+  const el = headerScrollRef.value
+  if (!el) return
+  el.releasePointerCapture(event.pointerId)
+  el.style.cursor = 'grab'
+}
 </script>
 
 <template>
@@ -460,21 +516,37 @@ function syncHeaderScroll(event: Event) {
         {{ items.length }} {{ isRootLevel ? 'projects' : 'items' }} on timeline
       </div>
       
-      <!-- Zoom toggle -->
-      <div class="flex items-center gap-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg p-0.5">
+      <div class="flex items-center gap-2">
+        <!-- Expand/collapse all -->
         <button
-          v-for="opt in zoomOptions"
-          :key="opt.value"
-          @click="zoomLevel = opt.value"
-          :class="[
-            'px-2.5 py-1 text-xs font-medium rounded-md transition-all',
-            zoomLevel === opt.value 
-              ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-800 dark:text-zinc-200'
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300'
-          ]"
+          v-if="hasExpandableItems"
+          @click="toggleExpandAll"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg transition-colors"
+          :title="allExpanded ? 'Collapse all' : 'Expand all'"
         >
-          {{ opt.label }}
+          <Icon
+            :name="allExpanded ? 'heroicons:bars-arrow-up' : 'heroicons:bars-arrow-down'"
+            class="w-3.5 h-3.5"
+          />
+          {{ allExpanded ? 'Collapse' : 'Expand' }}
         </button>
+
+        <!-- Zoom toggle -->
+        <div class="flex items-center gap-1 bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] rounded-lg p-0.5">
+          <button
+            v-for="opt in zoomOptions"
+            :key="opt.value"
+            @click="zoomLevel = opt.value"
+            :class="[
+              'px-2.5 py-1 text-xs font-medium rounded-md transition-all',
+              zoomLevel === opt.value
+                ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-800 dark:text-zinc-200'
+                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300'
+            ]"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
       </div>
     </div>
     
@@ -489,11 +561,15 @@ function syncHeaderScroll(event: Event) {
           </span>
         </div>
         
-        <!-- Time header (scrolls horizontally with timeline) -->
-        <div 
+        <!-- Time header (scrolls horizontally with timeline, drag to scroll) -->
+        <div
           ref="headerScrollRef"
-          class="flex-1 overflow-x-auto scrollbar-hide"
+          class="flex-1 overflow-x-auto scrollbar-hide cursor-grab select-none"
           @scroll="syncHeaderScroll"
+          @pointerdown="onHeaderPointerDown"
+          @pointermove="onHeaderPointerMove"
+          @pointerup="onHeaderPointerUp"
+          @pointercancel="onHeaderPointerUp"
         >
           <div class="h-10 bg-slate-50/80 dark:bg-white/[0.04] flex" :style="{ width: `${totalWidth}px`, minWidth: '100%' }">
             <div 
