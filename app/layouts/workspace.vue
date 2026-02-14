@@ -169,8 +169,8 @@ const tempDotClass = (temp: string) => {
         sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
       ]"
     >
-      <!-- Workspace Switcher + Toggle -->
-      <div :class="['mb-4 flex items-center', sidebarCollapsed ? 'flex-col gap-3' : 'px-3 justify-between']">
+      <!-- Workspace Switcher -->
+      <div :class="['mb-4', sidebarCollapsed ? 'flex justify-center' : 'px-3']">
         <template v-if="sidebarCollapsed">
           <NuxtLink to="/workspace" class="flex items-center justify-center w-full">
             <div class="w-7 h-7 bg-slate-900 dark:bg-white/[0.1] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -178,13 +178,7 @@ const tempDotClass = (temp: string) => {
             </div>
           </NuxtLink>
         </template>
-        <WorkspaceSwitcher v-else class="flex-1 min-w-0" />
-        <button
-          @click="toggleSidebar"
-          class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-colors flex items-center justify-center"
-        >
-          <Icon :name="sidebarCollapsed ? 'heroicons:chevron-right' : 'heroicons:chevron-left'" class="w-4 h-4" />
-        </button>
+        <WorkspaceSwitcher v-else class="w-full" />
       </div>
 
       <!-- Scrollable content -->
@@ -488,6 +482,20 @@ const tempDotClass = (temp: string) => {
       </div>
 
       </div><!-- end scrollable content -->
+
+      <!-- Collapse/Expand Toggle -->
+      <div class="px-3 mb-1">
+        <button
+          @click="toggleSidebar"
+          :class="[
+            'w-full flex items-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-all duration-200',
+            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-1'
+          ]"
+        >
+          <Icon :name="sidebarCollapsed ? 'heroicons:chevron-right' : 'heroicons:chevron-left'" class="w-4 h-4 flex-shrink-0" />
+          <span v-if="!sidebarCollapsed" class="text-sm">Collapse</span>
+        </button>
+      </div>
 
       <!-- User -->
       <div class="px-3 pb-3">

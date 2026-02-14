@@ -42,8 +42,8 @@ const fetchSpaces = async () => {
 }
 
 // Navigate to space portal
-const openSpace = (slug: string) => {
-  router.push(`/s/${slug}`)
+const openSpace = (id: string, slug: string) => {
+  router.push(`/s/${id}/${slug}`)
 }
 
 // Format date
@@ -143,7 +143,7 @@ onMounted(async () => {
           <button
             v-for="space in spaces"
             :key="space.id"
-            @click="openSpace(space.slug)"
+            @click="openSpace(space.id, space.slug)"
             class="bg-white border border-slate-200 rounded-xl p-5 text-left hover:border-violet-300 hover:shadow-lg hover:shadow-violet-100/50 transition-all group"
           >
             <!-- Header -->

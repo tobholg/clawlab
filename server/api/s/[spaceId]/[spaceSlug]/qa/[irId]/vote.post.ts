@@ -1,20 +1,22 @@
 import { defineEventHandler, getRouterParam, createError } from 'h3'
-import { prisma } from '../../../../../utils/prisma'
-import { requireUser } from '../../../../../utils/auth'
+import { prisma } from '../../../../../../utils/prisma'
+import { requireUser } from '../../../../../../utils/auth'
 
 // Toggle vote on an IR
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+  const spaceId = getRouterParam(event, 'spaceId')
   const spaceSlug = getRouterParam(event, 'spaceSlug')
   const irId = getRouterParam(event, 'irId')
 
-  if (!spaceSlug || !irId) {
-    throw createError({ statusCode: 400, statusMessage: 'Space slug and IR ID are required' })
+  if (!spaceId || !spaceSlug || !irId) {
+    throw createError({ statusCode: 400, statusMessage: 'Space ID, slug, and IR ID are required' })
   }
 
   // Find space
   const space = await prisma.externalSpace.findFirst({
     where: {
+      id: spaceId,
       slug: spaceSlug,
       archived: false
     }

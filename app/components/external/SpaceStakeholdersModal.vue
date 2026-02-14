@@ -174,21 +174,21 @@ onMounted(() => {
         />
         
         <!-- Modal -->
-        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 overflow-hidden max-h-[80vh] flex flex-col">
+        <div class="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-xl mx-4 overflow-hidden max-h-[80vh] flex flex-col">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100 flex-shrink-0">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] flex-shrink-0">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-base font-medium text-slate-900">
+                <h2 class="text-base font-medium text-slate-900 dark:text-zinc-100">
                   {{ space.name }} — Stakeholders
                 </h2>
-                <p class="text-xs text-slate-400 mt-0.5">
+                <p class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
                   {{ stakeholders.length }} {{ stakeholders.length === 1 ? 'member' : 'members' }}
                 </p>
               </div>
               <button
                 @click="handleClose"
-                class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
               >
                 <Icon name="heroicons:x-mark" class="w-5 h-5" />
               </button>
@@ -196,29 +196,29 @@ onMounted(() => {
           </div>
 
           <!-- Invite Link Section -->
-          <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex-shrink-0">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.02] flex-shrink-0">
             <div class="flex items-center gap-3">
               <div class="flex-1">
-                <p class="text-xs font-medium text-slate-600 mb-1">Invite Link</p>
+                <p class="text-xs font-medium text-slate-600 dark:text-zinc-300 mb-1">Invite Link</p>
                 <div v-if="inviteUrl" class="flex items-center gap-2">
                   <input
                     :value="inviteUrl"
                     readonly
-                    class="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-600"
+                    class="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.1] rounded-lg text-slate-600 dark:text-zinc-300"
                   />
                   <button
                     @click="copyInvite"
                     :class="[
                       'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                      copiedInvite 
-                        ? 'bg-emerald-100 text-emerald-700' 
-                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                      copiedInvite
+                        ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-slate-200 dark:bg-white/[0.06] text-slate-700 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-white/[0.1]'
                     ]"
                   >
                     {{ copiedInvite ? 'Copied!' : 'Copy' }}
                   </button>
                 </div>
-                <p v-else class="text-xs text-slate-400">
+                <p v-else class="text-xs text-slate-400 dark:text-zinc-500">
                   Generate a link to invite stakeholders to this space
                 </p>
               </div>
@@ -237,33 +237,33 @@ onMounted(() => {
           <div class="flex-1 overflow-auto">
             <!-- Loading -->
             <div v-if="loading" class="flex items-center justify-center py-12">
-              <div class="w-6 h-6 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+              <div class="w-6 h-6 border-2 border-slate-200 dark:border-white/[0.06] border-t-slate-600 dark:border-t-zinc-300 rounded-full animate-spin" />
             </div>
 
             <!-- Error -->
             <div v-else-if="error" class="text-center py-12 px-6">
               <Icon name="heroicons:exclamation-circle" class="w-8 h-8 text-red-400 mx-auto mb-2" />
-              <p class="text-sm text-slate-600">{{ error }}</p>
-              <button @click="fetchStakeholders" class="text-xs text-blue-600 hover:underline mt-2">
+              <p class="text-sm text-slate-600 dark:text-zinc-400">{{ error }}</p>
+              <button @click="fetchStakeholders" class="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2">
                 Try again
               </button>
             </div>
 
             <!-- Empty State -->
             <div v-else-if="stakeholders.length === 0" class="text-center py-12 px-6">
-              <Icon name="heroicons:users" class="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h3 class="text-sm font-medium text-slate-600 mb-1">No stakeholders yet</h3>
-              <p class="text-xs text-slate-400 max-w-xs mx-auto">
+              <Icon name="heroicons:users" class="w-10 h-10 text-slate-300 dark:text-zinc-600 mx-auto mb-3" />
+              <h3 class="text-sm font-medium text-slate-600 dark:text-zinc-300 mb-1">No stakeholders yet</h3>
+              <p class="text-xs text-slate-400 dark:text-zinc-500 max-w-xs mx-auto">
                 Generate an invite link and share it with your external stakeholders
               </p>
             </div>
 
             <!-- Stakeholders List -->
-            <div v-else class="divide-y divide-slate-100">
+            <div v-else class="divide-y divide-slate-100 dark:divide-white/[0.06]">
               <div
                 v-for="stakeholder in stakeholders"
                 :key="stakeholder.id"
-                class="px-6 py-4 hover:bg-slate-50 transition-colors"
+                class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors"
               >
                 <div class="flex items-start gap-3">
                   <!-- Avatar -->
@@ -277,17 +277,17 @@ onMounted(() => {
                   <!-- Info -->
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                      <p class="text-sm font-medium text-slate-900 truncate">
+                      <p class="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">
                         {{ stakeholder.name || 'No name' }}
                       </p>
-                      <span v-if="stakeholder.position" class="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                      <span v-if="stakeholder.position" class="text-xs text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
                         {{ stakeholder.position }}
                       </span>
                     </div>
-                    <p class="text-xs text-slate-500 truncate mt-0.5">
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
                       {{ stakeholder.email }}
                     </p>
-                    <div class="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                    <div class="flex items-center gap-3 text-xs text-slate-400 dark:text-zinc-500 mt-1">
                       <span>Joined {{ formatDate(stakeholder.invitedAt) }}</span>
                       <span v-if="stakeholder.stats.informationRequests > 0">
                         · {{ stakeholder.stats.informationRequests }} {{ stakeholder.stats.informationRequests === 1 ? 'request' : 'requests' }}
@@ -302,7 +302,7 @@ onMounted(() => {
                   <button
                     @click="removeStakeholder(stakeholder)"
                     :disabled="removingId === stakeholder.id"
-                    class="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    class="p-1.5 rounded-lg text-slate-300 dark:text-zinc-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50"
                     title="Remove from space"
                   >
                     <Icon 
@@ -322,7 +322,7 @@ onMounted(() => {
                       :disabled="togglingTaskPermission === stakeholder.id"
                       :class="[
                         'relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                        stakeholder.canSubmitTasks ? 'bg-violet-600' : 'bg-slate-200'
+                        stakeholder.canSubmitTasks ? 'bg-violet-600' : 'bg-slate-200 dark:bg-zinc-600'
                       ]"
                     >
                       <span
@@ -332,7 +332,7 @@ onMounted(() => {
                         ]"
                       />
                     </button>
-                    <span class="text-xs text-slate-600">Can submit tasks</span>
+                    <span class="text-xs text-slate-600 dark:text-zinc-400">Can submit tasks</span>
                   </label>
                 </div>
               </div>
@@ -340,10 +340,10 @@ onMounted(() => {
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-3 border-t border-slate-100 flex justify-end flex-shrink-0">
+          <div class="px-6 py-3 border-t border-slate-100 dark:border-white/[0.06] flex justify-end flex-shrink-0">
             <button
               @click="handleClose"
-              class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 transition-colors"
+              class="px-4 py-2 text-sm font-normal text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
             >
               Done
             </button>

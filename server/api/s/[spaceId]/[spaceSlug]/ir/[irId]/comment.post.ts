@@ -1,19 +1,20 @@
 import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
-import { prisma } from '../../../../../utils/prisma'
-import { requireUser } from '../../../../../utils/auth'
+import { prisma } from '../../../../../../utils/prisma'
+import { requireUser } from '../../../../../../utils/auth'
 
-// Add a comment to an external task (stakeholder only)
+// Add a comment to an information request (stakeholder only - must be their own IR)
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+  const spaceId = getRouterParam(event, 'spaceId')
   const spaceSlug = getRouterParam(event, 'spaceSlug')
-  const taskId = getRouterParam(event, 'taskId')
+  const irId = getRouterParam(event, 'irId')
 
-  if (!spaceSlug || !taskId) {
-    throw createError({ statusCode: 400, statusMessage: 'Space slug and task ID are required' })
+  if (!spaceId || !spaceSlug || !irId) {
+    throw createError({ statusCode: 400, statusMessage: 'Space ID, slug, and IR ID are required' })
   }
 
   const body = await readBody<{ content: string }>(event)
-  
+
   if (!body.content?.trim()) {
     throw createError({ statusCode: 400, statusMessage: 'Comment content is required' })
   }
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
   // Find space
   const space = await prisma.externalSpace.findFirst({
     where: {
+      id: spaceId,
       slug: spaceSlug,
       archived: false
     }
@@ -44,23 +46,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'You do not have access to this portal' })
   }
 
-  // Find the task and verify it belongs to this user
-  const task = await prisma.externalTask.findFirst({
+  // Find the IR and verify it belongs to this user
+  const ir = await prisma.informationRequest.findFirst({
     where: {
-      id: taskId,
+      id: irId,
       externalSpaceId: space.id,
-      submittedById: user.id
+      createdById: user.id
     }
   })
 
-  if (!task) {
-    throw createError({ statusCode: 404, statusMessage: 'Task not found' })
+  if (!ir) {
+    throw createError({ statusCode: 404, statusMessage: 'Information request not found' })
   }
 
   // Create the comment
   const comment = await prisma.externalComment.create({
     data: {
-      externalTaskId: taskId,
+      informationRequestId: irId,
       authorId: user.id,
       content: body.content.trim(),
       isTeamMember: false

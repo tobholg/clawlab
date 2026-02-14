@@ -76,7 +76,7 @@ export const hasActions = (content: string): boolean => {
 // Store instances by spaceSlug to allow multiple spaces
 const instances = new Map<string, ReturnType<typeof createStakeholderChat>>()
 
-const createStakeholderChat = (spaceSlug: string) => {
+const createStakeholderChat = (spaceId: string, spaceSlug: string) => {
   const messages = ref<StakeholderChatMessage[]>([])
   const sending = ref(false)
   const error = ref('')
@@ -131,7 +131,7 @@ const createStakeholderChat = (spaceSlug: string) => {
         .slice(0, -2)
         .map(m => ({ role: m.role, content: m.content }))
 
-      const response = await fetch(`/api/s/${spaceSlug}/chat`, {
+      const response = await fetch(`/api/s/${spaceId}/${spaceSlug}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, history }),
@@ -170,10 +170,19 @@ const createStakeholderChat = (spaceSlug: string) => {
         }
       }
     } catch (e: any) {
-      // Remove placeholder messages on error
-      messages.value = messages.value.filter(m => m.id !== aiMsgId && m.id !== userMsg.id)
+      // Replace the empty AI placeholder with the error message
+      const aiMsg = messages.value.find(m => m.id === aiMsgId)
+      if (aiMsg) {
+        aiMsg.content = `Something went wrong: ${e.message || 'Failed to send message'}. Please try again.`
+      } else {
+        // Fallback: push error as a new message
+        messages.value.push({
+          id: `error_${Date.now()}`,
+          role: 'assistant',
+          content: `Something went wrong: ${e.message || 'Failed to send message'}. Please try again.`,
+        })
+      }
       error.value = e.message || 'Failed to send message'
-      throw e
     } finally {
       sending.value = false
     }
@@ -183,7 +192,7 @@ const createStakeholderChat = (spaceSlug: string) => {
    * Create an Information Request
    */
   const createIR = async (type: 'question' | 'suggestion', content: string) => {
-    const response = await $fetch(`/api/s/${spaceSlug}/ir`, {
+    const response = await $fetch(`/api/s/${spaceId}/${spaceSlug}/ir`, {
       method: 'POST',
       body: { type, content }
     })
@@ -204,7 +213,7 @@ const createStakeholderChat = (spaceSlug: string) => {
    * Create an External Task
    */
   const createTask = async (title: string, description: string) => {
-    const response = await $fetch(`/api/s/${spaceSlug}/task`, {
+    const response = await $fetch(`/api/s/${spaceId}/${spaceSlug}/task`, {
       method: 'POST',
       body: { title, description }
     })
@@ -245,14 +254,15 @@ const createStakeholderChat = (spaceSlug: string) => {
 // Export composable
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const useStakeholderChat = (spaceSlug: string) => {
-  if (!instances.has(spaceSlug)) {
-    instances.set(spaceSlug, createStakeholderChat(spaceSlug))
+export const useStakeholderChat = (spaceId: string, spaceSlug: string) => {
+  const key = `${spaceId}:${spaceSlug}`
+  if (!instances.has(key)) {
+    instances.set(key, createStakeholderChat(spaceId, spaceSlug))
   }
-  return instances.get(spaceSlug)!
+  return instances.get(key)!
 }
 
 // Clear instance when navigating away (optional, called from component)
-export const clearStakeholderChatInstance = (spaceSlug: string) => {
-  instances.delete(spaceSlug)
+export const clearStakeholderChatInstance = (spaceId: string, spaceSlug: string) => {
+  instances.delete(`${spaceId}:${spaceSlug}`)
 }

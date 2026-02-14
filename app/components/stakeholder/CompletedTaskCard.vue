@@ -65,10 +65,7 @@ const toggleExpand = () => {
 </script>
 
 <template>
-  <div 
-    class="group animate-fade-in-up"
-    :style="{ animationDelay: `${(index ?? 0) * 50}ms` }"
-  >
+  <div class="group">
     <div
       :class="[
         'relative rounded-xl border transition-all duration-200',
@@ -176,34 +173,12 @@ const toggleExpand = () => {
 </template>
 
 <style scoped>
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.3s ease-out forwards;
-  opacity: 0;
-}
-
-.list-enter-active,
-.list-leave-active {
+.list-enter-active {
   transition: all 0.3s ease;
 }
 
-.list-enter-from,
-.list-leave-to {
+.list-enter-from {
   opacity: 0;
   transform: translateY(-8px);
-}
-
-.list-move {
-  transition: transform 0.3s ease;
 }
 </style>

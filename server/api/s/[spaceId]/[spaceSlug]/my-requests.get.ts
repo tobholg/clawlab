@@ -1,19 +1,21 @@
 import { defineEventHandler, getRouterParam, createError } from 'h3'
-import { prisma } from '../../../utils/prisma'
-import { requireUser } from '../../../utils/auth'
+import { prisma } from '../../../../utils/prisma'
+import { requireUser } from '../../../../utils/auth'
 
 // Get user's own requests (tasks and IRs) for a space
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+  const spaceId = getRouterParam(event, 'spaceId')
   const spaceSlug = getRouterParam(event, 'spaceSlug')
 
-  if (!spaceSlug) {
-    throw createError({ statusCode: 400, statusMessage: 'Space slug is required' })
+  if (!spaceId || !spaceSlug) {
+    throw createError({ statusCode: 400, statusMessage: 'Space ID and slug are required' })
   }
 
   // Find space and verify user has access
   const space = await prisma.externalSpace.findFirst({
     where: {
+      id: spaceId,
       slug: spaceSlug,
       archived: false
     }

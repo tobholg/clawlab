@@ -1,27 +1,49 @@
 <template>
-  <div 
-    :class="[
-      'fixed right-0 top-14 bottom-0 z-40 flex flex-col bg-white border-l border-slate-200 transition-all duration-300',
-      isOpen ? 'w-96' : 'w-0'
-    ]"
+  <!-- Backdrop -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-opacity duration-300 ease-out"
+      leave-active-class="transition-opacity duration-200 ease-in"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="isOpen"
+        class="fixed inset-0 z-[60] bg-slate-900/20 backdrop-blur-[2px]"
+        @click="$emit('close')"
+      />
+    </Transition>
+  </Teleport>
+
+  <!-- Slide-out Panel -->
+  <Transition
+    enter-active-class="transition-transform duration-300 ease-out"
+    leave-active-class="transition-transform duration-200 ease-in"
+    enter-from-class="translate-x-full"
+    leave-to-class="translate-x-full"
   >
-    <!-- Chat content (only visible when open) -->
-    <div v-if="isOpen" class="flex flex-col h-full">
+    <div
+      v-if="isOpen"
+      class="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-md lg:max-w-lg xl:max-w-xl flex flex-col bg-white shadow-2xl shadow-slate-900/10"
+    >
       <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white shrink-0">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-2">
-          <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-4 h-4 text-violet-500" />
-          <span class="text-sm font-medium text-slate-700">Chat</span>
+          <Icon name="heroicons:sparkles" class="w-5 h-5 text-violet-500" />
+          <div>
+            <span class="text-sm font-semibold text-slate-900">AI Assistant</span>
+            <p class="text-[11px] text-slate-400 leading-tight">Ask anything about this project</p>
+          </div>
         </div>
         <div class="flex items-center gap-1">
           <!-- Menu Button -->
           <div ref="menuRef" class="relative">
             <button
-              class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               title="Menu"
               @click.stop="menuOpen = !menuOpen"
             >
-              <Icon name="heroicons:ellipsis-vertical" class="w-4 h-4 text-slate-500" />
+              <Icon name="heroicons:ellipsis-vertical" class="w-4 h-4" />
             </button>
 
             <!-- Menu Dropdown -->
@@ -37,7 +59,7 @@
                   @click="handleClear"
                 >
                   <Icon name="heroicons:trash" class="w-4 h-4 text-slate-400" />
-                  <span>Clear Chat</span>
+                  <span class="text-slate-700">Clear Chat</span>
                 </button>
               </div>
             </Transition>
@@ -45,43 +67,59 @@
 
           <!-- Close Button -->
           <button
-            class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
-            title="Close Chat"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            title="Close"
             @click="$emit('close')"
           >
-            <Icon name="heroicons:x-mark" class="w-4 h-4 text-slate-500" />
+            <Icon name="heroicons:x-mark" class="w-5 h-5" />
           </button>
         </div>
       </div>
 
       <!-- Messages -->
-      <div ref="messagesContainer" class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div ref="messagesContainer" class="flex-1 overflow-y-auto px-5 py-4">
         <!-- Empty state -->
         <div v-if="!hasMessages && !sending" class="h-full flex items-center justify-center">
-          <div class="text-center px-4">
-            <Icon name="heroicons:chat-bubble-left-right" class="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p class="text-sm text-slate-500 font-medium">How can I help?</p>
-            <p class="text-xs text-slate-400 mt-1">
-              Ask questions about the project, submit requests, or share feedback
+          <div class="text-center px-6 max-w-sm">
+            <Icon name="heroicons:sparkles" class="w-10 h-10 text-violet-500 mx-auto mb-5" />
+
+            <h3 class="text-base font-semibold text-slate-900 mb-2">How can I help?</h3>
+            <p class="text-sm text-slate-500 leading-relaxed mb-6">
+              I can answer questions about this project, help you submit requests, or share feedback with the team.
             </p>
+
+            <!-- Suggestion chips -->
+            <div class="space-y-2">
+              <button
+                v-for="suggestion in suggestions"
+                :key="suggestion.text"
+                @click="handleSuggestionClick(suggestion.text)"
+                class="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-violet-50 border border-slate-100 hover:border-violet-200 rounded-xl text-left transition-all group"
+              >
+                <Icon :name="suggestion.icon" class="w-4 h-4 text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                <span class="text-sm text-slate-600 group-hover:text-violet-700 transition-colors">{{ suggestion.text }}</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Message list -->
-        <StakeholderChatMessage
-          v-for="message in messages"
-          :key="message.id"
-          :message="message"
-        />
-        
-        <!-- Thinking indicator -->
-        <div v-if="sending && messages.length > 0 && !messages[messages.length - 1]?.content" class="flex justify-start">
-          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-violet-50 text-slate-500 text-sm">
-            <span class="inline-flex items-center gap-1">
-              <span class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
-              <span class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
-              <span class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
-            </span>
+        <div v-else class="space-y-3">
+          <StakeholderChatMessage
+            v-for="message in messages"
+            :key="message.id"
+            :message="message"
+          />
+
+          <!-- Thinking indicator -->
+          <div v-if="sending && messages.length > 0 && !messages[messages.length - 1]?.content" class="flex justify-start">
+            <div class="px-4 py-3 rounded-2xl rounded-tl-sm bg-violet-50">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 bg-violet-400 rounded-full chat-dot" style="animation-delay: 0ms" />
+                <span class="w-1.5 h-1.5 bg-violet-400 rounded-full chat-dot" style="animation-delay: 200ms" />
+                <span class="w-1.5 h-1.5 bg-violet-400 rounded-full chat-dot" style="animation-delay: 400ms" />
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -92,9 +130,9 @@
           <!-- IR Action -->
           <template v-if="pendingAction.type === 'CREATE_IR'">
             <div class="flex items-start gap-2 mb-3">
-              <Icon 
-                :name="pendingAction.irType === 'suggestion' ? 'heroicons:light-bulb' : 'heroicons:question-mark-circle'" 
-                class="w-5 h-5 text-violet-500 shrink-0 mt-0.5" 
+              <Icon
+                :name="pendingAction.irType === 'suggestion' ? 'heroicons:light-bulb' : 'heroicons:question-mark-circle'"
+                class="w-5 h-5 text-violet-500 shrink-0 mt-0.5"
               />
               <div>
                 <p class="text-sm font-medium text-slate-700">
@@ -103,7 +141,7 @@
                 <p class="text-xs text-slate-500 mt-0.5">This will be sent to the team</p>
               </div>
             </div>
-            
+
             <textarea
               v-model="editableContent"
               rows="5"
@@ -138,14 +176,14 @@
                 <p class="text-xs text-slate-500 mt-0.5">This will be reviewed by the team</p>
               </div>
             </div>
-            
+
             <input
               v-model="editableTitle"
               type="text"
               placeholder="Task title"
               class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent mb-2"
             />
-            
+
             <textarea
               v-model="editableDescription"
               rows="5"
@@ -175,7 +213,7 @@
       </Transition>
 
       <!-- Input -->
-      <div class="flex items-center gap-2 px-4 py-3 shrink-0 border-t border-slate-100 bg-white">
+      <div class="flex items-center gap-3 p-6 shrink-0 border-t border-slate-100 bg-white">
         <textarea
           ref="inputRef"
           v-model="inputMessage"
@@ -196,17 +234,8 @@
         </button>
       </div>
     </div>
-  </div>
+  </Transition>
 
-  <!-- Toggle Button (fixed position) -->
-  <button
-    v-if="!isOpen"
-    @click="$emit('open')"
-    class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-violet-600 text-white shadow-lg hover:bg-violet-700 hover:scale-105 transition-all duration-300 flex items-center justify-center z-50"
-    title="Open Chat"
-  >
-    <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-6 h-6" />
-  </button>
 </template>
 
 <script setup lang="ts">
@@ -214,6 +243,7 @@ import { useStakeholderChat } from '~/composables/useStakeholderChat'
 import StakeholderChatMessage from './StakeholderChatMessage.vue'
 
 const props = defineProps<{
+  spaceId: string
   spaceSlug: string
   isOpen: boolean
   canSubmitTasks?: boolean
@@ -234,7 +264,14 @@ const {
   clearPendingAction,
   createIR,
   createTask,
-} = useStakeholderChat(props.spaceSlug)
+} = useStakeholderChat(props.spaceId, props.spaceSlug)
+
+// Suggestion prompts for empty state
+const suggestions = [
+  { text: 'What is the current project status?', icon: 'heroicons:chart-bar' },
+  { text: 'Are there any blockers or risks?', icon: 'heroicons:exclamation-triangle' },
+  { text: 'What was completed recently?', icon: 'heroicons:check-circle' },
+]
 
 // Local state
 const menuRef = ref<HTMLElement | null>(null)
@@ -314,6 +351,12 @@ watch(
   }
 )
 
+// Handle suggestion chip click
+const handleSuggestionClick = (text: string) => {
+  inputMessage.value = text
+  nextTick(() => handleSend())
+}
+
 // Handlers
 const handleSend = async () => {
   if (!inputMessage.value.trim() || sending.value || pendingAction.value) return
@@ -350,7 +393,7 @@ const handleClear = () => {
 
 const handleSubmitIR = async () => {
   if (!pendingAction.value || !editableContent.value.trim()) return
-  
+
   submitting.value = true
   try {
     await createIR(
@@ -359,11 +402,10 @@ const handleSubmitIR = async () => {
     )
   } catch (e: any) {
     console.error('Failed to create IR:', e)
-    // Show error in chat
     messages.value.push({
       id: `error_${Date.now()}`,
       role: 'assistant',
-      content: `⚠️ Failed to submit: ${e.data?.message || e.message || 'Unknown error'}`
+      content: `Failed to submit: ${e.data?.message || e.message || 'Unknown error'}`
     })
   } finally {
     submitting.value = false
@@ -373,18 +415,18 @@ const handleSubmitIR = async () => {
 
 const handleSubmitTask = async () => {
   if (!pendingAction.value || !editableTitle.value.trim()) return
-  
+
   // Check if user has permission
   if (!props.canSubmitTasks) {
     messages.value.push({
       id: `error_${Date.now()}`,
       role: 'assistant',
-      content: `⚠️ You don't have permission to submit tasks in this space. You can submit it as a suggestion instead.`
+      content: `You don't have permission to submit tasks in this space. You can submit it as a suggestion instead.`
     })
     clearPendingAction()
     return
   }
-  
+
   submitting.value = true
   try {
     await createTask(
@@ -393,11 +435,10 @@ const handleSubmitTask = async () => {
     )
   } catch (e: any) {
     console.error('Failed to create task:', e)
-    // Show error in chat
     messages.value.push({
       id: `error_${Date.now()}`,
       role: 'assistant',
-      content: `⚠️ Failed to submit task: ${e.data?.message || e.message || 'Unknown error'}`
+      content: `Failed to submit task: ${e.data?.message || e.message || 'Unknown error'}`
     })
   } finally {
     submitting.value = false
@@ -428,5 +469,20 @@ const handleSubmitTask = async () => {
 .slide-up-leave-to {
   opacity: 0;
   transform: translateY(16px);
+}
+
+@keyframes chat-dot-pulse {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.chat-dot {
+  animation: chat-dot-pulse 1.4s ease-in-out infinite;
 }
 </style>

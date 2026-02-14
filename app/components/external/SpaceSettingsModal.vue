@@ -140,13 +140,13 @@ onMounted(() => {
         />
         
         <!-- Modal -->
-        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
+        <div class="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h2 class="text-base font-medium text-slate-900">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
+            <h2 class="text-base font-medium text-slate-900 dark:text-zinc-100">
               {{ isEditing ? 'Space Settings' : 'Create External Space' }}
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">
+            <p class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
               {{ isEditing ? 'Configure how stakeholders interact with this space' : 'Create a portal for external stakeholders' }}
             </p>
           </div>
@@ -154,35 +154,35 @@ onMounted(() => {
           <!-- Form -->
           <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
             <!-- Error -->
-            <div v-if="error" class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            <div v-if="error" class="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400">
               {{ error }}
             </div>
 
             <!-- Name -->
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
                 Space Name
               </label>
               <input
                 v-model="name"
                 type="text"
                 placeholder="e.g., Protencon, Investors, Power Users"
-                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all"
+                class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.1] dark:bg-white/[0.04] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/[0.1] focus:border-slate-300 dark:focus:border-white/[0.15] dark:text-zinc-100 transition-all"
                 autofocus
               />
             </div>
             
             <!-- Description -->
             <div>
-              <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
                 Description
-                <span class="text-slate-300 font-normal">(optional)</span>
+                <span class="text-slate-300 dark:text-zinc-600 font-normal">(optional)</span>
               </label>
               <textarea
                 v-model="description"
                 rows="2"
                 placeholder="Brief description shown to stakeholders..."
-                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all resize-none"
+                class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.1] dark:bg-white/[0.04] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/[0.1] focus:border-slate-300 dark:focus:border-white/[0.15] dark:text-zinc-100 transition-all resize-none"
               />
             </div>
             
@@ -190,7 +190,7 @@ onMounted(() => {
             <div class="flex gap-4">
               <!-- Max IRs per 24h -->
               <div class="flex-1">
-                <label class="block text-xs font-medium text-slate-500 mb-1.5">
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
                   Max Requests / Day
                 </label>
                 <input
@@ -198,14 +198,14 @@ onMounted(() => {
                   type="number"
                   min="0"
                   max="100"
-                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/[0.1] dark:bg-white/[0.04] rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/[0.1] focus:border-slate-300 dark:focus:border-white/[0.15] dark:text-zinc-100 transition-all"
                 />
-                <p class="text-xs text-slate-400 mt-1">Rate limit per stakeholder</p>
+                <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">Rate limit per stakeholder</p>
               </div>
               
               <!-- Allow Task Submission -->
               <div class="flex-1">
-                <label class="block text-xs font-medium text-slate-500 mb-1.5">
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
                   Task Submission
                 </label>
                 <button
@@ -213,27 +213,27 @@ onMounted(() => {
                   @click="allowTaskSubmission = !allowTaskSubmission"
                   :class="[
                     'flex items-center gap-2 w-full px-3 py-2 text-sm border rounded-lg transition-all',
-                    allowTaskSubmission 
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
-                      : 'bg-white border-slate-200 text-slate-600'
+                    allowTaskSubmission
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-white dark:bg-white/[0.04] border-slate-200 dark:border-white/[0.1] text-slate-600 dark:text-zinc-400'
                   ]"
                 >
-                  <Icon 
-                    :name="allowTaskSubmission ? 'heroicons:check-circle' : 'heroicons:x-circle'" 
-                    class="w-4 h-4" 
+                  <Icon
+                    :name="allowTaskSubmission ? 'heroicons:check-circle' : 'heroicons:x-circle'"
+                    class="w-4 h-4"
                   />
                   <span>{{ allowTaskSubmission ? 'Enabled' : 'Disabled' }}</span>
                 </button>
-                <p class="text-xs text-slate-400 mt-1">Can stakeholders submit tasks?</p>
+                <p class="text-xs text-slate-400 dark:text-zinc-500 mt-1">Can stakeholders submit tasks?</p>
               </div>
             </div>
             
             <!-- Delete zone (only when editing) -->
-            <div v-if="isEditing && space" class="pt-4 border-t border-slate-100">
+            <div v-if="isEditing && space" class="pt-4 border-t border-slate-100 dark:border-white/[0.06]">
               <div v-if="!showDeleteConfirm" class="flex items-center justify-between">
                 <div>
-                  <p class="text-xs font-medium text-slate-600">Delete Space</p>
-                  <p class="text-xs text-slate-400">Stakeholders will lose access immediately</p>
+                  <p class="text-xs font-medium text-slate-600 dark:text-zinc-300">Delete Space</p>
+                  <p class="text-xs text-slate-400 dark:text-zinc-500">Stakeholders will lose access immediately</p>
                 </div>
                 <button
                   type="button"
@@ -243,15 +243,15 @@ onMounted(() => {
                   Delete
                 </button>
               </div>
-              <div v-else class="flex items-center justify-between bg-red-50 -mx-6 -mb-6 p-4 mt-4">
-                <p class="text-sm text-red-700">
+              <div v-else class="flex items-center justify-between bg-red-50 dark:bg-red-500/10 -mx-6 -mb-6 p-4 mt-4">
+                <p class="text-sm text-red-700 dark:text-red-400">
                   Delete "{{ space.name }}"? This cannot be undone.
                 </p>
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
                     @click="showDeleteConfirm = false"
-                    class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-800"
+                    class="px-3 py-1.5 text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200"
                     :disabled="deleting"
                   >
                     Cancel
@@ -273,14 +273,14 @@ onMounted(() => {
               <button
                 type="button"
                 @click="handleClose"
-                class="px-4 py-2 text-sm font-normal text-slate-600 hover:text-slate-800 transition-colors"
+                class="px-4 py-2 text-sm font-normal text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 :disabled="!name.trim() || saving"
-                class="px-4 py-2 text-sm font-normal text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                class="px-4 py-2 text-sm font-normal text-white bg-slate-900 dark:bg-white dark:text-zinc-900 rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {{ saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Space') }}
               </button>

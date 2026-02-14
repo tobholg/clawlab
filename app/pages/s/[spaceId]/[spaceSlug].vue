@@ -9,10 +9,11 @@ const route = useRoute()
 const router = useRouter()
 const { user, isAuthenticated, fetchUser, logout } = useAuth()
 
+const spaceId = computed(() => route.params.spaceId as string)
 const spaceSlug = computed(() => route.params.spaceSlug as string)
 
 // Tab state
-const activeTab = ref<'overview' | 'requests' | 'qa'>('overview')
+const activeTab = ref<'overview' | 'updates' | 'requests' | 'qa'>('overview')
 
 // Chat state
 const chatOpen = ref(false)
@@ -88,6 +89,7 @@ interface SpaceData {
   }
   access: {
     canSubmitTasks: boolean
+    isTeamMember?: boolean
     displayName?: string
     position?: string
   }
@@ -162,7 +164,7 @@ const submitTaskComment = async (taskId: string) => {
   submittingReply.value[`task-${taskId}`] = true
   
   try {
-    await $fetch(`/api/s/${spaceSlug.value}/tasks/${taskId}/comment`, {
+    await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/tasks/${taskId}/comment`, {
       method: 'POST',
       body: { content }
     })
@@ -184,7 +186,7 @@ const submitIRComment = async (irId: string) => {
   submittingReply.value[`ir-${irId}`] = true
   
   try {
-    await $fetch(`/api/s/${spaceSlug.value}/ir/${irId}/comment`, {
+    await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/ir/${irId}/comment`, {
       method: 'POST',
       body: { content }
     })
@@ -226,7 +228,7 @@ const submitQAComment = async (irId: string) => {
   submittingReply.value[`qa-${irId}`] = true
   
   try {
-    const result = await $fetch<{ comment: ExternalComment }>(`/api/s/${spaceSlug.value}/ir/${irId}/comment`, {
+    const result = await $fetch<{ comment: ExternalComment }>(`/api/s/${spaceId.value}/${spaceSlug.value}/ir/${irId}/comment`, {
       method: 'POST',
       body: { content }
     })
@@ -244,13 +246,65 @@ const submitQAComment = async (irId: string) => {
   }
 }
 
+// Updates data
+const updates = ref<Array<{
+  id: string
+  title: string
+  summary: string
+  risks: Array<{ text: string }>
+  wins: Array<{ text: string }>
+  status: string
+  publishedAt: string | null
+  createdAt: string
+  generatedBy: { name: string | null }
+}>>([])
+const loadingUpdates = ref(false)
+
+// Fetch updates
+const fetchUpdates = async () => {
+  loadingUpdates.value = true
+  try {
+    const data = await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/updates`)
+    updates.value = data as any
+  } catch (e) {
+    console.error('Failed to fetch updates:', e)
+  } finally {
+    loadingUpdates.value = false
+  }
+}
+
+// Publish/discard update
+const handlePublishUpdate = async (updateId: string) => {
+  try {
+    await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/updates/${updateId}`, {
+      method: 'PATCH',
+      body: { action: 'publish' },
+    })
+    await fetchUpdates()
+  } catch (e: any) {
+    alert('Failed to publish update: ' + (e.data?.message || e.message))
+  }
+}
+
+const handleDiscardUpdate = async (updateId: string) => {
+  try {
+    await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/updates/${updateId}`, {
+      method: 'PATCH',
+      body: { action: 'discard' },
+    })
+    await fetchUpdates()
+  } catch (e: any) {
+    alert('Failed to discard update: ' + (e.data?.message || e.message))
+  }
+}
+
 // Fetch space overview
 const fetchSpace = async () => {
   loading.value = true
   error.value = ''
   
   try {
-    const data = await $fetch(`/api/s/${spaceSlug.value}`)
+    const data = await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}`)
     space.value = data as SpaceData
     
     // Trigger page load animation
@@ -276,7 +330,7 @@ const fetchSpace = async () => {
 const fetchMyRequests = async () => {
   loadingRequests.value = true
   try {
-    const data = await $fetch(`/api/s/${spaceSlug.value}/my-requests`)
+    const data = await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/my-requests`)
     myRequests.value = data as any
   } catch (e) {
     console.error('Failed to fetch requests:', e)
@@ -289,7 +343,7 @@ const fetchMyRequests = async () => {
 const fetchQA = async () => {
   loadingQA.value = true
   try {
-    const data = await $fetch(`/api/s/${spaceSlug.value}/qa`, {
+    const data = await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/qa`, {
       query: {
         sort: qaSort.value,
         search: qaSearch.value || undefined
@@ -306,7 +360,7 @@ const fetchQA = async () => {
 // Toggle vote on IR
 const toggleVote = async (irId: string) => {
   try {
-    const result = await $fetch(`/api/s/${spaceSlug.value}/qa/${irId}/vote`, {
+    const result = await $fetch(`/api/s/${spaceId.value}/${spaceSlug.value}/qa/${irId}/vote`, {
       method: 'POST'
     })
     
@@ -322,6 +376,9 @@ const toggleVote = async (irId: string) => {
 
 // Watch for tab changes to load data
 watch(activeTab, (tab) => {
+  if (tab === 'updates' && updates.value.length === 0) {
+    fetchUpdates()
+  }
   if (tab === 'requests' && !myRequests.value) {
     fetchMyRequests()
   }
@@ -418,7 +475,7 @@ onMounted(async () => {
     </nav>
 
     <!-- Main Content -->
-    <main :class="['pt-16 transition-all duration-300 ease-out', chatOpen ? 'mr-96' : '']">
+    <main class="pt-16">
       <!-- Loading -->
       <Transition
         enter-active-class="transition-opacity duration-300"
@@ -490,7 +547,7 @@ onMounted(async () => {
                     @click="showStakeholdersModal = true"
                     class="flex-shrink-0 bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group"
                   >
-                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Stakeholders</div>
+                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 text-right">Stakeholders</div>
                     <div class="flex items-center gap-2">
                       <!-- Stacked avatars -->
                       <div class="flex -space-x-2">
@@ -534,24 +591,34 @@ onMounted(async () => {
                 isPageLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               ]"
             >
-              <div class="flex gap-1 bg-slate-100/80 p-1 rounded-xl w-fit">
+              <div class="flex items-center justify-between">
+                <div class="flex gap-1 bg-slate-100/80 p-1 rounded-xl w-fit">
+                  <button
+                    v-for="tab in [
+                      { id: 'overview', label: 'Overview', icon: 'heroicons:home' },
+                      { id: 'updates', label: 'Updates', icon: 'heroicons:megaphone' },
+                      { id: 'requests', label: 'My Requests', icon: 'heroicons:inbox-arrow-down' },
+                      { id: 'qa', label: 'Q&A', icon: 'heroicons:chat-bubble-left-right' }
+                    ] as const"
+                    :key="tab.id"
+                    @click="activeTab = tab.id"
+                    :class="[
+                      'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+                      activeTab === tab.id
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    ]"
+                  >
+                    <Icon :name="tab.icon" class="w-4 h-4" />
+                    {{ tab.label }}
+                  </button>
+                </div>
                 <button
-                  v-for="tab in [
-                    { id: 'overview', label: 'Overview', icon: 'heroicons:home' },
-                    { id: 'requests', label: 'My Requests', icon: 'heroicons:inbox-arrow-down' },
-                    { id: 'qa', label: 'Q&A', icon: 'heroicons:chat-bubble-left-right' }
-                  ] as const"
-                  :key="tab.id"
-                  @click="activeTab = tab.id"
-                  :class="[
-                    'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-                    activeTab === tab.id 
-                      ? 'bg-white text-slate-900 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-700'
-                  ]"
+                  @click="chatOpen = true"
+                  class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-violet-700 text-sm font-medium rounded-xl border border-violet-200/60 hover:from-violet-500/15 hover:to-fuchsia-500/15 hover:border-violet-300/60 transition-all active:scale-95"
                 >
-                  <Icon :name="tab.icon" class="w-4 h-4" />
-                  {{ tab.label }}
+                  <Icon name="heroicons:sparkles" class="w-4 h-4" />
+                  AI Chat
                 </button>
               </div>
             </div>
@@ -657,6 +724,36 @@ onMounted(async () => {
                     title="Recently Completed"
                     empty-message="No completed items yet"
                     empty-icon="heroicons:check-badge"
+                  />
+                </div>
+              </div>
+
+              <!-- Updates Tab -->
+              <div v-else-if="activeTab === 'updates'" key="updates">
+                <div v-if="loadingUpdates" class="flex flex-col items-center justify-center py-20 gap-4">
+                  <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                    <Icon name="heroicons:arrow-path" class="w-5 h-5 text-violet-500 animate-spin" />
+                  </div>
+                  <p class="text-sm text-slate-400">Loading updates...</p>
+                </div>
+
+                <div v-else-if="updates.length === 0" class="bg-white border border-slate-100 rounded-2xl p-16 text-center shadow-sm">
+                  <div class="w-20 h-20 mx-auto mb-6 bg-slate-50 rounded-3xl flex items-center justify-center">
+                    <Icon name="heroicons:megaphone" class="w-10 h-10 text-slate-300" />
+                  </div>
+                  <h3 class="text-lg font-semibold text-slate-900 mb-2">No updates yet</h3>
+                  <p class="text-slate-500 max-w-sm mx-auto">Status updates from the team will appear here when published.</p>
+                </div>
+
+                <div v-else class="space-y-4">
+                  <StakeholderUpdateCard
+                    v-for="update in updates"
+                    :key="update.id"
+                    :update="update"
+                    :is-team-member="space?.access?.isTeamMember"
+                    :project-name="space?.project?.title"
+                    @publish="handlePublishUpdate"
+                    @discard="handleDiscardUpdate"
                   />
                 </div>
               </div>
@@ -985,6 +1082,7 @@ onMounted(async () => {
     <!-- Stakeholder Chat -->
     <StakeholderChat
       v-if="space"
+      :space-id="spaceId"
       :space-slug="spaceSlug"
       :is-open="chatOpen"
       :can-submit-tasks="space.access?.canSubmitTasks"
@@ -1006,7 +1104,7 @@ onMounted(async () => {
           @click.self="showStakeholdersModal = false"
         >
           <!-- Backdrop -->
-          <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" />
+          <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="showStakeholdersModal = false" />
           
           <!-- Modal -->
           <Transition

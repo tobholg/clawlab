@@ -313,7 +313,11 @@ const handleCardClick = () => {
       
       <div class="flex items-center gap-2">
         <!-- Estimated completion date -->
-        <span v-if="estimatedCompletion && !estimatedCompletion.complete" class="text-[10px] font-normal text-slate-400">
+        <span
+          v-if="estimatedCompletion && !estimatedCompletion.complete"
+          class="text-[10px] font-medium"
+          :class="estimateMeta.missProb >= 65 ? 'text-rose-500 dark:text-rose-400' : estimateMeta.missProb >= 33 ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400'"
+        >
           {{ estimatedCompletion.isExact ? estimatedCompletion.baseDate : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` }}
         </span>
         <span v-else-if="item.dueDate" class="text-[10px] font-normal text-slate-400">

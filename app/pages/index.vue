@@ -160,7 +160,6 @@ const proOnboardingUrl = computed(() => {
 })
 
 const navItems = [
-  { id: 'hero', label: 'Overview' },
   { id: 'pipeline', label: 'How it works' },
   { id: 'capabilities', label: 'Capabilities' },
   { id: 'proof', label: 'Results' },
@@ -260,12 +259,12 @@ onMounted(() => {
     >
       <div class="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
         <div class="flex items-center gap-8">
-          <div class="flex items-center gap-2.5">
+          <button @click="scrollToSection('hero')" class="flex items-center gap-2.5 cursor-pointer">
             <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <span class="text-lg font-semibold tracking-tight">Context</span>
-          </div>
+          </button>
           <div class="hidden md:flex items-center gap-6 text-sm text-slate-500">
             <button
               v-for="item in navItems"

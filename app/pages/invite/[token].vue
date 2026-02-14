@@ -67,7 +67,7 @@ const acceptInvite = async () => {
     })
     
     // Redirect to the stakeholder portal
-    router.push(`/s/${(result as any).space.slug}`)
+    router.push(`/s/${(result as any).space.id}/${(result as any).space.slug}`)
   } catch (e: any) {
     error.value = e.data?.message || 'Failed to accept invite'
   } finally {
@@ -123,12 +123,12 @@ const tryAutoAccept = async () => {
     })
     
     // Redirect to the stakeholder portal
-    router.push(`/s/${(result as any).space.slug}`)
+    router.push(`/s/${(result as any).space.id}/${(result as any).space.slug}`)
   } catch (e: any) {
     // If already a member, redirect to portal anyway
     if (e.data?.message?.includes('already')) {
-      if (inviteData.value?.space?.slug) {
-        router.push(`/s/${inviteData.value.space.slug}`)
+      if (inviteData.value?.space?.id && inviteData.value?.space?.slug) {
+        router.push(`/s/${inviteData.value.space.id}/${inviteData.value.space.slug}`)
         return
       }
     }

@@ -1,6 +1,6 @@
 import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
-import { prisma } from '../../../utils/prisma'
-import { requireUser } from '../../../utils/auth'
+import { prisma } from '../../../../utils/prisma'
+import { requireUser } from '../../../../utils/auth'
 
 interface RequestBody {
   title: string
@@ -9,14 +9,15 @@ interface RequestBody {
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+  const spaceId = getRouterParam(event, 'spaceId')
   const spaceSlug = getRouterParam(event, 'spaceSlug')
 
-  if (!spaceSlug) {
-    throw createError({ statusCode: 400, statusMessage: 'Space slug is required' })
+  if (!spaceId || !spaceSlug) {
+    throw createError({ statusCode: 400, statusMessage: 'Space ID and slug are required' })
   }
 
   const body = await readBody<RequestBody>(event)
-  
+
   if (!body.title?.trim()) {
     throw createError({
       statusCode: 400,
@@ -27,6 +28,7 @@ export default defineEventHandler(async (event) => {
   // Find space and verify user has access
   const space = await prisma.externalSpace.findFirst({
     where: {
+      id: spaceId,
       slug: spaceSlug,
       archived: false
     }

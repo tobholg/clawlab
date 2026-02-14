@@ -204,6 +204,7 @@ model User {
   externalComments    ExternalComment[]
   aiContextDocs       AIContextDoc[]
   monthlyUsage        UserMonthlyUsage[]
+  generatedSpaceUpdates SpaceUpdate[]    @relation("SpaceUpdateGeneratedBy")
 
   @@map("users")
 }
@@ -720,6 +721,7 @@ model ExternalSpace {
   stakeholderAccess   StakeholderAccess[]
   informationRequests InformationRequest[]
   externalTasks       ExternalTask[]
+  spaceUpdates        SpaceUpdate[]
 
   @@unique([projectId, slug])
   @@index([projectId])
@@ -882,4 +884,37 @@ model AIContextDoc {
 
   @@index([projectId])
   @@map("ai_context_docs")
+}
+
+// ============================================
+// SPACE UPDATES (AI-generated stakeholder briefs)
+// ============================================
+
+enum SpaceUpdateStatus {
+  DRAFT
+  PUBLISHED
+  DISCARDED
+}
+
+model SpaceUpdate {
+  id              String            @id @default(cuid())
+  externalSpaceId String
+  generatedById   String
+  status          SpaceUpdateStatus @default(DRAFT)
+  title           String
+  summary         String
+  risks           Json              @default("[]")
+  wins            Json              @default("[]")
+  projectSnapshot Json?
+  aiModel         String?
+  publishedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  externalSpace ExternalSpace @relation(fields: [externalSpaceId], references: [id], onDelete: Cascade)
+  generatedBy   User          @relation("SpaceUpdateGeneratedBy", fields: [generatedById], references: [id])
+
+  @@index([externalSpaceId, status])
+  @@index([externalSpaceId, createdAt])
+  @@map("space_updates")
 }

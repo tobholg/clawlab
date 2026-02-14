@@ -1,6 +1,6 @@
 import { defineEventHandler, getRouterParam, readBody, createError, setResponseHeader } from 'h3'
-import { prisma } from '../../../utils/prisma'
-import { requireUser } from '../../../utils/auth'
+import { prisma } from '../../../../utils/prisma'
+import { requireUser } from '../../../../utils/auth'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -18,8 +18,8 @@ const buildSystemPrompt = (context: {
   projectTitle: string
   projectDescription: string | null
   canSubmitTasks: boolean
-  activeTasks: Array<{ title: string; status: string; progress: number }>
-  completedTasks: Array<{ title: string; completedAt: Date | null }>
+  activeTasks: Array<{ title: string; description: string | null; status: string; progress: number }>
+  completedTasks: Array<{ title: string; description: string | null; completedAt: Date | null }>
   aiContextDocs: Array<{ title: string; content: string }>
   recentIRs: Array<{ type: string; content: string; response: string | null; status: string }>
 }) => {
@@ -27,11 +27,12 @@ const buildSystemPrompt = (context: {
     `You are a friendly assistant helping external stakeholders (clients, partners, sales teams) stay informed about "${context.projectTitle}".`,
     '',
     '## IMPORTANT: Communication Style',
+    '- ALWAYS reply in the same language the user writes in. If they write Norwegian, reply fully in Norwegian. If French, reply in French. Never mix languages.',
     '- Keep responses SHORT (2-3 sentences when possible)',
     '- Use simple, everyday language — NO technical jargon',
     '- Imagine you\'re explaining to someone who has never written code',
     '- Be warm and helpful, like a knowledgeable colleague',
-    '- Say "I\'ll check with the team" instead of "I\'ll create an Information Request"',
+    '- Instead of saying "I\'ll create an Information Request", say the equivalent of "I\'ll check with the team" in whatever language the user is using',
     '- If something is "in progress", say it\'s "being worked on"',
     '- Never mention internal team member names',
     '',
@@ -72,6 +73,9 @@ const buildSystemPrompt = (context: {
     for (const task of context.activeTasks) {
       const progress = task.progress > 0 ? ` (about ${task.progress}% done)` : ''
       lines.push(`- ${task.title}${progress}`)
+      if (task.description) {
+        lines.push(`  Details: ${task.description}`)
+      }
     }
     lines.push('')
   }
@@ -81,6 +85,9 @@ const buildSystemPrompt = (context: {
     lines.push('## Recently Finished')
     for (const task of context.completedTasks.slice(0, 5)) {
       lines.push(`- ${task.title}`)
+      if (task.description) {
+        lines.push(`  Details: ${task.description}`)
+      }
     }
     lines.push('')
   }
@@ -142,14 +149,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await requireUser(event)
+  const spaceId = getRouterParam(event, 'spaceId')
   const spaceSlug = getRouterParam(event, 'spaceSlug')
 
-  if (!spaceSlug) {
-    throw createError({ statusCode: 400, statusMessage: 'Space slug is required' })
+  if (!spaceId || !spaceSlug) {
+    throw createError({ statusCode: 400, statusMessage: 'Space ID and slug are required' })
   }
 
   const body = await readBody<RequestBody>(event)
-  
+
   if (!body.content?.trim()) {
     throw createError({
       statusCode: 400,
@@ -160,6 +168,7 @@ export default defineEventHandler(async (event) => {
   // Find space and verify user has access
   const space = await prisma.externalSpace.findFirst({
     where: {
+      id: spaceId,
       slug: spaceSlug,
       archived: false
     },
@@ -178,6 +187,36 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Portal not found' })
   }
 
+  // Check if user is a team member (workspace member OR org member)
+  let isTeamMember = false
+  const workspace = await prisma.workspace.findFirst({
+    where: { items: { some: { id: space.projectId } } },
+    select: { id: true, organizationId: true },
+  })
+  if (workspace) {
+    const [wsMembership, orgMembership] = await Promise.all([
+      prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: {
+            workspaceId: workspace.id,
+            userId: user.id,
+          },
+        },
+        select: { status: true },
+      }),
+      prisma.organizationMember.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: workspace.organizationId,
+            userId: user.id,
+          },
+        },
+        select: { status: true },
+      }),
+    ])
+    isTeamMember = wsMembership?.status === 'ACTIVE' || orgMembership?.status === 'ACTIVE'
+  }
+
   // Check if user has stakeholder access
   const access = await prisma.stakeholderAccess.findUnique({
     where: {
@@ -188,12 +227,12 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  if (!access) {
+  if (!access && !isTeamMember) {
     throw createError({ statusCode: 403, statusMessage: 'You do not have access to this portal' })
   }
 
-  // Determine permissions
-  const canSubmitTasks = access.canSubmitTasks ?? space.allowTaskSubmission
+  // Determine permissions — team members get full access
+  const canSubmitTasks = isTeamMember ? space.allowTaskSubmission : (access?.canSubmitTasks ?? space.allowTaskSubmission)
 
   // Load project context
   const [activeTasks, completedTasks, aiContextDocs, recentIRs] = await Promise.all([
@@ -209,6 +248,7 @@ export default defineEventHandler(async (event) => {
       },
       select: {
         title: true,
+        description: true,
         status: true,
         progress: true
       },
@@ -228,6 +268,7 @@ export default defineEventHandler(async (event) => {
       },
       select: {
         title: true,
+        description: true,
         completedAt: true
       },
       orderBy: { completedAt: 'desc' },

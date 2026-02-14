@@ -1,6 +1,6 @@
 import { defineEventHandler, getRouterParam, createError } from 'h3'
-import { prisma } from '../../../utils/prisma'
-import { requireUser } from '../../../utils/auth'
+import { prisma } from '../../../../utils/prisma'
+import { requireUser } from '../../../../utils/auth'
 
 interface TaskNode {
   id: string
@@ -27,15 +27,17 @@ interface ActivityDay {
 // Returns: space info, project info, active tasks (hierarchical), completed tasks, activity data
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
+  const spaceId = getRouterParam(event, 'spaceId')
   const spaceSlug = getRouterParam(event, 'spaceSlug')
 
-  if (!spaceSlug) {
-    throw createError({ statusCode: 400, statusMessage: 'Space slug is required' })
+  if (!spaceId || !spaceSlug) {
+    throw createError({ statusCode: 400, statusMessage: 'Space ID and slug are required' })
   }
 
   // Find space and verify user has access
   const space = await prisma.externalSpace.findFirst({
     where: {
+      id: spaceId,
       slug: spaceSlug,
       archived: false
     },
@@ -69,17 +71,30 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Portal not found' })
   }
 
-  // Check if user has stakeholder access
-  const access = await prisma.stakeholderAccess.findUnique({
-    where: {
-      userId_externalSpaceId: {
-        userId: user.id,
-        externalSpaceId: space.id
-      }
-    }
-  })
+  // Check if user has stakeholder access OR is a workspace team member
+  const [access, workspaceMembership] = await Promise.all([
+    prisma.stakeholderAccess.findUnique({
+      where: {
+        userId_externalSpaceId: {
+          userId: user.id,
+          externalSpaceId: space.id,
+        },
+      },
+    }),
+    prisma.workspaceMember.findUnique({
+      where: {
+        workspaceId_userId: {
+          workspaceId: space.project.workspaceId,
+          userId: user.id,
+        },
+      },
+      select: { status: true },
+    }),
+  ])
 
-  if (!access) {
+  const isTeamMember = workspaceMembership?.status === 'ACTIVE'
+
+  if (!access && !isTeamMember) {
     throw createError({ statusCode: 403, statusMessage: 'You do not have access to this portal' })
   }
 
@@ -363,7 +378,7 @@ export default defineEventHandler(async (event) => {
     : 0
 
   // Determine effective permissions
-  const canSubmitTasks = access.canSubmitTasks ?? space.allowTaskSubmission
+  const canSubmitTasks = access?.canSubmitTasks ?? space.allowTaskSubmission
 
   // Build stakeholders list
   const stakeholders = space.stakeholderAccess.map(s => ({
@@ -402,8 +417,9 @@ export default defineEventHandler(async (event) => {
     },
     access: {
       canSubmitTasks,
-      displayName: access.displayName,
-      position: access.position
+      isTeamMember,
+      displayName: access?.displayName,
+      position: access?.position,
     }
   }
 })
