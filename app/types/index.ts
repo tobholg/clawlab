@@ -73,6 +73,7 @@ export interface ItemNode extends Item {
   childrenCount: number
   activeChildrenCount?: number
   completedChildrenCount?: number
+  doneChildrenCount?: number
   hotChildrenCount: number
   blockedChildrenCount: number
   atRiskChildrenCount: number

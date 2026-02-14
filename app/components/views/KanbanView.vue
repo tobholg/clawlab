@@ -4,6 +4,7 @@ import { STATUS_CONFIG, SUB_STATUS_CONFIG, SUB_STATUS_BY_STATUS, getSubStatusesF
 
 const props = defineProps<{
   items: ItemNode[]
+  parentItemId?: string
 }>()
 
 const emit = defineEmits<{
@@ -15,6 +16,7 @@ const emit = defineEmits<{
   openAttention: [item: ItemNode, mode: 'at-risk' | 'blocked']
   requestComplete: [item: ItemNode]
   openDocs: [item: ItemNode]
+  openArchive: []
 }>()
 
 const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
@@ -29,10 +31,7 @@ const columnStyles: Record<Item['status'], { bg: string; headerColor: string; dr
 }
 
 // Track collapsed state for each section (key: "status:subStatus" or "done:timeGroup")
-const collapsedSections = ref<Set<string>>(new Set([
-  'done:last_month',
-  'done:all_time'
-]))
+const collapsedSections = ref<Set<string>>(new Set())
 
 const toggleSection = (sectionKey: string) => {
   if (collapsedSections.value.has(sectionKey)) {
@@ -55,60 +54,24 @@ const getItemsByStatus = (status: Item['status']) => {
   return props.items.filter(item => item.status === status)
 }
 
-// Time-based grouping for DONE items
+// Time-based grouping for DONE items (server prunes to last 7 days)
 const getDoneItemsByTimeGroup = () => {
   const doneItems = getItemsByStatus('done')
-  const now = new Date()
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-  
+
+  // All done items come from the server already pruned to last 7 days
+  // Only create a group if there are items
   const groups: { key: string; label: string; icon: string; items: ItemNode[]; defaultCollapsed: boolean }[] = []
-  
-  const lastWeekItems = doneItems.filter(item => {
-    const completedDate = new Date(item.updatedAt || item.createdAt)
-    return completedDate >= oneWeekAgo
-  })
-  
-  const lastMonthItems = doneItems.filter(item => {
-    const completedDate = new Date(item.updatedAt || item.createdAt)
-    return completedDate >= oneMonthAgo && completedDate < oneWeekAgo
-  })
-  
-  const olderItems = doneItems.filter(item => {
-    const completedDate = new Date(item.updatedAt || item.createdAt)
-    return completedDate < oneMonthAgo
-  })
-  
-  if (lastWeekItems.length > 0) {
+
+  if (doneItems.length > 0) {
     groups.push({
       key: 'last_week',
       label: 'Last 7 days',
       icon: 'heroicons:calendar',
-      items: lastWeekItems,
+      items: doneItems,
       defaultCollapsed: false
     })
   }
-  
-  if (lastMonthItems.length > 0) {
-    groups.push({
-      key: 'last_month',
-      label: 'Last 30 days',
-      icon: 'heroicons:calendar-days',
-      items: lastMonthItems,
-      defaultCollapsed: true
-    })
-  }
-  
-  if (olderItems.length > 0) {
-    groups.push({
-      key: 'all_time',
-      label: 'Older',
-      icon: 'heroicons:archive-box',
-      items: olderItems,
-      defaultCollapsed: true
-    })
-  }
-  
+
   return groups
 }
 
@@ -174,6 +137,11 @@ const hasMultipleGroups = (status: Item['status']) => {
     return getDoneItemsByTimeGroup().length > 1
   }
   return getItemsGroupedBySubStatus(status).length > 1
+}
+
+// For done column: show a group header if the group has any items
+const shouldShowDoneGroupHeader = (group: { items: ItemNode[] }) => {
+  return group.items.length > 0
 }
 
 // Collapse all / Expand all for a column
@@ -346,7 +314,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       :key="status"
       :data-column="status"
       :class="[
-        'flex flex-col min-w-0 rounded-xl p-3 transition-colors duration-150',
+        'flex flex-col min-w-0 min-h-0 rounded-xl p-3 transition-colors duration-150',
         dragOverColumn === status && draggedItem && !(draggedItem.status === status || (status === 'in_progress' && draggedItem.status === 'paused'))
           ? columnStyles[status].dropBg + ' ring-2 ring-inset ring-slate-300 dark:ring-zinc-600'
           : columnStyles[status].bg
@@ -356,7 +324,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       @drop="handleDrop($event, status)"
     >
       <!-- Column header -->
-      <div class="flex items-center justify-between mb-4 px-1">
+      <div class="flex items-center justify-between mb-4 px-1 shrink-0">
         <div class="flex items-center gap-2">
           <h2 :class="['text-xs font-medium uppercase tracking-wider', columnStyles[status].headerColor]">
             {{ STATUS_CONFIG[status].label }}
@@ -385,32 +353,33 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
         </div>
       </div>
       
-      <!-- DONE column: Time-based groups -->
+      <!-- DONE column: Time-based groups (styled same as sub-status groups) -->
       <template v-if="status === 'done'">
-        <div class="flex flex-col gap-3 flex-1 min-h-[120px] overflow-y-auto">
+        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
           <template v-for="group in getDoneItemsByTimeGroup()" :key="group.key">
-            <!-- Time group header (collapsible) -->
-            <button 
-              v-if="hasMultipleGroups('done')"
-              class="flex items-center gap-2 px-2 py-1.5 bg-white/60 hover:bg-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] rounded-lg border border-white/80 dark:border-white/[0.06] transition-colors text-left w-full"
+            <!-- Group header: only show if group has more than 1 item -->
+            <button
+              v-if="shouldShowDoneGroupHeader(group)"
+              class="flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-colors text-left w-full bg-white/60 hover:bg-white/80 border-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] dark:border-white/[0.06]"
               @click="toggleSection(`done:${group.key}`)"
             >
-              <Icon 
-                name="heroicons:chevron-right" 
-                class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" 
+              <Icon
+                name="heroicons:chevron-right"
+                class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
                 :class="{ 'rotate-90': !isSectionCollapsed(`done:${group.key}`) }"
               />
-              <Icon 
-                :name="group.icon" 
-                class="w-3.5 h-3.5 text-emerald-500" 
+              <Icon
+                v-if="group.icon"
+                :name="group.icon"
+                class="w-3.5 h-3.5 text-slate-400"
               />
-              <span class="text-[11px] font-medium text-slate-600 dark:text-zinc-300 flex-1">{{ group.label }}</span>
+              <span class="text-[11px] font-medium text-slate-500 dark:text-zinc-400 flex-1">{{ group.label }}</span>
               <span class="text-[10px] text-slate-400 dark:text-zinc-500 bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">{{ group.items.length }}</span>
             </button>
 
             <!-- Items in this time group -->
             <div
-              v-show="!isSectionCollapsed(`done:${group.key}`)"
+              v-show="!shouldShowDoneGroupHeader(group) || !isSectionCollapsed(`done:${group.key}`)"
               class="flex flex-col gap-2"
             >
               <div
@@ -440,9 +409,9 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
               </div>
             </div>
           </template>
-          
+
           <!-- Empty state for Done -->
-          <div 
+          <div
             v-if="getItemsByStatus('done').length === 0"
             class="flex-1 rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06] flex items-center justify-center transition-colors"
             :class="{ 'border-slate-400 bg-slate-100/50 dark:border-white/[0.1] dark:bg-white/[0.04]': dragOverColumn === 'done' }"
@@ -451,12 +420,22 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
               {{ dragOverColumn === 'done' ? 'Drop here' : 'No items' }}
             </span>
           </div>
+
+          <!-- View completed archive button -->
+          <button
+            v-if="parentItemId"
+            @click="emit('openArchive')"
+            class="flex items-center justify-center gap-1.5 px-3 py-2 mt-1 rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/[0.08] transition-colors text-xs"
+          >
+            <Icon name="heroicons:archive-box" class="w-3.5 h-3.5" />
+            <span>View completed archive</span>
+          </button>
         </div>
       </template>
       
       <!-- Other columns: Sub-status groups -->
       <template v-else>
-        <div class="flex flex-col gap-3 flex-1 min-h-[120px] overflow-y-auto">
+        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
           <template v-for="group in getItemsGroupedBySubStatus(status)" :key="group.sectionKey">
             <!-- Sub-status section header (collapsible, only if multiple groups) -->
             <button

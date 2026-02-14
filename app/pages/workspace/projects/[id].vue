@@ -53,6 +53,7 @@ const attentionPaneMode = ref<'at-risk' | 'blocked'>('at-risk')
 const attentionPaneRoot = ref<any>(null)
 const showDocsModal = ref(false)
 const docsItem = ref<any>(null)
+const showArchiveModal = ref(false)
 const showCompleteWithChildren = ref(false)
 const completeWithChildrenLoading = ref(false)
 const completeWithChildrenError = ref<string | null>(null)
@@ -706,6 +707,7 @@ onMounted(() => {
     <ViewsKanbanView
       v-if="activeView === 'kanban'"
       :items="filteredItems"
+      :parent-item-id="currentScopeId ?? undefined"
       @drill-down="handleDrillDown"
       @open-detail="handleOpenDetail"
       @status-change="handleStatusChange"
@@ -713,6 +715,7 @@ onMounted(() => {
       @open-attention="handleOpenAttention"
       @request-complete="handleRequestComplete"
       @open-docs="handleOpenDocs"
+      @open-archive="showArchiveModal = true"
     />
 
     <!-- Timeline View -->
@@ -802,5 +805,14 @@ onMounted(() => {
     :open="showDocsModal"
     :project="docsItem"
     @close="showDocsModal = false"
+  />
+
+  <!-- Completed Items Archive Modal -->
+  <ItemsCompletedArchiveModal
+    v-if="currentScopeId"
+    :open="showArchiveModal"
+    :parent-item-id="currentScopeId"
+    @close="showArchiveModal = false"
+    @open-detail="handleOpenDetail"
   />
 </template>

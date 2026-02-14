@@ -69,16 +69,28 @@ export default defineEventHandler(async (event) => {
     orderBy: { createdAt: 'asc' }
   })
   
+  // Cutoff: only include done children from last 7 days
+  const doneCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
   // Transform item recursively
   function transformItem(item: any, depth: number = 0): any {
+    // Compute all stats BEFORE pruning so counts remain accurate
     const childrenCount = countAllChildren(item)
     const hotCount = countByTemperature(item, ['hot', 'critical'])
     const blockedCount = countByStatus(item, 'BLOCKED')
     const completedCount = countByStatus(item, 'DONE')
+    const doneCount = countDoneDirectChildren(item)
     const atRiskCount = countAtRisk(item)
     const needsEstimateCount = countNeedsEstimate(item)
     const docCount = item._count?.documents ?? 0
     const totalDocCount = countAllDocuments(item)
+
+    // Prune done children older than cutoff from the response
+    const prunedChildren = item.children?.filter((child: any) => {
+      if (child.status !== 'DONE') return true
+      const completedDate = child.updatedAt || child.createdAt
+      return completedDate >= doneCutoff
+    }) ?? []
 
     return {
       id: item.id,
@@ -121,9 +133,10 @@ export default defineEventHandler(async (event) => {
       // Dependencies
       dependencyIds: item.blockedBy?.map((d: any) => d.blockingItemId) ?? [],
       isBlocked: (item.blockedBy?.length ?? 0) > 0,
-      // Children stats
+      // Children stats (computed before pruning for accuracy)
       childrenCount,
       completedChildrenCount: completedCount,
+      doneChildrenCount: doneCount,
       activeChildrenCount: Math.max(0, childrenCount - completedCount),
       hotChildrenCount: hotCount,
       blockedChildrenCount: blockedCount,
@@ -133,9 +146,9 @@ export default defineEventHandler(async (event) => {
       // Document counts
       documentCount: docCount,
       totalDocumentCount: totalDocCount,
-      // Recursive children (up to 4 levels)
-      children: depth < 4 && item.children?.length
-        ? item.children.map((child: any) => transformItem(child, depth + 1))
+      // Recursive children (up to 4 levels, done items pruned to last 7 days)
+      children: depth < 4 && prunedChildren.length
+        ? prunedChildren.map((child: any) => transformItem(child, depth + 1))
         : [],
     }
   }
@@ -208,4 +221,10 @@ function countNeedsEstimate(item: any): number {
     count += countNeedsEstimate(child)
   }
   return count
+}
+
+// Count direct children with DONE status (not recursive — for archive button label)
+function countDoneDirectChildren(item: any): number {
+  if (!item.children?.length) return 0
+  return item.children.filter((c: any) => c.status === 'DONE').length
 }
