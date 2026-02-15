@@ -247,7 +247,7 @@ const descriptionRef = ref<HTMLTextAreaElement | null>(null)
 const editingDescription = ref(false)
 const descriptionExpanded = ref(false)
 const descriptionContentRef = ref<HTMLElement | null>(null)
-const activeTab = ref<'subtasks' | 'comments' | 'docs'>('subtasks')
+const activeTab = ref<'subtasks' | 'comments'>('subtasks')
 
 // Auto-resize description textarea
 const autoResizeDescription = () => {
@@ -1151,6 +1151,16 @@ const formatRelativeTime = (dateStr: string) => {
               @blur="editingDescription = false"
             />
 
+            <!-- Inline Documents Section -->
+            <DocumentsSection
+              v-if="itemDetail?.documentCount > 0"
+              :item-id="itemDetail?.id ?? null"
+              :show-header="false"
+              :show-helper="false"
+              :show-new-button="false"
+              grid-cols="grid-cols-2"
+            />
+
             <!-- Property Table -->
             <div class="divide-y divide-slate-100 dark:divide-white/[0.04]">
               <!-- Priority -->
@@ -1644,17 +1654,6 @@ const formatRelativeTime = (dateStr: string) => {
                 <span v-if="itemDetail?.comments?.length" class="ml-1 text-slate-400 dark:text-zinc-500 font-normal">({{ itemDetail.comments.length }})</span>
                 <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
               </button>
-              <button
-                @click="activeTab = 'docs'"
-                class="px-3 py-2 text-xs transition-colors relative"
-                :class="activeTab === 'docs'
-                  ? 'text-slate-900 dark:text-zinc-100 font-medium'
-                  : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'"
-              >
-                Docs
-                <span v-if="itemDetail?.documentCount" class="ml-1 text-slate-400 dark:text-zinc-500 font-normal">({{ itemDetail.documentCount }})</span>
-                <div v-if="activeTab === 'docs'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
-              </button>
             </div>
 
             <!-- Tab Content: Subtasks -->
@@ -1942,13 +1941,6 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
             </div>
 
-            <!-- Tab Content: Docs -->
-            <div v-else-if="activeTab === 'docs'">
-              <DocumentsSection
-                :item-id="itemDetail?.id ?? null"
-                compact
-              />
-            </div>
 
             <!-- Delete Item -->
             <div v-if="canDeleteItem" class="pt-6 mt-6 border-t border-slate-100 dark:border-white/[0.06]">

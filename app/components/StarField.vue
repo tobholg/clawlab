@@ -22,6 +22,10 @@ onMounted(() => {
 
   let stars: Star[] = []
   let raf: number
+  let scrollY = 0
+  let smoothScrollY = 0       // lerped toward scrollY for momentum/inertia
+  let prevSmoothScrollY = 0
+  let scrollGlow = 0          // smoothed 0→1 glow intensity driven by scroll speed
 
   const resize = () => {
     el.width = window.innerWidth
@@ -30,10 +34,12 @@ onMounted(() => {
   }
 
   const seed = () => {
-    const count = Math.floor((el.width * el.height) / 8000)
+    // Extra height so stars don't disappear when shifted up by parallax
+    const fieldH = el.height * 1.6
+    const count = Math.floor((el.width * fieldH) / 8000)
     stars = Array.from({ length: count }, () => ({
       x: Math.random() * el.width,
-      y: Math.random() * el.height,
+      y: Math.random() * fieldH,
       r: Math.random() * 0.9 + 0.2,
       baseAlpha: Math.random() * 0.3 + 0.08,
       phase: Math.random() * Math.PI * 2,
@@ -41,17 +47,42 @@ onMounted(() => {
     }))
   }
 
+  const onScroll = () => { scrollY = window.scrollY }
+
   const draw = (t: number) => {
     ctx.clearRect(0, 0, el.width, el.height)
+
+    // Momentum: smoothScrollY eases toward real scrollY
+    smoothScrollY += (scrollY - smoothScrollY) * 0.08
+
+    // Smooth scroll-glow: ramp up fast, decay slowly
+    const scrollDelta = Math.abs(smoothScrollY - prevSmoothScrollY)
+    prevSmoothScrollY = smoothScrollY
+    const target = Math.min(scrollDelta / 30, 1)   // normalise speed → 0-1
+    const rate = target > scrollGlow ? 0.12 : 0.06  // fast attack, slow release
+    scrollGlow += (target - scrollGlow) * rate
+
+    const parallaxOffset = smoothScrollY * 0.06
 
     for (const s of stars) {
       const twinkle = Math.sin(t * 0.001 * s.speed + s.phase)
       const alpha = s.baseAlpha + twinkle * s.baseAlpha * 0.9
+      // Boost alpha + add soft blur halo when scrolling
+      const glowAlpha = alpha + scrollGlow * 0.45
+      const sy = s.y - parallaxOffset
+      if (sy < -10 || sy > el.height + 10) continue
+
+      ctx.shadowColor = `rgba(200, 220, 255, ${scrollGlow * 0.7})`
+      ctx.shadowBlur = scrollGlow * 6 * (s.r + 0.5)
+
       ctx.beginPath()
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, alpha)})`
+      ctx.arc(s.x, sy, s.r, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, Math.min(1, glowAlpha))})`
       ctx.fill()
     }
+
+    // Reset shadow so it doesn't leak to next frame's clearRect
+    ctx.shadowBlur = 0
 
     raf = requestAnimationFrame(draw)
   }
@@ -59,6 +90,7 @@ onMounted(() => {
   resize()
   raf = requestAnimationFrame(draw)
   window.addEventListener('resize', resize)
+  window.addEventListener('scroll', onScroll, { passive: true })
   setTimeout(() => { visible.value = true }, props.delay)
 
   onUnmounted(() => {

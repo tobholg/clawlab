@@ -10,6 +10,7 @@ const props = defineProps<{
   showNewButton?: boolean
   newButtonLabel?: string
   emptyMessage?: string
+  gridCols?: string
 }>()
 
 const documents = ref<DocumentSummary[]>([])
@@ -265,7 +266,7 @@ const getDocColor = (id: string) => {
     </div>
 
     <!-- Full Loading -->
-    <div v-else-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else-if="isLoading" :class="['grid gap-4', gridCols || 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3']">
       <div v-for="i in 3" :key="i" class="bg-white dark:bg-dm-card rounded-xl border border-slate-100 dark:border-white/[0.06] p-4">
         <div class="flex items-start gap-3">
           <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/[0.08] animate-pulse flex-shrink-0" />
@@ -358,7 +359,7 @@ const getDocColor = (id: string) => {
     </div>
 
     <!-- Full Document Grid -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+    <div v-else :class="['grid gap-4', gridCols || 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4']">
       <!-- Document cards -->
       <button
         v-for="doc in documents"
@@ -388,9 +389,6 @@ const getDocColor = (id: string) => {
                 <Icon name="heroicons:lock-closed" class="w-2.5 h-2.5" />
               </span>
               <span class="flex-1" />
-              <span v-if="doc.versionCount > 0" class="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-white/[0.08] text-slate-500 dark:text-zinc-400 rounded flex-shrink-0">
-                {{ doc.versionCount }} {{ doc.versionCount === 1 ? 'version' : 'versions' }}
-              </span>
             </div>
             <div class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
               <span>{{ formatRelativeTime(doc.updatedAt) }}</span>
