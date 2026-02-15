@@ -17,16 +17,15 @@ const navItems = [
 ]
 
 const showcaseFeatures = [
-  { icon: 'heroicons:queue-list', title: 'Recursive everything', desc: 'Projects, tasks, subtasks — turtles all the way down. One model, infinite depth, automatic roll-up.', screenshot: '/screenshots/recursive.png' },
-  { icon: 'heroicons:chat-bubble-left-right', title: 'Built-in channels', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context next to the work.', screenshot: '/screenshots/channels.png' },
-  { icon: 'heroicons:megaphone', title: 'Stakeholder mode', desc: 'External spaces for clients. They see what you want. Auto-published weekly briefs.', screenshot: '/screenshots/stakeholders.png' },
-  { icon: 'heroicons:clock', title: 'Focus tracking', desc: 'Deep work, meetings, admin, learning, break. Know where your time goes. Spot burnout early.', screenshot: '/screenshots/focus.png' },
+  { icon: 'heroicons:queue-list', title: 'Recursive everything', desc: 'Projects, tasks, subtasks — turtles all the way down. One model, infinite depth, automatic roll-up.', screenshots: ['/screenshots/board_1.png', '/screenshots/board_2.png', '/screenshots/board_3.png'] },
+  { icon: 'heroicons:chat-bubble-left-right', title: 'Built-in channels', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context next to the work.', screenshots: ['/screenshots/channel_1.png', '/screenshots/channel_2.png'] },
+  { icon: 'heroicons:megaphone', title: 'Stakeholder mode', desc: 'External spaces for normies. They see what you want. Auto-published weekly briefs.', screenshots: ['/screenshots/stakeholder_1.png', '/screenshots/stakeholder_2.png'] },
+  { icon: 'heroicons:clock', title: 'Focus tracking', desc: 'Deep work, meetings, admin, learning, break. Know where your time goes. Spot burnout early.', screenshots: ['/screenshots/focus_1.png'] },
 ]
 
-const extraFeatures = [
-  { icon: 'heroicons:sparkles', title: 'AI that actually helps', desc: 'Forecasting, risk detection, auto-generated reports. Real intelligence, not a chatbot sidebar.' },
-  { icon: 'heroicons:arrow-path', title: 'Dependency graph', desc: 'See what blocks what. Critical path detection. One stuck subtask surfaces risk across the tree.' },
-]
+// Per-feature active screenshot index
+const activeScreenshots = reactive<Record<number, number>>({ 0: 0, 1: 0, 2: 0, 3: 0 })
+
 
 const quickStartSteps = [
   { num: '01', title: 'Clone it', cmd: 'git clone https://github.com/recursion-endeavours/context.git && cd context && npm install', desc: '' },
@@ -60,20 +59,21 @@ const scrolled = ref(false)
 const copied = ref(false)
 
 // Screenshot modal
-const lightbox = ref<{ src: string; rect: DOMRect; offsetX: number; offsetY: number; scale: number } | null>(null)
+const lightbox = ref<{ featureIndex: number; rect: DOMRect; offsetX: number; offsetY: number; scale: number } | null>(null)
 const lightboxOpen = ref(false)
+const lightboxImageIndex = ref(0)
 
-const openLightbox = (src: string, event: MouseEvent) => {
+const openLightbox = (featureIndex: number, event: Event) => {
   const el = (event.currentTarget as HTMLElement)
   const rect = el.getBoundingClientRect()
-  // Calculate where the source is relative to viewport center
   const viewW = window.innerWidth
   const viewH = window.innerHeight
-  const targetW = Math.min(viewW * 0.9, 1024) // 90vw max-w-5xl
+  const targetW = Math.min(viewW * 0.95, 1600)
   const scaleX = rect.width / targetW
   const offsetX = (rect.left + rect.width / 2) - viewW / 2
   const offsetY = (rect.top + rect.height / 2) - viewH / 2
-  lightbox.value = { src, rect, offsetX, offsetY, scale: scaleX }
+  lightboxImageIndex.value = activeScreenshots[featureIndex]
+  lightbox.value = { featureIndex, rect, offsetX, offsetY, scale: scaleX }
   requestAnimationFrame(() => {
     lightboxOpen.value = true
   })
@@ -84,6 +84,38 @@ const closeLightbox = () => {
   setTimeout(() => {
     lightbox.value = null
   }, 350)
+}
+
+const lightboxFeature = computed(() => lightbox.value ? showcaseFeatures[lightbox.value.featureIndex] : null)
+
+const setLightboxImage = (index: number) => {
+  lightboxImageIndex.value = index
+  if (lightbox.value) {
+    activeScreenshots[lightbox.value.featureIndex] = index
+  }
+}
+
+// Transition direction for screenshot flips
+const screenshotDirection = ref<'next' | 'prev'>('next')
+
+const setScreenshot = (featureIndex: number, imageIndex: number) => {
+  screenshotDirection.value = imageIndex > activeScreenshots[featureIndex] ? 'next' : 'prev'
+  activeScreenshots[featureIndex] = imageIndex
+}
+
+const handleLightboxClick = (event: MouseEvent) => {
+  if (!lightbox.value || !lightboxFeature.value) return
+  const screenshots = lightboxFeature.value.screenshots
+  if (screenshots.length <= 1) return
+  const el = event.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  const clickX = (event.clientX - rect.left) / rect.width
+  const len = screenshots.length
+  if (clickX < 0.3) {
+    setLightboxImage((lightboxImageIndex.value - 1 + len) % len)
+  } else if (clickX > 0.7) {
+    setLightboxImage((lightboxImageIndex.value + 1) % len)
+  }
 }
 
 const copyCommand = async () => {
@@ -135,7 +167,7 @@ onMounted(() => {
 
 <template>
   <div class="os-landing min-h-screen text-zinc-100 scroll-smooth" :class="{ 'is-ready': ready }">
-    <div class="fixed inset-0 bg-gradient-to-b from-[#050506] to-[#0a0a0f] -z-10" aria-hidden="true" />
+    <div class="fixed inset-0 bg-gradient-to-b from-[#050506] to-[#0f0f18] -z-10" aria-hidden="true" />
     <!-- Nav -->
     <nav
       class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl nav-intro border-b transition-all duration-300"
@@ -196,13 +228,12 @@ onMounted(() => {
       :ref="(el) => (sectionRefs.hero = el as HTMLElement | null)"
       class="hero-dark relative flex flex-col items-center justify-center px-6 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 min-h-0 overflow-hidden scroll-mt-20"
     >
-      <div class="hero-dots" aria-hidden="true" />
 
       <div class="relative max-w-4xl mx-auto text-center">
         <!-- Logo -->
         <div class="intro flex justify-center mb-6 sm:mb-8" style="--d: 30ms">
-          <div class="w-18 h-18 sm:w-24 sm:h-24 bg-white/[0.06] rounded-2xl sm:rounded-3xl flex items-center justify-center">
-            <svg class="w-10 h-10 sm:w-14 sm:h-14" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="w-16 h-16 sm:w-24 sm:h-24 bg-white/[0.06] rounded-xl sm:rounded-3xl flex items-center justify-center">
+            <svg class="w-9 h-9 sm:w-14 sm:h-14" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
         </div>
 
@@ -215,6 +246,9 @@ onMounted(() => {
 
         <p class="mt-4 text-base md:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed intro" style="--d: 340ms">
           One recursive model. AI agents as actual teammates. Self-host, run anywhere. No vendor lock-in, no telemetry, no bullshit.
+        </p>
+        <p class="mt-3 text-sm text-zinc-500 intro" style="--d: 380ms">
+          Yes, this page was made by a clanker — let's move on. 🦞
         </p>
 
         <!-- CLI quick-start -->
@@ -284,8 +318,8 @@ onMounted(() => {
               Agent Teammates
             </div>
             <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Your agents work here too</h2>
-            <p class="mt-3 text-sm text-zinc-400 leading-relaxed max-w-md">
-              They pick up tasks, break them down, open PRs, and post updates — while you sleep. Your data, your rules.
+            <p class="mt-3 text-sm sm:text-base text-zinc-400 leading-relaxed max-w-md">
+              Assign tasks to agents or mark them as agent-eligible. They pick up work, break it down, open PRs, and post updates — but only when you say so.
             </p>
           </div>
 
@@ -309,11 +343,11 @@ onMounted(() => {
       :ref="(el) => (sectionRefs.features = el as HTMLElement | null)"
       class="px-6 py-10 lg:py-14 scroll-mt-20"
     >
-      <div class="max-w-5xl mx-auto">
+      <div class="max-w-6xl mx-auto">
         <div class="text-center intro" style="--d: 640ms">
           <div class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Features</div>
-          <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Everything you need, nothing you don't</h2>
-          <p class="mt-3 text-lg text-zinc-400 max-w-2xl mx-auto">
+          <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Everything you need,<br class="sm:hidden" /> nothing you don't</h2>
+          <p class="mt-3 text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
             Built for people who ship. No feature bloat, no enterprise theater.
           </p>
         </div>
@@ -323,7 +357,8 @@ onMounted(() => {
           <div
             v-for="(feat, i) in showcaseFeatures"
             :key="feat.title"
-            class="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center intro"
+            class="grid gap-8 lg:gap-12 items-center intro"
+            :class="i % 2 === 1 ? 'lg:grid-cols-[7fr_5fr]' : 'lg:grid-cols-[5fr_7fr]'"
             :style="{ '--d': `${700 + i * 80}ms` }"
           >
             <!-- Text -->
@@ -334,31 +369,32 @@ onMounted(() => {
               <h3 class="text-xl sm:text-2xl font-semibold text-zinc-100">{{ feat.title }}</h3>
               <p class="mt-2 text-sm sm:text-base text-zinc-400 leading-relaxed max-w-md">{{ feat.desc }}</p>
             </div>
-            <!-- Screenshot placeholder -->
+            <!-- Screenshots -->
             <div :class="i % 2 === 1 ? 'lg:order-1' : ''">
               <div
-                class="aspect-[16/10] rounded-xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center overflow-hidden cursor-pointer hover:border-white/[0.1] hover:bg-white/[0.04] transition-all"
-                @click="openLightbox(feat.screenshot, $event)"
+                class="rounded-xl border border-white/[0.06] bg-black overflow-hidden cursor-pointer hover:border-white/[0.1] transition-all relative"
+                @click="openLightbox(i, $event)"
               >
-                <span class="text-xs text-zinc-600 font-mono">{{ feat.screenshot }}</span>
+                <Transition name="screenshot-fade" mode="out-in">
+                  <img
+                    :key="feat.screenshots[activeScreenshots[i]]"
+                    :src="feat.screenshots[activeScreenshots[i]]"
+                    :alt="feat.title"
+                    class="w-full h-auto screenshot-crisp"
+                  />
+                </Transition>
+              </div>
+              <!-- Dots -->
+              <div v-if="feat.screenshots.length > 1" class="flex items-center justify-center gap-1.5 mt-3">
+                <button
+                  v-for="(_, si) in feat.screenshots"
+                  :key="si"
+                  class="w-1.5 h-1.5 rounded-full transition-all cursor-pointer"
+                  :class="activeScreenshots[i] === si ? 'bg-emerald-400 w-4' : 'bg-zinc-600 hover:bg-zinc-500'"
+                  @click="setScreenshot(i, si)"
+                />
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Extra features: compact 2-col -->
-        <div class="mt-16 grid sm:grid-cols-2 gap-4">
-          <div
-            v-for="(feat, i) in extraFeatures"
-            :key="feat.title"
-            class="feature-card intro"
-            :style="{ '--d': `${1100 + i * 50}ms` }"
-          >
-            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-3">
-              <Icon :name="feat.icon" class="w-4.5 h-4.5 text-emerald-400" />
-            </div>
-            <h3 class="text-base font-semibold text-zinc-100">{{ feat.title }}</h3>
-            <p class="mt-1.5 text-sm text-zinc-400 leading-relaxed">{{ feat.desc }}</p>
           </div>
         </div>
       </div>
@@ -381,7 +417,7 @@ onMounted(() => {
 
         <div class="mt-8 relative">
           <!-- Vertical line -->
-          <div class="absolute left-[19px] top-8 bottom-8 w-px bg-white/[0.06]" />
+          <div class="absolute left-[19px] top-8 bottom-[4.5rem] w-px bg-white/[0.06]" />
 
           <div class="space-y-6">
             <div
@@ -399,19 +435,6 @@ onMounted(() => {
                   {{ step.cmd }}
                 </div>
                 <p v-if="step.desc" class="mt-2 text-sm text-zinc-500">{{ step.desc }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Docker alternative -->
-          <div class="mt-8 intro" style="--d: 1200ms">
-            <div class="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
-              <div class="flex items-center gap-2 text-sm text-zinc-400 mb-2">
-                <Icon name="heroicons:cube" class="w-4 h-4" />
-                <span class="font-medium">Prefer Docker?</span>
-              </div>
-              <div class="rounded-lg border border-white/[0.08] bg-[#111113] px-4 py-2.5 font-mono text-sm text-zinc-300">
-                docker compose up -d
               </div>
             </div>
           </div>
@@ -557,7 +580,7 @@ onMounted(() => {
         />
         <!-- Image container -->
         <div
-          class="lightbox-image relative z-10 w-[90vw] max-w-5xl"
+          class="lightbox-image relative z-10 w-[95vw] max-w-[1600px]"
           :class="lightboxOpen ? 'lightbox-image--open' : 'lightbox-image--closed'"
           :style="{
             '--lb-ox': `${lightbox.offsetX}px`,
@@ -571,8 +594,29 @@ onMounted(() => {
           >
             <Icon name="heroicons:x-mark" class="w-6 h-6" />
           </button>
-          <div class="aspect-[16/10] rounded-xl border border-white/[0.1] bg-[#111113] flex items-center justify-center overflow-hidden">
-            <span class="text-sm text-zinc-600 font-mono">{{ lightbox.src }}</span>
+          <div
+            class="rounded-xl border border-white/[0.1] bg-black overflow-hidden"
+            :class="lightboxFeature && lightboxFeature.screenshots.length > 1 ? 'cursor-pointer' : ''"
+            @click="handleLightboxClick($event)"
+          >
+            <Transition name="screenshot-fade" mode="out-in">
+              <img
+                :key="lightboxFeature?.screenshots[lightboxImageIndex]"
+                :src="lightboxFeature?.screenshots[lightboxImageIndex]"
+                :alt="lightboxFeature?.title"
+                class="w-full h-auto screenshot-crisp"
+              />
+            </Transition>
+          </div>
+          <!-- Lightbox dots -->
+          <div v-if="lightboxFeature && lightboxFeature.screenshots.length > 1" class="flex items-center justify-center gap-2 mt-4">
+            <button
+              v-for="(_, si) in lightboxFeature.screenshots"
+              :key="si"
+              class="w-2 h-2 rounded-full transition-all cursor-pointer"
+              :class="lightboxImageIndex === si ? 'bg-emerald-400 w-5' : 'bg-zinc-600 hover:bg-zinc-400'"
+              @click="setLightboxImage(si)"
+            />
           </div>
         </div>
       </div>
@@ -592,14 +636,6 @@ onMounted(() => {
   background-color: transparent;
 }
 
-.hero-dots {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 24px 24px;
-  pointer-events: none;
-}
-
 /* ── Accent line — single gradient across the full line ── */
 
 .accent-line {
@@ -611,6 +647,27 @@ onMounted(() => {
 }
 
 /* ── Feature cards ────────────────────────────────── */
+
+/* ── Screenshot transitions ─────────────────────── */
+
+.screenshot-fade-enter-active,
+.screenshot-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.screenshot-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.screenshot-fade-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+.screenshot-crisp {
+  image-rendering: high-quality;
+}
 
 .feature-card {
   padding: 20px;
