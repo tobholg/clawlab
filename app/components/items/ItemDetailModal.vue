@@ -895,7 +895,7 @@ const formatRelativeTime = (dateStr: string) => {
         />
 
         <!-- Slide-in Panel -->
-        <div class="panel relative bg-white dark:bg-dm-card shadow-2xl w-full max-w-xl 2xl:max-w-3xl h-full flex flex-col">
+        <div class="panel relative bg-white dark:bg-dm-card shadow-2xl w-full max-w-xl 2xl:max-w-2xl h-full flex flex-col">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
             <div class="flex items-center gap-2">

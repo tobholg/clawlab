@@ -153,13 +153,14 @@ enum MemberStatus {
 // ============================================
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  position  String?  // Job title: "Engineering Manager", "CTO"
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  position     String?  // Job title: "Engineering Manager", "CTO"
+  avatar       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Two-layer focus system
   // Layer 1: Project context (sticky)

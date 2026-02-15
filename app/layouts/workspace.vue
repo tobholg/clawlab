@@ -204,7 +204,7 @@ const statusDotClass = (status: string) => {
     <!-- Sidebar -->
     <aside
       :class="[
-        'border-r border-slate-200/60 dark:border-white/[0.075] bg-white dark:bg-[#010101] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        'border-r border-slate-200/60 dark:border-white/[0.075] bg-white dark:bg-[#020203] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
         sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
       ]"
     >
@@ -602,7 +602,7 @@ const statusDotClass = (status: string) => {
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white dark:from-dm-surface dark:to-dm-surface">
+    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white dark:from-[#050506] dark:to-[#0f0f18]">
       <Transition name="content-fade">
         <div :key="route.path" class="absolute inset-0 flex flex-col overflow-auto">
           <slot />

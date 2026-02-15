@@ -134,7 +134,7 @@ const getStatusColor = (status: string) => {
         v-if="open"
         class="fixed top-[15%] left-1/2 -translate-x-1/2 z-[101] w-full max-w-xl"
       >
-        <div class="bg-white dark:bg-dm-card rounded-xl shadow-2xl border border-slate-200 dark:border-white/[0.06] overflow-hidden">
+        <div class="bg-white dark:bg-[#1a1a1f] rounded-xl shadow-2xl border border-slate-200 dark:border-white/[0.06] overflow-hidden">
           <!-- Search input -->
           <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-white/[0.06]">
             <Icon name="heroicons:magnifying-glass" class="w-5 h-5 text-slate-400 dark:text-zinc-500 flex-shrink-0" />

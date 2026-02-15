@@ -8,10 +8,25 @@ const route = useRoute()
 const { requestMagicLink } = useAuth()
 
 const email = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 const pageReady = ref(false)
+
+// Auth mode detection
+const authMode = ref<{ magicLink: boolean; password: boolean; singleUser: boolean } | null>(null)
+
+const { data: authModeData } = await useFetch('/api/auth/mode')
+if (authModeData.value) {
+  authMode.value = authModeData.value
+}
+
+const hasMagicLink = computed(() => authMode.value?.magicLink ?? false)
+const isSingleUser = computed(() => authMode.value?.singleUser ?? false)
+
+// Active auth tab
+const activeTab = ref<'password' | 'magic-link'>('password')
 
 // Get redirect URL from query params (used by invite flow)
 const redirect = computed(() => route.query.redirect as string | undefined)
@@ -24,7 +39,30 @@ const inviteToken = computed(() => {
   return undefined
 })
 
-const handleSubmit = async () => {
+const handlePasswordLogin = async () => {
+  if (!password.value) return
+  if (!isSingleUser.value && !email.value) return
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: {
+        password: password.value,
+        ...(!isSingleUser.value && { email: email.value.trim().toLowerCase() }),
+      },
+    })
+    await navigateTo(redirect.value || '/workspace')
+  } catch (e: any) {
+    error.value = e.data?.message || 'Invalid credentials'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleMagicLink = async () => {
   if (!email.value) return
 
   loading.value = true
@@ -36,7 +74,6 @@ const handleSubmit = async () => {
     })
     if (response.ok) {
       success.value = true
-      // In development, log the link for easy testing
       if (response.link) {
         console.log('Magic link:', response.link)
       }
@@ -45,6 +82,14 @@ const handleSubmit = async () => {
     error.value = e.data?.message || 'Failed to send magic link'
   } finally {
     loading.value = false
+  }
+}
+
+const handleSubmit = () => {
+  if (activeTab.value === 'magic-link') {
+    handleMagicLink()
+  } else {
+    handlePasswordLogin()
   }
 }
 
@@ -106,8 +151,7 @@ onMounted(() => {
           </h1>
 
           <p class="mt-6 text-lg text-slate-600 max-w-xl intro" style="--d: 420ms">
-            Sign in to keep stakeholders calm and teams moving. We send a one-time magic link to keep
-            access fast and secure.
+            Sign in to keep stakeholders calm and teams moving.
           </p>
 
           <div class="mt-10 grid sm:grid-cols-2 gap-6 intro" style="--d: 520ms">
@@ -129,11 +173,40 @@ onMounted(() => {
           <div class="auth-card intro" style="--d: 220ms">
             <div class="text-center mb-8">
               <h2 class="text-2xl font-semibold text-slate-900 tracking-tight mb-2">Sign in to Context</h2>
-              <p class="text-slate-500">We will email you a secure magic link.</p>
+              <p v-if="isSingleUser" class="text-slate-500">Enter your password to continue.</p>
+              <p v-else-if="hasMagicLink" class="text-slate-500">Sign in with a magic link or password.</p>
+              <p v-else class="text-slate-500">Enter your credentials to continue.</p>
+            </div>
+
+            <!-- Auth method tabs (only if magic link is available and multi-user) -->
+            <div v-if="hasMagicLink && !isSingleUser" class="flex bg-slate-100 rounded-xl p-1 mb-6">
+              <button
+                @click="activeTab = 'password'; error = ''; success = false"
+                :class="[
+                  'flex-1 py-2 text-sm font-medium rounded-lg transition-all',
+                  activeTab === 'password'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                ]"
+              >
+                Password
+              </button>
+              <button
+                @click="activeTab = 'magic-link'; error = ''; success = false"
+                :class="[
+                  'flex-1 py-2 text-sm font-medium rounded-lg transition-all',
+                  activeTab === 'magic-link'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                ]"
+              >
+                Magic Link
+              </button>
             </div>
 
             <form class="space-y-5" @submit.prevent="handleSubmit">
-              <div>
+              <!-- Email (shown for multi-user, or magic link tab) -->
+              <div v-if="!isSingleUser">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Email address</label>
                 <input
                   v-model="email"
@@ -141,6 +214,20 @@ onMounted(() => {
                   name="email"
                   class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 outline-none bg-white text-slate-900 placeholder-slate-400 transition-all"
                   placeholder="you@company.com"
+                  required
+                  :disabled="success"
+                />
+              </div>
+
+              <!-- Password (shown for password tab) -->
+              <div v-if="activeTab === 'password'">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Password</label>
+                <input
+                  v-model="password"
+                  type="password"
+                  name="password"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 outline-none bg-white text-slate-900 placeholder-slate-400 transition-all"
+                  placeholder="Enter your password"
                   required
                   :disabled="success"
                 />
@@ -156,8 +243,12 @@ onMounted(() => {
                   <Icon name="heroicons:check-circle" class="w-5 h-5" />
                   <span>Check your email</span>
                 </template>
+                <template v-else-if="activeTab === 'magic-link'">
+                  <span>Send Magic Link</span>
+                  <Icon name="heroicons:arrow-right" class="w-5 h-5" />
+                </template>
                 <template v-else>
-                  <span>Continue with Email</span>
+                  <span>Sign In</span>
                   <Icon name="heroicons:arrow-right" class="w-5 h-5" />
                 </template>
               </button>
@@ -198,7 +289,7 @@ onMounted(() => {
 
             <!-- Info -->
             <p class="text-center text-sm text-slate-500">
-              We never store passwords. You are in control of every sign in.
+              Your data stays on your server. You are in control.
             </p>
           </div>
 
@@ -232,30 +323,6 @@ onMounted(() => {
   box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12), 0 10px 30px rgba(15, 23, 42, 0.06);
   padding: 32px;
   backdrop-filter: blur(10px);
-}
-
-.auth-bubble {
-  position: absolute;
-  right: -12px;
-  bottom: -24px;
-  width: 240px;
-  border-radius: 22px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
-  padding: 18px 20px;
-}
-
-.pill {
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.pill--emerald {
-  background: rgba(16, 185, 129, 0.15);
-  color: #047857;
 }
 
 .intro {

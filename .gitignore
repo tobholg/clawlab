@@ -18,6 +18,9 @@ logs
 .fleet
 .idea
 
+# PGlite embedded database
+data/
+
 # Local env files
 .env
 .env.*

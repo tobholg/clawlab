@@ -1,6 +1,6 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   // Skip auth check for public routes
-  const publicRoutes = ['/login', '/auth/confirm']
+  const publicRoutes = ['/login', '/auth/confirm', '/setup']
   if (publicRoutes.includes(to.path)) {
     return
   }

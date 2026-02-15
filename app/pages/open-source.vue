@@ -138,7 +138,7 @@ onMounted(() => {
     ready.value = true
   })
 
-  const onScroll = () => { scrolled.value = window.scrollY > 20 }
+  const onScroll = () => { scrolled.value = window.scrollY > 64 }
   window.addEventListener('scroll', onScroll, { passive: true })
 
   // Nav active section tracking only — no animation triggering
@@ -149,7 +149,7 @@ onMounted(() => {
         .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
       if (visible[0]?.target?.id) activeSection.value = visible[0].target.id
     },
-    { rootMargin: '-20% 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] },
+    { rootMargin: '-20% 0px -55% 0px', threshold: Array.from({ length: 21 }, (_, i) => i / 20) },
   )
 
   nextTick(() => {
@@ -168,10 +168,11 @@ onMounted(() => {
 <template>
   <div class="os-landing min-h-screen text-zinc-100 scroll-smooth" :class="{ 'is-ready': ready }">
     <div class="fixed inset-0 bg-gradient-to-b from-[#050506] to-[#0f0f18] -z-10" aria-hidden="true" />
+    <StarField />
     <!-- Nav -->
     <nav
-      class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl nav-intro border-b transition-all duration-300"
-      :class="scrolled ? 'bg-[#050506]/80 border-white/[0.06]' : 'bg-transparent border-transparent'"
+      class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl border-b transition-all duration-500 ease-out"
+      :class="scrolled ? 'bg-[#050506]/80 border-white/[0.06] opacity-100 translate-y-0' : 'bg-transparent border-transparent opacity-0 -translate-y-3 pointer-events-none'"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 h-[56px] sm:h-[64px] flex items-center justify-between">
         <div class="flex items-center gap-8">
@@ -226,7 +227,7 @@ onMounted(() => {
     <section
       id="hero"
       :ref="(el) => (sectionRefs.hero = el as HTMLElement | null)"
-      class="hero-dark relative flex flex-col items-center justify-center px-6 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 min-h-0 overflow-hidden scroll-mt-20"
+      class="hero-dark relative flex flex-col items-center justify-center px-6 pt-16 sm:pt-20 lg:pt-28 pb-12 sm:pb-16 min-h-0 overflow-hidden scroll-mt-20"
     >
 
       <div class="relative max-w-4xl mx-auto text-center">
@@ -245,7 +246,7 @@ onMounted(() => {
         </h1>
 
         <p class="mt-4 text-base md:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed intro" style="--d: 340ms">
-          One recursive model. AI agents as actual teammates. Self-host, run anywhere. No vendor lock-in, no telemetry, no bullshit.
+          Recursive task model. AI agents as actual teammates. Self-host, run anywhere.
         </p>
         <p class="mt-3 text-sm text-zinc-500 intro" style="--d: 380ms">
           Yes, this page was made by a clanker — let's move on. 🦞

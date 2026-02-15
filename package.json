@@ -12,6 +12,7 @@
     "db:reset": "prisma db push --force-reset"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.3.15",
     "@nuxt/icon": "^2.2.1",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@prisma/adapter-pg": "^7.3.0",
@@ -22,6 +23,7 @@
     "jose": "^6.1.3",
     "nuxt": "^4.3.0",
     "pg": "^8.17.2",
+    "pglite-prisma-adapter": "^0.7.2",
     "prisma": "^7.3.0",
     "vue": "^3.5.27",
     "vue-router": "^4.6.4",

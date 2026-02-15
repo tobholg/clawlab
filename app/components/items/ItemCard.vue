@@ -147,7 +147,7 @@ const handleCardClick = () => {
 
 <template>
   <div
-    class="group p-4 rounded-xl border transition-all duration-200 cursor-pointer"
+    class="group p-4 pb-3 rounded-xl border transition-all duration-200 cursor-pointer"
     :class="[
       isPaused
         ? 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.04] opacity-75'
@@ -158,15 +158,15 @@ const handleCardClick = () => {
     ]"
     @click="handleCardClick"
   >
-    <!-- Title row with category dot -->
+    <!-- Title row with category dot + owner -->
     <div class="flex items-start gap-2 mb-1">
       <!-- Category color dot -->
-      <div 
+      <div
         class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
         :class="categoryDotColor"
         :title="item.category || 'No category'"
       />
-      
+
       <!-- Title + Focus indicator -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5">
@@ -190,7 +190,7 @@ const handleCardClick = () => {
             <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
           <!-- Temperature indicator (compact) -->
-          <span 
+          <span
             v-if="item.temperature === 'hot' || item.temperature === 'critical'"
             class="text-xs flex-shrink-0"
             :title="item.temperature"
@@ -199,7 +199,7 @@ const handleCardClick = () => {
           </span>
         </div>
       </div>
-      
+
       <!-- Hover actions -->
       <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
         <!-- View full button -->
@@ -220,82 +220,83 @@ const handleCardClick = () => {
           <Icon name="heroicons:bolt" class="w-4 h-4" />
         </button>
       </div>
-    </div>
-    
-    <!-- Children indicator -->
-    <div v-if="hasChildren" class="flex flex-wrap items-center gap-2 text-[10px] mb-1.5">
-      <button
-        class="flex items-center gap-1.5 transition-colors"
-        :class="allChildrenCompleted ? 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'"
-        @click.stop="emit('drillDown', item)"
+
+      <!-- Owner avatar (top-right, after hover actions) -->
+      <div
+        v-if="item.owner"
+        ref="ownerAvatarRef"
+        class="flex-shrink-0"
+        @mouseenter="onOwnerEnter"
+        @mouseleave="onOwnerLeave"
       >
-        <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
-        <span v-if="allChildrenCompleted">All items completed</span>
-        <span v-else>{{ activeChildrenCount }} items</span>
-      </button>
-      <button
-        v-if="(item.atRiskChildrenCount ?? 0) > 0"
-        class="text-amber-600 hover:text-amber-700 transition-colors"
-        @click.stop="emit('openAttention', item, 'at-risk')"
-      >
-        {{ item.atRiskChildrenCount }} at risk
-      </button>
-      <button
-        v-if="(item.blockedChildrenCount ?? 0) > 0"
-        class="text-rose-500 hover:text-rose-600 transition-colors"
-        @click.stop="emit('openAttention', item, 'blocked')"
-      >
-        {{ item.blockedChildrenCount }} blocked
-      </button>
-      <button
-        v-if="item.documentCount"
-        class="flex items-center gap-1 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
-        @click.stop="emit('openDocs', item)"
-      >
-        <Icon name="heroicons:document-text" class="w-3 h-3" />
-        {{ item.documentCount }}
-      </button>
+        <div
+          :class="[
+            'w-5 h-5 rounded-full flex items-center justify-center',
+            getAvatarColor(item.owner.id)
+          ]"
+        >
+          <span class="text-[9px] text-white font-medium">
+            {{ getInitials(item.owner.name) }}
+          </span>
+        </div>
+      </div>
     </div>
 
-    <!-- Document indicator (when no children but has docs) -->
-    <button
-      v-else-if="item.documentCount"
-      class="flex items-center gap-1 text-[10px] text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors mb-1.5"
-      @click.stop="emit('openDocs', item)"
-    >
-      <Icon name="heroicons:document-text" class="w-3 h-3" />
-      {{ item.documentCount }} {{ item.documentCount === 1 ? 'doc' : 'docs' }}
-    </button>
-    
     <!-- Footer -->
-    <div class="flex items-center justify-between pt-2">
+    <div class="flex items-center justify-between pt-3">
       <div class="flex items-center gap-1">
-        <!-- Owner -->
-        <div
-          v-if="item.owner"
-          ref="ownerAvatarRef"
-          class="flex-shrink-0"
-          @mouseenter="onOwnerEnter"
-          @mouseleave="onOwnerLeave"
-        >
-          <div
-            :class="[
-              'w-5 h-5 rounded-full flex items-center justify-center',
-              getAvatarColor(item.owner.id)
-            ]"
-          >
-            <span class="text-[9px] text-white font-medium">
-              {{ getInitials(item.owner.name) }}
-            </span>
+        <!-- Children indicator -->
+        <template v-if="hasChildren">
+          <div class="flex flex-wrap items-center gap-2 text-[10px]">
+            <button
+              class="flex items-center gap-1.5 transition-colors"
+              :class="allChildrenCompleted ? 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'"
+              @click.stop="emit('drillDown', item)"
+            >
+              <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
+              <span v-if="allChildrenCompleted">All done</span>
+              <span v-else>{{ activeChildrenCount }} items</span>
+            </button>
+            <button
+              v-if="(item.atRiskChildrenCount ?? 0) > 0"
+              class="text-amber-600 hover:text-amber-700 transition-colors"
+              @click.stop="emit('openAttention', item, 'at-risk')"
+            >
+              {{ item.atRiskChildrenCount }} at risk
+            </button>
+            <button
+              v-if="(item.blockedChildrenCount ?? 0) > 0"
+              class="text-rose-500 hover:text-rose-600 transition-colors"
+              @click.stop="emit('openAttention', item, 'blocked')"
+            >
+              {{ item.blockedChildrenCount }} blocked
+            </button>
+            <button
+              v-if="item.documentCount"
+              class="flex items-center gap-1 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+              @click.stop="emit('openDocs', item)"
+            >
+              <Icon name="heroicons:document-text" class="w-3 h-3" />
+              {{ item.documentCount }}
+            </button>
           </div>
-        </div>
-        
-        <!-- Stakeholders -->
-        <template v-if="item.stakeholders && item.stakeholders.length > 0">
-          <div class="w-px h-3 bg-slate-200 dark:bg-white/[0.08] mx-1" />
+        </template>
+
+        <!-- Document indicator (when no children but has docs) -->
+        <button
+          v-else-if="item.documentCount"
+          class="flex items-center gap-1 text-[10px] text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+          @click.stop="emit('openDocs', item)"
+        >
+          <Icon name="heroicons:document-text" class="w-3 h-3" />
+          {{ item.documentCount }} {{ item.documentCount === 1 ? 'doc' : 'docs' }}
+        </button>
+
+        <!-- Stakeholders (when no children info to show) -->
+        <template v-else-if="item.stakeholders && item.stakeholders.length > 0">
           <div class="flex -space-x-1">
-            <div 
-              v-for="person in item.stakeholders.slice(0, 2)" 
+            <div
+              v-for="person in item.stakeholders.slice(0, 2)"
               :key="person.id"
               :class="[
                 'w-5 h-5 rounded-full flex items-center justify-center border border-white dark:border-dm-card flex-shrink-0',
@@ -307,7 +308,7 @@ const handleCardClick = () => {
                 {{ getInitials(person.name) }}
               </span>
             </div>
-            <div 
+            <div
               v-if="item.stakeholders.length > 2"
               class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/[0.08] border border-white dark:border-dm-card flex items-center justify-center flex-shrink-0"
             >
@@ -316,7 +317,7 @@ const handleCardClick = () => {
           </div>
         </template>
       </div>
-      
+
       <div class="flex items-center gap-2">
         <!-- Estimated completion date -->
         <span
@@ -332,7 +333,7 @@ const handleCardClick = () => {
         <span v-if="needsEstimate" class="text-[10px] font-normal text-slate-400">
           • Needs estimate
         </span>
-        
+
         <!-- Progress Ring -->
         <div class="relative flex items-center justify-center w-6 h-6" title="Progress: how much of this task is complete">
           <svg height="20" width="20" class="rotate-[-90deg]">
@@ -362,7 +363,7 @@ const handleCardClick = () => {
             {{ displayProgress }}
           </span>
         </div>
-        
+
         <!-- Confidence Ring -->
         <UiConfidenceRing :percent="item.confidence" />
       </div>
