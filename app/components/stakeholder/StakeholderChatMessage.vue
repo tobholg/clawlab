@@ -4,8 +4,8 @@
       :class="[
         'max-w-[85%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap',
         message.role === 'user'
-          ? 'rounded-tr-sm bg-slate-100 text-slate-700'
-          : 'rounded-tl-sm bg-violet-50 text-slate-700 prose prose-sm prose-slate max-w-none'
+          ? 'rounded-tr-sm bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-zinc-200'
+          : 'rounded-tl-sm bg-violet-50 dark:bg-violet-500/10 text-slate-700 dark:text-zinc-200 prose prose-sm prose-slate dark:prose-invert max-w-none'
       ]"
     >
       <!-- User message: plain text -->
@@ -47,11 +47,11 @@ const renderedContent = computed(() => {
   
   // Code blocks (```...```)
   content = content.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre class="bg-slate-100 rounded-lg p-2 my-2 overflow-x-auto text-xs"><code>${code.trim()}</code></pre>`
+    return `<pre class="bg-slate-100 dark:bg-white/[0.06] rounded-lg p-2 my-2 overflow-x-auto text-xs"><code>${code.trim()}</code></pre>`
   })
   
   // Inline code (`...`)
-  content = content.replace(/`([^`]+)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded text-xs">$1</code>')
+  content = content.replace(/`([^`]+)`/g, '<code class="bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded text-xs">$1</code>')
   
   // Bold (**...**)
   content = content.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -60,7 +60,7 @@ const renderedContent = computed(() => {
   content = content.replace(/\*([^*]+)\*/g, '<em>$1</em>')
   
   // Links [text](url)
-  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-violet-600 hover:underline">$1</a>')
+  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-violet-600 dark:text-violet-400 hover:underline">$1</a>')
   
   // Line breaks
   content = content.replace(/\n/g, '<br>')

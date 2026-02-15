@@ -78,11 +78,11 @@ const estimatedCompletion = computed(() => {
 
 // Status colors
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-  todo: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'To Do' },
-  in_progress: { bg: 'bg-blue-50', text: 'text-blue-600', label: 'In Progress' },
-  blocked: { bg: 'bg-rose-50', text: 'text-rose-600', label: 'Blocked' },
-  paused: { bg: 'bg-amber-50', text: 'text-amber-600', label: 'Paused' },
-  done: { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'Done' },
+  todo: { bg: 'bg-slate-100 dark:bg-white/[0.08]', text: 'text-slate-600 dark:text-zinc-400', label: 'To Do' },
+  in_progress: { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', label: 'In Progress' },
+  blocked: { bg: 'bg-rose-50 dark:bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', label: 'Blocked' },
+  paused: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', label: 'Paused' },
+  done: { bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', label: 'Done' },
 }
 
 const statusStyle = computed(() => {
@@ -120,16 +120,16 @@ const toggleExpand = () => {
     <div
       :class="[
         'relative rounded-xl border transition-all duration-200',
-        depth === 0 
-          ? 'bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200' 
-          : 'bg-slate-50/50 border-slate-100/50',
+        depth === 0
+          ? 'bg-white dark:bg-dm-card border-slate-100 dark:border-white/[0.06] shadow-sm dark:shadow-none hover:shadow-md dark:hover:shadow-none hover:border-slate-200 dark:hover:border-white/[0.1]'
+          : 'bg-slate-50/50 dark:bg-white/[0.02] border-slate-100/50 dark:border-white/[0.04]',
         depth > 0 ? 'ml-6' : ''
       ]"
     >
       <!-- Connection line for nested items -->
       <div 
         v-if="depth > 0" 
-        class="absolute -left-6 top-0 bottom-1/2 w-6 border-l-2 border-b-2 border-slate-200 rounded-bl-xl"
+        class="absolute -left-6 top-0 bottom-1/2 w-6 border-l-2 border-b-2 border-slate-200 dark:border-white/[0.1] rounded-bl-xl"
       />
       
       <div class="p-4">
@@ -139,7 +139,7 @@ const toggleExpand = () => {
           <button
             v-if="hasChildren"
             @click.stop="toggleExpand"
-            class="mt-0.5 w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all flex-shrink-0"
+            class="mt-0.5 w-5 h-5 rounded flex items-center justify-center text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all flex-shrink-0"
           >
             <Icon 
               :name="isExpanded ? 'heroicons:chevron-down' : 'heroicons:chevron-right'" 
@@ -153,7 +153,7 @@ const toggleExpand = () => {
             <div class="flex items-start justify-between gap-3">
               <h3 :class="[
                 'font-medium leading-snug',
-                depth === 0 ? 'text-slate-900' : 'text-slate-700 text-sm'
+                depth === 0 ? 'text-slate-900 dark:text-zinc-100' : 'text-slate-700 dark:text-zinc-300 text-sm'
               ]">
                 {{ task.title }}
               </h3>
@@ -172,29 +172,29 @@ const toggleExpand = () => {
             <div class="flex items-center flex-wrap gap-x-4 gap-y-2 mt-3">
               <!-- Progress bar -->
               <div class="flex items-center gap-2 min-w-[120px]">
-                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
                   <div 
                     :class="[progressColor, 'h-full rounded-full transition-all duration-500']"
                     :style="{ width: `${task.progress}%` }"
                   />
                 </div>
-                <span class="text-xs font-medium text-slate-500 w-8">{{ task.progress }}%</span>
+                <span class="text-xs font-medium text-slate-500 dark:text-zinc-400 w-8">{{ task.progress }}%</span>
               </div>
               
               <!-- Estimated completion -->
-              <div v-if="estimatedCompletion && !estimatedCompletion.complete" class="flex items-center gap-1.5 text-xs text-slate-500">
-                <Icon name="heroicons:calendar" class="w-3.5 h-3.5 text-slate-400" />
+              <div v-if="estimatedCompletion && !estimatedCompletion.complete" class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                <Icon name="heroicons:calendar" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                 <span class="font-medium">
                   {{ estimatedCompletion.isExact 
                     ? estimatedCompletion.baseDate 
                     : `${estimatedCompletion.earliest} – ${estimatedCompletion.latest}` 
                   }}
                 </span>
-                <span class="text-slate-400">({{ estimatedCompletion.relative }})</span>
+                <span class="text-slate-400 dark:text-zinc-500">({{ estimatedCompletion.relative }})</span>
               </div>
               
               <!-- Confidence indicator -->
-              <div v-if="task.confidence" class="flex items-center gap-1.5 text-xs text-slate-500">
+              <div v-if="task.confidence" class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400">
                 <div class="flex gap-0.5">
                   <div 
                     v-for="i in 3" 
@@ -203,21 +203,21 @@ const toggleExpand = () => {
                       'w-1.5 h-3 rounded-sm transition-colors',
                       i <= Math.ceil(task.confidence / 33) 
                         ? task.confidence >= 67 ? 'bg-emerald-400' : task.confidence >= 34 ? 'bg-amber-400' : 'bg-rose-400'
-                        : 'bg-slate-200'
+                        : 'bg-slate-200 dark:bg-white/[0.08]'
                     ]"
                   />
                 </div>
-                <span class="text-slate-400">{{ task.confidence }}% confident</span>
+                <span class="text-slate-400 dark:text-zinc-500">{{ task.confidence }}% confident</span>
               </div>
               
               <!-- Subtasks count -->
               <div v-if="subtasksSummary" class="flex items-center gap-1.5 text-xs">
-                <Icon name="heroicons:square-3-stack-3d" class="w-3.5 h-3.5 text-slate-400" />
-                <span class="text-slate-500">
-                  <span class="font-medium text-slate-700">{{ subtasksSummary.completed }}</span>
-                  <span class="text-slate-400"> of </span>
-                  <span class="font-medium text-slate-700">{{ subtasksSummary.total }}</span>
-                  <span class="text-slate-400"> subtasks</span>
+                <Icon name="heroicons:square-3-stack-3d" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                <span class="text-slate-500 dark:text-zinc-400">
+                  <span class="font-medium text-slate-700 dark:text-zinc-300">{{ subtasksSummary.completed }}</span>
+                  <span class="text-slate-400 dark:text-zinc-500"> of </span>
+                  <span class="font-medium text-slate-700 dark:text-zinc-300">{{ subtasksSummary.total }}</span>
+                  <span class="text-slate-400 dark:text-zinc-500"> subtasks</span>
                 </span>
               </div>
             </div>

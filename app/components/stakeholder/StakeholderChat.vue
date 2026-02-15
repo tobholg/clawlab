@@ -24,22 +24,22 @@
   >
     <div
       v-if="isOpen"
-      class="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-md lg:max-w-lg xl:max-w-xl flex flex-col bg-white shadow-2xl shadow-slate-900/10"
+      class="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-md lg:max-w-lg xl:max-w-xl flex flex-col bg-white dark:bg-dm-card shadow-2xl shadow-slate-900/10 dark:shadow-black/30"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] shrink-0">
         <div class="flex items-center gap-2">
-          <Icon name="heroicons:sparkles" class="w-5 h-5 text-violet-500" />
+          <Icon name="heroicons:sparkles" class="w-5 h-5 text-violet-500 dark:text-violet-400" />
           <div>
-            <span class="text-sm font-semibold text-slate-900">AI Assistant</span>
-            <p class="text-[11px] text-slate-400 leading-tight">Ask anything about this project</p>
+            <span class="text-sm font-semibold text-slate-900 dark:text-zinc-100">AI Assistant</span>
+            <p class="text-[11px] text-slate-400 dark:text-zinc-500 leading-tight">Ask anything about this project</p>
           </div>
         </div>
         <div class="flex items-center gap-1">
           <!-- Menu Button -->
           <div ref="menuRef" class="relative">
             <button
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
               title="Menu"
               @click.stop="menuOpen = !menuOpen"
             >
@@ -50,16 +50,16 @@
             <Transition name="menu">
               <div
                 v-if="menuOpen"
-                class="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white border border-slate-200 shadow-lg py-1 z-10"
+                class="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white dark:bg-dm-card border border-slate-200 dark:border-white/[0.06] shadow-lg py-1 z-10"
               >
                 <button
-                  class="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                  class="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
                   :class="{ 'opacity-50 cursor-not-allowed': !hasMessages }"
                   :disabled="!hasMessages"
                   @click="handleClear"
                 >
-                  <Icon name="heroicons:trash" class="w-4 h-4 text-slate-400" />
-                  <span class="text-slate-700">Clear Chat</span>
+                  <Icon name="heroicons:trash" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                  <span class="text-slate-700 dark:text-zinc-300">Clear Chat</span>
                 </button>
               </div>
             </Transition>
@@ -67,7 +67,7 @@
 
           <!-- Close Button -->
           <button
-            class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
             title="Close"
             @click="$emit('close')"
           >
@@ -83,8 +83,8 @@
           <div class="text-center px-6 max-w-sm">
             <Icon name="heroicons:sparkles" class="w-10 h-10 text-violet-500 mx-auto mb-5" />
 
-            <h3 class="text-base font-semibold text-slate-900 mb-2">How can I help?</h3>
-            <p class="text-sm text-slate-500 leading-relaxed mb-6">
+            <h3 class="text-base font-semibold text-slate-900 dark:text-zinc-100 mb-2">How can I help?</h3>
+            <p class="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed mb-6">
               I can answer questions about this project, help you submit requests, or share feedback with the team.
             </p>
 
@@ -94,10 +94,10 @@
                 v-for="suggestion in suggestions"
                 :key="suggestion.text"
                 @click="handleSuggestionClick(suggestion.text)"
-                class="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-violet-50 border border-slate-100 hover:border-violet-200 rounded-xl text-left transition-all group"
+                class="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-white/[0.04] hover:bg-violet-50 dark:hover:bg-violet-500/10 border border-slate-100 dark:border-white/[0.06] hover:border-violet-200 dark:hover:border-violet-500/20 rounded-xl text-left transition-all group"
               >
-                <Icon :name="suggestion.icon" class="w-4 h-4 text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
-                <span class="text-sm text-slate-600 group-hover:text-violet-700 transition-colors">{{ suggestion.text }}</span>
+                <Icon :name="suggestion.icon" class="w-4 h-4 text-slate-400 dark:text-zinc-500 group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors shrink-0" />
+                <span class="text-sm text-slate-600 dark:text-zinc-300 group-hover:text-violet-700 dark:group-hover:text-violet-400 transition-colors">{{ suggestion.text }}</span>
               </button>
             </div>
           </div>
@@ -113,7 +113,7 @@
 
           <!-- Thinking indicator -->
           <div v-if="sending && messages.length > 0 && !messages[messages.length - 1]?.content" class="flex justify-start">
-            <div class="px-4 py-3 rounded-2xl rounded-tl-sm bg-violet-50">
+            <div class="px-4 py-3 rounded-2xl rounded-tl-sm bg-violet-50 dark:bg-violet-500/10">
               <span class="inline-flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 bg-violet-400 rounded-full chat-dot" style="animation-delay: 0ms" />
                 <span class="w-1.5 h-1.5 bg-violet-400 rounded-full chat-dot" style="animation-delay: 200ms" />
@@ -126,7 +126,7 @@
 
       <!-- Action Card (when AI proposes an action) -->
       <Transition name="slide-up">
-        <div v-if="pendingAction" class="shrink-0 border-t border-slate-100 bg-violet-50/50 p-4">
+        <div v-if="pendingAction" class="shrink-0 border-t border-slate-100 dark:border-white/[0.06] bg-violet-50/50 dark:bg-violet-500/[0.05] p-4">
           <!-- IR Action -->
           <template v-if="pendingAction.type === 'CREATE_IR'">
             <div class="flex items-start gap-2 mb-3">
@@ -135,17 +135,17 @@
                 class="w-5 h-5 text-violet-500 shrink-0 mt-0.5"
               />
               <div>
-                <p class="text-sm font-medium text-slate-700">
+                <p class="text-sm font-medium text-slate-700 dark:text-zinc-200">
                   {{ pendingAction.irType === 'suggestion' ? 'Send Suggestion' : 'Send Question' }}
                 </p>
-                <p class="text-xs text-slate-500 mt-0.5">This will be sent to the team</p>
+                <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">This will be sent to the team</p>
               </div>
             </div>
 
             <textarea
               v-model="editableContent"
               rows="5"
-              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-y min-h-[100px]"
+              class="w-full px-3 py-2 bg-white dark:bg-dm-surface border border-slate-200 dark:border-white/[0.06] rounded-lg text-sm dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-y min-h-[100px]"
             />
 
             <div class="flex items-center gap-2 mt-3">
@@ -160,7 +160,7 @@
               <button
                 @click="clearPendingAction"
                 :disabled="submitting"
-                class="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+                class="px-3 py-2 bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-zinc-300 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-white/[0.1] transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -170,10 +170,10 @@
           <!-- Task Action -->
           <template v-else-if="pendingAction.type === 'CREATE_TASK'">
             <div class="flex items-start gap-2 mb-3">
-              <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-violet-500 shrink-0 mt-0.5" />
+              <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-violet-500 dark:text-violet-400 shrink-0 mt-0.5" />
               <div>
-                <p class="text-sm font-medium text-slate-700">Submit Task</p>
-                <p class="text-xs text-slate-500 mt-0.5">This will be reviewed by the team</p>
+                <p class="text-sm font-medium text-slate-700 dark:text-zinc-200">Submit Task</p>
+                <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">This will be reviewed by the team</p>
               </div>
             </div>
 
@@ -181,14 +181,14 @@
               v-model="editableTitle"
               type="text"
               placeholder="Task title"
-              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent mb-2"
+              class="w-full px-3 py-2 bg-white dark:bg-dm-surface border border-slate-200 dark:border-white/[0.06] rounded-lg text-sm dark:text-zinc-200 font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent mb-2"
             />
 
             <textarea
               v-model="editableDescription"
               rows="5"
               placeholder="Description"
-              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-y min-h-[100px]"
+              class="w-full px-3 py-2 bg-white dark:bg-dm-surface border border-slate-200 dark:border-white/[0.06] rounded-lg text-sm dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-y min-h-[100px]"
             />
 
             <div class="flex items-center gap-2 mt-3">
@@ -203,7 +203,7 @@
               <button
                 @click="clearPendingAction"
                 :disabled="submitting"
-                class="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+                class="px-3 py-2 bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-zinc-300 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-white/[0.1] transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -213,14 +213,14 @@
       </Transition>
 
       <!-- Input -->
-      <div class="flex items-center gap-3 p-6 shrink-0 border-t border-slate-100 bg-white">
+      <div class="flex items-center gap-3 p-6 shrink-0 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card">
         <textarea
           ref="inputRef"
           v-model="inputMessage"
           rows="1"
           placeholder="Ask anything..."
           :disabled="sending || !!pendingAction"
-          class="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none disabled:opacity-50 resize-none max-h-32"
+          class="flex-1 bg-transparent text-sm text-slate-700 dark:text-zinc-200 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none disabled:opacity-50 resize-none max-h-32"
           @keydown.enter.exact.prevent="handleSend"
           @input="autoResize"
         />

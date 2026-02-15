@@ -69,16 +69,16 @@ const toggleExpand = () => {
     <div
       :class="[
         'relative rounded-xl border transition-all duration-200',
-        depth === 0 
-          ? 'bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200' 
-          : 'bg-slate-50/50 border-slate-100/50',
+        depth === 0
+          ? 'bg-white dark:bg-dm-card border-slate-100 dark:border-white/[0.06] shadow-sm dark:shadow-none hover:shadow-md dark:hover:shadow-none hover:border-slate-200 dark:hover:border-white/[0.1]'
+          : 'bg-slate-50/50 dark:bg-white/[0.02] border-slate-100/50 dark:border-white/[0.04]',
         depth > 0 ? 'ml-6' : ''
       ]"
     >
       <!-- Connection line for nested items -->
       <div 
         v-if="depth > 0" 
-        class="absolute -left-6 top-0 bottom-1/2 w-6 border-l-2 border-b-2 border-emerald-200 rounded-bl-xl"
+        class="absolute -left-6 top-0 bottom-1/2 w-6 border-l-2 border-b-2 border-emerald-200 dark:border-emerald-500/20 rounded-bl-xl"
       />
       
       <div class="p-4">
@@ -88,7 +88,7 @@ const toggleExpand = () => {
           <button
             v-if="hasChildren"
             @click.stop="toggleExpand"
-            class="mt-0.5 w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all flex-shrink-0"
+            class="mt-0.5 w-5 h-5 rounded flex items-center justify-center text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all flex-shrink-0"
           >
             <Icon 
               :name="isExpanded ? 'heroicons:chevron-down' : 'heroicons:chevron-right'" 
@@ -102,13 +102,13 @@ const toggleExpand = () => {
             <div class="flex items-start justify-between gap-3">
               <h3 :class="[
                 'font-medium leading-snug',
-                depth === 0 ? 'text-slate-900' : 'text-slate-700 text-sm'
+                depth === 0 ? 'text-slate-900 dark:text-zinc-100' : 'text-slate-700 dark:text-zinc-300 text-sm'
               ]">
                 {{ task.title }}
               </h3>
               
               <!-- Done badge -->
-              <span class="flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600">
+              <span class="flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 Done
               </span>
             </div>
@@ -117,33 +117,33 @@ const toggleExpand = () => {
             <div class="flex items-center flex-wrap gap-x-4 gap-y-2 mt-3">
               <!-- Green 100% progress bar -->
               <div class="flex items-center gap-2 min-w-[120px]">
-                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
                   <div class="bg-emerald-500 h-full rounded-full w-full" />
                 </div>
-                <span class="text-xs font-medium text-emerald-600 w-10">100%</span>
+                <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400 w-10">100%</span>
               </div>
               
               <!-- Completion date -->
-              <div v-if="formattedCompletedAt" class="flex items-center gap-1.5 text-xs text-slate-500">
-                <Icon name="heroicons:check-circle" class="w-3.5 h-3.5 text-emerald-500" />
+              <div v-if="formattedCompletedAt" class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                <Icon name="heroicons:check-circle" class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                 <span class="font-medium">Completed {{ formattedCompletedAt }}</span>
               </div>
               
               <!-- Duration -->
-              <div v-if="formattedDuration" class="flex items-center gap-1.5 text-xs text-slate-500">
-                <Icon name="heroicons:clock" class="w-3.5 h-3.5 text-slate-400" />
+              <div v-if="formattedDuration" class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                <Icon name="heroicons:clock" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                 <span>
-                  <span v-if="formattedStartDate" class="text-slate-400">{{ formattedStartDate }} → </span>
-                  <span class="font-medium text-slate-600">{{ formattedDuration }}</span>
+                  <span v-if="formattedStartDate" class="text-slate-400 dark:text-zinc-500">{{ formattedStartDate }} → </span>
+                  <span class="font-medium text-slate-600 dark:text-zinc-300">{{ formattedDuration }}</span>
                 </span>
               </div>
               
               <!-- Subtasks count -->
               <div v-if="task.childrenCount > 0" class="flex items-center gap-1.5 text-xs">
                 <Icon name="heroicons:square-3-stack-3d" class="w-3.5 h-3.5 text-emerald-400" />
-                <span class="text-slate-500">
-                  <span class="font-medium text-slate-700">{{ task.childrenCount }}</span>
-                  <span class="text-slate-400"> subtask{{ task.childrenCount !== 1 ? 's' : '' }} completed</span>
+                <span class="text-slate-500 dark:text-zinc-400">
+                  <span class="font-medium text-slate-700 dark:text-zinc-300">{{ task.childrenCount }}</span>
+                  <span class="text-slate-400 dark:text-zinc-500"> subtask{{ task.childrenCount !== 1 ? 's' : '' }} completed</span>
                 </span>
               </div>
             </div>

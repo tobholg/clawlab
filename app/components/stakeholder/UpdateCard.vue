@@ -47,11 +47,11 @@ const formatDate = (dateStr: string) => {
 </script>
 
 <template>
-  <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+  <div class="bg-white dark:bg-dm-card border border-slate-100 dark:border-white/[0.06] rounded-2xl p-5 shadow-sm dark:shadow-none">
     <!-- Header -->
     <div class="mb-3">
-      <h3 class="text-lg font-semibold text-slate-900">{{ update.title }}</h3>
-      <p class="text-xs text-slate-400 mt-0.5">
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-zinc-100">{{ update.title }}</h3>
+      <p class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
         <span v-if="projectName">{{ projectName }}</span>
         <span v-if="projectName"> · </span>
         {{ formatDate(update.publishedAt || update.createdAt) }}
@@ -59,19 +59,19 @@ const formatDate = (dateStr: string) => {
     </div>
 
     <!-- Summary -->
-    <p class="text-base text-slate-600 leading-relaxed mb-4 whitespace-pre-line">{{ update.summary }}</p>
+    <p class="text-base text-slate-600 dark:text-zinc-300 leading-relaxed mb-4 whitespace-pre-line">{{ update.summary }}</p>
 
     <!-- Wins -->
     <div v-if="(update.wins as Array<{text: string}>)?.length > 0" class="mb-4">
       <div class="flex items-center gap-2 mb-2">
         <div class="w-2 h-2 rounded-full bg-emerald-400" />
-        <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Wins</span>
+        <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Wins</span>
       </div>
       <div class="space-y-3">
         <div
           v-for="(win, i) in (update.wins as Array<{text: string}>)"
           :key="i"
-          class="text-base text-slate-600 pl-3 border-l-2 border-emerald-300 py-0.5"
+          class="text-base text-slate-600 dark:text-zinc-300 pl-3 border-l-2 border-emerald-300 dark:border-emerald-500/40 py-0.5"
         >
           {{ win.text }}
         </div>
@@ -82,13 +82,13 @@ const formatDate = (dateStr: string) => {
     <div v-if="(update.risks as Array<{text: string}>)?.length > 0" class="mb-4">
       <div class="flex items-center gap-2 mb-2">
         <div class="w-2 h-2 rounded-full bg-amber-400" />
-        <span class="text-sm font-semibold text-amber-600 uppercase tracking-wider">Risks</span>
+        <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Risks</span>
       </div>
       <div class="space-y-3">
         <div
           v-for="(risk, i) in (update.risks as Array<{text: string}>)"
           :key="i"
-          class="text-base text-slate-600 pl-3 border-l-2 border-amber-300 py-0.5"
+          class="text-base text-slate-600 dark:text-zinc-300 pl-3 border-l-2 border-amber-300 dark:border-amber-500/40 py-0.5"
         >
           {{ risk.text }}
         </div>
@@ -96,19 +96,19 @@ const formatDate = (dateStr: string) => {
     </div>
 
     <!-- Footer -->
-    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+    <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/[0.06]">
       <div class="flex items-center gap-2">
         <span
           :class="[
             'text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider',
             update.status === 'PUBLISHED'
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-amber-100 text-amber-700'
+              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
           ]"
         >
           {{ update.status === 'PUBLISHED' ? 'Published' : 'Draft' }}
         </span>
-        <span class="text-xs text-slate-400">
+        <span class="text-xs text-slate-400 dark:text-zinc-500">
           {{ formatRelativeDate(update.publishedAt || update.createdAt) }}
         </span>
       </div>
@@ -123,7 +123,7 @@ const formatDate = (dateStr: string) => {
         </button>
         <button
           @click="emit('discard', update.id)"
-          class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-200 transition-colors"
+          class="px-3 py-1 bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-zinc-300 text-xs font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-white/[0.1] transition-colors"
         >
           Discard
         </button>

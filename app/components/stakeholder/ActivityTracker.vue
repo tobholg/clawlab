@@ -92,11 +92,11 @@ const totalCompletions = computed(() =>
 
 // Intensity to color mapping (blue theme - same as workspace)
 const levelColors = [
-  'bg-slate-100',      // 0 - no activity
-  'bg-blue-200',       // 1 - light
-  'bg-blue-300',       // 2 - medium
-  'bg-blue-400',       // 3 - high
-  'bg-blue-500',       // 4 - very high
+  'bg-slate-100 dark:bg-white/[0.06]',      // 0 - no activity
+  'bg-blue-200 dark:bg-blue-500/30',         // 1 - light
+  'bg-blue-300 dark:bg-blue-500/50',         // 2 - medium
+  'bg-blue-400 dark:bg-blue-400/70',         // 3 - high
+  'bg-blue-500 dark:bg-blue-400',            // 4 - very high
 ]
 
 const getColor = (level: number) => levelColors[Math.min(level, 4)]
@@ -137,15 +137,15 @@ const formatDate = (dateStr: string): string => {
 </script>
 
 <template>
-  <div ref="containerRef" class="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm h-full">
+  <div ref="containerRef" class="bg-white dark:bg-dm-card rounded-2xl border border-slate-100 dark:border-white/[0.06] p-6 shadow-sm dark:shadow-none h-full">
     <!-- Header -->
     <div class="flex items-center gap-3 mb-5">
-      <div class="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-        <Icon name="heroicons:fire" class="w-5 h-5 text-violet-600" />
+      <div class="w-10 h-10 bg-violet-100 dark:bg-violet-500/10 rounded-xl flex items-center justify-center">
+        <Icon name="heroicons:fire" class="w-5 h-5 text-violet-600 dark:text-violet-400" />
       </div>
       <div>
-        <h3 class="text-sm font-semibold text-slate-900">Project Activity</h3>
-        <p class="text-xs text-slate-500">{{ totalCompletions }} items completed in the last {{ weeks }} weeks</p>
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-zinc-100">Project Activity</h3>
+        <p class="text-xs text-slate-500 dark:text-zinc-500">{{ totalCompletions }} items completed in the last {{ weeks }} weeks</p>
       </div>
     </div>
 
@@ -154,7 +154,7 @@ const formatDate = (dateStr: string): string => {
       <div class="flex absolute">
         <template v-for="(month, idx) in months" :key="month.label + month.offset">
           <div 
-            class="text-[10px] text-slate-400 font-medium"
+            class="text-[10px] text-slate-400 dark:text-zinc-500 font-medium"
             :style="{ 
               marginLeft: idx === 0 ? '0' : `${(month.offset - (months[idx - 1]?.offset || 0)) * 14 - 24}px`,
               minWidth: '24px'
@@ -171,13 +171,13 @@ const formatDate = (dateStr: string): string => {
       <div class="flex gap-[3px] min-w-max">
         <!-- Day labels (Sun-Sat abbreviated) -->
         <div class="flex flex-col gap-[3px] mr-1 pt-px">
-          <div class="h-[11px] text-[9px] text-slate-400 leading-[11px]"></div>
-          <div class="h-[11px] text-[9px] text-slate-400 leading-[11px]">M</div>
-          <div class="h-[11px] text-[9px] text-slate-400 leading-[11px]"></div>
-          <div class="h-[11px] text-[9px] text-slate-400 leading-[11px]">W</div>
-          <div class="h-[11px] text-[9px] text-slate-400 leading-[11px]"></div>
-          <div class="h-[11px] text-[9px] text-slate-400 leading-[11px]">F</div>
-          <div class="h-[11px] text-[9px] text-slate-400 leading-[11px]"></div>
+          <div class="h-[11px] text-[9px] text-slate-400 dark:text-zinc-600 leading-[11px]"></div>
+          <div class="h-[11px] text-[9px] text-slate-400 dark:text-zinc-600 leading-[11px]">M</div>
+          <div class="h-[11px] text-[9px] text-slate-400 dark:text-zinc-600 leading-[11px]"></div>
+          <div class="h-[11px] text-[9px] text-slate-400 dark:text-zinc-600 leading-[11px]">W</div>
+          <div class="h-[11px] text-[9px] text-slate-400 dark:text-zinc-600 leading-[11px]"></div>
+          <div class="h-[11px] text-[9px] text-slate-400 dark:text-zinc-600 leading-[11px]">F</div>
+          <div class="h-[11px] text-[9px] text-slate-400 dark:text-zinc-600 leading-[11px]"></div>
         </div>
 
         <!-- Weeks -->
@@ -205,7 +205,7 @@ const formatDate = (dateStr: string): string => {
     </div>
 
     <!-- Legend -->
-    <div class="flex items-center justify-end gap-2 mt-4 text-[10px] text-slate-400">
+    <div class="flex items-center justify-end gap-2 mt-4 text-[10px] text-slate-400 dark:text-zinc-500">
       <span>Less</span>
       <div class="flex gap-[3px]">
         <div v-for="i in 5" :key="i" :class="['w-[11px] h-[11px] rounded-sm', levelColors[i - 1]]" />
