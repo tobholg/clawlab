@@ -7,8 +7,14 @@ export default defineEventHandler(async (event) => {
     return
   }
 
-  // Allow unauthenticated access to discovery endpoint
-  if (event.path === '/api/agents' || event.path === '/api/agents/' || event.path === '/api/agents/index' || event.path === '/api/agents/index/') {
+  // Allow unauthenticated access to discovery endpoints
+  if (
+    event.path === '/api/agents' ||
+    event.path === '/api/agents/' ||
+    event.path === '/api/agents/index' ||
+    event.path === '/api/agents/index/' ||
+    event.path.startsWith('/api/agents/index/')
+  ) {
     return
   }
 

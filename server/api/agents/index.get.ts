@@ -30,16 +30,29 @@ const userSummarySchema = {
   additionalProperties: false,
 } as const
 
-export default defineEventHandler(() => {
-  return {
-    name: 'Context Agent API',
-    version: '1.0',
-    auth: 'Bearer token via Authorization header (prefix: ctx_)',
-    endpoints: [
+export const AGENT_API_NAME = 'Context Agent API'
+export const AGENT_API_VERSION = '1.0'
+export const AGENT_API_AUTH = 'Bearer token via Authorization header (prefix: ctx_)'
+
+type AgentApiEndpoint = {
+  method: string
+  path: string
+  description: string
+  auth: boolean
+  params?: Record<string, any>
+  response?: Record<string, any>
+}
+
+export function getAgentApiEndpointId(endpoint: Pick<AgentApiEndpoint, 'method' | 'path'>): string {
+  const normalizedPath = endpoint.path.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase()
+  return `${endpoint.method.toLowerCase()}_${normalizedPath}`
+}
+
+export const AGENT_API_ENDPOINTS: AgentApiEndpoint[] = [
       {
         method: 'GET',
         path: '/api/agents/index',
-        description: 'Discovery endpoint with JSON schemas for the full agent API surface',
+        description: 'Discovery endpoint with lightweight endpoint metadata',
         auth: false,
         params: {
           query: { type: 'object', properties: {}, additionalProperties: false },
@@ -50,8 +63,50 @@ export default defineEventHandler(() => {
             name: { type: 'string' },
             version: { type: 'string' },
             auth: { type: 'string' },
-            endpoints: { type: 'array' },
+            endpoints: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  method: { type: 'string' },
+                  path: { type: 'string' },
+                  description: { type: 'string' },
+                  auth: { type: 'boolean' },
+                },
+                required: ['id', 'method', 'path', 'description', 'auth'],
+                additionalProperties: false,
+              },
+            },
           },
+        },
+      },
+      {
+        method: 'GET',
+        path: '/api/agents/index/:endpointId',
+        description: 'Get full schema details for one endpoint by id',
+        auth: false,
+        params: {
+          path: {
+            type: 'object',
+            properties: { endpointId: { type: 'string' } },
+            required: ['endpointId'],
+            additionalProperties: false,
+          },
+        },
+        response: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            method: { type: 'string' },
+            path: { type: 'string' },
+            description: { type: 'string' },
+            auth: { type: 'boolean' },
+            params: { type: ['object', 'null'] },
+            response: { type: ['object', 'null'] },
+          },
+          required: ['id', 'method', 'path', 'description', 'auth'],
+          additionalProperties: false,
         },
       },
       {
@@ -183,7 +238,7 @@ export default defineEventHandler(() => {
       {
         method: 'PATCH',
         path: '/api/agents/tasks/:id',
-        description: 'Update allowed task fields (status, subStatus, progress)',
+        description: 'Update task status/subStatus/progress; agent-owned subtasks can also update title, description, category, and priority',
         auth: true,
         params: {
           path: {
@@ -198,6 +253,10 @@ export default defineEventHandler(() => {
               status: { type: 'string', enum: ['TODO', 'IN_PROGRESS', 'BLOCKED', 'PAUSED'] },
               subStatus: { type: ['string', 'null'] },
               progress: { type: 'number', minimum: 0, maximum: 100 },
+              title: { type: 'string' },
+              description: { type: ['string', 'null'] },
+              category: { type: ['string', 'null'] },
+              priority: { type: ['string', 'null'], enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', null] },
             },
             additionalProperties: false,
           },
@@ -206,13 +265,17 @@ export default defineEventHandler(() => {
           type: 'object',
           properties: {
             id: { type: 'string' },
+            title: { type: 'string' },
+            description: { type: ['string', 'null'] },
+            category: { type: ['string', 'null'] },
+            priority: { type: ['string', 'null'], enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', null] },
             status: { type: 'string' },
             subStatus: { type: ['string', 'null'] },
             progress: { type: 'number' },
             agentMode: { type: ['string', 'null'] },
             updatedAt: { type: 'string', format: 'date-time' },
           },
-          required: ['id', 'status', 'subStatus', 'progress', 'agentMode', 'updatedAt'],
+          required: ['id', 'title', 'status', 'subStatus', 'progress', 'agentMode', 'updatedAt'],
           additionalProperties: false,
         },
       },
@@ -253,6 +316,7 @@ export default defineEventHandler(() => {
             properties: {
               title: { type: 'string' },
               description: { type: 'string' },
+              category: { type: 'string' },
               priority: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
             },
             required: ['title'],
@@ -265,6 +329,7 @@ export default defineEventHandler(() => {
             id: { type: 'string' },
             title: { type: 'string' },
             description: { type: ['string', 'null'] },
+            category: { type: ['string', 'null'] },
             status: { type: 'string' },
             subStatus: { type: ['string', 'null'] },
             priority: { type: 'string' },
@@ -506,6 +571,33 @@ export default defineEventHandler(() => {
           required: ['id', 'itemId', 'projectId', 'title', 'content', 'isLocked', 'createdAt', 'updatedAt', 'createdBy', 'lastEditedBy', 'latestVersion'],
         },
       },
-    ],
+]
+
+export function getAgentApiEndpointSummaries() {
+  return AGENT_API_ENDPOINTS.map((endpoint) => ({
+    id: getAgentApiEndpointId(endpoint),
+    method: endpoint.method,
+    path: endpoint.path,
+    description: endpoint.description,
+    auth: endpoint.auth,
+  }))
+}
+
+export function getAgentApiEndpointById(endpointId: string) {
+  const endpoint = AGENT_API_ENDPOINTS.find((candidate) => getAgentApiEndpointId(candidate) === endpointId)
+  if (!endpoint) {
+    return null
   }
-})
+
+  return {
+    id: endpointId,
+    ...endpoint,
+  }
+}
+
+export default defineEventHandler(() => ({
+  name: AGENT_API_NAME,
+  version: AGENT_API_VERSION,
+  auth: AGENT_API_AUTH,
+  endpoints: getAgentApiEndpointSummaries(),
+}))

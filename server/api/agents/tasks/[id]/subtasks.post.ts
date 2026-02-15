@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const title = typeof body.title === 'string' ? body.title.trim() : ''
   const description = typeof body.description === 'string' ? body.description.trim() : null
+  const category = typeof body.category === 'string' ? body.category.trim() : null
   const priority = typeof body.priority === 'string' ? body.priority.toUpperCase() : undefined
 
   if (!title) {
@@ -44,6 +45,7 @@ export default defineEventHandler(async (event) => {
       ownerId: agent.id,
       title,
       description,
+      category: category?.length ? category : null,
       status: 'TODO',
       subStatus: getDefaultSubStatus('TODO'),
       priority: (priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | undefined) ?? 'MEDIUM',
@@ -62,6 +64,7 @@ export default defineEventHandler(async (event) => {
       id: true,
       title: true,
       description: true,
+      category: true,
       status: true,
       subStatus: true,
       priority: true,
@@ -77,6 +80,7 @@ export default defineEventHandler(async (event) => {
     id: created.id,
     title: created.title,
     description: created.description,
+    category: created.category,
     status: created.status,
     subStatus: created.subStatus,
     priority: created.priority,

@@ -57,6 +57,10 @@ export async function requireAssignedTask(agentUserId: string, taskId: string) {
     where: { id: taskId },
     select: {
       id: true,
+      title: true,
+      description: true,
+      category: true,
+      priority: true,
       workspaceId: true,
       parentId: true,
       projectId: true,
