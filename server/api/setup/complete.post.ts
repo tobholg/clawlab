@@ -1,9 +1,11 @@
+import { randomBytes } from 'node:crypto'
 import { prisma } from '../../utils/prisma'
 import { seedDemoData } from '../../utils/seedDemoData'
 import { createDefaultChannels } from '../../utils/channelUtils'
 import { createSession } from '../../utils/auth'
 import { provisionDefaultSeats } from '../../utils/seats'
 import { hashPassword } from '../../utils/password'
+import { hashAgentApiKey } from '../../utils/agentKeyHash'
 
 interface SetupRequest {
   mode: 'personal' | 'team'
@@ -12,7 +14,15 @@ interface SetupRequest {
   loadDemoData: boolean
   organization?: { name: string; slug: string }
   teamEmails?: string[]
+  agents?: Array<{ name: string; provider?: string }>
 }
+
+const VALID_AGENT_PROVIDERS = new Set(['openclaw', 'cursor', 'codex', 'custom'])
+
+const slugify = (value: string) => value
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '')
 
 export default defineEventHandler(async (event) => {
   // Guard: reject if any users already exist
@@ -75,6 +85,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Free plan allows up to 4 team invites' })
   }
 
+  const normalizedAgents = Array.isArray(body.agents) ? body.agents : []
+  if (normalizedAgents.length > 12) {
+    throw createError({ statusCode: 400, message: 'You can add up to 12 agents during setup' })
+  }
+
+  const parsedAgents = normalizedAgents.map((agent, index) => {
+    const name = typeof agent?.name === 'string' ? agent.name.trim() : ''
+    if (!name) {
+      throw createError({ statusCode: 400, message: `Agent #${index + 1} must include a name` })
+    }
+    if (name.length > 80) {
+      throw createError({ statusCode: 400, message: `Agent #${index + 1} name must be 80 characters or fewer` })
+    }
+
+    const provider =
+      typeof agent?.provider === 'string' ? agent.provider.toLowerCase().trim() : 'openclaw'
+    if (!VALID_AGENT_PROVIDERS.has(provider)) {
+      throw createError({
+        statusCode: 400,
+        message: `Agent #${index + 1} provider must be one of: openclaw, cursor, codex, custom`,
+      })
+    }
+
+    return { name, provider }
+  })
+
   // Check slug collision (unlikely on fresh install but safe)
   const existingOrg = await prisma.organization.findUnique({
     where: { slug: orgSlug }
@@ -136,7 +172,50 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    return { organization, workspace, user }
+    const createdAgents: Array<{ id: string; name: string; provider: string; apiKey: string }> = []
+
+    for (const agent of parsedAgents) {
+      const apiKey = `ctx_${randomBytes(20).toString('hex')}`
+      const apiKeyHash = await hashAgentApiKey(apiKey)
+      const email = `agent-${slugify(agent.name) || 'agent'}-${randomBytes(4).toString('hex')}@agents.context.local`
+
+      const agentUser = await tx.user.create({
+        data: {
+          name: agent.name,
+          email,
+          isAgent: true,
+          apiKeyHash,
+          agentProvider: agent.provider,
+        },
+      })
+
+      await tx.organizationMember.create({
+        data: {
+          organizationId: organization.id,
+          userId: agentUser.id,
+          role: 'MEMBER',
+          status: 'ACTIVE',
+        },
+      })
+
+      await tx.workspaceMember.create({
+        data: {
+          workspaceId: workspace.id,
+          userId: agentUser.id,
+          role: 'MEMBER',
+          status: 'ACTIVE',
+        },
+      })
+
+      createdAgents.push({
+        id: agentUser.id,
+        name: agentUser.name ?? agent.name,
+        provider: agent.provider,
+        apiKey,
+      })
+    }
+
+    return { organization, workspace, user, createdAgents }
   })
 
   // Provision default seats (5 internal + 3 external for FREE)
@@ -277,5 +356,11 @@ export default defineEventHandler(async (event) => {
       email: result.user.email,
     },
     teamMembers: createdTeamMembers,
+    agentApiKeys: result.createdAgents.map((agent) => ({
+      id: agent.id,
+      name: agent.name,
+      provider: agent.provider,
+      apiKey: agent.apiKey,
+    })),
   }
 })

@@ -27,6 +27,21 @@ const userPasswordConfirm = ref('')
 const loadDemoData = ref(true)
 const teamEmails = ref<string[]>([''])
 
+const agentProviders = [
+  { value: 'openclaw', label: 'OpenClaw' },
+  { value: 'cursor', label: 'Cursor' },
+  { value: 'codex', label: 'Codex' },
+  { value: 'custom', label: 'Custom' },
+]
+
+const agents = ref<Array<{ id: string; name: string; provider: string }>>([])
+const agentName = ref('')
+const agentProvider = ref('openclaw')
+const agentFormError = ref('')
+const generatedAgentKeys = ref<Array<{ id: string; name: string; provider: string; apiKey: string }>>([])
+const copiedAgentKeyId = ref<string | null>(null)
+const createLocalId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
 // Auto-generate slug from org name
 watch(orgName, (name) => {
   orgSlug.value = name
@@ -132,7 +147,49 @@ const validTeamEmails = computed(() => {
     .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e !== userEmail.value.trim().toLowerCase())
 })
 
+const addAgent = () => {
+  const name = agentName.value.trim()
+  if (!name) {
+    agentFormError.value = 'Agent name is required'
+    return
+  }
+  if (name.length > 80) {
+    agentFormError.value = 'Agent name must be 80 characters or fewer'
+    return
+  }
+
+  agentFormError.value = ''
+  agents.value.push({
+    id: createLocalId(),
+    name,
+    provider: agentProvider.value,
+  })
+  agentName.value = ''
+  agentProvider.value = 'openclaw'
+}
+
+const removeAgent = (id: string) => {
+  agents.value = agents.value.filter(agent => agent.id !== id)
+}
+
+const copyAgentKey = async (agentId: string, apiKey: string) => {
+  try {
+    await navigator.clipboard.writeText(apiKey)
+    copiedAgentKeyId.value = agentId
+    setTimeout(() => {
+      copiedAgentKeyId.value = null
+    }, 2000)
+  } catch {
+    // no-op
+  }
+}
+
 const { clearSetupStatus } = useSetupStatus()
+
+const finishSetup = async () => {
+  clearSetupStatus()
+  await navigateTo('/workspace')
+}
 
 const completeSetup = async () => {
   if (isSubmitting.value) return
@@ -141,7 +198,7 @@ const completeSetup = async () => {
   error.value = ''
 
   try {
-    await $fetch('/api/setup/complete', {
+    const result = await $fetch('/api/setup/complete', {
       method: 'POST',
       body: {
         mode: mode.value,
@@ -154,6 +211,10 @@ const completeSetup = async () => {
           name: workspaceName.value.trim(),
         },
         loadDemoData: loadDemoData.value,
+        agents: agents.value.map((agent) => ({
+          name: agent.name,
+          provider: agent.provider,
+        })),
         ...(mode.value === 'team' && {
           organization: {
             name: orgName.value.trim(),
@@ -162,10 +223,12 @@ const completeSetup = async () => {
           teamEmails: validTeamEmails.value,
         }),
       },
-    })
+    }) as { agentApiKeys?: Array<{ id: string; name: string; provider: string; apiKey: string }> }
 
-    clearSetupStatus()
-    await navigateTo('/workspace')
+    generatedAgentKeys.value = Array.isArray(result?.agentApiKeys) ? result.agentApiKeys : []
+    if (!generatedAgentKeys.value.length) {
+      await finishSetup()
+    }
   } catch (err: any) {
     error.value = err.data?.message || err.message || 'Something went wrong. Please try again.'
   } finally {
@@ -509,47 +572,132 @@ onMounted(() => {
                 </div>
               </div>
 
-              <!-- Step: Agents Placeholder -->
+              <!-- Step: Agents -->
               <div v-else-if="currentStepKey === 'agents'" key="agents" class="space-y-6">
-                <div class="text-center">
-                  <div :class="['w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center mx-auto mb-4', iconGradients.cyan]">
-                    <Icon name="heroicons:cpu-chip" :class="['w-6 h-6', iconColors.cyan]" />
-                  </div>
-                  <h2 class="text-xl font-semibold text-slate-900 dark:text-zinc-100 mb-2">Add Agent Teammates</h2>
-                  <p class="text-slate-500 dark:text-zinc-400 text-sm max-w-sm mx-auto">
-                    Configure AI agents to pick up tasks, break down work, and post updates alongside your team.
-                  </p>
-                </div>
-
-                <div class="p-5 rounded-2xl border border-dashed border-slate-200 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02] text-center">
-                  <div class="flex items-center justify-center gap-2 text-sm font-medium text-slate-400 dark:text-zinc-500">
-                    <Icon name="heroicons:wrench-screwdriver" class="w-4 h-4" />
-                    <span>Coming soon</span>
-                  </div>
-                  <p class="text-xs text-slate-400 dark:text-zinc-600 mt-2">Agent configuration will be available in a future release.</p>
-                </div>
-
-                <!-- Demo data checkbox (personal mode only, since team mode has it in invite step) -->
-                <div v-if="mode === 'personal'" class="pt-4 border-t border-slate-100 dark:border-white/[0.06]">
-                  <label class="flex items-start gap-3 cursor-pointer group">
-                    <div class="relative mt-0.5">
-                      <input v-model="loadDemoData" type="checkbox" class="sr-only peer" />
-                      <div class="w-5 h-5 border-2 border-slate-200 dark:border-white/[0.15] rounded-md peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all group-hover:border-slate-300 dark:group-hover:border-white/[0.25]" />
-                      <Icon name="heroicons:check" class="absolute inset-0 m-auto w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                <template v-if="generatedAgentKeys.length === 0">
+                  <div class="text-center">
+                    <div :class="['w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center mx-auto mb-4', iconGradients.cyan]">
+                      <Icon name="heroicons:cpu-chip" :class="['w-6 h-6', iconColors.cyan]" />
                     </div>
-                    <div>
-                      <span class="text-sm font-medium text-slate-700 dark:text-zinc-300">Load demo data</span>
-                      <p class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">Start with sample projects and tasks to explore.</p>
+                    <h2 class="text-xl font-semibold text-slate-900 dark:text-zinc-100 mb-2">Add Agent Teammates</h2>
+                    <p class="text-slate-500 dark:text-zinc-400 text-sm max-w-md mx-auto">
+                      Agents can take assigned tasks, break work into subtasks, and post updates. This step is optional.
+                    </p>
+                  </div>
+
+                  <div class="space-y-4">
+                    <div class="p-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.03] space-y-3">
+                      <div class="grid sm:grid-cols-[1fr,170px,auto] gap-3 items-end">
+                        <div>
+                          <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Agent name</label>
+                          <input
+                            v-model="agentName"
+                            type="text"
+                            maxlength="80"
+                            placeholder="Release Assistant"
+                            class="setup-input"
+                            @keyup.enter="addAgent"
+                          />
+                        </div>
+                        <div>
+                          <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Provider</label>
+                          <select v-model="agentProvider" class="setup-input">
+                            <option v-for="provider in agentProviders" :key="provider.value" :value="provider.value">{{ provider.label }}</option>
+                          </select>
+                        </div>
+                        <button
+                          @click="addAgent"
+                          class="h-11 px-4 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
+                        >
+                          Add Agent
+                        </button>
+                      </div>
+                      <p v-if="agentFormError" class="text-xs text-rose-500 dark:text-rose-400">{{ agentFormError }}</p>
+                      <p v-else class="text-xs text-slate-400 dark:text-zinc-500">Skip this now if you want and add agents later in Workspace Settings.</p>
                     </div>
-                  </label>
-                </div>
+
+                    <div v-if="agents.length" class="space-y-2">
+                      <div
+                        v-for="agent in agents"
+                        :key="agent.id"
+                        class="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/[0.06] bg-white/70 dark:bg-white/[0.03]"
+                      >
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">{{ agent.name }}</p>
+                          <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                            {{ agentProviders.find(p => p.value === agent.provider)?.label || 'Custom' }}
+                          </p>
+                        </div>
+                        <button
+                          @click="removeAgent(agent.id)"
+                          class="px-2.5 py-1 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Demo data checkbox (personal mode only, since team mode has it in invite step) -->
+                  <div v-if="mode === 'personal'" class="pt-4 border-t border-slate-100 dark:border-white/[0.06]">
+                    <label class="flex items-start gap-3 cursor-pointer group">
+                      <div class="relative mt-0.5">
+                        <input v-model="loadDemoData" type="checkbox" class="sr-only peer" />
+                        <div class="w-5 h-5 border-2 border-slate-200 dark:border-white/[0.15] rounded-md peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all group-hover:border-slate-300 dark:group-hover:border-white/[0.25]" />
+                        <Icon name="heroicons:check" class="absolute inset-0 m-auto w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                      </div>
+                      <div>
+                        <span class="text-sm font-medium text-slate-700 dark:text-zinc-300">Load demo data</span>
+                        <p class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">Start with sample projects and tasks to explore.</p>
+                      </div>
+                    </label>
+                  </div>
+                </template>
+
+                <template v-else>
+                  <div class="text-center">
+                    <div :class="['w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center mx-auto mb-4', iconGradients.cyan]">
+                      <Icon name="heroicons:key" :class="['w-6 h-6', iconColors.cyan]" />
+                    </div>
+                    <h2 class="text-xl font-semibold text-slate-900 dark:text-zinc-100 mb-2">Save agent API keys</h2>
+                    <p class="text-slate-500 dark:text-zinc-400 text-sm max-w-md mx-auto">
+                      These keys are shown once. Copy and store them securely before entering your workspace.
+                    </p>
+                  </div>
+
+                  <div class="space-y-3">
+                    <div
+                      v-for="agent in generatedAgentKeys"
+                      :key="agent.id"
+                      class="p-4 rounded-xl border border-slate-200 dark:border-white/[0.06] bg-white/80 dark:bg-white/[0.03] space-y-3"
+                    >
+                      <div class="flex items-center justify-between gap-2">
+                        <div>
+                          <p class="text-sm font-medium text-slate-900 dark:text-zinc-100">{{ agent.name }}</p>
+                          <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                            {{ agentProviders.find(p => p.value === agent.provider)?.label || 'Custom' }}
+                          </p>
+                        </div>
+                        <button
+                          @click="copyAgentKey(agent.id, agent.apiKey)"
+                          class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+                        >
+                          {{ copiedAgentKeyId === agent.id ? 'Copied!' : 'Copy key' }}
+                        </button>
+                      </div>
+                      <div class="p-3 rounded-lg border border-slate-200 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.03]">
+                        <code class="text-xs break-all text-slate-700 dark:text-zinc-300">{{ agent.apiKey }}</code>
+                      </div>
+                    </div>
+                  </div>
+                </template>
               </div>
             </Transition>
 
             <!-- Navigation Buttons -->
             <div class="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-white/[0.06]">
               <button
-                v-if="currentStep > 0"
+                v-if="currentStep > 0 && generatedAgentKeys.length === 0"
                 @click="prevStep"
                 class="flex items-center gap-1.5 text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
               >
@@ -575,7 +723,7 @@ onMounted(() => {
 
               <button
                 v-else-if="currentStepKey === 'agents'"
-                @click="completeSetup"
+                @click="generatedAgentKeys.length ? finishSetup() : completeSetup()"
                 :disabled="isSubmitting"
                 :class="[
                   'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all',
@@ -585,8 +733,9 @@ onMounted(() => {
                 ]"
               >
                 <Icon v-if="isSubmitting" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-                <span>{{ isSubmitting ? 'Creating...' : 'Complete Setup' }}</span>
-                <Icon v-if="!isSubmitting" name="heroicons:check" class="w-4 h-4" />
+                <span>{{ isSubmitting ? 'Creating...' : (generatedAgentKeys.length ? 'Enter Workspace' : 'Complete Setup') }}</span>
+                <Icon v-if="!isSubmitting && generatedAgentKeys.length === 0" name="heroicons:check" class="w-4 h-4" />
+                <Icon v-if="!isSubmitting && generatedAgentKeys.length > 0" name="heroicons:arrow-right" class="w-4 h-4" />
               </button>
 
               <div v-else />

@@ -7,6 +7,11 @@ export default defineEventHandler(async (event) => {
     return
   }
 
+  // Allow unauthenticated access to discovery endpoint
+  if (event.path === '/api/agents' || event.path === '/api/agents/' || event.path === '/api/agents/index' || event.path === '/api/agents/index/') {
+    return
+  }
+
   const authHeader = getHeader(event, 'authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     throw createError({ statusCode: 401, message: 'Missing or invalid API key' })

@@ -122,6 +122,7 @@ const currentChannelId = computed(() => {
 
 const isTeamFocus = computed(() => route.path === '/workspace/team')
 const isMyWork = computed(() => route.path === '/workspace/my-work')
+const isAgentsPage = computed(() => route.path === '/workspace/agents')
 
 // Handle project click - navigate to project page
 const handleProjectClick = (projectId: string) => {
@@ -359,6 +360,22 @@ const statusDotClass = (status: string) => {
           </template>
           <p v-else class="px-2 py-2 text-xs text-slate-400 dark:text-zinc-600 italic">No active tasks</p>
         </div>
+      </div>
+
+      <!-- Agents Link -->
+      <div v-if="!sidebarCollapsed && isWorkspaceAdmin" class="px-4 mb-4">
+        <NuxtLink
+          to="/workspace/agents"
+          class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm transition-all duration-200"
+          :class="isAgentsPage
+            ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100'
+            : 'text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'"
+        >
+          <div class="w-4 h-4 flex items-center justify-center flex-shrink-0 dark:text-zinc-500">
+            <Icon name="heroicons:cpu-chip" class="w-4 h-4" />
+          </div>
+          <span class="flex-1 text-left">Agents</span>
+        </NuxtLink>
       </div>
 
       <!-- Channels Section -->

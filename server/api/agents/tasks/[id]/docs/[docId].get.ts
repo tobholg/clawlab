@@ -1,5 +1,5 @@
-import { prisma } from '../../../../../../utils/prisma'
-import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../../utils/agentApi'
+import { prisma } from '../../../../../utils/prisma'
+import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
 
 export default defineEventHandler(async (event) => {
   const taskId = getRouterParam(event, 'id')

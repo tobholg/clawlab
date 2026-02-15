@@ -1,5 +1,5 @@
-import { prisma } from '../../../../../../utils/prisma'
-import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../../utils/agentApi'
+import { prisma } from '../../../../../utils/prisma'
+import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
 
 const MAX_TITLE_LENGTH = 255
 
