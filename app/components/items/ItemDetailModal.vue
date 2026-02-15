@@ -1103,7 +1103,7 @@ const formatRelativeTime = (dateStr: string) => {
               <div v-if="editedDescription" class="relative">
                 <div
                   ref="descriptionContentRef"
-                  class="relative cursor-text rounded px-1 -mx-1 py-0.5 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                  class="relative cursor-text rounded px-1 -mx-1 py-0.5"
                   :class="!descriptionExpanded && descriptionOverflows ? 'max-h-[220px] overflow-hidden' : ''"
                   @click="startEditingDescription"
                 >
@@ -1134,7 +1134,7 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
               <p
                 v-else
-                class="text-sm text-slate-400 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
+                class="text-sm text-slate-400 cursor-text rounded px-1 -mx-1 py-0.5"
                 @click="startEditingDescription"
               >
                 Add a description...

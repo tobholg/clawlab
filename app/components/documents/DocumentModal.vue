@@ -10,6 +10,7 @@ type Block = {
   level?: number
   indent?: number
   listStyle?: 'bullet' | 'number'
+  checked?: boolean
   table?: string[][]
 }
 
@@ -230,10 +231,28 @@ const parseMarkdownToBlocks = (markdown: string): Block[] => {
       continue
     }
 
+    // Divider (--- or *** or ___)
+    if (/^\s*(?:---|\*\*\*|___)\s*$/.test(line)) {
+      flushParagraph()
+      parsed.push({ id: createId(), type: 'divider', text: '' })
+      i += 1
+      continue
+    }
+
     if (line.startsWith('#')) {
       flushParagraph()
       const level = Math.min(3, line.match(/^#+/)?.[0].length ?? 1)
       parsed.push({ id: createId(), type: 'heading', text: line.slice(level).trim(), level })
+      i += 1
+      continue
+    }
+
+    // Checkbox lines: [ ] or [x] with optional - prefix
+    const checkboxMatch = line.match(/^(\s*)(?:[-*]\s+)?\[([ xX])\]\s+(.*)$/)
+    if (checkboxMatch) {
+      flushParagraph()
+      const checked = checkboxMatch[2] !== ' '
+      parsed.push({ id: createId(), type: 'list-item', text: checkboxMatch[3] ?? '', indent: 0, listStyle: 'bullet', checked })
       i += 1
       continue
     }
@@ -269,6 +288,33 @@ const parseMarkdownToBlocks = (markdown: string): Block[] => {
 
   flushParagraph()
   return parsed.length ? parsed : [createBlock('paragraph', '')]
+}
+
+// Render inline markdown (bold, italic, code, links, strikethrough) to HTML
+const renderInline = (text: string): string => {
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  // Inline code (protect from further processing)
+  const codes: string[] = []
+  html = html.replace(/`([^`]+)`/g, (_m, code) => {
+    codes.push(`<code class="bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-zinc-300 px-1.5 py-0.5 rounded text-xs font-mono">${code}</code>`)
+    return `\x00C${codes.length - 1}\x00`
+  })
+  // Bold + italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong class="font-semibold"><em>$1</em></strong>')
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+  // Italic
+  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>')
+  // Strikethrough
+  html = html.replace(/~~(.+?)~~/g, '<del class="line-through text-slate-400 dark:text-zinc-500">$1</del>')
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">$1</a>')
+  // Restore inline code
+  html = html.replace(/\x00C(\d+)\x00/g, (_m, idx) => codes[parseInt(idx)])
+  return html
 }
 
 const serializeBlocksToMarkdown = (value: Block[]) => {
@@ -327,7 +373,7 @@ const fetchDocument = async () => {
     documentData.value = doc
     editedTitle.value = doc.title
     blocks.value = parseMarkdownToBlocks(doc.content)
-    isReadMode.value = doc.isLocked
+    isReadMode.value = doc.isLocked || !!(doc.content?.trim())
     await nextTick()
   } catch (e) {
     console.error('Failed to fetch document:', e)
@@ -1191,9 +1237,8 @@ onMounted(() => {
                         block.level === 2 ? 'text-xl font-semibold mt-5 first:mt-0' : '',
                         block.level === 3 ? 'text-lg font-medium mt-4 first:mt-0' : '',
                       ]"
-                    >
-                      {{ block.text }}
-                    </h1>
+                      v-html="renderInline(block.text)"
+                    />
 
                     <!-- List item -->
                     <div
@@ -1201,10 +1246,14 @@ onMounted(() => {
                       class="flex items-start gap-2 text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300"
                       :style="{ paddingLeft: `${(block.indent ?? 0) * 24}px` }"
                     >
-                      <span class="text-slate-400 dark:text-zinc-600 select-none w-4 text-center flex-shrink-0">
+                      <span v-if="block.checked !== undefined" class="select-none w-4 text-center flex-shrink-0 mt-0.5">
+                        <Icon v-if="block.checked" name="heroicons:check-circle-solid" class="w-4 h-4 text-emerald-500" />
+                        <Icon v-else name="heroicons:stop" class="w-4 h-4 text-slate-300 dark:text-zinc-600" />
+                      </span>
+                      <span v-else class="text-slate-400 dark:text-zinc-600 select-none w-4 text-center flex-shrink-0">
                         {{ block.listStyle === 'number' ? '1.' : '•' }}
                       </span>
-                      <span>{{ block.text }}</span>
+                      <span v-html="renderInline(block.text)" />
                     </div>
 
                     <!-- Table -->
@@ -1212,16 +1261,12 @@ onMounted(() => {
                       <table class="w-full text-sm border border-slate-200 dark:border-white/[0.06] rounded-lg overflow-hidden">
                         <thead class="bg-slate-50 dark:bg-white/[0.04]">
                           <tr>
-                            <th v-for="(cell, colIndex) in block.table?.[0]" :key="colIndex" class="px-3 py-2.5 text-left font-medium text-slate-600 dark:text-zinc-400 border-b border-slate-200 dark:border-white/[0.06]">
-                              {{ cell }}
-                            </th>
+                            <th v-for="(cell, colIndex) in block.table?.[0]" :key="colIndex" class="px-3 py-2.5 text-left font-medium text-slate-600 dark:text-zinc-400 border-b border-slate-200 dark:border-white/[0.06]" v-html="renderInline(cell)" />
                           </tr>
                         </thead>
                         <tbody>
                           <tr v-for="(row, rowIndex) in block.table?.slice(1)" :key="rowIndex" class="border-t border-slate-100 dark:border-white/[0.04]">
-                            <td v-for="(cell, colIndex) in row" :key="colIndex" class="px-3 py-2.5 text-slate-700 dark:text-zinc-300">
-                              {{ cell }}
-                            </td>
+                            <td v-for="(cell, colIndex) in row" :key="colIndex" class="px-3 py-2.5 text-slate-700 dark:text-zinc-300" v-html="renderInline(cell)" />
                           </tr>
                         </tbody>
                       </table>
@@ -1231,9 +1276,7 @@ onMounted(() => {
                     <hr v-else-if="block.type === 'divider'" class="border-slate-200 dark:border-white/[0.06] my-6" />
 
                     <!-- Paragraph -->
-                    <p v-else class="text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300 whitespace-pre-wrap">
-                      {{ block.text }}
-                    </p>
+                    <p v-else class="text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300 whitespace-pre-wrap" v-html="renderInline(block.text)" />
                   </template>
                 </div>
               </div>
