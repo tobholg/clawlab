@@ -259,10 +259,10 @@ onMounted(() => {
             <span class="text-zinc-300">npx create-context-app@latest</span>
             <button
               type="button"
-              class="ml-2 p-1.5 rounded-md hover:bg-white/[0.08] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+              class="ml-2 h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-white/[0.08] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
               @click="copyCommand"
             >
-              <Icon :name="copied ? 'heroicons:check' : 'heroicons:clipboard'" class="w-4 h-4" />
+              <Icon :name="copied ? 'heroicons:check' : 'heroicons:clipboard'" class="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

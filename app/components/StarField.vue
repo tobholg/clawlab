@@ -67,22 +67,18 @@ onMounted(() => {
     for (const s of stars) {
       const twinkle = Math.sin(t * 0.001 * s.speed + s.phase)
       const alpha = s.baseAlpha + twinkle * s.baseAlpha * 0.9
-      // Boost alpha + add soft blur halo when scrolling
-      const glowAlpha = alpha + scrollGlow * 0.45
       const sy = s.y - parallaxOffset
       if (sy < -10 || sy > el.height + 10) continue
 
-      ctx.shadowColor = `rgba(200, 220, 255, ${scrollGlow * 0.7})`
-      ctx.shadowBlur = scrollGlow * 6 * (s.r + 0.5)
+      // Glow: boost alpha + expand radius when scrolling
+      const glowAlpha = alpha + scrollGlow * 0.25
+      const r = s.r + scrollGlow * s.r * 1.2
 
       ctx.beginPath()
-      ctx.arc(s.x, sy, s.r, 0, Math.PI * 2)
+      ctx.arc(s.x, sy, r, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, Math.min(1, glowAlpha))})`
       ctx.fill()
     }
-
-    // Reset shadow so it doesn't leak to next frame's clearRect
-    ctx.shadowBlur = 0
 
     raf = requestAnimationFrame(draw)
   }
