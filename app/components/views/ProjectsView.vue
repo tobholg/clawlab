@@ -4,8 +4,10 @@ import type { ItemNode } from '~/types'
 const props = withDefaults(defineProps<{
   projects: ItemNode[]
   showCreateCard?: boolean
+  selectedIndex?: number
 }>(), {
   showCreateCard: true,
+  selectedIndex: -1,
 })
 
 const emit = defineEmits<{
@@ -44,6 +46,14 @@ const sortedProjects = computed(() => {
     const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
     return dueA - dueB
   })
+})
+
+// Scroll selected card into view
+const cardRefs = ref<HTMLElement[]>([])
+watch(() => props.selectedIndex, (idx) => {
+  if (idx >= 0 && cardRefs.value[idx]) {
+    cardRefs.value[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }
 })
 
 // Format relative time for last activity
@@ -180,6 +190,8 @@ const healthMeta = (project: ItemNode) => {
   }
   return { score, label: 'Risk', textClass: 'text-rose-600 dark:text-rose-400', barClass: 'from-rose-500 via-rose-400 to-rose-200', trackClass: 'bg-rose-50 dark:bg-rose-500/10' }
 }
+
+defineExpose({ sortedProjects })
 </script>
 
 <template>
@@ -187,9 +199,13 @@ const healthMeta = (project: ItemNode) => {
     <!-- Projects Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
       <div
-        v-for="project in sortedProjects"
+        v-for="(project, index) in sortedProjects"
         :key="project.id"
-        class="group relative overflow-hidden bg-white/90 dark:bg-dm-card/90 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] dark:shadow-[0_10px_30px_-20px_rgba(0,0,0,0.6)] hover:bg-slate-50/80 hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] dark:hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.7)] dark:hover:border-white/[0.1] dark:hover:bg-white/[0.07] transition-all duration-200 cursor-pointer"
+        :ref="(el) => { if (el) cardRefs[index] = el as HTMLElement }"
+        class="group relative overflow-hidden bg-white/90 dark:bg-dm-card/90 rounded-2xl border shadow-[0_10px_30px_-20px_rgba(15,23,42,0.45)] dark:shadow-[0_10px_30px_-20px_rgba(0,0,0,0.6)] hover:bg-slate-50/80 hover:shadow-[0_18px_50px_-24px_rgba(15,23,42,0.55)] dark:hover:shadow-[0_18px_50px_-24px_rgba(0,0,0,0.7)] dark:hover:border-white/[0.1] dark:hover:bg-white/[0.07] transition-all duration-200 cursor-pointer"
+        :class="selectedIndex === index
+          ? 'border-blue-400 dark:border-blue-500/50 ring-2 ring-blue-100 dark:ring-blue-500/20'
+          : 'border-slate-100 dark:border-white/[0.06]'"
         @click="emit('openProject', project)"
       >
         <div class="p-5 relative">
@@ -295,8 +311,12 @@ const healthMeta = (project: ItemNode) => {
       <!-- New Project Card -->
       <button
         v-if="showCreateCard"
+        :ref="(el) => { if (el) cardRefs[sortedProjects.length] = el as HTMLElement }"
         @click="emit('createProject')"
-        class="flex flex-col items-center justify-center min-h-[200px] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-dm-card dark:via-dm-card/50 dark:to-dm-card rounded-2xl border border-dashed border-slate-300 dark:border-white/[0.08] hover:border-slate-400 dark:hover:border-white/[0.1] hover:shadow-sm transition-all group"
+        class="flex flex-col items-center justify-center min-h-[200px] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-dm-card dark:via-dm-card/50 dark:to-dm-card rounded-2xl border border-dashed hover:border-slate-400 dark:hover:border-white/[0.1] hover:shadow-sm transition-all group"
+        :class="selectedIndex === sortedProjects.length
+          ? 'border-blue-400 dark:border-blue-500/50 ring-2 ring-blue-100 dark:ring-blue-500/20'
+          : 'border-slate-300 dark:border-white/[0.08]'"
       >
         <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/[0.08] group-hover:bg-slate-300 dark:group-hover:bg-white/[0.08] flex items-center justify-center mb-2 transition-colors">
           <Icon name="heroicons:plus" class="w-5 h-5 text-slate-500 dark:text-zinc-400 group-hover:text-slate-600 dark:group-hover:text-zinc-300" />

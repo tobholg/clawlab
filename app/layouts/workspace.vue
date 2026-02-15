@@ -15,11 +15,23 @@ const sidebarCollapsed = ref(false)
 const showUserSettings = ref(false)
 const showCreateChannel = ref(false)
 const collapsedChannels = ref<Set<string>>(new Set())
-const projectChannelsCollapsed = ref(false)
+const collapsedChannelsInitialized = ref(false)
+const projectChannelsCollapsed = ref(true)
 
 // Split channel tree into regular channels and project channels
 const regularChannels = computed(() => channelTree.value.filter((c: any) => c.type !== 'project'))
 const projectChannels = computed(() => channelTree.value.filter((c: any) => c.type === 'project'))
+
+// Collapse all nested channels by default on first load
+watch(channelTree, (tree) => {
+  if (collapsedChannelsInitialized.value || !tree?.length) return
+  collapsedChannelsInitialized.value = true
+  const ids = new Set<string>()
+  for (const ch of tree) {
+    if (ch.children?.length) ids.add(ch.id)
+  }
+  if (ids.size) collapsedChannels.value = ids
+}, { immediate: true })
 
 const toggleChannelChildren = (channelId: string) => {
   const next = new Set(collapsedChannels.value)
@@ -63,6 +75,19 @@ watch(workspaceId, (wsId) => {
 }, { immediate: true })
 onMounted(() => {
   if (workspaceId.value) fetchProjects()
+
+  // Global keyboard shortcut: P → navigate to projects
+  const handleGlobalKeydown = (e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    const tag = (e.target as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable) return
+
+    if (e.key.toLowerCase() === 'p' && route.path !== '/workspace') {
+      router.push('/workspace')
+    }
+  }
+  window.addEventListener('keydown', handleGlobalKeydown)
+  onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeydown))
 })
 
 // Recent projects for sidebar (top 3 by last activity)
@@ -179,7 +204,7 @@ const statusDotClass = (status: string) => {
     <!-- Sidebar -->
     <aside
       :class="[
-        'border-r border-slate-200/60 dark:border-white/[0.06] bg-white dark:bg-[#010101] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        'border-r border-slate-200/60 dark:border-white/[0.075] bg-white dark:bg-[#010101] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
         sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
       ]"
     >
@@ -269,7 +294,6 @@ const statusDotClass = (status: string) => {
               />
             </div>
             <span class="flex-1 text-left truncate">{{ project.title }}</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </button>
           <button
             v-if="!recentProjects.length"
@@ -321,7 +345,6 @@ const statusDotClass = (status: string) => {
                 <div class="w-2 h-2 rounded-full" :class="statusDotClass(task.status)" />
               </div>
               <span class="flex-1 text-left truncate">{{ task.title }}</span>
-              <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
             </button>
             <NuxtLink
               v-if="hasMoreTasks"
@@ -389,7 +412,6 @@ const statusDotClass = (status: string) => {
                 class="w-3 h-3 text-slate-400 dark:text-zinc-400 flex-shrink-0 cursor-pointer hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
                 @click.prevent="toggleChannelChildren(channel.id)"
               />
-              <Icon v-else name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
             </NuxtLink>
 
             <!-- Nested channels -->
@@ -413,7 +435,7 @@ const statusDotClass = (status: string) => {
           </template>
 
           <!-- Project channels group -->
-          <div v-if="projectChannels.length" class="mt-1">
+          <div v-if="projectChannels.length">
             <button
               @click="projectChannelsCollapsed = !projectChannelsCollapsed"
               class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
@@ -478,7 +500,6 @@ const statusDotClass = (status: string) => {
               <Icon name="heroicons:clipboard-document-check" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">My Work</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </NuxtLink>
           <NuxtLink
             to="/workspace/activities"
@@ -491,7 +512,6 @@ const statusDotClass = (status: string) => {
               <Icon name="heroicons:clock" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">Activity</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </NuxtLink>
           <NuxtLink
             v-if="isWorkspaceAdmin"
@@ -505,7 +525,6 @@ const statusDotClass = (status: string) => {
               <Icon name="heroicons:users" class="w-4 h-4" />
             </div>
             <span class="flex-1 text-left">Team focus</span>
-            <Icon name="heroicons:chevron-right" class="w-3 h-3 text-slate-400 dark:text-zinc-600 flex-shrink-0" />
           </NuxtLink>
           <NuxtLink
             v-if="isWorkspaceAdmin"

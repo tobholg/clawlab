@@ -21,6 +21,10 @@ const emit = defineEmits<{
 
 const columns: Item['status'][] = ['todo', 'in_progress', 'blocked', 'done']
 
+// Keyboard navigation state
+const selectedCol = ref(-1)
+const selectedRow = ref(-1)
+
 // Subtle column styling
 const columnStyles: Record<Item['status'], { bg: string; headerColor: string; dropBg: string }> = {
   todo: { bg: 'bg-slate-100 dark:bg-white/[0.025]', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
@@ -177,6 +181,164 @@ const isAllCollapsedInColumn = (status: Item['status']) => {
     : getItemsGroupedBySubStatus(status).map(g => g.sectionKey)
   return keys.length > 0 && keys.every(k => collapsedSections.value.has(k))
 }
+
+// Get flat list of visible (non-collapsed) items for a column
+const getVisibleItems = (status: Item['status']): ItemNode[] => {
+  if (status === 'done') {
+    const items: ItemNode[] = []
+    for (const group of getDoneItemsByTimeGroup()) {
+      const sectionKey = `done:${group.key}`
+      if (!shouldShowDoneGroupHeader(group) || !isSectionCollapsed(sectionKey)) {
+        items.push(...group.items)
+      }
+    }
+    return items
+  }
+  const items: ItemNode[] = []
+  for (const group of getItemsGroupedBySubStatus(status)) {
+    if (!isSectionCollapsed(group.sectionKey)) {
+      items.push(...group.items)
+    }
+  }
+  return items
+}
+
+const selectedItem = computed(() => {
+  if (selectedCol.value < 0 || selectedRow.value < 0) return null
+  const status = columns[selectedCol.value]
+  if (!status) return null
+  const items = getVisibleItems(status)
+  return items[selectedRow.value] ?? null
+})
+
+// Clear or re-clamp selection when collapsed sections change
+watch(collapsedSections, () => {
+  if (selectedCol.value < 0) return
+  const status = columns[selectedCol.value]
+  if (!status) return
+  const items = getVisibleItems(status)
+  if (items.length === 0) {
+    selectedCol.value = -1
+    selectedRow.value = -1
+  } else if (selectedRow.value >= items.length) {
+    selectedRow.value = items.length - 1
+  }
+})
+
+// Scroll selected card into view
+watch(selectedItem, (item) => {
+  if (!item) return
+  nextTick(() => {
+    const el = document.querySelector(`[data-card-id="${item.id}"]`) as HTMLElement | null
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  })
+})
+
+// Keyboard navigation
+const handleKeydown = (e: KeyboardEvent) => {
+  // Skip if focus is in an input element
+  const tag = (e.target as HTMLElement)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  if ((e.target as HTMLElement)?.isContentEditable) return
+  // Skip if modifier keys held
+  if (e.metaKey || e.ctrlKey || e.altKey) return
+
+  const isArrow = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)
+  const isAction = e.key === 'Enter' || e.key === 'Escape'
+  if (!isArrow && !isAction) return
+
+  e.preventDefault()
+
+  if (e.key === 'Escape') {
+    selectedCol.value = -1
+    selectedRow.value = -1
+    return
+  }
+
+  if (e.key === 'Enter') {
+    if (selectedItem.value) {
+      emit('openDetail', selectedItem.value)
+    }
+    return
+  }
+
+  // If nothing selected, initialize
+  if (selectedCol.value < 0) {
+    if (e.key === 'ArrowUp') {
+      // Select last item in first non-empty column
+      for (let c = 0; c < columns.length; c++) {
+        const items = getVisibleItems(columns[c])
+        if (items.length > 0) {
+          selectedCol.value = c
+          selectedRow.value = items.length - 1
+          return
+        }
+      }
+    } else {
+      // Select first item in first non-empty column
+      for (let c = 0; c < columns.length; c++) {
+        const items = getVisibleItems(columns[c])
+        if (items.length > 0) {
+          selectedCol.value = c
+          selectedRow.value = 0
+          return
+        }
+      }
+    }
+    return
+  }
+
+  if (e.key === 'ArrowLeft') {
+    // Move to previous column with items
+    for (let c = selectedCol.value - 1; c >= 0; c--) {
+      const items = getVisibleItems(columns[c])
+      if (items.length > 0) {
+        selectedCol.value = c
+        selectedRow.value = Math.min(selectedRow.value, items.length - 1)
+        return
+      }
+    }
+  } else if (e.key === 'ArrowRight') {
+    // Move to next column with items
+    for (let c = selectedCol.value + 1; c < columns.length; c++) {
+      const items = getVisibleItems(columns[c])
+      if (items.length > 0) {
+        selectedCol.value = c
+        selectedRow.value = Math.min(selectedRow.value, items.length - 1)
+        return
+      }
+    }
+  } else if (e.key === 'ArrowUp') {
+    if (selectedRow.value > 0) {
+      selectedRow.value--
+    }
+  } else if (e.key === 'ArrowDown') {
+    const items = getVisibleItems(columns[selectedCol.value])
+    if (selectedRow.value < items.length - 1) {
+      selectedRow.value++
+    }
+  }
+}
+
+// Click outside to clear selection
+const handleWindowClick = (e: MouseEvent) => {
+  if (selectedCol.value < 0) return
+  const target = e.target as HTMLElement
+  if (!target.closest('[data-card-id]')) {
+    selectedCol.value = -1
+    selectedRow.value = -1
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('click', handleWindowClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('click', handleWindowClick)
+})
 
 // Drag and drop state
 const draggedItem = ref<ItemNode | null>(null)
@@ -355,7 +517,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       
       <!-- DONE column: Time-based groups (styled same as sub-status groups) -->
       <template v-if="status === 'done'">
-        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
+        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto px-0.5">
           <template v-for="group in getDoneItemsByTimeGroup()" :key="group.key">
             <!-- Group header: only show if group has more than 1 item -->
             <button
@@ -389,7 +551,8 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                 draggable="true"
                 :class="[
                   'cursor-grab active:cursor-grabbing transition-all duration-150',
-                  dragOverCardId === item.id ? 'ring-2 ring-emerald-400 ring-offset-2 rounded-xl' : ''
+                  dragOverCardId === item.id ? 'ring-2 ring-emerald-400 ring-offset-2 rounded-xl' : '',
+                  selectedItem?.id === item.id ? 'ring-2 ring-blue-400 dark:ring-blue-500/50 rounded-xl' : ''
                 ]"
                 @dragstart="handleDragStart($event, item)"
                 @dragend="handleDragEnd"
@@ -443,7 +606,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       
       <!-- Other columns: Sub-status groups -->
       <template v-else>
-        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
+        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto px-0.5">
           <template v-for="group in getItemsGroupedBySubStatus(status)" :key="group.sectionKey">
             <!-- Sub-status section header (collapsible, only if multiple groups) -->
             <button
@@ -489,7 +652,8 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
                 draggable="true"
                 :class="[
                   'cursor-grab active:cursor-grabbing transition-all duration-150',
-                  dragOverCardId === item.id ? 'ring-2 ring-emerald-400 ring-offset-2 rounded-xl' : ''
+                  dragOverCardId === item.id ? 'ring-2 ring-emerald-400 ring-offset-2 rounded-xl' : '',
+                  selectedItem?.id === item.id ? 'ring-2 ring-blue-400 dark:ring-blue-500/50 rounded-xl' : ''
                 ]"
                 @dragstart="handleDragStart($event, item)"
                 @dragend="handleDragEnd"

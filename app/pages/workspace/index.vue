@@ -50,6 +50,100 @@ const filteredProjects = computed(() => {
   }
 })
 
+const selectedProjectIndex = ref(-1)
+const projectsViewRef = ref<{ sortedProjects: any[] } | null>(null)
+
+// Reset selection when tab or filtered projects change
+watch([activeTab, filteredProjects], () => {
+  selectedProjectIndex.value = -1
+})
+
+// Grid column count matching Tailwind: grid-cols-1 lg:grid-cols-2 xl:grid-cols-3
+const getGridCols = () => {
+  const w = window.innerWidth
+  if (w >= 1280) return 3  // xl
+  if (w >= 1024) return 2  // lg
+  return 1
+}
+
+// Total navigable card count (projects + create card when visible)
+const hasCreateCard = computed(() => activeTab.value !== 'completed' && canCreate.value)
+const navCardCount = computed(() => {
+  const projectCount = filteredProjects.value?.length ?? 0
+  return hasCreateCard.value ? projectCount + 1 : projectCount
+})
+
+// Clear selection on any click outside project cards
+onMounted(() => {
+  const handleClick = () => {
+    if (selectedProjectIndex.value >= 0) {
+      selectedProjectIndex.value = -1
+    }
+  }
+  window.addEventListener('click', handleClick)
+  onUnmounted(() => window.removeEventListener('click', handleClick))
+})
+
+// Keyboard navigation for project cards (grid-aware)
+onMounted(() => {
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    const tag = (e.target as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable) return
+
+    // Only handle arrow/enter when on dashboard view with cards
+    if (activeView.value !== 'dashboard' || !navCardCount.value) return
+
+    const count = navCardCount.value
+    const cols = getGridCols()
+    const idx = selectedProjectIndex.value
+    const col = idx >= 0 ? idx % cols : -1
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      selectedProjectIndex.value = idx < count - 1 ? idx + 1 : 0
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      selectedProjectIndex.value = idx > 0 ? idx - 1 : count - 1
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const next = idx + cols
+      selectedProjectIndex.value = next < count ? next : col < count ? col : 0
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (idx < 0) {
+        selectedProjectIndex.value = count - 1
+      } else {
+        const next = idx - cols
+        if (next >= 0) {
+          selectedProjectIndex.value = next
+        } else {
+          // Wrap to last row, same column
+          const totalRows = Math.ceil(count / cols)
+          const lastRowIdx = (totalRows - 1) * cols + col
+          selectedProjectIndex.value = lastRowIdx < count ? lastRowIdx : count - 1
+        }
+      }
+    } else if (e.key === 'Enter' && idx >= 0) {
+      e.preventDefault()
+      const projectCount = filteredProjects.value?.length ?? 0
+      if (hasCreateCard.value && idx === projectCount) {
+        showCreateModal.value = true
+      } else {
+        const sorted = projectsViewRef.value?.sortedProjects
+        const project = sorted?.[idx]
+        if (project) {
+          router.push(`/workspace/projects/${project.id}`)
+        }
+      }
+    } else if (e.key === 'Escape') {
+      selectedProjectIndex.value = -1
+    }
+  }
+  window.addEventListener('keydown', handleKeydown)
+  onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+})
+
 const showCreateModal = ref(false)
 const showDetailModal = ref(false)
 const selectedItem = ref<any>(null)
@@ -304,8 +398,10 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     <!-- Projects Dashboard -->
     <ViewsProjectsView
       v-else-if="activeView === 'dashboard'"
+      ref="projectsViewRef"
       :projects="filteredProjects"
       :show-create-card="activeTab !== 'completed'"
+      :selected-index="selectedProjectIndex"
       @open-project="handleDrillDown"
       @open-detail="handleOpenDetail"
       @create-project="showCreateModal = true"

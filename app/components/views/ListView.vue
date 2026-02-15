@@ -410,6 +410,9 @@ function handleRowClick(item: FlatItem) {
   emit('openDetail', item)
 }
 
+// Hover sync between sticky task column and scrollable data columns
+const hoveredItemId = ref<string | null>(null)
+
 // Scroll sync for header ↔ body
 const headerScrollRef = ref<HTMLElement | null>(null)
 const bodyScrollRef = ref<HTMLElement | null>(null)
@@ -738,13 +741,16 @@ function onHeaderPointerUp(event: PointerEvent) {
           <div
             v-for="item in flattenedItems"
             :key="item.id + '-label'"
-            class="flex items-center gap-2 min-w-0 px-3 h-10 border-b border-slate-50 dark:border-white/[0.04] hover:bg-slate-50/80 dark:hover:bg-white/[0.04] cursor-pointer transition-colors group"
+            class="flex items-center gap-2 min-w-0 px-3 h-10 border-b border-slate-50 dark:border-white/[0.04] cursor-pointer transition-colors group"
             :class="[
               item.status === 'done' ? 'opacity-60' : '',
               item.status === 'blocked' ? 'border-l-2 border-l-rose-400' : '',
+              hoveredItemId === item.id ? 'bg-slate-50/80 dark:bg-white/[0.04]' : '',
             ]"
             :style="{ paddingLeft: `${12 + item.depth * 24}px` }"
             @click="handleRowClick(item)"
+            @mouseenter="hoveredItemId = item.id"
+            @mouseleave="hoveredItemId = null"
           >
             <!-- Expand/collapse button or spacer -->
             <button
@@ -798,11 +804,14 @@ function onHeaderPointerUp(event: PointerEvent) {
             <div
               v-for="item in flattenedItems"
               :key="item.id"
-              class="flex items-center h-10 border-b border-slate-50 dark:border-white/[0.04] hover:bg-slate-50/80 dark:hover:bg-white/[0.04] cursor-pointer transition-colors group"
+              class="flex items-center h-10 border-b border-slate-50 dark:border-white/[0.04] cursor-pointer transition-colors group"
               :class="[
                 item.status === 'done' ? 'opacity-60' : '',
+                hoveredItemId === item.id ? 'bg-slate-50/80 dark:bg-white/[0.04]' : '',
               ]"
               @click="handleRowClick(item)"
+              @mouseenter="hoveredItemId = item.id"
+              @mouseleave="hoveredItemId = null"
             >
               <!-- Status -->
               <div class="w-[100px] flex-shrink-0 px-2 flex items-center">
