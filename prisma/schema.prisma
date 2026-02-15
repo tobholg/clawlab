@@ -21,7 +21,7 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   // Billing & plan
-  planTier     PlanTier @default(FREE)
+  planTier     PlanTier  @default(FREE)
   billingEmail String?
   trialEndsAt  DateTime?
 
@@ -80,20 +80,20 @@ model Seat {
 }
 
 model SeatInvite {
-  id             String       @id @default(cuid())
-  seatId         String       @unique
+  id             String        @id @default(cuid())
+  seatId         String        @unique
   organizationId String
   email          String
   role           WorkspaceRole @default(MEMBER)
   workspaceId    String
   invitedById    String
-  token          String       @unique
-  code           String       @default("0000") // 4-char verification code (e.g. "B7MR")
-  status         InviteStatus @default(PENDING)
+  token          String        @unique
+  code           String        @default("0000") // 4-char verification code (e.g. "B7MR")
+  status         InviteStatus  @default(PENDING)
   expiresAt      DateTime
   acceptedAt     DateTime?
   cancelledAt    DateTime?
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime      @default(now())
 
   seat         Seat         @relation(fields: [seatId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -153,14 +153,17 @@ enum MemberStatus {
 // ============================================
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  passwordHash String?
-  position     String?  // Job title: "Engineering Manager", "CTO"
-  avatar       String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String?
+  isAgent       Boolean  @default(false)
+  apiKeyHash    String?  @unique // bcrypt hash of agent API key
+  agentProvider String? // "openclaw", "cursor", "codex", "custom"
+  position      String? // Job title: "Engineering Manager", "CTO"
+  avatar        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Two-layer focus system
   // Layer 1: Project context (sticky)
@@ -193,19 +196,19 @@ model User {
   documentVersions    DocumentVersion[]    @relation("DocumentVersionCreatedBy")
 
   // Seat relations
-  seats             Seat[]
-  sentInvites       SeatInvite[]         @relation("SentInvites")
+  seats       Seat[]
+  sentInvites SeatInvite[] @relation("SentInvites")
 
   // External stakeholder relations
-  stakeholderAccess   StakeholderAccess[] // Spaces this user is a stakeholder in
-  stakeholderInvites  StakeholderAccess[]  @relation("StakeholderInviter") // Invites sent
-  informationRequests InformationRequest[] @relation("IRCreatedBy")
-  irResponses         InformationRequest[] @relation("IRRespondedBy")
-  externalTasks       ExternalTask[]
-  externalComments    ExternalComment[]
-  aiContextDocs       AIContextDoc[]
-  monthlyUsage        UserMonthlyUsage[]
-  generatedSpaceUpdates SpaceUpdate[]    @relation("SpaceUpdateGeneratedBy")
+  stakeholderAccess     StakeholderAccess[] // Spaces this user is a stakeholder in
+  stakeholderInvites    StakeholderAccess[]  @relation("StakeholderInviter") // Invites sent
+  informationRequests   InformationRequest[] @relation("IRCreatedBy")
+  irResponses           InformationRequest[] @relation("IRRespondedBy")
+  externalTasks         ExternalTask[]
+  externalComments      ExternalComment[]
+  aiContextDocs         AIContextDoc[]
+  monthlyUsage          UserMonthlyUsage[]
+  generatedSpaceUpdates SpaceUpdate[]        @relation("SpaceUpdateGeneratedBy")
 
   @@map("users")
 }
@@ -298,9 +301,12 @@ model Item {
   completedAt DateTime? // When status changed to DONE
 
   // AI-assisted fields
-  confidence Int @default(70) // 0-100, AI-estimated completion likelihood
-  complexity ItemComplexity?
-  priority   ItemPriority? @default(MEDIUM)
+  confidence          Int             @default(70) // 0-100, AI-estimated completion likelihood
+  complexity          ItemComplexity?
+  priority            ItemPriority?   @default(MEDIUM)
+  agentMode           AgentMode? // null = not an agent task
+  planDocId           String? // designated plan document
+  acceptedPlanVersion Int? // accepted plan document version number
 
   // Timestamps for temperature calculation
   createdAt      DateTime @default(now())
@@ -312,6 +318,7 @@ model Item {
   parent                Item?             @relation("ItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children              Item[]            @relation("ItemHierarchy")
   owner                 User?             @relation("OwnedItems", fields: [ownerId], references: [id])
+  planDoc               Document?         @relation("ItemPlanDocument", fields: [planDocId], references: [id], onDelete: SetNull)
   assignees             ItemAssignment[]
   stakeholders          ItemStakeholder[]
   blockedBy             ItemDependency[]  @relation("BlockedItem")
@@ -336,6 +343,7 @@ model Item {
   @@index([parentId])
   @@index([projectId])
   @@index([ownerId])
+  @@index([planDocId])
   @@index([status])
   @@index([lastActivityAt])
   @@index([completedAt])
@@ -359,6 +367,7 @@ model Document {
   updatedAt      DateTime @updatedAt
 
   item         Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  planForItems Item[]            @relation("ItemPlanDocument")
   createdBy    User              @relation("DocumentCreatedBy", fields: [createdById], references: [id])
   lastEditedBy User?             @relation("DocumentLastEditedBy", fields: [lastEditedById], references: [id])
   versions     DocumentVersion[]
@@ -450,6 +459,11 @@ enum ItemPriority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum AgentMode {
+  PLAN
+  EXECUTE
 }
 
 // ============================================
@@ -604,13 +618,13 @@ model Channel {
   updatedAt DateTime @updatedAt
 
   // Relations
-  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent    Channel?        @relation("ChannelHierarchy", fields: [parentId], references: [id])
-  children  Channel[]       @relation("ChannelHierarchy")
-  project   Item?           @relation(fields: [projectId], references: [id])
-  members   ChannelMember[]
+  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent     Channel?           @relation("ChannelHierarchy", fields: [parentId], references: [id])
+  children   Channel[]          @relation("ChannelHierarchy")
+  project    Item?              @relation(fields: [projectId], references: [id])
+  members    ChannelMember[]
   readStates ChannelReadState[]
-  messages  Message[]
+  messages   Message[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
