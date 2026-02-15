@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
   } else {
     // Single-user mode: find the only user
     const users = await prisma.user.findMany({
+      where: { isAgent: false },
       take: 2,
       select: { id: true, email: true, passwordHash: true },
     })
