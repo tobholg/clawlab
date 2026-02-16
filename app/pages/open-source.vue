@@ -176,10 +176,9 @@ onMounted(() => {
 
 <template>
   <div class="os-landing min-h-screen text-zinc-100 scroll-smooth" :class="{ 'is-ready': ready }">
-    <div class="fixed inset-0 bg-[#050506] -z-10" aria-hidden="true">
-      <div class="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/[0.03] rounded-full blur-[180px]" />
-      <div class="absolute top-1/3 right-1/6 w-[500px] h-[500px] bg-blue-500/[0.025] rounded-full blur-[160px]" />
-      <div class="absolute bottom-1/4 left-1/6 w-[400px] h-[400px] bg-violet-500/[0.02] rounded-full blur-[140px]" />
+    <div class="fixed inset-0 -z-10 bg-[#050506]" aria-hidden="true">
+      <div class="absolute inset-x-0 bottom-0 h-[50vh] bg-gradient-to-t from-[#0a1628]/80 via-[#07101e]/40 to-transparent" />
+      <div class="absolute inset-x-0 bottom-0 h-[25vh] bg-gradient-to-t from-[#0d1f3c]/50 to-transparent" />
     </div>
     <StarField />
 
