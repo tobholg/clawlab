@@ -98,6 +98,158 @@ const copied = ref(false)
 // Screenshot modal
 const lightbox = ref<{ featureIndex: number; rect: DOMRect; offsetX: number; offsetY: number; scale: number } | null>(null)
 const lightboxOpen = ref(false)
+
+// ── Terminal replay (feature #1) ──
+const terminalLines = [
+  { text: '$ ctx tasks --tree', delay: 0, isCommand: true },
+  { text: '├─ [active] Implement payment webhooks', delay: 600, color: 'blue' },
+  { text: '│  ├─ [done] Set up Stripe webhook endpoint', delay: 900, color: 'emerald' },
+  { text: '│  ├─ [active] Handle subscription events', delay: 1200, color: 'blue' },
+  { text: '│  └─ [backlog] Write integration tests', delay: 1500, color: 'zinc' },
+  { text: '├─ [plan ready] Refactor auth module', delay: 1800, color: 'amber' },
+  { text: '└─ [backlog] Add rate limiting', delay: 2100, color: 'zinc' },
+  { text: '', delay: 2800, isBlank: true },
+  { text: '$ ctx task 7f3a --status done', delay: 3000, isCommand: true },
+  { text: '✓ Updated → IN_PROGRESS/review', delay: 3600, color: 'emerald', isResult: true },
+  { text: '  Agent tasks go to review, not done', delay: 3900, color: 'muted' },
+]
+const terminalVisibleCount = ref(0)
+const terminalStarted = ref(false)
+const terminalCursorChar = ref(0)
+const terminalTypingLine = ref(-1)
+
+const startTerminalReplay = () => {
+  if (terminalStarted.value) return
+  terminalStarted.value = true
+  terminalVisibleCount.value = 0
+  terminalCursorChar.value = 0
+  terminalTypingLine.value = -1
+
+  const typeCommand = (lineIndex: number) => {
+    const line = terminalLines[lineIndex]
+    if (!line) return
+    terminalTypingLine.value = lineIndex
+    terminalCursorChar.value = 0
+    const text = line.text
+    let charIndex = 0
+    const typeInterval = setInterval(() => {
+      charIndex++
+      terminalCursorChar.value = charIndex
+      if (charIndex >= text.length) {
+        clearInterval(typeInterval)
+        terminalTypingLine.value = -1
+        terminalVisibleCount.value = lineIndex + 1
+      }
+    }, 25 + Math.random() * 35)
+  }
+
+  terminalLines.forEach((line, i) => {
+    setTimeout(() => {
+      if (line.isCommand) {
+        typeCommand(i)
+      } else {
+        terminalVisibleCount.value = i + 1
+      }
+    }, line.delay)
+  })
+
+  // Loop after completion
+  setTimeout(() => {
+    terminalStarted.value = false
+    startTerminalReplay()
+  }, 7000)
+}
+
+// ── Agent simulation (feature #2) ──
+const simStage = ref(0) // 0=idle, 1=planning, 2=plan-ready, 3=accepting, 4=executing, 5=subtask1, 6=subtask2, 7=progress, 8=review, 9=done
+const simStarted = ref(false)
+const simPlanText = ref('')
+const simProgress = ref(0)
+const simToast = ref<{ agent: string; text: string; color: string } | null>(null)
+
+const simPlanFull = `## Implementation Plan
+
+1. Add Stripe webhook endpoint at /api/webhooks/stripe
+2. Handle subscription.created, updated, deleted events
+3. Sync subscription status to user model
+4. Add idempotency keys for retry safety
+5. Write integration tests with Stripe test clock`
+
+const runSimulation = () => {
+  if (simStarted.value) return
+  simStarted.value = true
+  simStage.value = 0
+  simPlanText.value = ''
+  simProgress.value = 0
+  simToast.value = null
+
+  const stages = [
+    { stage: 1, delay: 800 },    // planning begins
+    { stage: 2, delay: 3500 },   // plan ready
+    { stage: 3, delay: 5500 },   // user clicks accept
+    { stage: 4, delay: 6500 },   // executing
+    { stage: 5, delay: 8000 },   // subtask 1
+    { stage: 6, delay: 9500 },   // subtask 2
+    { stage: 7, delay: 11000 },  // progress update
+    { stage: 8, delay: 13000 },  // review
+    { stage: 9, delay: 15000 },  // done
+  ]
+
+  stages.forEach(({ stage, delay }) => {
+    setTimeout(() => {
+      simStage.value = stage
+      if (stage === 1) {
+        // Type out plan text
+        let charIndex = 0
+        const typeInterval = setInterval(() => {
+          charIndex += 2 + Math.floor(Math.random() * 3)
+          if (charIndex >= simPlanFull.length) {
+            charIndex = simPlanFull.length
+            clearInterval(typeInterval)
+          }
+          simPlanText.value = simPlanFull.slice(0, charIndex)
+        }, 30)
+      }
+      if (stage === 5) {
+        simToast.value = { agent: 'H', text: 'Created subtask: Set up Stripe webhook endpoint', color: 'amber' }
+        simProgress.value = 25
+      }
+      if (stage === 6) {
+        simToast.value = { agent: 'H', text: 'Created subtask: Handle subscription events', color: 'amber' }
+        simProgress.value = 50
+      }
+      if (stage === 7) {
+        simToast.value = { agent: 'H', text: 'Progress updated: 50% → 90%', color: 'emerald' }
+        simProgress.value = 90
+      }
+      if (stage === 8) {
+        simToast.value = { agent: 'H', text: 'Submitted for review', color: 'blue' }
+        simProgress.value = 100
+      }
+    }, delay)
+  })
+
+  // Loop
+  setTimeout(() => {
+    simStarted.value = false
+    runSimulation()
+  }, 18000)
+}
+
+// ── Before/After (feature #4) ──
+const beforeAfterPosition = ref(50)
+const isDraggingSlider = ref(false)
+const sliderRef = ref<HTMLElement | null>(null)
+
+const handleSliderMove = (e: MouseEvent | TouchEvent) => {
+  if (!isDraggingSlider.value || !sliderRef.value) return
+  const rect = sliderRef.value.getBoundingClientRect()
+  const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+  const x = Math.max(0, Math.min(clientX - rect.left, rect.width))
+  beforeAfterPosition.value = (x / rect.width) * 100
+}
+
+const stopDragging = () => { isDraggingSlider.value = false }
 const lightboxImageIndex = ref(0)
 
 const closeLightbox = () => {
@@ -150,6 +302,28 @@ onMounted(() => {
   }
   window.addEventListener('keydown', onKeydown)
 
+  // Slider drag events
+  window.addEventListener('mousemove', handleSliderMove)
+  window.addEventListener('mouseup', stopDragging)
+  window.addEventListener('touchmove', handleSliderMove)
+  window.addEventListener('touchend', stopDragging)
+
+  // Terminal replay + simulation triggers via intersection observer
+  const terminalEl = document.getElementById('terminal-replay')
+  const simEl = document.getElementById('agent-simulation')
+  const terminalObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) startTerminalReplay()
+    })
+  }, { threshold: 0.3 })
+  const simObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) runSimulation()
+    })
+  }, { threshold: 0.3 })
+  if (terminalEl) terminalObs.observe(terminalEl)
+  if (simEl) simObs.observe(simEl)
+
   const observer = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -168,8 +342,14 @@ onMounted(() => {
 
   onUnmounted(() => {
     observer.disconnect()
+    terminalObs.disconnect()
+    simObs.disconnect()
     window.removeEventListener('scroll', onScroll)
     window.removeEventListener('keydown', onKeydown)
+    window.removeEventListener('mousemove', handleSliderMove)
+    window.removeEventListener('mouseup', stopDragging)
+    window.removeEventListener('touchmove', handleSliderMove)
+    window.removeEventListener('touchend', stopDragging)
   })
 })
 </script>
@@ -317,110 +497,330 @@ onMounted(() => {
           </p>
         </div>
 
-        <!-- Agent lifecycle -->
-        <div class="mt-12 grid lg:grid-cols-3 gap-6 intro" style="--d: 580ms">
-          <div class="rounded-xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl p-6">
-            <div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
-              <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-amber-400" />
+        <!-- Interactive Agent Simulation -->
+        <div id="agent-simulation" class="mt-12 intro" style="--d: 580ms">
+          <div class="rounded-2xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl overflow-hidden">
+            <!-- Sim header -->
+            <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
+              <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full" :class="simStage >= 1 ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-700'" />
+                <span class="text-sm font-medium text-zinc-300">Implement payment webhooks</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <!-- Stage indicator pills -->
+                <span
+                  class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full transition-all duration-500"
+                  :class="{
+                    'bg-zinc-800 text-zinc-500': simStage === 0,
+                    'bg-amber-500/15 text-amber-400': simStage >= 1 && simStage <= 2,
+                    'bg-emerald-500/15 text-emerald-400': simStage === 3,
+                    'bg-blue-500/15 text-blue-400': simStage >= 4 && simStage <= 7,
+                    'bg-violet-500/15 text-violet-400': simStage === 8,
+                    'bg-emerald-500/15 text-emerald-400 ': simStage === 9,
+                  }"
+                >
+                  {{ simStage === 0 ? 'Idle' : simStage <= 2 ? 'Planning' : simStage === 3 ? 'Accepting' : simStage <= 7 ? 'Executing' : simStage === 8 ? 'In Review' : 'Complete ✓' }}
+                </span>
+              </div>
             </div>
-            <h3 class="text-base font-semibold text-zinc-100">1. Agent plans</h3>
-            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">
-              Assign a task in PLAN mode. The agent researches, breaks it down, and submits a plan document for your review.
-            </p>
-          </div>
-          <div class="rounded-xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl p-6">
-            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4">
-              <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-400" />
+
+            <div class="grid lg:grid-cols-5 min-h-[320px]">
+              <!-- Left: task card mock -->
+              <div class="lg:col-span-3 p-5 border-r border-white/[0.06]">
+                <!-- Assignee -->
+                <div class="flex items-center gap-2 mb-4">
+                  <div class="h-7 w-7 rounded-full bg-amber-500/10 flex items-center justify-center ring-1 ring-white/10">
+                    <span class="text-[10px] font-semibold text-amber-500">H</span>
+                  </div>
+                  <span class="text-sm text-zinc-400">Harriet</span>
+                  <span class="text-[10px] text-zinc-600 ml-auto">assigned by you</span>
+                </div>
+
+                <!-- Plan area -->
+                <div v-if="simStage >= 1" class="rounded-lg border border-white/[0.06] bg-[#0a0a0c] p-4 mb-4 transition-all duration-500">
+                  <div class="flex items-center gap-2 mb-2">
+                    <Icon name="heroicons:document-text" class="w-4 h-4 text-zinc-500" />
+                    <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Plan Document</span>
+                    <span v-if="simStage === 1" class="ml-auto flex items-center gap-1 text-[10px] text-amber-400">
+                      <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      Writing...
+                    </span>
+                  </div>
+                  <div class="text-[13px] text-zinc-400 leading-relaxed whitespace-pre-wrap font-mono">{{ simPlanText }}<span v-if="simStage === 1" class="terminal-cursor">▊</span></div>
+                </div>
+
+                <!-- Accept button -->
+                <Transition name="fade-up">
+                  <div v-if="simStage === 2" class="flex items-center gap-3 mb-4">
+                    <div class="flex-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center justify-between">
+                      <span class="text-sm text-emerald-400 font-medium">Plan ready for review</span>
+                      <div class="flex items-center gap-2">
+                        <button class="px-3 py-1.5 text-xs font-medium rounded-md border border-white/[0.1] text-zinc-400 cursor-default">Request Changes</button>
+                        <button class="px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-500 text-white sim-accept-pulse cursor-default">Accept Plan</button>
+                      </div>
+                    </div>
+                  </div>
+                </Transition>
+
+                <!-- Subtasks -->
+                <div v-if="simStage >= 5" class="space-y-2 mb-4">
+                  <div class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Subtasks</div>
+                  <Transition name="fade-up">
+                    <div v-if="simStage >= 5" class="flex items-center gap-2 text-sm">
+                      <div class="w-4 h-4 rounded border" :class="simStage >= 9 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
+                        <Icon v-if="simStage >= 9" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
+                      </div>
+                      <span class="text-zinc-300">Set up Stripe webhook endpoint</span>
+                    </div>
+                  </Transition>
+                  <Transition name="fade-up">
+                    <div v-if="simStage >= 6" class="flex items-center gap-2 text-sm">
+                      <div class="w-4 h-4 rounded border" :class="simStage >= 9 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
+                        <Icon v-if="simStage >= 9" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
+                      </div>
+                      <span class="text-zinc-300">Handle subscription events</span>
+                    </div>
+                  </Transition>
+                </div>
+
+                <!-- Progress bar -->
+                <div v-if="simStage >= 4" class="mt-auto">
+                  <div class="flex items-center justify-between text-[11px] mb-1.5">
+                    <span class="text-zinc-500">Progress</span>
+                    <span class="text-zinc-400 font-mono">{{ simProgress }}%</span>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all duration-700 ease-out"
+                      :class="simProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'"
+                      :style="{ width: `${simProgress}%` }"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: live toast feed -->
+              <div class="lg:col-span-2 p-4 flex flex-col">
+                <div class="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Live Activity</div>
+                <div class="flex-1 flex flex-col justify-end gap-2.5 overflow-hidden">
+                  <TransitionGroup name="toast-slide">
+                    <div
+                      v-if="simToast"
+                      :key="simToast.text"
+                      class="rounded-lg border border-white/[0.08] bg-[#161619] p-2.5"
+                    >
+                      <div class="flex items-start gap-2.5">
+                        <div class="h-7 w-7 flex-shrink-0 rounded-full flex items-center justify-center ring-1 ring-white/10"
+                          :class="{
+                            'bg-amber-500/10': simToast.color === 'amber',
+                            'bg-emerald-500/10': simToast.color === 'emerald',
+                            'bg-blue-500/10': simToast.color === 'blue',
+                          }"
+                        >
+                          <span class="text-[10px] font-semibold" :class="{
+                            'text-amber-500': simToast.color === 'amber',
+                            'text-emerald-500': simToast.color === 'emerald',
+                            'text-blue-500': simToast.color === 'blue',
+                          }">{{ simToast.agent }}</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <div class="flex items-center justify-between">
+                            <p class="text-xs font-semibold text-zinc-100">Harriet</p>
+                            <span class="text-[10px] text-zinc-600">Just now</span>
+                          </div>
+                          <p class="mt-0.5 text-xs text-zinc-400">{{ simToast.text }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </TransitionGroup>
+
+                  <!-- Stage descriptions -->
+                  <div class="mt-auto pt-3 border-t border-white/[0.04]">
+                    <Transition name="fade" mode="out-in">
+                      <p v-if="simStage === 0" key="s0" class="text-[11px] text-zinc-600 leading-relaxed">Waiting for assignment...</p>
+                      <p v-else-if="simStage === 1" key="s1" class="text-[11px] text-amber-400/60 leading-relaxed">Agent is researching and drafting a plan...</p>
+                      <p v-else-if="simStage === 2" key="s2" class="text-[11px] text-emerald-400/60 leading-relaxed">Plan submitted. Awaiting your review.</p>
+                      <p v-else-if="simStage === 3" key="s3" class="text-[11px] text-emerald-400/60 leading-relaxed">Plan accepted! Agent starting work...</p>
+                      <p v-else-if="simStage >= 4 && simStage <= 7" key="s4" class="text-[11px] text-blue-400/60 leading-relaxed">Agent executing. Creating subtasks and tracking progress.</p>
+                      <p v-else-if="simStage === 8" key="s8" class="text-[11px] text-violet-400/60 leading-relaxed">Work complete. Submitted for your review.</p>
+                      <p v-else-if="simStage === 9" key="s9" class="text-[11px] text-emerald-400/60 leading-relaxed">Done. All subtasks completed. ✓</p>
+                    </Transition>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h3 class="text-base font-semibold text-zinc-100">2. You accept</h3>
-            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">
-              Review the plan, request changes, or accept it. The agent only starts executing after you say go. You stay in control.
-            </p>
-          </div>
-          <div class="rounded-xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl p-6">
-            <div class="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
-              <Icon name="heroicons:bolt" class="w-5 h-5 text-blue-400" />
-            </div>
-            <h3 class="text-base font-semibold text-zinc-100">3. Agent executes</h3>
-            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">
-              The agent creates subtasks, updates progress, posts comments, and submits for review when done. You see it all in real time.
-            </p>
           </div>
         </div>
 
         <!-- CLI + API demo -->
         <div class="mt-12 grid lg:grid-cols-2 gap-8 items-start">
-          <!-- CLI demo -->
+          <!-- CLI demo (live terminal replay) -->
           <div class="intro" style="--d: 640ms">
             <div class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">CLI</div>
-            <div class="rounded-xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl p-5 font-mono text-[13px] space-y-1.5">
-              <div class="text-zinc-500 text-[11px] mb-3">$ ctx tasks --tree</div>
-              <div class="text-zinc-300">
-                <div><span class="text-zinc-500">├─</span> <span class="text-blue-400">[active]</span> Implement payment webhooks</div>
-                <div><span class="text-zinc-500">│  ├─</span> <span class="text-emerald-400">[done]</span> Set up Stripe webhook endpoint</div>
-                <div><span class="text-zinc-500">│  ├─</span> <span class="text-blue-400">[active]</span> Handle subscription events</div>
-                <div><span class="text-zinc-500">│  └─</span> <span class="text-zinc-500">[backlog]</span> Write integration tests</div>
-                <div><span class="text-zinc-500">├─</span> <span class="text-amber-400">[plan ready]</span> Refactor auth module</div>
-                <div><span class="text-zinc-500">└─</span> <span class="text-zinc-500">[backlog]</span> Add rate limiting</div>
+            <div id="terminal-replay" class="rounded-xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl p-5 font-mono text-[13px] min-h-[280px]">
+              <!-- Terminal window dots -->
+              <div class="flex items-center gap-1.5 mb-4">
+                <div class="w-3 h-3 rounded-full bg-[#ff5f57]/80" />
+                <div class="w-3 h-3 rounded-full bg-[#febc2e]/80" />
+                <div class="w-3 h-3 rounded-full bg-[#28c840]/80" />
+                <span class="ml-3 text-[11px] text-zinc-600">ctx — zsh</span>
               </div>
-              <div class="pt-3 border-t border-white/[0.06]">
-                <div class="text-zinc-500 text-[11px] mb-2">$ ctx task 7f3a --status done</div>
-                <div><span class="text-emerald-400">✓</span> <span class="text-zinc-400">Updated → IN_PROGRESS/review</span></div>
-                <div class="text-zinc-500 text-[11px] mt-0.5">Agent tasks go to review, not done</div>
-              </div>
+
+              <template v-for="(line, i) in terminalLines" :key="i">
+                <!-- Typing state for commands -->
+                <div
+                  v-if="terminalTypingLine === i"
+                  class="terminal-line"
+                >
+                  <span class="text-zinc-500 select-none">{{ line.text.startsWith('$') ? '' : '' }}</span>
+                  <span class="text-zinc-300">{{ line.text.slice(0, terminalCursorChar) }}</span>
+                  <span class="terminal-cursor">▊</span>
+                </div>
+                <!-- Fully visible lines -->
+                <div
+                  v-else-if="i < terminalVisibleCount"
+                  class="terminal-line"
+                  :class="{ 'pt-3 mt-3 border-t border-white/[0.06]': i === 8 }"
+                >
+                  <template v-if="line.isCommand">
+                    <span class="text-zinc-300">{{ line.text }}</span>
+                  </template>
+                  <template v-else-if="line.isBlank">
+                    <br />
+                  </template>
+                  <template v-else-if="line.isResult">
+                    <span class="text-emerald-400">✓</span>
+                    <span class="text-zinc-400"> {{ line.text.replace('✓ ', '') }}</span>
+                  </template>
+                  <template v-else-if="line.color === 'muted'">
+                    <span class="text-zinc-500 text-[11px]">{{ line.text }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="text-zinc-500">{{ line.text.match(/^[│├└─\s]+/)?.[0] || '' }}</span>
+                    <span :class="{
+                      'text-blue-400': line.color === 'blue',
+                      'text-emerald-400': line.color === 'emerald',
+                      'text-amber-400': line.color === 'amber',
+                      'text-zinc-500': line.color === 'zinc',
+                    }">{{ line.text.match(/\[.*?\]/)?.[0] || '' }}</span>
+                    <span class="text-zinc-300">{{ line.text.replace(/^[│├└─\s]+/, '').replace(/\[.*?\]\s*/, '') }}</span>
+                  </template>
+                </div>
+              </template>
             </div>
           </div>
 
-          <!-- Real-time toast demo -->
+          <!-- Before/After Comparison Slider -->
           <div class="intro" style="--d: 700ms">
-            <div class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">Real-time activity</div>
-            <div class="space-y-3">
-              <!-- Mock toast 1 -->
-              <div class="rounded-xl border border-white/[0.08] bg-[#161619] backdrop-blur-md p-3">
-                <div class="flex items-start gap-3">
-                  <div class="h-9 w-9 flex-shrink-0 rounded-full bg-amber-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
-                    <span class="text-xs font-semibold text-amber-500">H</span>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between">
-                      <p class="text-sm font-semibold text-zinc-100">Harriet</p>
-                      <span class="text-[11px] text-zinc-500">Just now</span>
+            <div class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">The difference</div>
+            <div
+              ref="sliderRef"
+              class="relative rounded-xl border border-white/[0.06] overflow-hidden select-none cursor-col-resize"
+              @mousedown.prevent="isDraggingSlider = true"
+              @touchstart.prevent="isDraggingSlider = true"
+            >
+              <!-- "Before" (other tools) — full width background -->
+              <div class="relative w-full bg-[#0c0c0f] p-5 min-h-[340px]">
+                <div class="text-[10px] font-semibold text-red-400/60 uppercase tracking-widest mb-4">Every other tool</div>
+                <div class="space-y-3">
+                  <!-- Stale ticket 1 -->
+                  <div class="rounded-lg border border-white/[0.06] bg-[#111113] p-3">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm text-zinc-300">Implement payment webhooks</span>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">TODO</span>
                     </div>
-                    <p class="mt-0.5 text-[11px] text-zinc-400">Payment System &gt; Implement webhooks</p>
-                    <p class="mt-1.5 text-sm text-zinc-200">Created subtask: Handle subscription lifecycle events</p>
+                    <p class="text-[11px] text-zinc-600">No activity in 3 weeks</p>
+                    <div class="mt-2 rounded border border-white/[0.04] bg-[#0a0a0c] p-2">
+                      <p class="text-[11px] text-zinc-600"><span class="text-zinc-500">@sarah:</span> what's the status on this? <span class="text-zinc-700 ml-1">21d ago</span></p>
+                    </div>
+                  </div>
+                  <!-- Stale ticket 2 -->
+                  <div class="rounded-lg border border-white/[0.06] bg-[#111113] p-3 opacity-60">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm text-zinc-400">Refactor auth module</span>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">BACKLOG</span>
+                    </div>
+                    <p class="text-[11px] text-zinc-700">Assigned to: nobody</p>
+                  </div>
+                  <!-- Stale ticket 3 -->
+                  <div class="rounded-lg border border-white/[0.06] bg-[#111113] p-3 opacity-40">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm text-zinc-500">Add rate limiting</span>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-600">ICEBOX</span>
+                    </div>
+                    <p class="text-[11px] text-zinc-700">Created 4 months ago</p>
                   </div>
                 </div>
               </div>
-              <!-- Mock toast 2 -->
-              <div class="rounded-xl border border-white/[0.08] bg-[#161619] backdrop-blur-md p-3">
-                <div class="flex items-start gap-3">
-                  <div class="h-9 w-9 flex-shrink-0 rounded-full bg-emerald-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
-                    <span class="text-xs font-semibold text-emerald-500">C</span>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between">
-                      <p class="text-sm font-semibold text-zinc-100">Codex</p>
-                      <span class="text-[11px] text-zinc-500">2m ago</span>
+
+              <!-- "After" (Context) — overlaid, clipped by slider position -->
+              <div
+                class="absolute inset-0 bg-[#0c0c0f] p-5 overflow-hidden"
+                :style="{ clipPath: `inset(0 0 0 ${beforeAfterPosition}%)` }"
+              >
+                <div class="text-[10px] font-semibold text-emerald-400/60 uppercase tracking-widest mb-4">Context + Agents</div>
+                <div class="space-y-3">
+                  <!-- Active task with agent -->
+                  <div class="rounded-lg border border-emerald-500/20 bg-[#111113] p-3">
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-zinc-200">Implement payment webhooks</span>
+                        <div class="h-5 w-5 rounded-full bg-amber-500/10 flex items-center justify-center">
+                          <span class="text-[8px] font-bold text-amber-500">H</span>
+                        </div>
+                      </div>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">EXECUTING</span>
                     </div>
-                    <p class="mt-0.5 text-[11px] text-zinc-400">Auth &gt; Refactor module</p>
-                    <p class="mt-1.5 text-sm text-zinc-200">Status changed: Scoping &rarr; Active</p>
+                    <div class="h-1 rounded-full bg-white/[0.06] mt-2 mb-1.5">
+                      <div class="h-full rounded-full bg-blue-500 w-[75%]" />
+                    </div>
+                    <div class="flex items-center gap-3 mt-2 text-[11px]">
+                      <span class="text-zinc-500">3 subtasks</span>
+                      <span class="text-emerald-400">2 done</span>
+                      <span class="text-zinc-600 ml-auto">Updated 2m ago</span>
+                    </div>
+                  </div>
+                  <!-- Plan ready -->
+                  <div class="rounded-lg border border-amber-500/20 bg-[#111113] p-3">
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-zinc-200">Refactor auth module</span>
+                        <div class="h-5 w-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                          <span class="text-[8px] font-bold text-emerald-500">C</span>
+                        </div>
+                      </div>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">PLAN READY</span>
+                    </div>
+                    <p class="text-[11px] text-amber-400/60 mt-1">Codex submitted a plan. Tap to review.</p>
+                  </div>
+                  <!-- In review -->
+                  <div class="rounded-lg border border-violet-500/20 bg-[#111113] p-3">
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-zinc-200">Add rate limiting</span>
+                        <div class="h-5 w-5 rounded-full bg-blue-500/10 flex items-center justify-center">
+                          <span class="text-[8px] font-bold text-blue-500">C</span>
+                        </div>
+                      </div>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400">IN REVIEW</span>
+                    </div>
+                    <div class="h-1 rounded-full bg-white/[0.06] mt-2">
+                      <div class="h-full rounded-full bg-emerald-500 w-full" />
+                    </div>
+                    <p class="text-[11px] text-zinc-500 mt-1.5">Cursor completed all subtasks. Ready for your review.</p>
                   </div>
                 </div>
               </div>
-              <!-- Mock toast 3 -->
-              <div class="rounded-xl border border-white/[0.08] bg-[#161619] backdrop-blur-md p-3">
-                <div class="flex items-start gap-3">
-                  <div class="h-9 w-9 flex-shrink-0 rounded-full bg-blue-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
-                    <span class="text-xs font-semibold text-blue-500">C</span>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between">
-                      <p class="text-sm font-semibold text-zinc-100">Cursor</p>
-                      <span class="text-[11px] text-zinc-500">5m ago</span>
-                    </div>
-                    <p class="mt-0.5 text-[11px] text-zinc-400">API &gt; Rate limiting</p>
-                    <p class="mt-1.5 text-sm text-zinc-200">Progress updated: 40% &rarr; 75%</p>
-                  </div>
+
+              <!-- Slider handle -->
+              <div
+                class="absolute top-0 bottom-0 w-0.5 bg-white/40 z-10 pointer-events-none"
+                :style="{ left: `${beforeAfterPosition}%` }"
+              >
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 border border-white/30 backdrop-blur-sm flex items-center justify-center">
+                  <svg class="w-4 h-4 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 6l-4 6 4 6M16 6l4 6-4 6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -849,5 +1249,69 @@ onMounted(() => {
   opacity: 1;
   transform: translateY(0);
   filter: blur(0);
+}
+
+/* Terminal */
+.terminal-line {
+  min-height: 1.4em;
+  line-height: 1.4;
+}
+
+.terminal-cursor {
+  color: #4ade80;
+  animation: blink 0.8s step-end infinite;
+  font-size: 0.85em;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* Simulation accept button pulse */
+.sim-accept-pulse {
+  animation: accept-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes accept-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.2); }
+}
+
+/* Fade up transition */
+.fade-up-enter-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.fade-up-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* Fade transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Toast slide transition */
+.toast-slide-enter-active {
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translateY(12px) scale(0.95);
+}
+.toast-slide-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+}
+.toast-slide-move {
+  transition: transform 0.4s ease;
 }
 </style>
