@@ -87,16 +87,57 @@ const formatRelativeTime = (timestamp?: string, fallbackMs?: number) => {
   const parsed = timestamp ? Date.parse(timestamp) : NaN
   const referenceMs = Number.isFinite(parsed) ? parsed : (fallbackMs || now.value)
   const deltaSec = Math.max(0, Math.floor((now.value - referenceMs) / 1000))
-  if (deltaSec < 60) return `${deltaSec}s`
-  if (deltaSec < 3600) return `${Math.floor(deltaSec / 60)}m`
-  if (deltaSec < 86400) return `${Math.floor(deltaSec / 3600)}h`
-  return `${Math.floor(deltaSec / 86400)}d`
+  if (deltaSec < 60) return 'Just now'
+  if (deltaSec < 3600) return `${Math.floor(deltaSec / 60)}m ago`
+  if (deltaSec < 86400) return `${Math.floor(deltaSec / 3600)}h ago`
+  return `${Math.floor(deltaSec / 86400)}d ago`
 }
 
 const navigateToTask = async (activity: AgentActivity) => {
-  dismissAgentActivity(activity.id)
   if (!activity.project?.id) return
-  await router.push(`/workspace/projects/${activity.project.id}?task=${activity.task.id}`)
+  try {
+    await router.push(`/workspace/projects/${activity.project.id}?task=${activity.task.id}`)
+    dismissAgentActivity(activity.id)
+  } catch { /* navigation cancelled */ }
+}
+
+// Swipe-to-dismiss state
+const swipeState = reactive<Record<string, { startX: number; currentX: number; swiping: boolean }>>({})
+
+const onPointerDown = (id: string, e: PointerEvent) => {
+  swipeState[id] = { startX: e.clientX, currentX: e.clientX, swiping: false }
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+
+const onPointerMove = (id: string, e: PointerEvent) => {
+  const s = swipeState[id]
+  if (!s) return
+  s.currentX = e.clientX
+  const dx = s.currentX - s.startX
+  if (dx > 8) s.swiping = true
+}
+
+const getSwipeTranslate = (id: string) => {
+  const s = swipeState[id]
+  if (!s?.swiping) return 0
+  return Math.max(0, s.currentX - s.startX)
+}
+
+const getSwipeOpacity = (id: string) => {
+  const dx = getSwipeTranslate(id)
+  return Math.max(0, 1 - dx / 200)
+}
+
+const onPointerUp = (id: string, activity: AgentActivity) => {
+  const s = swipeState[id]
+  if (!s) return
+  const dx = s.currentX - s.startX
+  if (dx > 100) {
+    dismissAgentActivity(id)
+  } else if (!s.swiping) {
+    navigateToTask(activity)
+  }
+  delete swipeState[id]
 }
 
 onMounted(() => {
@@ -131,8 +172,16 @@ onUnmounted(() => {
           :key="activity.id"
           role="alert"
           tabindex="0"
-          class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.06] dark:bg-dm-card shadow-lg dark:shadow-black/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-white/[0.16] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#050506]"
-          @click="navigateToTask(activity)"
+          class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.06] dark:bg-dm-card shadow-lg dark:shadow-black/50 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-white/[0.16] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#050506] select-none touch-none"
+          :class="{ 'transition-all duration-200': !swipeState[activity.id]?.swiping }"
+          :style="{
+            transform: `translateX(${getSwipeTranslate(activity.id)}px)`,
+            opacity: getSwipeOpacity(activity.id),
+          }"
+          @pointerdown="onPointerDown(activity.id, $event)"
+          @pointermove="onPointerMove(activity.id, $event)"
+          @pointerup="onPointerUp(activity.id, activity)"
+          @pointercancel="delete swipeState[activity.id]"
           @keydown.enter.prevent="navigateToTask(activity)"
           @keydown.space.prevent="navigateToTask(activity)"
         >
