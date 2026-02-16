@@ -1225,7 +1225,7 @@ onMounted(() => {
               </div>
 
               <!-- Read Mode -->
-              <div v-else-if="isReadMode" class="max-w-3xl mx-auto">
+              <div v-else-if="isReadMode" class="max-w-4xl mx-auto">
                 <div class="space-y-4">
                   <template v-for="block in blocks" :key="block.id">
                     <!-- Heading -->
@@ -1282,7 +1282,7 @@ onMounted(() => {
               </div>
 
               <!-- Edit Mode -->
-              <div v-else class="max-w-3xl mx-auto">
+              <div v-else class="max-w-4xl mx-auto">
                 <!-- Locked warning -->
                 <div v-if="!canEdit" class="mb-6 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm border border-amber-100 dark:border-amber-500/20 flex items-center gap-2">
                   <Icon name="heroicons:lock-closed" class="w-4 h-4" />
