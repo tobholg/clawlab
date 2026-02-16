@@ -13,6 +13,44 @@ interface Notification {
   timestamp: number
 }
 
+export type AgentActivityAction =
+  | 'status_change'
+  | 'progress_update'
+  | 'substatus_change'
+  | 'field_updated'
+  | 'subtask_created'
+  | 'subtask_deleted'
+  | 'comment_added'
+  | 'doc_created'
+  | 'doc_updated'
+
+export interface AgentActivity {
+  id: string
+  workspaceId: string
+  agent: {
+    id: string
+    name: string
+    provider: string | null
+  }
+  project: {
+    id: string
+    title: string
+  } | null
+  task: {
+    id: string
+    title: string
+  }
+  action: AgentActivityAction
+  detail: {
+    field?: string
+    oldValue?: string
+    newValue?: string
+    title?: string
+  }
+  timestamp: string
+  receivedAt: number
+}
+
 // Singleton WebSocket connection
 let ws: WebSocket | null = null
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
@@ -34,6 +72,7 @@ const typing = reactive<Map<string, ChannelUser[]>>(new Map())
 
 // Notifications queue
 const notifications = ref<Notification[]>([])
+const agentActivities = ref<AgentActivity[]>([])
 
 // Message handlers per channel
 const messageHandlers = new Map<string, (message: ChannelMessage) => void>()
@@ -46,9 +85,89 @@ let currentUser: { id: string; name: string; avatar?: string | null } | null = n
 
 // Subscribed channels
 const subscribedChannels = new Set<string>()
+const subscribedWorkspaces = new Set<string>()
 
 // Channel name cache for notifications
 const channelNameCache = new Map<string, string>()
+
+// Agent activity dismissal state
+const AGENT_ACTIVITY_DURATION_MS = 10000
+const agentActivityTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const agentActivityExpiresAt = new Map<string, number>()
+const agentActivityRemainingMs = new Map<string, number>()
+const pausedAgentActivities = new Set<string>()
+
+function clearAgentActivityTimer(id: string) {
+  const timeout = agentActivityTimers.get(id)
+  if (timeout) {
+    clearTimeout(timeout)
+    agentActivityTimers.delete(id)
+  }
+}
+
+function startAgentActivityTimer(id: string, durationMs = AGENT_ACTIVITY_DURATION_MS) {
+  clearAgentActivityTimer(id)
+  const nextDuration = Math.max(0, durationMs)
+  if (nextDuration === 0) {
+    dismissAgentActivity(id)
+    return
+  }
+
+  agentActivityRemainingMs.delete(id)
+  agentActivityExpiresAt.set(id, Date.now() + nextDuration)
+  const timeout = setTimeout(() => {
+    dismissAgentActivity(id)
+  }, nextDuration)
+  agentActivityTimers.set(id, timeout)
+}
+
+function pauseAgentActivityDismiss(id: string) {
+  if (pausedAgentActivities.has(id)) return
+  const expiresAt = agentActivityExpiresAt.get(id)
+  if (!expiresAt) return
+
+  const remainingMs = Math.max(0, expiresAt - Date.now())
+  clearAgentActivityTimer(id)
+  agentActivityRemainingMs.set(id, remainingMs)
+  pausedAgentActivities.add(id)
+}
+
+function resumeAgentActivityDismiss(id: string) {
+  if (!pausedAgentActivities.has(id)) return
+  pausedAgentActivities.delete(id)
+
+  const remainingMs = agentActivityRemainingMs.get(id) ?? 0
+  if (remainingMs <= 0) {
+    dismissAgentActivity(id)
+    return
+  }
+  startAgentActivityTimer(id, remainingMs)
+}
+
+function dismissAgentActivity(id: string) {
+  clearAgentActivityTimer(id)
+  agentActivityExpiresAt.delete(id)
+  agentActivityRemainingMs.delete(id)
+  pausedAgentActivities.delete(id)
+  agentActivities.value = agentActivities.value.filter(activity => activity.id !== id)
+}
+
+function pruneAgentActivityState(activeIds: Set<string>) {
+  const knownIds = new Set<string>([
+    ...agentActivityTimers.keys(),
+    ...agentActivityExpiresAt.keys(),
+    ...agentActivityRemainingMs.keys(),
+    ...pausedAgentActivities.keys(),
+  ])
+  for (const id of knownIds) {
+    if (!activeIds.has(id)) {
+      clearAgentActivityTimer(id)
+      agentActivityExpiresAt.delete(id)
+      agentActivityRemainingMs.delete(id)
+      pausedAgentActivities.delete(id)
+    }
+  }
+}
 
 function getWebSocketUrl(): string {
   if (import.meta.client) {
@@ -80,6 +199,12 @@ function connect() {
     for (const channelId of subscribedChannels) {
       console.log('[WS Client] Re-subscribing to:', channelId)
       send({ type: 'subscribe', channelId })
+    }
+
+    // Re-subscribe to workspaces
+    for (const workspaceId of subscribedWorkspaces) {
+      console.log('[WS Client] Re-subscribing to workspace:', workspaceId)
+      send({ type: 'subscribe_workspace', workspaceId })
     }
   }
 
@@ -133,6 +258,14 @@ function handleMessage(data: any) {
   switch (data.type) {
     case 'auth':
       state.authenticated = data.success
+      if (data.success) {
+        for (const channelId of subscribedChannels) {
+          send({ type: 'subscribe', channelId })
+        }
+        for (const workspaceId of subscribedWorkspaces) {
+          send({ type: 'subscribe_workspace', workspaceId })
+        }
+      }
       break
 
     case 'presence':
@@ -177,6 +310,34 @@ function handleMessage(data: any) {
       setTimeout(() => {
         dismissNotification(notification.id)
       }, 5000)
+      break
+    }
+
+    case 'workspace_subscribed':
+      console.log('[WS Client] Workspace subscribed:', data.workspaceId)
+      break
+
+    case 'agent_activity': {
+      const activity: AgentActivity = {
+        id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        workspaceId: data.workspaceId,
+        agent: data.agent,
+        project: data.project || null,
+        task: data.task,
+        action: data.action,
+        detail: data.detail || {},
+        timestamp: data.timestamp,
+        receivedAt: Date.now(),
+      }
+
+      const nextActivities = [activity, ...agentActivities.value]
+      const trimmedActivities = nextActivities.slice(0, 5)
+      agentActivities.value = trimmedActivities
+      pruneAgentActivityState(new Set(trimmedActivities.map(entry => entry.id)))
+
+      if (!pausedAgentActivities.has(activity.id)) {
+        startAgentActivityTimer(activity.id, AGENT_ACTIVITY_DURATION_MS)
+      }
       break
     }
   }
@@ -227,6 +388,18 @@ function unsubscribe(channelId: string) {
   send({ type: 'unsubscribe', channelId })
 }
 
+function subscribeWorkspace(workspaceId: string) {
+  if (!workspaceId || subscribedWorkspaces.has(workspaceId)) return
+  subscribedWorkspaces.add(workspaceId)
+  send({ type: 'subscribe_workspace', workspaceId })
+}
+
+function unsubscribeWorkspace(workspaceId: string) {
+  if (!workspaceId) return
+  subscribedWorkspaces.delete(workspaceId)
+  send({ type: 'unsubscribe_workspace', workspaceId })
+}
+
 function sendTyping(channelId: string) {
   send({ type: 'typing', channelId })
 }
@@ -259,6 +432,7 @@ export function useWebSocket() {
     // State
     state: readonly(state),
     notifications: readonly(notifications),
+    agentActivities: readonly(agentActivities),
 
     // Methods
     connect,
@@ -266,9 +440,14 @@ export function useWebSocket() {
     authenticate,
     subscribe,
     unsubscribe,
+    subscribeWorkspace,
+    unsubscribeWorkspace,
     sendTyping,
     sendStopTyping,
     dismissNotification,
+    dismissAgentActivity,
+    pauseAgentActivityDismiss,
+    resumeAgentActivityDismiss,
     getPresence,
     getTyping,
 

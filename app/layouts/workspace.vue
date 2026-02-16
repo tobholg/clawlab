@@ -44,8 +44,44 @@ const toggleChannelChildren = (channelId: string) => {
 }
 
 const { user } = useAuth()
+const {
+  authenticate: authenticateSocket,
+  subscribeWorkspace,
+  unsubscribeWorkspace,
+} = useWebSocket()
 const userInitial = computed(() => (user.value?.name || user.value?.email || '?').charAt(0).toUpperCase())
 const userName = computed(() => user.value?.name || user.value?.email || 'User')
+const activeWorkspaceSocketSubscription = ref<string | null>(null)
+
+watch(user, (nextUser) => {
+  if (!nextUser) return
+  authenticateSocket({
+    id: nextUser.id,
+    name: nextUser.name || nextUser.email || 'Anonymous',
+    avatar: nextUser.avatar,
+  })
+}, { immediate: true })
+
+watch(workspaceId, (nextWorkspaceId, previousWorkspaceId) => {
+  if (previousWorkspaceId && previousWorkspaceId !== nextWorkspaceId) {
+    unsubscribeWorkspace(previousWorkspaceId)
+    if (activeWorkspaceSocketSubscription.value === previousWorkspaceId) {
+      activeWorkspaceSocketSubscription.value = null
+    }
+  }
+
+  if (nextWorkspaceId && activeWorkspaceSocketSubscription.value !== nextWorkspaceId) {
+    subscribeWorkspace(nextWorkspaceId)
+    activeWorkspaceSocketSubscription.value = nextWorkspaceId
+  }
+}, { immediate: true })
+
+onUnmounted(() => {
+  if (activeWorkspaceSocketSubscription.value) {
+    unsubscribeWorkspace(activeWorkspaceSocketSubscription.value)
+    activeWorkspaceSocketSubscription.value = null
+  }
+})
 
 // Fetch all projects for sidebar
 const sidebarProjects = ref<any[]>([])
@@ -631,6 +667,9 @@ const statusDotClass = (status: string) => {
 
     <!-- Command Palette (Cmd+K) -->
     <CommandPalette />
+
+    <!-- Agent activity notifications -->
+    <UiAgentActivityToast />
 
     <!-- User Settings Modal -->
     <UserSettingsModal
