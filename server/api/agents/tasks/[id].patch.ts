@@ -1,6 +1,7 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAgentUser, requireAssignedTask } from '../../../utils/agentApi'
 import { getDefaultSubStatus } from '../../../utils/itemStage'
+import { emitStatusChange, emitProgressUpdate, emitSubStatusChange, emitFieldUpdate } from '../../../utils/agentNotify'
 
 const MAX_TITLE_LENGTH = 255
 const MAX_DESCRIPTION_LENGTH = 10000
@@ -274,6 +275,28 @@ export default defineEventHandler(async (event) => {
 
     return task
   })
+
+  // Emit real-time notifications for changes
+  const taskCtx = { id: taskId, title: updatedTask.title, workspaceId: currentTask.workspaceId, projectId: currentTask.projectId }
+
+  if (nextStatus && nextStatus !== currentTask.status) {
+    emitStatusChange(agent, taskCtx, currentTask.status, nextStatus).catch(() => {})
+  }
+  if (nextProgress !== undefined && nextProgress !== currentTask.progress) {
+    emitProgressUpdate(agent, taskCtx, currentTask.progress, nextProgress).catch(() => {})
+  }
+  if (nextSubStatus !== undefined && nextSubStatus !== currentTask.subStatus) {
+    emitSubStatusChange(agent, taskCtx, currentTask.subStatus, nextSubStatus ?? null).catch(() => {})
+  }
+  if (nextTitle !== undefined && nextTitle !== currentTask.title) {
+    emitFieldUpdate(agent, taskCtx, 'Title', currentTask.title, nextTitle).catch(() => {})
+  }
+  if (nextCategory !== undefined && nextCategory !== currentTask.category) {
+    emitFieldUpdate(agent, taskCtx, 'Category', currentTask.category, nextCategory ?? null).catch(() => {})
+  }
+  if (nextPriority !== undefined && nextPriority !== currentTask.priority) {
+    emitFieldUpdate(agent, taskCtx, 'Priority', currentTask.priority, nextPriority ?? null).catch(() => {})
+  }
 
   return {
     id: updatedTask.id,

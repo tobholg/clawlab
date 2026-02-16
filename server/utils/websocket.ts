@@ -5,7 +5,8 @@ import type { H3Event } from 'h3'
 
 interface BroadcastMessage {
   type: string
-  channelId: string
+  channelId?: string
+  workspaceId?: string
   message?: any
   [key: string]: any
 }

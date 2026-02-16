@@ -1,6 +1,7 @@
 import { prisma } from '../../../../utils/prisma'
 import { requireAgentUser, requireAssignedTask } from '../../../../utils/agentApi'
 import { getDefaultSubStatus } from '../../../../utils/itemStage'
+import { emitSubtaskCreated } from '../../../../utils/agentNotify'
 
 const MAX_TITLE_LENGTH = 255
 const MAX_DESCRIPTION_LENGTH = 10000
@@ -75,6 +76,10 @@ export default defineEventHandler(async (event) => {
       updatedAt: true,
     },
   })
+
+  // Emit real-time notification
+  const taskCtx = { id: parentTaskId, title: parentTask.title, workspaceId: parentTask.workspaceId, projectId: parentTask.projectId }
+  emitSubtaskCreated(agent, taskCtx, title).catch(() => {})
 
   return {
     id: created.id,

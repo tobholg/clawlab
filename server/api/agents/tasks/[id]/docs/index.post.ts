@@ -1,5 +1,6 @@
 import { prisma } from '../../../../../utils/prisma'
 import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { emitDocCreated } from '../../../../../utils/agentNotify'
 
 const MAX_TITLE_LENGTH = 255
 const MAX_DOCUMENTS_PER_TASK = 25
@@ -66,6 +67,10 @@ export default defineEventHandler(async (event) => {
 
     return doc
   })
+
+  // Emit real-time notification
+  const taskCtx = { id: taskId, title: task.title, workspaceId: task.workspaceId, projectId: task.projectId }
+  emitDocCreated(agent, taskCtx, title).catch(() => {})
 
   return {
     id: created.id,

@@ -1,5 +1,6 @@
 import { prisma } from '../../../../../utils/prisma'
 import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { emitCommentAdded } from '../../../../../utils/agentNotify'
 
 const MAX_COMMENT_LENGTH = 5000
 
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const agent = requireAgentUser(event)
-  await requireAssignedTask(agent.id, taskId)
+  const task = await requireAssignedTask(agent.id, taskId)
 
   const comment = await prisma.$transaction(async (tx) => {
     const created = await tx.comment.create({
@@ -53,6 +54,10 @@ export default defineEventHandler(async (event) => {
 
     return created
   })
+
+  // Emit real-time notification
+  const taskCtx = { id: taskId, title: task.title, workspaceId: task.workspaceId, projectId: task.projectId }
+  emitCommentAdded(agent, taskCtx, content).catch(() => {})
 
   return {
     id: comment.id,

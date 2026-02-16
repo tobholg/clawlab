@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAgentUser, requireAssignedTask } from '../../../utils/agentApi'
+import { emitSubtaskDeleted } from '../../../utils/agentNotify'
 
 export default defineEventHandler(async (event) => {
   const taskId = getRouterParam(event, 'id')
@@ -18,7 +19,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Agents cannot delete root projects from this endpoint' })
   }
 
+  const taskTitle = task.title
   await prisma.item.delete({ where: { id: taskId } })
+
+  // Emit notification (use parent as context since this task is being deleted)
+  const taskCtx = { id: taskId, title: taskTitle, workspaceId: task.workspaceId, projectId: task.projectId }
+  emitSubtaskDeleted(agent, taskCtx, taskTitle).catch(() => {})
 
   return { success: true }
 })

@@ -10,6 +10,7 @@ interface UserInfo {
 interface PeerData {
   user: UserInfo | null
   channels: Set<string>
+  workspaces: Set<string>
   typing: Map<string, NodeJS.Timeout> // channelId -> timeout
 }
 
@@ -21,6 +22,16 @@ const channelPresence = new Map<string, Set<string>>()
 
 // Track typing per channel: channelId -> Set of user ids
 const channelTyping = new Map<string, Set<string>>()
+
+// Broadcast to all peers in a workspace
+function broadcastToWorkspace(workspaceId: string, message: object, excludePeer?: Peer) {
+  const payload = JSON.stringify(message)
+  for (const [peer, data] of peers) {
+    if (data.workspaces.has(workspaceId) && peer !== excludePeer) {
+      peer.send(payload)
+    }
+  }
+}
 
 // Broadcast to all peers in a channel
 function broadcastToChannel(channelId: string, message: object, excludePeer?: Peer) {
@@ -87,6 +98,7 @@ export default defineWebSocketHandler({
     peers.set(peer, {
       user: null,
       channels: new Set(),
+      workspaces: new Set(),
       typing: new Map(),
     })
   },
@@ -255,6 +267,21 @@ export default defineWebSocketHandler({
         break
       }
 
+      case 'subscribe_workspace': {
+        const workspaceId = parsed.workspaceId
+        if (!workspaceId || !data.user) return
+        data.workspaces.add(workspaceId)
+        peer.send(JSON.stringify({ type: 'workspace_subscribed', workspaceId }))
+        break
+      }
+
+      case 'unsubscribe_workspace': {
+        const workspaceId = parsed.workspaceId
+        if (!workspaceId) return
+        data.workspaces.delete(workspaceId)
+        break
+      }
+
       case 'typing': {
         // User started typing
         const channelId = parsed.channelId
@@ -361,6 +388,11 @@ onBroadcast((data) => {
           message: data.message,
         }))
       }
+    }
+  } else if (data.type === 'agent_activity') {
+    // Broadcast agent activity to all workspace subscribers
+    if (data.workspaceId) {
+      broadcastToWorkspace(data.workspaceId, data)
     }
   } else if (data.type === 'reaction_update') {
     // Broadcast reaction update to channel subscribers

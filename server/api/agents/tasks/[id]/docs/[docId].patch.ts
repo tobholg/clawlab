@@ -1,5 +1,6 @@
 import { prisma } from '../../../../../utils/prisma'
 import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { emitDocUpdated } from '../../../../../utils/agentNotify'
 
 const MAX_TITLE_LENGTH = 255
 
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
     typeof versionType === 'string' && versionType.toUpperCase() === 'MAJOR' ? 'MAJOR' : 'MINOR'
 
   const agent = requireAgentUser(event)
-  await requireAssignedTask(agent.id, taskId)
+  const task = await requireAssignedTask(agent.id, taskId)
 
   const existingDoc = await prisma.document.findFirst({
     where: {
@@ -84,6 +85,10 @@ export default defineEventHandler(async (event) => {
       version,
     }
   })
+
+  // Emit real-time notification
+  const taskCtx = { id: taskId, title: task.title, workspaceId: task.workspaceId, projectId: task.projectId }
+  emitDocUpdated(agent, taskCtx, updated.doc.title, updated.version.versionNumber).catch(() => {})
 
   return {
     id: updated.doc.id,
