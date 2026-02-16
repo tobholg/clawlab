@@ -334,10 +334,7 @@ function handleMessage(data: any) {
       const trimmedActivities = nextActivities.slice(0, 5)
       agentActivities.value = trimmedActivities
       pruneAgentActivityState(new Set(trimmedActivities.map(entry => entry.id)))
-
-      if (!pausedAgentActivities.has(activity.id)) {
-        startAgentActivityTimer(activity.id, AGENT_ACTIVITY_DURATION_MS)
-      }
+      // No auto-dismiss — agent activity toasts persist until manually dismissed
       break
     }
   }

@@ -32,18 +32,9 @@ const now = ref(Date.now())
 let relativeTick: ReturnType<typeof setInterval> | null = null
 
 const {
-  notifications,
   agentActivities,
   dismissAgentActivity,
-  pauseAgentActivityDismiss,
-  resumeAgentActivityDismiss,
 } = useWebSocket()
-
-const toastTopOffset = computed(() => {
-  const chatToastCount = Math.min(notifications.value.length, 5)
-  if (chatToastCount === 0) return 80
-  return 20 + (chatToastCount * 92)
-})
 
 const normalizeProvider = (provider?: string | null): ProviderKey => {
   const normalized = provider?.toLowerCase()
@@ -125,8 +116,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <div
-      class="pointer-events-none fixed right-4 z-50 flex w-80 flex-col gap-3"
-      :style="{ top: `${toastTopOffset}px` }"
+      class="pointer-events-none fixed right-5 top-5 z-50 flex w-96 flex-col gap-2.5"
     >
       <TransitionGroup
         enter-active-class="transition-all duration-300 ease-out"
@@ -143,8 +133,6 @@ onUnmounted(() => {
           tabindex="0"
           class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.06] dark:bg-dm-card shadow-lg dark:shadow-black/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-white/[0.16] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#050506]"
           @click="navigateToTask(activity)"
-          @mouseenter="pauseAgentActivityDismiss(activity.id)"
-          @mouseleave="resumeAgentActivityDismiss(activity.id)"
           @keydown.enter.prevent="navigateToTask(activity)"
           @keydown.space.prevent="navigateToTask(activity)"
         >
