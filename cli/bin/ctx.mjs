@@ -100,6 +100,36 @@ function requireToken() {
   }
 }
 
+// Resolve a short ID (last 8 chars) to a full ID by searching tasks
+async function resolveId(idOrShort) {
+  // If it looks like a full CUID (25+ chars), use as-is
+  if (idOrShort.length > 16) return idOrShort
+
+  // Fetch all tasks and find by suffix match
+  const tasks = await get('/api/agents/tasks')
+  const match = tasks.find(t => t.id.endsWith(idOrShort))
+  if (match) return match.id
+
+  // Also check subtasks by fetching detail for each task
+  for (const task of tasks) {
+    try {
+      const detail = await get(`/api/agents/tasks/${task.id}`)
+      if (detail.subtasks) {
+        const sub = detail.subtasks.find(s => s.id.endsWith(idOrShort))
+        if (sub) return sub.id
+      }
+    } catch { /* skip */ }
+  }
+
+  // Also try project IDs
+  const projects = await get('/api/agents/projects')
+  const projMatch = projects.find(p => p.id.endsWith(idOrShort))
+  if (projMatch) return projMatch.id
+
+  // Fall back to using it as-is (will 404 if wrong)
+  return idOrShort
+}
+
 function readStdinOrFile(arg) {
   if (!arg || arg === '-') {
     // Read from stdin
@@ -220,12 +250,46 @@ commands.projects = {
 // ── tasks ───────────────────────────────────────────────────────────────────
 
 commands.tasks = {
-  usage: 'ctx tasks [--status STATUS]',
-  desc: 'List assigned tasks',
+  usage: 'ctx tasks [--tree] [--status STATUS]',
+  desc: 'List assigned tasks (--tree for hierarchy)',
   async run(args) {
     requireToken()
     const data = await get('/api/agents/tasks')
-    if (JSON_OUT) return json(data)
+    if (JSON_OUT && !args.includes('--tree')) return json(data)
+
+    if (args.includes('--tree')) {
+      // Group tasks by parentId to find top-level ones
+      const topLevel = data.filter(t => !data.some(other => other.id === t.parentId))
+
+      // Fetch subtasks for each top-level task
+      const tree = []
+      for (const task of topLevel) {
+        let detail
+        try {
+          detail = await get(`/api/agents/tasks/${task.id}`)
+        } catch {
+          detail = { ...task, subtasks: [] }
+        }
+        tree.push(detail)
+      }
+
+      if (JSON_OUT) return json(tree)
+      print('')
+      if (!tree.length) return print('  No tasks assigned.\n')
+
+      tree.forEach(t => {
+        print(`  ${statusIcon(t.status)} ${priorityIcon(t.priority)} ${t.title}  ${t.id.slice(-8)}${t.category ? '  [' + t.category + ']' : ''}`)
+        const subs = t.subtasks || []
+        subs.forEach((s, i) => {
+          const isLast = i === subs.length - 1
+          const prefix = isLast ? '└─' : '├─'
+          print(`    ${prefix} ${statusIcon(s.status)} ${priorityIcon(s.priority || 'MEDIUM')} ${s.title}  ${s.id.slice(-8)}`)
+        })
+        print('')
+      })
+      return
+    }
+
     print('')
     if (!data.length) return print('  No tasks assigned.\n')
     data.forEach(t => {
@@ -243,8 +307,8 @@ commands.task = {
   desc: 'View or update a task',
   async run(args) {
     requireToken()
-    const id = args[0]
-    if (!id) return die('Usage: ctx task <id>')
+    if (!args[0]) return die('Usage: ctx task <id>')
+    const id = await resolveId(args[0])
 
     const updates = {}
     const s = flagVal(args, '--status')
@@ -317,9 +381,9 @@ commands.subtask = {
   desc: 'Create a subtask',
   async run(args) {
     requireToken()
-    const parentId = args[0]
+    if (!args[0] || !args[1]) return die('Usage: ctx subtask <parent-id> <title>')
+    const parentId = await resolveId(args[0])
     const title = args[1]
-    if (!parentId || !title) return die('Usage: ctx subtask <parent-id> <title>')
 
     const body = { title }
     const d = flagVal(args, '--desc')
@@ -343,8 +407,8 @@ commands.rm = {
   desc: 'Delete an agent-owned subtask',
   async run(args) {
     requireToken()
-    const id = args[0]
-    if (!id) return die('Usage: ctx rm <task-id>')
+    if (!args[0]) return die('Usage: ctx rm <task-id>')
+    const id = await resolveId(args[0])
     await del(`/api/agents/tasks/${id}`)
     print(`✓ Deleted ${id.slice(-8)}`)
   },
@@ -357,9 +421,10 @@ commands.comment = {
   desc: 'Add a comment to a task',
   async run(args) {
     requireToken()
-    const id = args[0]
+    if (!args[0]) return die('Usage: ctx comment <task-id> <text>')
+    const id = await resolveId(args[0])
     const text = args.slice(1).join(' ')
-    if (!id || !text) return die('Usage: ctx comment <task-id> <text>')
+    if (!text) return die('Usage: ctx comment <task-id> <text>')
 
     const content = readStdinOrFile(text)
     const data = await post(`/api/agents/tasks/${id}/comments`, { content })
@@ -375,8 +440,8 @@ commands.comments = {
   desc: 'List comments on a task',
   async run(args) {
     requireToken()
-    const id = args[0]
-    if (!id) return die('Usage: ctx comments <task-id>')
+    if (!args[0]) return die('Usage: ctx comments <task-id>')
+    const id = await resolveId(args[0])
 
     const data = await get(`/api/agents/tasks/${id}/comments`)
     if (JSON_OUT) return json(data)
@@ -397,8 +462,8 @@ commands.docs = {
   desc: 'List documents on a task',
   async run(args) {
     requireToken()
-    const id = args[0]
-    if (!id) return die('Usage: ctx docs <task-id>')
+    if (!args[0]) return die('Usage: ctx docs <task-id>')
+    const id = await resolveId(args[0])
 
     const data = await get(`/api/agents/tasks/${id}/docs`)
     if (JSON_OUT) return json(data)
@@ -422,12 +487,11 @@ commands.doc = {
   desc: 'Create, view, or update a document',
   async run(args) {
     requireToken()
-    const taskId = args[0]
-    const action = args[1]
-
-    if (!taskId || !action) {
+    if (!args[0] || !args[1]) {
       return die('Usage: ctx doc <task-id> create|get|update [args]')
     }
+    const taskId = await resolveId(args[0])
+    const action = args[1]
 
     if (action === 'create') {
       const title = args[2]
