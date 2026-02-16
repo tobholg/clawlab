@@ -578,7 +578,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="p-5 overflow-y-auto" style="max-height: 420px">
+            <div class="p-5 overflow-y-auto h-[400px]">
               <!-- Assignee -->
               <div class="flex items-center gap-2 mb-4">
                 <div class="h-7 w-7 rounded-full bg-amber-500/10 flex items-center justify-center ring-1 ring-white/10">
@@ -670,7 +670,7 @@ onMounted(() => {
           </p>
           <div class="grid lg:grid-cols-2 gap-0 rounded-2xl border border-white/[0.06] overflow-hidden">
             <!-- Left: agent terminal -->
-            <div id="terminal-replay" ref="terminalEl" class="bg-[#0c0c0f] p-5 font-mono text-[13px] border-r border-white/[0.06] overflow-y-auto scroll-smooth" style="max-height: 440px">
+            <div id="terminal-replay" ref="terminalEl" class="bg-[#0c0c0f] p-5 font-mono text-[13px] border-r border-white/[0.06] overflow-y-auto scroll-smooth h-[400px]">
               <!-- Terminal window dots -->
               <div class="flex items-center gap-1.5 mb-4">
                 <div class="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/80" />
@@ -714,7 +714,7 @@ onMounted(() => {
             </div>
 
             <!-- Right: live activity toasts (synced) -->
-            <div class="bg-[#0a0a0d] p-5 flex flex-col overflow-hidden" style="max-height: 440px">
+            <div class="bg-[#0a0a0d] p-5 flex flex-col overflow-hidden h-[400px]">
               <div class="flex items-center gap-2 mb-4">
                 <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">Your notifications</span>
