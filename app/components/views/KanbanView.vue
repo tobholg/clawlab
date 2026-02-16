@@ -27,11 +27,11 @@ const selectedRow = ref(-1)
 
 // Subtle column styling
 const columnStyles: Record<Item['status'], { bg: string; headerColor: string; dropBg: string }> = {
-  todo: { bg: 'bg-slate-100 dark:bg-white/[0.025]', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
-  in_progress: { bg: 'bg-blue-100/50 dark:bg-white/[0.025]', headerColor: 'text-blue-600 dark:text-blue-400', dropBg: 'bg-blue-200 dark:bg-white/[0.06]' },
-  blocked: { bg: 'bg-rose-100/50 dark:bg-white/[0.025]', headerColor: 'text-rose-600 dark:text-rose-400', dropBg: 'bg-rose-200 dark:bg-white/[0.06]' },
-  paused: { bg: 'bg-amber-100/50 dark:bg-white/[0.025]', headerColor: 'text-amber-600 dark:text-amber-400', dropBg: 'bg-amber-200 dark:bg-white/[0.06]' },
-  done: { bg: 'bg-emerald-100/50 dark:bg-white/[0.025]', headerColor: 'text-emerald-600 dark:text-emerald-400', dropBg: 'bg-emerald-200 dark:bg-white/[0.06]' },
+  todo: { bg: 'bg-slate-100 dark:bg-[#0e0e11]', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
+  in_progress: { bg: 'bg-blue-100/50 dark:bg-[#0e0e11]', headerColor: 'text-blue-600 dark:text-blue-400', dropBg: 'bg-blue-200 dark:bg-white/[0.06]' },
+  blocked: { bg: 'bg-rose-100/50 dark:bg-[#0e0e11]', headerColor: 'text-rose-600 dark:text-rose-400', dropBg: 'bg-rose-200 dark:bg-white/[0.06]' },
+  paused: { bg: 'bg-amber-100/50 dark:bg-[#0e0e11]', headerColor: 'text-amber-600 dark:text-amber-400', dropBg: 'bg-amber-200 dark:bg-white/[0.06]' },
+  done: { bg: 'bg-emerald-100/50 dark:bg-[#0e0e11]', headerColor: 'text-emerald-600 dark:text-emerald-400', dropBg: 'bg-emerald-200 dark:bg-white/[0.06]' },
 }
 
 // Track collapsed state for each section (key: "status:subStatus" or "done:timeGroup")
@@ -522,7 +522,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
             <!-- Group header: only show if group has more than 1 item -->
             <button
               v-if="shouldShowDoneGroupHeader(group)"
-              class="flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-colors text-left w-full bg-white/60 hover:bg-white/80 border-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] dark:border-white/[0.06]"
+              class="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors text-left w-full bg-white/60 hover:bg-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]"
               @click="toggleSection(`done:${group.key}`)"
             >
               <Icon
@@ -611,10 +611,10 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
             <!-- Sub-status section header (collapsible, only if multiple groups) -->
             <button
               v-if="group.label"
-              class="flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-colors text-left w-full"
+              class="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors text-left w-full"
               :class="dragOverColumn === status && dragOverSubStatus === group.subStatus && draggedItem && !(draggedItem.status === status && draggedItem.subStatus === group.subStatus)
-                ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30 dark:ring-blue-500/20'
-                : 'bg-white/60 hover:bg-white/80 border-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] dark:border-white/[0.06]'"
+                ? 'bg-blue-50 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:ring-blue-500/20'
+                : 'bg-white/60 hover:bg-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]'"
               :data-substatus="group.subStatus"
               @click="toggleSection(group.sectionKey)"
               @dragover.stop="handleDragOver($event, status, group.subStatus)"

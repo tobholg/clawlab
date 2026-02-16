@@ -171,14 +171,14 @@ const handleCardClick = () => {
 
 <template>
   <div
-    class="group p-4 pb-3 rounded-xl border transition-all duration-200 cursor-pointer"
+    class="group p-4 pb-3 rounded-xl transition-all duration-200 cursor-pointer"
     :class="[
       isPaused
-        ? 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.04] opacity-75'
+        ? 'bg-slate-50 dark:bg-white/[0.02] opacity-75'
         : 'bg-white dark:bg-white/[0.04]',
       isCurrentlyFocused
-        ? 'border-amber-300 dark:border-amber-500/40 ring-2 ring-amber-100 dark:ring-amber-500/15 shadow-sm'
-        : !isPaused && 'border-slate-100 dark:border-white/[0.06] hover:border-slate-200 dark:hover:border-white/[0.1] dark:hover:bg-white/[0.02] hover:shadow-sm'
+        ? 'ring-2 ring-amber-100 dark:ring-amber-500/15 shadow-sm'
+        : !isPaused && 'dark:hover:bg-white/[0.02] hover:shadow-sm'
     ]"
     @click="handleCardClick"
   >
