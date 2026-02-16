@@ -808,7 +808,7 @@ onMounted(() => {
             </div>
             <div class="flex items-center gap-2 text-sm text-zinc-400">
               <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center"><span class="text-xs font-bold text-blue-400">C</span></div>
-              Cursor
+              Claude Code
             </div>
             <div class="flex items-center gap-2 text-sm text-zinc-400">
               <div class="w-7 h-7 rounded-lg bg-zinc-500/10 flex items-center justify-center"><span class="text-xs font-bold text-zinc-400">?</span></div>
