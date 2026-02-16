@@ -494,9 +494,11 @@ commands.doc = {
     const action = args[1]
 
     if (action === 'create') {
-      const title = args[2]
-      const contentArg = args[3]
-      if (!title) return die('Usage: ctx doc <task-id> create <title> [content | file | -]')
+      // Filter flags from positional args
+      const positional = args.slice(2).filter(a => !a.startsWith('--'))
+      const title = positional[0]
+      const contentArg = positional[1]
+      if (!title) return die('Usage: ctx doc <task-id> create <title> [content | file | -] [--plan]')
 
       const body = { title }
       if (contentArg) body.content = readStdinOrFile(contentArg)
