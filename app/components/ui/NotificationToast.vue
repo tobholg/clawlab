@@ -29,7 +29,7 @@ const truncate = (text: string, maxLength = 80) => {
         <div
           v-for="notification in notifications"
           :key="notification.id"
-          class="pointer-events-auto w-80 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+          class="pointer-events-auto w-80 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.06] dark:bg-dm-card shadow-lg dark:shadow-black/50 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60"
           @click="handleClick(notification.channelId, notification.id)"
         >
           <div class="p-3 flex items-start gap-3">
@@ -43,24 +43,24 @@ const truncate = (text: string, maxLength = 80) => {
             <!-- Content -->
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <span class="font-medium text-sm text-slate-900 truncate">
+                <span class="truncate text-sm font-medium text-slate-900 dark:text-zinc-100">
                   {{ notification.message.user?.name || 'Unknown' }}
                 </span>
-                <span v-if="notification.channelName" class="text-xs text-slate-400">
+                <span v-if="notification.channelName" class="text-xs text-slate-400 dark:text-zinc-500">
                   in #{{ notification.channelName }}
                 </span>
               </div>
-              <p class="text-sm text-slate-600 mt-0.5 line-clamp-2">
+              <p class="mt-0.5 line-clamp-2 text-sm text-slate-600 dark:text-zinc-300">
                 {{ truncate(notification.message.content) }}
               </p>
             </div>
 
             <!-- Close button -->
             <button
-              class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors flex-shrink-0"
+              class="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md leading-none text-slate-400 dark:text-zinc-500 transition-colors hover:bg-slate-100 dark:hover:bg-white/[0.08] hover:text-slate-600 dark:hover:text-zinc-300"
               @click.stop="dismissNotification(notification.id)"
             >
-              <Icon name="heroicons:x-mark" class="w-4 h-4" />
+              <Icon name="heroicons:x-mark" class="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

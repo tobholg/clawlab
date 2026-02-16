@@ -6,44 +6,24 @@ type ProviderKey = 'openclaw' | 'codex' | 'cursor' | 'custom'
 interface ProviderPalette {
   label: string
   accent: string
-  avatarFrom: string
-  avatarTo: string
-  surfaceLight: string
-  surfaceDark: string
 }
 
 const PROVIDER_PALETTE: Record<ProviderKey, ProviderPalette> = {
   openclaw: {
     label: 'OpenClaw',
     accent: '#f59e0b',
-    avatarFrom: '#f59e0b',
-    avatarTo: '#f97316',
-    surfaceLight: 'rgba(245, 158, 11, 0.14)',
-    surfaceDark: 'rgba(245, 158, 11, 0.18)',
   },
   codex: {
     label: 'Codex',
     accent: '#10b981',
-    avatarFrom: '#10b981',
-    avatarTo: '#059669',
-    surfaceLight: 'rgba(16, 185, 129, 0.12)',
-    surfaceDark: 'rgba(16, 185, 129, 0.17)',
   },
   cursor: {
     label: 'Cursor',
     accent: '#3b82f6',
-    avatarFrom: '#3b82f6',
-    avatarTo: '#2563eb',
-    surfaceLight: 'rgba(59, 130, 246, 0.12)',
-    surfaceDark: 'rgba(59, 130, 246, 0.17)',
   },
   custom: {
     label: 'Custom',
     accent: '#64748b',
-    avatarFrom: '#64748b',
-    avatarTo: '#475569',
-    surfaceLight: 'rgba(100, 116, 139, 0.14)',
-    surfaceDark: 'rgba(100, 116, 139, 0.2)',
   },
 }
 
@@ -107,7 +87,7 @@ const buildActivityLabel = (activity: AgentActivity) => {
 
 const buildPathLabel = (activity: AgentActivity) => {
   if (activity.project?.title) {
-    return `${activity.project.title} \u2192 ${activity.task.title}`
+    return `${activity.project.title} > ${activity.task.title}`
   }
   return activity.task.title
 }
@@ -161,27 +141,23 @@ onUnmounted(() => {
           :key="activity.id"
           role="alert"
           tabindex="0"
-          class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/[0.08] border-l-[3px] bg-white/95 dark:bg-[#10141d]/95 shadow-[0_12px_30px_-18px_rgba(15,23,42,0.55)] dark:shadow-[0_18px_35px_-18px_rgba(0,0,0,0.8)] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-16px_rgba(15,23,42,0.4)] dark:hover:shadow-[0_22px_40px_-16px_rgba(0,0,0,0.85)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#0b0d13]"
-          :style="{
-            borderLeftColor: providerPalette(activity.agent.provider).accent,
-            '--agent-surface-light': providerPalette(activity.agent.provider).surfaceLight,
-            '--agent-surface-dark': providerPalette(activity.agent.provider).surfaceDark,
-            '--agent-accent': providerPalette(activity.agent.provider).accent,
-            '--agent-avatar-from': providerPalette(activity.agent.provider).avatarFrom,
-            '--agent-avatar-to': providerPalette(activity.agent.provider).avatarTo,
-          }"
+          class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.06] dark:bg-dm-card shadow-lg dark:shadow-black/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-white/[0.16] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#050506]"
           @click="navigateToTask(activity)"
           @mouseenter="pauseAgentActivityDismiss(activity.id)"
           @mouseleave="resumeAgentActivityDismiss(activity.id)"
           @keydown.enter.prevent="navigateToTask(activity)"
           @keydown.space.prevent="navigateToTask(activity)"
         >
-          <div class="pointer-events-none absolute inset-0 agent-surface" />
-
-          <div class="relative p-3">
+          <div class="p-3">
             <div class="flex items-start gap-3">
-              <div class="h-9 w-9 flex-shrink-0 rounded-full agent-avatar inline-flex items-center justify-center">
-                <span class="text-xs font-semibold text-white tracking-wide">
+              <div
+                class="h-9 w-9 flex-shrink-0 rounded-full inline-flex items-center justify-center ring-1 ring-black/5 dark:ring-white/10"
+                :style="{
+                  backgroundColor: `${providerPalette(activity.agent.provider).accent}1A`,
+                  color: providerPalette(activity.agent.provider).accent,
+                }"
+              >
+                <span class="text-xs font-semibold tracking-wide">
                   {{ activity.agent.name?.charAt(0)?.toUpperCase() || 'A' }}
                 </span>
               </div>
@@ -192,9 +168,18 @@ onUnmounted(() => {
                     <p class="truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">
                       {{ activity.agent.name }}
                     </p>
-                    <p class="mt-0.5 truncate text-[11px] font-medium text-slate-500 dark:text-zinc-400">
-                      {{ buildPathLabel(activity) }}
-                    </p>
+                    <div class="mt-0.5 flex items-center gap-1.5">
+                      <p class="truncate text-[11px] font-medium text-slate-500 dark:text-zinc-400">
+                        {{ buildPathLabel(activity) }}
+                      </p>
+                      <span
+                        class="h-1 w-1 flex-shrink-0 rounded-full"
+                        :style="{ backgroundColor: providerPalette(activity.agent.provider).accent }"
+                      />
+                      <span class="text-[11px] text-slate-400 dark:text-zinc-500">
+                        {{ providerPalette(activity.agent.provider).label }}
+                      </span>
+                    </div>
                   </div>
 
                   <div class="flex flex-shrink-0 items-center gap-1.5 pl-1">
@@ -211,19 +196,6 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <div class="mt-2 flex items-center gap-2">
-                  <span
-                    class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                    :style="{
-                      color: providerPalette(activity.agent.provider).accent,
-                      backgroundColor: providerPalette(activity.agent.provider).surfaceLight,
-                    }"
-                  >
-                    {{ providerPalette(activity.agent.provider).label }}
-                  </span>
-                  <span class="text-[11px] text-slate-400 dark:text-zinc-500">agent activity</span>
-                </div>
-
                 <p class="mt-2 text-sm font-medium text-slate-700 dark:text-zinc-200 activity-line-clamp">
                   {{ buildActivityLabel(activity) }}
                 </p>
@@ -237,22 +209,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.agent-surface {
-  background:
-    radial-gradient(circle at 100% 0%, var(--agent-surface-light) 0%, transparent 62%),
-    linear-gradient(140deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0));
-}
-
-.dark .agent-surface {
-  background:
-    radial-gradient(circle at 100% 0%, var(--agent-surface-dark) 0%, transparent 68%),
-    linear-gradient(140deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
-}
-
-.agent-avatar {
-  background: linear-gradient(135deg, var(--agent-avatar-from), var(--agent-avatar-to));
-}
-
 .activity-line-clamp {
   display: -webkit-box;
   -webkit-box-orient: vertical;
