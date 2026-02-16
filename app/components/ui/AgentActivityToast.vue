@@ -180,7 +180,7 @@ onUnmounted(() => {
           :key="activity.id"
           role="alert"
           tabindex="0"
-          class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.06] dark:bg-dm-card shadow-lg dark:shadow-black/50 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-white/[0.16] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#050506] select-none touch-none"
+          class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-[#161619] shadow-lg dark:shadow-black/50 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-white/[0.16] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#050506] select-none touch-none"
           :class="{ 'transition-all duration-200': !swipeState[activity.id]?.swiping }"
           :style="{
             transform: `translateX(${getSwipeTranslate(activity.id)}px)`,
