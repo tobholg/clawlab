@@ -176,7 +176,11 @@ onMounted(() => {
 
 <template>
   <div class="os-landing min-h-screen text-zinc-100 scroll-smooth" :class="{ 'is-ready': ready }">
-    <div class="fixed inset-0 bg-[#050506] -z-10" aria-hidden="true" />
+    <div class="fixed inset-0 bg-[#050506] -z-10" aria-hidden="true">
+      <div class="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/[0.03] rounded-full blur-[180px]" />
+      <div class="absolute top-1/3 right-1/6 w-[500px] h-[500px] bg-blue-500/[0.025] rounded-full blur-[160px]" />
+      <div class="absolute bottom-1/4 left-1/6 w-[400px] h-[400px] bg-violet-500/[0.02] rounded-full blur-[140px]" />
+    </div>
     <StarField />
 
     <!-- Nav -->
@@ -316,7 +320,7 @@ onMounted(() => {
 
         <!-- Agent lifecycle -->
         <div class="mt-12 grid lg:grid-cols-3 gap-6 intro" style="--d: 580ms">
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-6">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl p-6">
             <div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
               <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-amber-400" />
             </div>
@@ -325,7 +329,7 @@ onMounted(() => {
               Assign a task in PLAN mode. The agent researches, breaks it down, and submits a plan document for your review.
             </p>
           </div>
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-6">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl p-6">
             <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4">
               <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-400" />
             </div>
@@ -334,7 +338,7 @@ onMounted(() => {
               Review the plan, request changes, or accept it. The agent only starts executing after you say go. You stay in control.
             </p>
           </div>
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-6">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl p-6">
             <div class="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
               <Icon name="heroicons:bolt" class="w-5 h-5 text-blue-400" />
             </div>
@@ -350,7 +354,7 @@ onMounted(() => {
           <!-- CLI demo -->
           <div class="intro" style="--d: 640ms">
             <div class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">CLI</div>
-            <div class="rounded-xl border border-white/[0.06] bg-[#111113] p-5 font-mono text-[13px] space-y-1.5">
+            <div class="rounded-xl border border-white/[0.06] bg-white/[0.04] backdrop-blur-xl p-5 font-mono text-[13px] space-y-1.5">
               <div class="text-zinc-500 text-[11px] mb-3">$ ctx tasks --tree</div>
               <div class="text-zinc-300">
                 <div><span class="text-zinc-500">├─</span> <span class="text-blue-400">[active]</span> Implement payment webhooks</div>
@@ -552,7 +556,7 @@ onMounted(() => {
           </p>
         </div>
 
-        <div class="mt-8 rounded-xl border border-white/[0.06] overflow-hidden intro" style="--d: 1160ms">
+        <div class="mt-8 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl overflow-hidden intro" style="--d: 1160ms">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-white/[0.06]">
