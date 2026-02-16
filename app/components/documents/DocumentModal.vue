@@ -1076,7 +1076,7 @@ onMounted(() => {
       <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" @click="handleClose" />
 
-        <div class="relative w-full max-w-5xl h-[85vh] mx-4 bg-white dark:bg-dm-card rounded-2xl shadow-2xl border border-slate-100 dark:border-white/[0.06] flex flex-col overflow-hidden">
+        <div class="relative w-full max-w-6xl h-[90vh] mx-4 bg-white dark:bg-dm-card rounded-2xl shadow-2xl border border-slate-100 dark:border-white/[0.06] flex flex-col overflow-hidden">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
             <div class="flex items-start justify-between gap-4">
