@@ -1356,19 +1356,46 @@ const formatRelativeTime = (dateStr: string) => {
             >
               <div class="flex items-center justify-between gap-3">
                 <h3 class="text-sm font-semibold text-slate-800 dark:text-zinc-200">Agent Workflow</h3>
-                <label class="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
-                  <span>Mode</span>
-                  <select
-                    :value="currentAgentMode ?? 'NONE'"
-                    :disabled="isUpdatingAgentMode || !canEditItem"
-                    class="text-xs px-2 py-1 rounded-md border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
-                    @change="updateAgentMode(($event.target as HTMLSelectElement).value === 'NONE' ? null : (($event.target as HTMLSelectElement).value as 'PLAN' | 'EXECUTE'))"
+                <div class="group/agentmode relative">
+                  <div
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/agentmode:border-slate-300 dark:group-hover/agentmode:border-white/[0.1] group-hover/agentmode:shadow-sm"
+                    :class="{ 'opacity-60 pointer-events-none': isUpdatingAgentMode || !canEditItem }"
                   >
-                    <option value="PLAN">Planning</option>
-                    <option value="EXECUTE">Executing</option>
-                    <option value="NONE">None</option>
-                  </select>
-                </label>
+                    <div
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="{
+                        'bg-amber-500': currentAgentMode === 'PLAN',
+                        'bg-blue-500': currentAgentMode === 'EXECUTE',
+                        'bg-slate-400': !currentAgentMode,
+                      }"
+                    />
+                    <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">
+                      {{ currentAgentMode === 'PLAN' ? 'Planning' : currentAgentMode === 'EXECUTE' ? 'Executing' : 'None' }}
+                    </span>
+                    <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/agentmode:rotate-180" />
+                  </div>
+                  <div class="absolute top-full right-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/agentmode:opacity-100 group-hover/agentmode:visible group-hover/agentmode:translate-y-0 min-w-[120px]">
+                    <div class="py-1">
+                      <button
+                        v-for="opt in [
+                          { value: 'PLAN', label: 'Planning', color: 'bg-amber-500', icon: 'heroicons:clipboard-document-list' },
+                          { value: 'EXECUTE', label: 'Executing', color: 'bg-blue-500', icon: 'heroicons:bolt' },
+                          { value: 'NONE', label: 'None', color: 'bg-slate-400', icon: 'heroicons:minus-circle' },
+                        ]"
+                        :key="opt.value"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                        :class="(currentAgentMode ?? 'NONE') === opt.value
+                          ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                          : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
+                        @click="updateAgentMode(opt.value === 'NONE' ? null : (opt.value as 'PLAN' | 'EXECUTE'))"
+                      >
+                        <div class="w-1.5 h-1.5 rounded-full" :class="opt.color" />
+                        <Icon :name="opt.icon" class="w-3 h-3 text-slate-500 dark:text-zinc-500" />
+                        <span class="flex-1 text-left">{{ opt.label }}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Executing state -->
