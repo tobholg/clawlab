@@ -525,8 +525,9 @@ commands.doc = {
       print('')
     }
     else if (action === 'update') {
-      const docId = args[2]
-      const contentArg = args[3]
+      const positional = args.slice(2).filter(a => !a.startsWith('--'))
+      const docId = positional[0]
+      const contentArg = positional[1]
       if (!docId) return die('Usage: ctx doc <task-id> update <doc-id> [content | file | -] [--label L] [--major]')
 
       const body = {}
