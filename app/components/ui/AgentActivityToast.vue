@@ -34,7 +34,10 @@ let relativeTick: ReturnType<typeof setInterval> | null = null
 const {
   agentActivities,
   dismissAgentActivity,
+  clearAllAgentActivities,
 } = useWebSocket()
+
+const containerHovered = ref(false)
 
 const normalizeProvider = (provider?: string | null): ProviderKey => {
   const normalized = provider?.toLowerCase()
@@ -93,12 +96,14 @@ const formatRelativeTime = (timestamp?: string, fallbackMs?: number) => {
   return `${Math.floor(deltaSec / 86400)}d ago`
 }
 
+const { openTask } = useTaskDetail()
+
 const navigateToTask = async (activity: AgentActivity) => {
   if (!activity.project?.id) return
   try {
-    await router.push(`/workspace/projects/${activity.project.id}?task=${activity.task.id}`)
-    dismissAgentActivity(activity.id)
+    await router.push(`/workspace/projects/${activity.project.id}`)
   } catch { /* navigation cancelled */ }
+  openTask(activity.task.id, activity.project.id)
 }
 
 // Swipe-to-dismiss state
@@ -158,6 +163,8 @@ onUnmounted(() => {
   <Teleport to="body">
     <div
       class="pointer-events-none fixed right-5 top-5 z-50 flex w-96 flex-col gap-2.5"
+      @mouseenter="containerHovered = true"
+      @mouseleave="containerHovered = false"
     >
       <TransitionGroup
         enter-active-class="toast-enter-active"
@@ -242,6 +249,23 @@ onUnmounted(() => {
           </div>
         </article>
       </TransitionGroup>
+
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-y-1"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-1"
+      >
+        <button
+          v-if="containerHovered && agentActivities.length > 1"
+          class="pointer-events-auto mx-auto mt-1 rounded-lg px-3 py-1 text-xs font-medium text-slate-400 dark:text-zinc-500 transition-colors hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+          @click="clearAllAgentActivities()"
+        >
+          Clear all
+        </button>
+      </Transition>
     </div>
   </Teleport>
 </template>

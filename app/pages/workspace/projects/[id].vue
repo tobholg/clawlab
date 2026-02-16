@@ -25,6 +25,7 @@ const {
 
 const { currentRole } = useWorkspaces()
 const canCreate = computed(() => currentRole.value !== 'VIEWER')
+const { onOpenTask } = useTaskDetail()
 
 // Navigate to this project when route changes or on mount
 // navigateTo handles the case where we're already at this scope
@@ -245,6 +246,17 @@ const filteredItems = computed(() => {
     }
     return true
   })
+})
+
+// Listen for global task-open requests (e.g. from toast notifications)
+onOpenTask(async (taskId: string, _projectId: string) => {
+  try {
+    const item = await $fetch(`/api/items/${taskId}`)
+    if (item) {
+      selectedItem.value = item
+      showDetailModal.value = true
+    }
+  } catch { /* task not found or not accessible */ }
 })
 
 // Handle item creation

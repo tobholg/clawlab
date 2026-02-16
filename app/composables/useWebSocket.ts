@@ -152,6 +152,17 @@ function dismissAgentActivity(id: string) {
   agentActivities.value = agentActivities.value.filter(activity => activity.id !== id)
 }
 
+function clearAllAgentActivities() {
+  for (const activity of agentActivities.value) {
+    clearAgentActivityTimer(activity.id)
+  }
+  agentActivityTimers.clear()
+  agentActivityExpiresAt.clear()
+  agentActivityRemainingMs.clear()
+  pausedAgentActivities.clear()
+  agentActivities.value = []
+}
+
 function pruneAgentActivityState(activeIds: Set<string>) {
   const knownIds = new Set<string>([
     ...agentActivityTimers.keys(),
@@ -443,6 +454,7 @@ export function useWebSocket() {
     sendStopTyping,
     dismissNotification,
     dismissAgentActivity,
+    clearAllAgentActivities,
     pauseAgentActivityDismiss,
     resumeAgentActivityDismiss,
     getPresence,

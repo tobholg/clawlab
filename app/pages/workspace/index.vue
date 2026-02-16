@@ -18,6 +18,14 @@ const {
 
 const { currentRole, currentWorkspace } = useWorkspaces()
 const canCreate = computed(() => currentRole.value !== 'VIEWER')
+const { onOpenTask } = useTaskDetail()
+
+onOpenTask(async (taskId: string) => {
+  try {
+    const item = await $fetch(`/api/items/${taskId}`)
+    if (item) { selectedItem.value = item; showDetailModal.value = true }
+  } catch { /* ignore */ }
+})
 
 // Always show root level on this page
 // navigateTo handles both clearing stale data and triggering a refresh
