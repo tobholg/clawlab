@@ -1,0 +1,17 @@
+{
+  "name": "@context-pm/cli",
+  "version": "0.1.0",
+  "description": "CLI for Context — project management for humans and agents",
+  "type": "module",
+  "bin": {
+    "ctx": "bin/ctx.mjs"
+  },
+  "files": [
+    "bin/"
+  ],
+  "keywords": ["context", "project-management", "cli", "agents"],
+  "license": "BSL-1.1",
+  "engines": {
+    "node": ">=18"
+  }
+}
