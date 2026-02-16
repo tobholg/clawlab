@@ -604,7 +604,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="p-5 overflow-y-auto h-[400px]">
+            <div class="p-5 overflow-y-auto h-[460px]">
               <!-- Assignee -->
               <div class="flex items-center gap-2 mb-4">
                 <div class="h-7 w-7 rounded-full bg-amber-500/10 flex items-center justify-center ring-1 ring-white/10">
