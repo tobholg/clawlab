@@ -58,7 +58,8 @@ const del = (path) => api('DELETE', path)
 
 // ── Output helpers ──────────────────────────────────────────────────────────
 
-const JSON_OUT = process.argv.includes('--json')
+// JSON_OUT is set after arg parsing in main block; default false for module load
+let JSON_OUT = false
 
 function print(text) { console.log(text) }
 
@@ -150,9 +151,9 @@ const commands = {}
 commands.login = {
   usage: 'ctx login [--url URL] [--token TOKEN]',
   desc: 'Configure authentication',
-  async run(args) {
-    const url = flagVal(args, '--url') || BASE
-    const token = flagVal(args, '--token')
+  async run(args, flags) {
+    const url = flags.get('--url') || BASE
+    const token = flags.get('--token')
 
     if (!token) {
       console.error('Usage: ctx login --token ctx_xxx [--url http://localhost:3001]')
@@ -183,7 +184,7 @@ commands.login = {
 commands.api = {
   usage: 'ctx api [endpoint-id]',
   desc: 'Discover available API endpoints',
-  async run(args) {
+  async run(args, flags) {
     const endpointId = args[0]
     if (endpointId) {
       const data = await get(`/api/agents/index/${endpointId}`)
@@ -252,12 +253,12 @@ commands.projects = {
 commands.tasks = {
   usage: 'ctx tasks [--tree] [--status STATUS]',
   desc: 'List assigned tasks (--tree for hierarchy)',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     const data = await get('/api/agents/tasks')
-    if (JSON_OUT && !args.includes('--tree')) return json(data)
+    if (JSON_OUT && !flags.has('--tree')) return json(data)
 
-    if (args.includes('--tree')) {
+    if (flags.has('--tree')) {
       // Group tasks by parentId to find top-level ones
       const topLevel = data.filter(t => !data.some(other => other.id === t.parentId))
 
@@ -305,18 +306,18 @@ commands.tasks = {
 commands.task = {
   usage: 'ctx task <id> [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P]',
   desc: 'View or update a task',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     if (!args[0]) return die('Usage: ctx task <id>')
     const id = await resolveId(args[0])
 
     const updates = {}
-    const s = flagVal(args, '--status')
-    const p = flagVal(args, '--progress')
-    const t = flagVal(args, '--title')
-    const d = flagVal(args, '--desc')
-    const c = flagVal(args, '--category')
-    const pr = flagVal(args, '--priority')
+    const s = flags.get('--status')
+    const p = flags.get('--progress')
+    const t = flags.get('--title')
+    const d = flags.get('--desc')
+    const c = flags.get('--category')
+    const pr = flags.get('--priority')
 
     if (s) updates.status = s.toUpperCase()
     if (p) updates.progress = parseInt(p)
@@ -379,16 +380,16 @@ commands.task = {
 commands.subtask = {
   usage: 'ctx subtask <parent-id> <title> [--desc D] [--category C] [--priority P]',
   desc: 'Create a subtask',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     if (!args[0] || !args[1]) return die('Usage: ctx subtask <parent-id> <title>')
     const parentId = await resolveId(args[0])
     const title = args[1]
 
     const body = { title }
-    const d = flagVal(args, '--desc')
-    const c = flagVal(args, '--category')
-    const p = flagVal(args, '--priority')
+    const d = flags.get('--desc')
+    const c = flags.get('--category')
+    const p = flags.get('--priority')
 
     if (d) body.description = readStdinOrFile(d)
     if (c) body.category = c
@@ -405,7 +406,7 @@ commands.subtask = {
 commands.rm = {
   usage: 'ctx rm <task-id>',
   desc: 'Delete an agent-owned subtask',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     if (!args[0]) return die('Usage: ctx rm <task-id>')
     const id = await resolveId(args[0])
@@ -419,7 +420,7 @@ commands.rm = {
 commands.comment = {
   usage: 'ctx comment <task-id> <text | file | ->',
   desc: 'Add a comment to a task',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     if (!args[0]) return die('Usage: ctx comment <task-id> <text>')
     const id = await resolveId(args[0])
@@ -438,7 +439,7 @@ commands.comment = {
 commands.comments = {
   usage: 'ctx comments <task-id>',
   desc: 'List comments on a task',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     if (!args[0]) return die('Usage: ctx comments <task-id>')
     const id = await resolveId(args[0])
@@ -460,7 +461,7 @@ commands.comments = {
 commands.docs = {
   usage: 'ctx docs <task-id>',
   desc: 'List documents on a task',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     if (!args[0]) return die('Usage: ctx docs <task-id>')
     const id = await resolveId(args[0])
@@ -485,7 +486,7 @@ commands.docs = {
 commands.doc = {
   usage: 'ctx doc <task-id> <action> [args]',
   desc: 'Create, view, or update a document',
-  async run(args) {
+  async run(args, flags) {
     requireToken()
     if (!args[0] || !args[1]) {
       return die('Usage: ctx doc <task-id> create|get|update [args]')
@@ -494,15 +495,13 @@ commands.doc = {
     const action = args[1]
 
     if (action === 'create') {
-      // Filter flags from positional args
-      const positional = args.slice(2).filter(a => !a.startsWith('--'))
-      const title = positional[0]
-      const contentArg = positional[1]
+      const title = args[2]
+      const contentArg = args[3]
       if (!title) return die('Usage: ctx doc <task-id> create <title> [content | file | -] [--plan]')
 
       const body = { title }
       if (contentArg) body.content = readStdinOrFile(contentArg)
-      if (args.includes('--plan')) body.setAsPlan = true
+      if (flags.has('--plan')) body.setAsPlan = true
 
       const data = await post(`/api/agents/tasks/${taskId}/docs`, body)
       if (JSON_OUT) return json(data)
@@ -525,17 +524,16 @@ commands.doc = {
       print('')
     }
     else if (action === 'update') {
-      const positional = args.slice(2).filter(a => !a.startsWith('--'))
-      const docId = positional[0]
-      const contentArg = positional[1]
+      const docId = args[2]
+      const contentArg = args[3]
       if (!docId) return die('Usage: ctx doc <task-id> update <doc-id> [content | file | -] [--label L] [--major]')
 
       const body = {}
       if (contentArg) body.content = readStdinOrFile(contentArg)
-      const label = flagVal(args, '--label')
+      const label = flags.get('--label')
       if (label) body.versionLabel = label
-      body.versionType = args.includes('--major') ? 'MAJOR' : 'MINOR'
-      const title = flagVal(args, '--title')
+      body.versionType = flags.has('--major') ? 'MAJOR' : 'MINOR'
+      const title = flags.get('--title')
       if (title) body.title = title
 
       const data = await patch(`/api/agents/tasks/${taskId}/docs/${docId}`, body)
@@ -550,9 +548,30 @@ commands.doc = {
 
 // ── Arg parsing helpers ─────────────────────────────────────────────────────
 
-function flagVal(args, flag) {
-  const i = args.indexOf(flag)
-  return i !== -1 && i + 1 < args.length ? args[i + 1] : null
+// Parse raw args into { positional: string[], flags: Map<string, string|true> }
+// Flags: --key value (next arg is value), --bool (true if no next arg or next arg is also a flag)
+function parseArgs(raw) {
+  const positional = []
+  const flags = new Map()
+  let i = 0
+  while (i < raw.length) {
+    const arg = raw[i]
+    if (arg.startsWith('--')) {
+      const key = arg
+      const next = raw[i + 1]
+      if (next !== undefined && !next.startsWith('--')) {
+        flags.set(key, next)
+        i += 2
+      } else {
+        flags.set(key, true)
+        i += 1
+      }
+    } else {
+      positional.push(arg)
+      i += 1
+    }
+  }
+  return { positional, flags }
 }
 
 function die(msg) {
@@ -562,10 +581,11 @@ function die(msg) {
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
-const [cmd, ...args] = process.argv.slice(2)
+const [cmd, ...rawArgs] = process.argv.slice(2)
+const { positional: cleanArgs, flags: globalFlags } = parseArgs(rawArgs)
+const JSON_OUT_FLAG = globalFlags.has('--json')
 
-// Filter out --json from args passed to commands
-const cleanArgs = args.filter(a => a !== '--json')
+JSON_OUT = JSON_OUT_FLAG
 
 if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
   print('\n  Context CLI — project management for humans and agents\n')
@@ -582,7 +602,7 @@ if (!commands[cmd]) {
   process.exit(1)
 }
 
-commands[cmd].run(cleanArgs).catch(e => {
+commands[cmd].run(cleanArgs, globalFlags).catch(e => {
   console.error(`Error: ${e.message}`)
   process.exit(1)
 })
