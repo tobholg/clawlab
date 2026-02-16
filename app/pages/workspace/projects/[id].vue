@@ -451,49 +451,7 @@ onMounted(() => {
             @keydown.enter="editingTitle = false"
           />
 
-          <!-- Description: display or edit -->
-          <div class="mt-1">
-            <div v-if="!editingDescription">
-              <MarkdownRenderer
-                v-if="editedProjectDescription"
-                :content="editedProjectDescription"
-                class="text-sm text-slate-500 dark:text-zinc-400 line-clamp-1 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
-                @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
-              />
-              <p
-                v-else
-                class="text-sm text-slate-400 dark:text-zinc-500 cursor-text hover:bg-slate-50 dark:hover:bg-white/[0.06] rounded px-1 -mx-1 py-0.5 transition-colors"
-                @click="editingDescription = true; nextTick(() => descriptionRef?.focus())"
-              >
-                Add a description...
-              </p>
-              <button
-                v-if="descriptionNeedsTruncation"
-                @click="editingDescription = true; nextTick(() => { const t = descriptionRef; if (t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; t.focus() } })"
-                class="text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors mt-0.5"
-              >
-                Show more
-              </button>
-            </div>
-            <div v-else>
-              <textarea
-                ref="descriptionRef"
-                v-model="editedProjectDescription"
-                rows="1"
-                class="text-sm text-slate-500 dark:text-zinc-400 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-400 dark:placeholder-zinc-600 p-0 px-1 -mx-1 w-full resize-none overflow-hidden"
-                placeholder="Add a description..."
-                @input="(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }"
-                @blur="editingDescription = false"
-              />
-              <button
-                v-if="descriptionNeedsTruncation"
-                @mousedown.prevent="editingDescription = false"
-                class="text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors mt-0.5"
-              >
-                Show less
-              </button>
-            </div>
-          </div>
+          <!-- Description: hidden from header (was inline edit) -->
         </div>
       </div>
 
