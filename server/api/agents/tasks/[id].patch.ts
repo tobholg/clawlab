@@ -48,11 +48,14 @@ export default defineEventHandler(async (event) => {
 
   let nextStatus: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED' | 'DONE' | undefined
   if (status !== undefined) {
-    const normalizedStatus = typeof status === 'string' ? status.toUpperCase() : ''
+    let normalizedStatus = typeof status === 'string' ? status.toUpperCase() : ''
     if (normalizedStatus === 'DONE') {
-      // Agents can only mark their own subtasks as DONE
-      if (!isAgentOwnedSubtask) {
-        throw createError({ statusCode: 403, message: 'Agents can only mark their own subtasks as DONE' })
+      if (isAgentOwnedSubtask) {
+        // Agent-owned subtasks: allow DONE directly
+      } else {
+        // Human-assigned tasks: agent can't set DONE, move to IN_PROGRESS/review instead
+        normalizedStatus = 'IN_PROGRESS'
+        nextSubStatus = 'review'
       }
     } else if (!VALID_ITEM_STATUSES.has(normalizedStatus)) {
       throw createError({ statusCode: 400, message: 'Invalid status value' })

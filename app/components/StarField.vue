@@ -71,8 +71,8 @@ onMounted(() => {
       if (sy < -10 || sy > el.height + 10) continue
 
       // Glow: boost alpha + expand radius when scrolling
-      const glowAlpha = alpha + scrollGlow * 0.25
-      const r = s.r + scrollGlow * s.r * 1.2
+      const glowAlpha = alpha + scrollGlow * 0.12
+      const r = s.r + scrollGlow * s.r * 0.5
 
       ctx.beginPath()
       ctx.arc(s.x, sy, r, 0, Math.PI * 2)
