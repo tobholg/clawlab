@@ -160,12 +160,13 @@ onUnmounted(() => {
       class="pointer-events-none fixed right-5 top-5 z-50 flex w-96 flex-col gap-2.5"
     >
       <TransitionGroup
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 translate-x-8"
-        enter-to-class="opacity-100 translate-x-0"
+        enter-active-class="toast-enter-active"
+        enter-from-class="toast-enter-from"
+        enter-to-class="toast-enter-to"
         leave-active-class="transition-all duration-200 ease-in"
         leave-from-class="opacity-100 translate-x-0"
-        leave-to-class="opacity-0 translate-x-8"
+        leave-to-class="opacity-0 translate-x-full"
+        move-class="transition-all duration-300 ease-out"
       >
         <article
           v-for="activity in agentActivities"
@@ -246,6 +247,35 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(120%) scale(0.95);
+}
+
+.toast-enter-to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.toast-enter-active {
+  animation: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes toast-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(120%) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-8px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
 .activity-line-clamp {
   display: -webkit-box;
   -webkit-box-orient: vertical;
