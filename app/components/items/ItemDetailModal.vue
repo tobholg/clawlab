@@ -46,6 +46,7 @@ const planDocument = ref<any | null>(null)
 const planDocumentLoading = ref(false)
 const planDocumentError = ref<string | null>(null)
 const showPlanDocModal = ref(false)
+const planExpanded = ref(false)
 const isUpdatingAgentMode = ref(false)
 const isAcceptingPlan = ref(false)
 const skipPlanningOnAgentAssign = ref(false)
@@ -61,6 +62,18 @@ const currentAgentMode = computed<'PLAN' | 'EXECUTE' | null>(() => {
   const mode = itemDetail.value?.agentMode
   if (mode === 'PLAN' || mode === 'EXECUTE') return mode
   return null
+})
+
+const planContentPreview = computed(() => {
+  const content = planDocument.value?.content || ''
+  const lines = content.split('\n')
+  if (lines.length <= 5) return null // no truncation needed
+  return lines.slice(0, 5).join('\n')
+})
+
+const planNeedsTruncation = computed(() => {
+  const content = planDocument.value?.content || ''
+  return content.split('\n').length > 5
 })
 
 const latestPlanVersion = computed(() => {
@@ -1336,6 +1349,154 @@ const formatRelativeTime = (dateStr: string) => {
               grid-cols="grid-cols-2"
             />
 
+            <!-- Agent Workflow -->
+            <div
+              v-if="hasAgentAssignee"
+              class="rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03] p-4 space-y-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-zinc-200">Agent Workflow</h3>
+                <label class="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
+                  <span>Mode</span>
+                  <select
+                    :value="currentAgentMode ?? 'NONE'"
+                    :disabled="isUpdatingAgentMode || !canEditItem"
+                    class="text-xs px-2 py-1 rounded-md border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
+                    @change="updateAgentMode(($event.target as HTMLSelectElement).value === 'NONE' ? null : (($event.target as HTMLSelectElement).value as 'PLAN' | 'EXECUTE'))"
+                  >
+                    <option value="PLAN">Planning</option>
+                    <option value="EXECUTE">Executing</option>
+                    <option value="NONE">None</option>
+                  </select>
+                </label>
+              </div>
+
+              <!-- Executing state -->
+              <div
+                v-if="currentAgentMode === 'EXECUTE'"
+                class="flex items-center justify-between gap-2 rounded-lg border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-3 py-2"
+              >
+                <div class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                  <Icon name="heroicons:bolt" class="w-4 h-4" />
+                  <span>Executing (v{{ itemDetail?.acceptedPlanVersion ?? latestPlanVersion }})</span>
+                </div>
+                <button
+                  v-if="itemDetail?.planDocId"
+                  class="text-xs font-medium text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                  @click="showPlanDocModal = true"
+                >
+                  View plan
+                </button>
+              </div>
+
+              <!-- Waiting for plan -->
+              <div
+                v-else-if="currentAgentMode === 'PLAN' && !itemDetail?.planDocId"
+                class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] px-3 py-2 text-sm text-slate-600 dark:text-zinc-400"
+              >
+                <Icon name="heroicons:clock" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                <span>Waiting for agent to submit a plan</span>
+              </div>
+
+              <!-- Plan submitted, review -->
+              <div
+                v-else-if="currentAgentMode === 'PLAN' && itemDetail?.planDocId"
+                class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card overflow-hidden"
+              >
+                <div class="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-white/[0.06]">
+                  <div class="flex items-center gap-2 text-sm text-slate-700 dark:text-zinc-300">
+                    <Icon name="heroicons:clipboard-document-list" class="w-4 h-4 text-amber-500" />
+                    <span class="font-medium">Agent Plan</span>
+                  </div>
+                  <span class="text-xs text-slate-500 dark:text-zinc-500">v{{ latestPlanVersion }} (latest)</span>
+                </div>
+
+                <div v-if="planDocumentLoading" class="px-3 py-6 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-zinc-500">
+                  <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5 animate-spin" />
+                  Loading plan...
+                </div>
+                <div v-else-if="planDocumentError" class="px-3 py-3 text-xs text-rose-600 dark:text-rose-400">
+                  {{ planDocumentError }}
+                </div>
+                <div v-else class="px-3 py-3 relative">
+                  <div
+                    :class="!planExpanded && planNeedsTruncation ? 'max-h-[120px] overflow-hidden' : ''"
+                  >
+                    <MarkdownRenderer
+                      :content="planExpanded || !planNeedsTruncation ? (planDocument?.content || '') : (planContentPreview || '')"
+                      class="text-sm text-slate-600 dark:text-zinc-400"
+                    />
+                  </div>
+                  <div
+                    v-if="!planExpanded && planNeedsTruncation"
+                    class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-dm-card pointer-events-none"
+                  />
+                  <button
+                    v-if="planNeedsTruncation"
+                    class="mt-1 text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+                    @click="planExpanded = !planExpanded"
+                  >
+                    {{ planExpanded ? 'Show less' : 'View full plan' }}
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03]">
+                  <button
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                    :disabled="!canEditItem || isAcceptingPlan || planDocumentLoading"
+                    @click="acceptAgentPlan"
+                  >
+                    <Icon name="heroicons:check" class="w-3.5 h-3.5" />
+                    Accept Plan
+                  </button>
+                  <button
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                    :disabled="!canEditItem"
+                    @click="showRequestChangesInput = !showRequestChangesInput"
+                  >
+                    <Icon name="heroicons:pencil-square" class="w-3.5 h-3.5" />
+                    Request Changes
+                  </button>
+                </div>
+
+                <div
+                  v-if="showRequestChangesInput"
+                  class="px-3 py-3 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card"
+                >
+                  <textarea
+                    v-model="requestChangesText"
+                    rows="3"
+                    class="w-full text-sm text-slate-700 dark:text-zinc-200 bg-slate-50 dark:bg-white/[0.04] rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.06] focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 resize-none"
+                    placeholder="Describe what should change in the plan..."
+                  />
+                  <div class="mt-2 flex justify-end gap-2">
+                    <button
+                      class="px-2.5 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
+                      @click="showRequestChangesInput = false; requestChangesText = ''"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      class="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-900 text-white dark:bg-white/[0.12] dark:text-zinc-100 hover:bg-slate-800 dark:hover:bg-white/[0.18] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                      :disabled="requestChangesSubmitting || !requestChangesText.trim()"
+                      @click="submitPlanChangeRequest"
+                    >
+                      Send Request
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No mode set -->
+              <div
+                v-else
+                class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] px-3 py-2 text-sm text-slate-600 dark:text-zinc-400"
+              >
+                <Icon name="heroicons:minus-circle" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                <span>No agent mode set.</span>
+              </div>
+            </div>
+
             <!-- Property Table -->
             <div class="divide-y divide-slate-100 dark:divide-white/[0.04]">
               <!-- Priority -->
@@ -1539,23 +1700,6 @@ const formatRelativeTime = (dateStr: string) => {
                       </div>
                     </Transition>
                   </div>
-                  <div
-                    v-if="canEditItem && (hasAgentAssignee || unassignedUsers.some((user: any) => !!user.isAgent))"
-                    class="w-full mt-1 flex items-center justify-between rounded-lg border border-blue-100 dark:border-blue-500/20 bg-blue-50/70 dark:bg-blue-500/10 px-2.5 py-1.5"
-                  >
-                    <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-zinc-300 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        :checked="skipPlanningOnAgentAssign"
-                        class="h-3.5 w-3.5 rounded border-slate-300 dark:border-zinc-600 text-blue-500 focus:ring-blue-200 dark:focus:ring-blue-500/30"
-                        @change="skipPlanningOnAgentAssign = ($event.target as HTMLInputElement).checked"
-                      />
-                      Skip planning -> Execute directly
-                    </label>
-                    <span class="text-[10px] font-medium text-blue-700 dark:text-blue-300">
-                      {{ skipPlanningOnAgentAssign ? 'EXECUTE' : 'PLAN' }}
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -1631,137 +1775,7 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
             </div>
 
-            <!-- Agent Plan / Execute -->
-            <div
-              v-if="hasAgentAssignee"
-              class="rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03] p-4 space-y-3"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <h3 class="text-sm font-medium text-slate-800 dark:text-zinc-200">Agent Workflow</h3>
-                  <p class="text-xs text-slate-500 dark:text-zinc-500">Choose whether the agent plans first or executes directly.</p>
-                </div>
-                <label class="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
-                  <span>Mode</span>
-                  <select
-                    :value="currentAgentMode ?? 'NONE'"
-                    :disabled="isUpdatingAgentMode || !canEditItem"
-                    class="text-xs px-2 py-1 rounded-md border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
-                    @change="updateAgentMode(($event.target as HTMLSelectElement).value === 'NONE' ? null : (($event.target as HTMLSelectElement).value as 'PLAN' | 'EXECUTE'))"
-                  >
-                    <option value="PLAN">Planning</option>
-                    <option value="EXECUTE">Executing</option>
-                    <option value="NONE">None</option>
-                  </select>
-                </label>
-              </div>
-
-              <div
-                v-if="currentAgentMode === 'EXECUTE'"
-                class="flex items-center justify-between gap-2 rounded-lg border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-3 py-2"
-              >
-                <div class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                  <Icon name="heroicons:bolt" class="w-4 h-4" />
-                  <span>Agent executing plan (v{{ itemDetail?.acceptedPlanVersion ?? latestPlanVersion }})</span>
-                </div>
-                <button
-                  v-if="itemDetail?.planDocId"
-                  class="text-xs font-medium text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
-                  @click="showPlanDocModal = true"
-                >
-                  View plan
-                </button>
-              </div>
-
-              <div
-                v-else-if="currentAgentMode === 'PLAN' && !itemDetail?.planDocId"
-                class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] px-3 py-2 text-sm text-slate-600 dark:text-zinc-400"
-              >
-                <Icon name="heroicons:clock" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
-                <span>Waiting for agent to submit a plan</span>
-              </div>
-
-              <div
-                v-else-if="currentAgentMode === 'PLAN' && itemDetail?.planDocId"
-                class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card overflow-hidden"
-              >
-                <div class="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-white/[0.06]">
-                  <div class="flex items-center gap-2 text-sm text-slate-700 dark:text-zinc-300">
-                    <Icon name="heroicons:clipboard-document-list" class="w-4 h-4 text-amber-500" />
-                    <span class="font-medium">Agent Plan</span>
-                  </div>
-                  <span class="text-xs text-slate-500 dark:text-zinc-500">v{{ latestPlanVersion }} (latest)</span>
-                </div>
-
-                <div v-if="planDocumentLoading" class="px-3 py-6 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-zinc-500">
-                  <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5 animate-spin" />
-                  Loading plan...
-                </div>
-                <div v-else-if="planDocumentError" class="px-3 py-3 text-xs text-rose-600 dark:text-rose-400">
-                  {{ planDocumentError }}
-                </div>
-                <div v-else class="px-3 py-3">
-                  <MarkdownRenderer
-                    :content="planDocument?.content || ''"
-                    class="text-sm text-slate-600 dark:text-zinc-400"
-                  />
-                </div>
-
-                <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03]">
-                  <button
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                    :disabled="!canEditItem || isAcceptingPlan || planDocumentLoading"
-                    @click="acceptAgentPlan"
-                  >
-                    <Icon name="heroicons:check" class="w-3.5 h-3.5" />
-                    Accept Plan
-                  </button>
-                  <button
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                    :disabled="!canEditItem"
-                    @click="showRequestChangesInput = !showRequestChangesInput"
-                  >
-                    <Icon name="heroicons:pencil-square" class="w-3.5 h-3.5" />
-                    Request Changes
-                  </button>
-                </div>
-
-                <div
-                  v-if="showRequestChangesInput"
-                  class="px-3 py-3 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card"
-                >
-                  <textarea
-                    v-model="requestChangesText"
-                    rows="3"
-                    class="w-full text-sm text-slate-700 dark:text-zinc-200 bg-slate-50 dark:bg-white/[0.04] rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.06] focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 resize-none"
-                    placeholder="Describe what should change in the plan..."
-                  />
-                  <div class="mt-2 flex justify-end gap-2">
-                    <button
-                      class="px-2.5 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
-                      @click="showRequestChangesInput = false; requestChangesText = ''"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      class="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-900 text-white dark:bg-white/[0.12] dark:text-zinc-100 hover:bg-slate-800 dark:hover:bg-white/[0.18] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                      :disabled="requestChangesSubmitting || !requestChangesText.trim()"
-                      @click="submitPlanChangeRequest"
-                    >
-                      Send Request
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                v-else
-                class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] px-3 py-2 text-sm text-slate-600 dark:text-zinc-400"
-              >
-                <Icon name="heroicons:minus-circle" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
-                <span>Agent mode is set to none.</span>
-              </div>
-            </div>
+            <!-- Agent Plan / Execute (moved to after documents) -->
             
             <!-- Forecast Card -->
             <!-- Completed state (has estimatedCompletion or status is done) -->
