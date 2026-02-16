@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireAgentUser, requireAssignedTask } from '../../../utils/agentApi'
+import { getDefaultSubStatus } from '../../../utils/itemStage'
 
 const MAX_TITLE_LENGTH = 255
 const MAX_DESCRIPTION_LENGTH = 10000
@@ -45,16 +46,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  let nextStatus: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED' | undefined
+  let nextStatus: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED' | 'DONE' | undefined
   if (status !== undefined) {
     const normalizedStatus = typeof status === 'string' ? status.toUpperCase() : ''
     if (normalizedStatus === 'DONE') {
-      throw createError({ statusCode: 403, message: 'Agents cannot set task status to DONE' })
-    }
-    if (!VALID_ITEM_STATUSES.has(normalizedStatus)) {
+      // Agents can only mark their own subtasks as DONE
+      if (!isAgentOwnedSubtask) {
+        throw createError({ statusCode: 403, message: 'Agents can only mark their own subtasks as DONE' })
+      }
+    } else if (!VALID_ITEM_STATUSES.has(normalizedStatus)) {
       throw createError({ statusCode: 400, message: 'Invalid status value' })
     }
-    nextStatus = normalizedStatus as 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED'
+    nextStatus = normalizedStatus as 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED' | 'DONE'
   }
 
   let nextProgress: number | undefined
@@ -202,12 +205,29 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Auto-set subStatus when status changes and no explicit subStatus was provided
+  if (nextStatus && nextStatus !== currentTask.status && nextSubStatus === undefined) {
+    if (nextStatus === 'DONE') {
+      nextSubStatus = null
+    } else {
+      nextSubStatus = getDefaultSubStatus(nextStatus as 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED')
+    }
+  }
+
+  // Set completedAt when moving to DONE
+  const completedAtUpdate = nextStatus === 'DONE' && currentTask.status !== 'DONE'
+    ? { completedAt: now }
+    : nextStatus && nextStatus !== 'DONE' && currentTask.status === 'DONE'
+      ? { completedAt: null }
+      : {}
+
   const updatedTask = await prisma.$transaction(async (tx) => {
     const task = await tx.item.update({
       where: { id: taskId },
       data: {
         ...(nextStatus ? { status: nextStatus } : {}),
         ...(nextSubStatus !== undefined ? { subStatus: nextSubStatus } : {}),
+        ...completedAtUpdate,
         ...(nextProgress !== undefined ? { progress: nextProgress } : {}),
         ...(nextTitle !== undefined ? { title: nextTitle } : {}),
         ...(nextDescription !== undefined ? { description: nextDescription } : {}),
