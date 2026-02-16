@@ -165,7 +165,15 @@ const simStage = ref(0) // 0=idle, 1=planning, 2=plan-ready, 3=accepting, 4=exec
 const simStarted = ref(false)
 const simPlanText = ref('')
 const simProgress = ref(0)
-const simToast = ref<{ agent: string; text: string; color: string } | null>(null)
+const simToasts = ref<{ agent: string; text: string; color: string; id: number }[]>([])
+const simAcceptFlash = ref(false)
+let simToastId = 0
+
+const addSimToast = (agent: string, text: string, color: string) => {
+  simToasts.value.push({ agent, text, color, id: ++simToastId })
+  // Keep max 4 visible
+  if (simToasts.value.length > 4) simToasts.value.shift()
+}
 
 const simPlanFull = `## Implementation Plan
 
@@ -181,18 +189,19 @@ const runSimulation = () => {
   simStage.value = 0
   simPlanText.value = ''
   simProgress.value = 0
-  simToast.value = null
+  simToasts.value = []
+  simAcceptFlash.value = false
 
   const stages = [
-    { stage: 1, delay: 800 },    // planning begins
-    { stage: 2, delay: 3500 },   // plan ready
-    { stage: 3, delay: 5500 },   // user clicks accept
-    { stage: 4, delay: 6500 },   // executing
-    { stage: 5, delay: 8000 },   // subtask 1
-    { stage: 6, delay: 9500 },   // subtask 2
-    { stage: 7, delay: 11000 },  // progress update
-    { stage: 8, delay: 13000 },  // review
-    { stage: 9, delay: 15000 },  // done
+    { stage: 1, delay: 1200 },    // planning begins
+    { stage: 2, delay: 5000 },    // plan ready
+    { stage: 3, delay: 8000 },    // user clicks accept
+    { stage: 4, delay: 10000 },   // executing
+    { stage: 5, delay: 12500 },   // subtask 1
+    { stage: 6, delay: 15000 },   // subtask 2
+    { stage: 7, delay: 17500 },   // progress update
+    { stage: 8, delay: 20500 },   // review
+    { stage: 9, delay: 23500 },   // done
   ]
 
   stages.forEach(({ stage, delay }) => {
@@ -208,22 +217,32 @@ const runSimulation = () => {
             clearInterval(typeInterval)
           }
           simPlanText.value = simPlanFull.slice(0, charIndex)
-        }, 30)
+        }, 40)
+        addSimToast('H', 'Started planning: Implement payment webhooks', 'amber')
+      }
+      if (stage === 2) {
+        addSimToast('H', 'Plan document submitted for review', 'amber')
+      }
+      if (stage === 3) {
+        // Flash the accept button
+        simAcceptFlash.value = true
+        setTimeout(() => { simAcceptFlash.value = false }, 600)
+        addSimToast('You', 'Plan accepted. Agent executing.', 'emerald')
       }
       if (stage === 5) {
-        simToast.value = { agent: 'H', text: 'Created subtask: Set up Stripe webhook endpoint', color: 'amber' }
+        addSimToast('H', 'Created subtask: Set up Stripe webhook endpoint', 'amber')
         simProgress.value = 25
       }
       if (stage === 6) {
-        simToast.value = { agent: 'H', text: 'Created subtask: Handle subscription events', color: 'amber' }
+        addSimToast('H', 'Created subtask: Handle subscription events', 'amber')
         simProgress.value = 50
       }
       if (stage === 7) {
-        simToast.value = { agent: 'H', text: 'Progress updated: 50% → 90%', color: 'emerald' }
+        addSimToast('H', 'Progress updated: 50% → 90%', 'emerald')
         simProgress.value = 90
       }
       if (stage === 8) {
-        simToast.value = { agent: 'H', text: 'Submitted for review', color: 'blue' }
+        addSimToast('H', 'Submitted for review', 'blue')
         simProgress.value = 100
       }
     }, delay)
@@ -233,7 +252,7 @@ const runSimulation = () => {
   setTimeout(() => {
     simStarted.value = false
     runSimulation()
-  }, 18000)
+  }, 28000)
 }
 
 // ── Before/After (feature #4) ──
@@ -524,9 +543,9 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="grid lg:grid-cols-5 min-h-[320px]">
+            <div class="grid lg:grid-cols-5 h-[420px]">
               <!-- Left: task card mock -->
-              <div class="lg:col-span-3 p-5 border-r border-white/[0.06]">
+              <div class="lg:col-span-3 p-5 border-r border-white/[0.06] overflow-y-auto">
                 <!-- Assignee -->
                 <div class="flex items-center gap-2 mb-4">
                   <div class="h-7 w-7 rounded-full bg-amber-500/10 flex items-center justify-center ring-1 ring-white/10">
@@ -551,12 +570,18 @@ onMounted(() => {
 
                 <!-- Accept button -->
                 <Transition name="fade-up">
-                  <div v-if="simStage === 2" class="flex items-center gap-3 mb-4">
-                    <div class="flex-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center justify-between">
+                  <div v-if="simStage >= 2 && simStage <= 3" class="flex items-center gap-3 mb-4">
+                    <div
+                      class="flex-1 rounded-lg border p-3 flex items-center justify-between transition-all duration-300"
+                      :class="simAcceptFlash ? 'border-emerald-400/60 bg-emerald-500/15 shadow-lg shadow-emerald-500/20' : 'border-emerald-500/30 bg-emerald-500/5'"
+                    >
                       <span class="text-sm text-emerald-400 font-medium">Plan ready for review</span>
                       <div class="flex items-center gap-2">
                         <button class="px-3 py-1.5 text-xs font-medium rounded-md border border-white/[0.1] text-zinc-400 cursor-default">Request Changes</button>
-                        <button class="px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-500 text-white sim-accept-pulse cursor-default">Accept Plan</button>
+                        <button
+                          class="px-3 py-1.5 text-xs font-medium rounded-md text-white cursor-default transition-all duration-300"
+                          :class="simAcceptFlash ? 'bg-emerald-400 shadow-lg shadow-emerald-400/40 scale-105' : 'bg-emerald-500 sim-accept-pulse'"
+                        >{{ simAcceptFlash ? '✓ Accepted' : 'Accept Plan' }}</button>
                       </div>
                     </div>
                   </div>
@@ -600,35 +625,35 @@ onMounted(() => {
               </div>
 
               <!-- Right: live toast feed -->
-              <div class="lg:col-span-2 p-4 flex flex-col">
+              <div class="lg:col-span-2 p-4 flex flex-col overflow-hidden">
                 <div class="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Live Activity</div>
-                <div class="flex-1 flex flex-col justify-end gap-2.5 overflow-hidden">
+                <div class="flex-1 flex flex-col justify-end gap-2 overflow-hidden">
                   <TransitionGroup name="toast-slide">
                     <div
-                      v-if="simToast"
-                      :key="simToast.text"
+                      v-for="toast in simToasts"
+                      :key="toast.id"
                       class="rounded-lg border border-white/[0.08] bg-[#161619] p-2.5"
                     >
                       <div class="flex items-start gap-2.5">
-                        <div class="h-7 w-7 flex-shrink-0 rounded-full flex items-center justify-center ring-1 ring-white/10"
+                        <div class="h-6 w-6 flex-shrink-0 rounded-full flex items-center justify-center ring-1 ring-white/10"
                           :class="{
-                            'bg-amber-500/10': simToast.color === 'amber',
-                            'bg-emerald-500/10': simToast.color === 'emerald',
-                            'bg-blue-500/10': simToast.color === 'blue',
+                            'bg-amber-500/10': toast.color === 'amber',
+                            'bg-emerald-500/10': toast.color === 'emerald',
+                            'bg-blue-500/10': toast.color === 'blue',
                           }"
                         >
-                          <span class="text-[10px] font-semibold" :class="{
-                            'text-amber-500': simToast.color === 'amber',
-                            'text-emerald-500': simToast.color === 'emerald',
-                            'text-blue-500': simToast.color === 'blue',
-                          }">{{ simToast.agent }}</span>
+                          <span class="text-[9px] font-semibold" :class="{
+                            'text-amber-500': toast.color === 'amber',
+                            'text-emerald-500': toast.color === 'emerald',
+                            'text-blue-500': toast.color === 'blue',
+                          }">{{ toast.agent === 'You' ? 'Y' : toast.agent }}</span>
                         </div>
                         <div class="min-w-0 flex-1">
                           <div class="flex items-center justify-between">
-                            <p class="text-xs font-semibold text-zinc-100">Harriet</p>
-                            <span class="text-[10px] text-zinc-600">Just now</span>
+                            <p class="text-[11px] font-semibold text-zinc-200">{{ toast.agent === 'You' ? 'You' : 'Harriet' }}</p>
+                            <span class="text-[9px] text-zinc-600">Just now</span>
                           </div>
-                          <p class="mt-0.5 text-xs text-zinc-400">{{ simToast.text }}</p>
+                          <p class="mt-0.5 text-[11px] text-zinc-400 leading-snug">{{ toast.text }}</p>
                         </div>
                       </div>
                     </div>
