@@ -225,112 +225,108 @@ const startTerminalReplay = () => {
   }, 22000)
 }
 
-// ── Agent simulation (feature #2) ──
-// Stages: 0=idle, 1=planning, 2=plan-ready, 3=accepting, 4=executing,
-//   5=subtask1-created, 6=subtask2-created, 7=subtask1-done, 8=subtask2-done, 9=review, 10=done
-const simStage = ref(0)
-const simStarted = ref(false)
-const simPlanText = ref('')
-const simProgress = ref(0)
-const simToasts = ref<{ agent: string; text: string; color: string; id: number }[]>([])
-const simAcceptFlash = ref(false)
-const simFading = ref(false) // for reset fade
 const termFading = ref(false)
-let simToastId = 0
 
-const addSimToast = (agent: string, text: string, color: string) => {
-  simToasts.value.push({ agent, text, color, id: ++simToastId })
-  if (simToasts.value.length > 4) simToasts.value.shift()
+// ── Animated Kanban ──
+interface KanbanCard {
+  id: number
+  title: string
+  agent?: { initial: string; color: string }
+  progress?: number
+  badge?: string
 }
 
-const simPlanFull = `## Implementation Plan
+const kanbanTodo = ref<KanbanCard[]>([])
+const kanbanInProgress = ref<KanbanCard[]>([])
+const kanbanDone = ref<KanbanCard[]>([])
+const kanbanFading = ref(false)
+const kanbanStarted = ref(false)
 
-1. Add Stripe webhook endpoint at /api/webhooks/stripe
-2. Handle subscription.created, updated, deleted events
-3. Sync subscription status to user model
-4. Add idempotency keys for retry safety
-5. Write integration tests with Stripe test clock`
+const allCards: KanbanCard[] = [
+  { id: 1, title: 'Payment webhooks', agent: { initial: 'H', color: 'amber' }, badge: 'plan ready' },
+  { id: 2, title: 'Refactor auth', agent: { initial: 'C', color: 'emerald' } },
+  { id: 3, title: 'Rate limiting', agent: { initial: 'C', color: 'blue' } },
+  { id: 4, title: 'User onboarding', agent: { initial: 'H', color: 'amber' } },
+  { id: 5, title: 'API docs' },
+  { id: 6, title: 'E2E tests' },
+]
 
-const resetSim = () => {
-  simStage.value = 0
-  simPlanText.value = ''
-  simProgress.value = 0
-  simToasts.value = []
-  simAcceptFlash.value = false
-}
+const runKanban = () => {
+  if (kanbanStarted.value) return
+  kanbanStarted.value = true
+  kanbanFading.value = false
 
-const runSimulation = () => {
-  if (simStarted.value) return
-  simStarted.value = true
-  resetSim()
+  // Initial state
+  kanbanTodo.value = [allCards[0], allCards[1], allCards[2], allCards[3]]
+  kanbanInProgress.value = []
+  kanbanDone.value = []
 
-  const stages = [
-    { stage: 1, delay: 1200 },     // planning begins
-    { stage: 2, delay: 5000 },     // plan ready
-    { stage: 3, delay: 8000 },     // user clicks accept
-    { stage: 4, delay: 10000 },    // executing
-    { stage: 5, delay: 12000 },    // subtask 1 created
-    { stage: 6, delay: 14000 },    // subtask 2 created
-    { stage: 7, delay: 16500 },    // subtask 1 completed
-    { stage: 8, delay: 19000 },    // subtask 2 completed
-    { stage: 9, delay: 21500 },    // review
-    { stage: 10, delay: 24000 },   // done
+  const moves = [
+    // [delay, fromCol, cardId, toCol, updates]
+    { delay: 2000, action: () => {
+      kanbanTodo.value = kanbanTodo.value.filter(c => c.id !== 1)
+      kanbanInProgress.value.push({ ...allCards[0], badge: 'executing', progress: 10 })
+    }},
+    { delay: 4500, action: () => {
+      const c = kanbanInProgress.value.find(c => c.id === 1)
+      if (c) c.progress = 40
+    }},
+    { delay: 6000, action: () => {
+      kanbanTodo.value = kanbanTodo.value.filter(c => c.id !== 2)
+      kanbanInProgress.value.push({ ...allCards[1], badge: 'planning', progress: 0 })
+    }},
+    { delay: 8000, action: () => {
+      const c = kanbanInProgress.value.find(c => c.id === 1)
+      if (c) c.progress = 75
+    }},
+    { delay: 10000, action: () => {
+      const c = kanbanInProgress.value.find(c => c.id === 2)
+      if (c) { c.badge = 'executing'; c.progress = 20 }
+    }},
+    { delay: 12000, action: () => {
+      kanbanInProgress.value = kanbanInProgress.value.filter(c => c.id !== 1)
+      kanbanDone.value.push({ ...allCards[0], badge: undefined, progress: 100 })
+    }},
+    { delay: 14000, action: () => {
+      kanbanTodo.value = kanbanTodo.value.filter(c => c.id !== 3)
+      kanbanInProgress.value.push({ ...allCards[2], badge: 'planning', progress: 0 })
+    }},
+    { delay: 16000, action: () => {
+      const c = kanbanInProgress.value.find(c => c.id === 2)
+      if (c) c.progress = 80
+    }},
+    { delay: 18000, action: () => {
+      const c = kanbanInProgress.value.find(c => c.id === 3)
+      if (c) { c.badge = 'executing'; c.progress = 30 }
+    }},
+    { delay: 20000, action: () => {
+      kanbanInProgress.value = kanbanInProgress.value.filter(c => c.id !== 2)
+      kanbanDone.value.push({ ...allCards[1], badge: undefined, progress: 100 })
+    }},
+    { delay: 22500, action: () => {
+      const c = kanbanInProgress.value.find(c => c.id === 3)
+      if (c) c.progress = 90
+    }},
+    { delay: 24500, action: () => {
+      kanbanInProgress.value = kanbanInProgress.value.filter(c => c.id !== 3)
+      kanbanDone.value.push({ ...allCards[2], badge: undefined, progress: 100 })
+    }},
   ]
 
-  stages.forEach(({ stage, delay }) => {
-    setTimeout(() => {
-      simStage.value = stage
-      if (stage === 1) {
-        let charIndex = 0
-        const typeInterval = setInterval(() => {
-          charIndex += 2 + Math.floor(Math.random() * 3)
-          if (charIndex >= simPlanFull.length) {
-            charIndex = simPlanFull.length
-            clearInterval(typeInterval)
-          }
-          simPlanText.value = simPlanFull.slice(0, charIndex)
-        }, 40)
-        addSimToast('H', 'Started planning: Implement payment webhooks', 'amber')
-      }
-      if (stage === 2) {
-        addSimToast('H', 'Plan document submitted for review', 'amber')
-      }
-      if (stage === 3) {
-        simAcceptFlash.value = true
-        setTimeout(() => { simAcceptFlash.value = false }, 600)
-        addSimToast('You', 'Plan accepted. Agent executing.', 'emerald')
-      }
-      if (stage === 5) {
-        addSimToast('H', 'Created subtask: Set up Stripe webhook endpoint', 'amber')
-        simProgress.value = 20
-      }
-      if (stage === 6) {
-        addSimToast('H', 'Created subtask: Handle subscription events', 'amber')
-        simProgress.value = 35
-      }
-      if (stage === 7) {
-        addSimToast('H', 'Completed: Set up Stripe webhook endpoint', 'emerald')
-        simProgress.value = 65
-      }
-      if (stage === 8) {
-        addSimToast('H', 'Completed: Handle subscription events', 'emerald')
-        simProgress.value = 90
-      }
-      if (stage === 9) {
-        addSimToast('H', 'Submitted for review', 'blue')
-        simProgress.value = 100
-      }
-    }, delay)
+  moves.forEach(({ delay, action }) => {
+    setTimeout(action, delay)
   })
 
-  // Fade out, reset, fade in, then restart
+  // Fade out, reset, restart
   setTimeout(() => {
-    simFading.value = true
+    kanbanFading.value = true
     setTimeout(() => {
-      resetSim()
-      simStarted.value = false
-      simFading.value = false
-      runSimulation()
+      kanbanTodo.value = []
+      kanbanInProgress.value = []
+      kanbanDone.value = []
+      kanbanStarted.value = false
+      kanbanFading.value = false
+      runKanban()
     }, 800)
   }, 28000)
 }
@@ -390,19 +386,19 @@ onMounted(() => {
 
   // Terminal replay + simulation triggers via intersection observer
   const termEl = document.getElementById('terminal-replay')
-  const simEl = document.getElementById('agent-simulation')
+  const kanbanEl = document.getElementById('kanban-demo')
   const terminalObs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) startTerminalReplay()
     })
   }, { threshold: 0.3 })
-  const simObs = new IntersectionObserver((entries) => {
+  const kanbanObs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
-      if (e.isIntersecting) runSimulation()
+      if (e.isIntersecting) runKanban()
     })
   }, { threshold: 0.3 })
   if (termEl) terminalObs.observe(termEl)
-  if (simEl) simObs.observe(simEl)
+  if (kanbanEl) kanbanObs.observe(kanbanEl)
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -423,7 +419,7 @@ onMounted(() => {
   onUnmounted(() => {
     observer.disconnect()
     terminalObs.disconnect()
-    simObs.disconnect()
+    kanbanObs.disconnect()
     window.removeEventListener('scroll', onScroll)
     window.removeEventListener('keydown', onKeydown)
     // (slider listeners removed)
@@ -574,117 +570,6 @@ onMounted(() => {
           </p>
         </div>
 
-        <!-- Interactive Agent Simulation -->
-        <div id="agent-simulation" class="mt-12 intro" style="--d: 580ms">
-          <div
-            class="rounded-2xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl overflow-hidden transition-opacity duration-700"
-            :class="simFading ? 'opacity-0' : 'opacity-100'"
-          >
-            <!-- Sim header -->
-            <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
-              <div class="flex items-center gap-3">
-                <div class="w-2 h-2 rounded-full transition-colors duration-500" :class="simStage >= 1 && simStage < 10 ? 'bg-emerald-400 animate-pulse' : simStage >= 10 ? 'bg-emerald-400' : 'bg-zinc-700'" />
-                <span class="text-sm font-medium text-zinc-300">Implement payment webhooks</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <!-- Stage indicator pills -->
-                <span
-                  class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full transition-all duration-500"
-                  :class="{
-                    'bg-zinc-800 text-zinc-500': simStage === 0,
-                    'bg-amber-500/15 text-amber-400': simStage >= 1 && simStage <= 2,
-                    'bg-emerald-500/15 text-emerald-400': simStage === 3,
-                    'bg-blue-500/15 text-blue-400': simStage >= 4 && simStage <= 8,
-                    'bg-violet-500/15 text-violet-400': simStage === 9,
-                    'bg-emerald-500/15 text-emerald-400': simStage === 10,
-                  }"
-                >
-                  {{ simStage === 0 ? 'Idle' : simStage <= 2 ? 'Planning' : simStage === 3 ? 'Accepting' : simStage <= 8 ? 'Executing' : simStage === 9 ? 'In Review' : 'Complete ✓' }}
-                </span>
-              </div>
-            </div>
-
-            <div class="p-5 overflow-y-auto h-[460px]">
-              <!-- Assignee -->
-              <div class="flex items-center gap-2 mb-4">
-                <div class="h-7 w-7 rounded-full bg-amber-500/10 flex items-center justify-center ring-1 ring-white/10">
-                  <span class="text-[10px] font-semibold text-amber-500">H</span>
-                </div>
-                <span class="text-sm text-zinc-400">Harriet</span>
-                <span class="text-[10px] text-zinc-600 ml-auto">assigned by you</span>
-              </div>
-
-              <!-- Plan area -->
-              <div v-if="simStage >= 1" class="rounded-lg border border-white/[0.06] bg-[#0a0a0c] p-4 mb-4 transition-all duration-500">
-                <div class="flex items-center gap-2 mb-2">
-                  <Icon name="heroicons:document-text" class="w-4 h-4 text-zinc-500" />
-                  <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Plan Document</span>
-                  <span v-if="simStage === 1" class="ml-auto flex items-center gap-1 text-[10px] text-amber-400">
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                    Writing...
-                  </span>
-                </div>
-                <div class="text-[13px] text-zinc-400 leading-relaxed whitespace-pre-wrap font-mono">{{ simPlanText }}<span v-if="simStage === 1" class="terminal-cursor">▊</span></div>
-              </div>
-
-              <!-- Accept button -->
-              <Transition name="fade-up">
-                <div v-if="simStage >= 2 && simStage <= 3" class="flex items-center gap-3 mb-4">
-                  <div
-                    class="flex-1 rounded-lg border p-3 flex items-center justify-between transition-all duration-300"
-                    :class="simAcceptFlash ? 'border-emerald-400/60 bg-emerald-500/15 shadow-lg shadow-emerald-500/20' : 'border-emerald-500/30 bg-emerald-500/5'"
-                  >
-                    <span class="text-sm text-emerald-400 font-medium">Plan ready for review</span>
-                    <div class="flex items-center gap-2">
-                      <button class="px-3 py-1.5 text-xs font-medium rounded-md border border-white/[0.1] text-zinc-400 cursor-default">Request Changes</button>
-                      <button
-                        class="px-3 py-1.5 text-xs font-medium rounded-md text-white cursor-default transition-all duration-300"
-                        :class="simAcceptFlash ? 'bg-emerald-400 shadow-lg shadow-emerald-400/40 scale-105' : 'bg-emerald-500 sim-accept-pulse'"
-                      >{{ simAcceptFlash ? '✓ Accepted' : 'Accept Plan' }}</button>
-                    </div>
-                  </div>
-                </div>
-              </Transition>
-
-              <!-- Subtasks -->
-              <div v-if="simStage >= 5" class="space-y-2 mb-4">
-                <div class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Subtasks</div>
-                <Transition name="fade-up">
-                  <div v-if="simStage >= 5" class="flex items-center gap-2 text-sm">
-                    <div class="w-4 h-4 rounded border transition-all duration-300" :class="simStage >= 7 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
-                      <Icon v-if="simStage >= 7" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
-                    </div>
-                    <span class="text-zinc-300" :class="simStage >= 7 ? 'line-through text-zinc-500' : ''">Set up Stripe webhook endpoint</span>
-                  </div>
-                </Transition>
-                <Transition name="fade-up">
-                  <div v-if="simStage >= 6" class="flex items-center gap-2 text-sm">
-                    <div class="w-4 h-4 rounded border transition-all duration-300" :class="simStage >= 8 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
-                      <Icon v-if="simStage >= 8" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
-                    </div>
-                    <span class="text-zinc-300" :class="simStage >= 8 ? 'line-through text-zinc-500' : ''">Handle subscription events</span>
-                  </div>
-                </Transition>
-              </div>
-
-              <!-- Progress bar -->
-              <div v-if="simStage >= 4">
-                <div class="flex items-center justify-between text-[11px] mb-1.5">
-                  <span class="text-zinc-500">Progress</span>
-                  <span class="text-zinc-400 font-mono">{{ simProgress }}%</span>
-                </div>
-                <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div
-                    class="h-full rounded-full transition-all duration-700 ease-out"
-                    :class="simStage >= 10 ? 'bg-emerald-500' : 'bg-blue-500'"
-                    :style="{ width: `${simProgress}%` }"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- CLI (agent POV) + synced live activity -->
         <div class="mt-12 intro" style="--d: 640ms">
           <div class="flex items-center gap-2 text-zinc-500 text-xs font-semibold uppercase tracking-widest mb-3">
@@ -780,6 +665,130 @@ onMounted(() => {
                     </div>
                   </div>
                 </TransitionGroup>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Animated Kanban -->
+        <div id="kanban-demo" class="mt-12 intro" style="--d: 700ms">
+          <div
+            class="rounded-2xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl overflow-hidden transition-opacity duration-700"
+            :class="kanbanFading ? 'opacity-0' : 'opacity-100'"
+          >
+            <!-- Board header -->
+            <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
+              <div class="flex items-center gap-2.5">
+                <Icon name="heroicons:view-columns" class="w-4 h-4 text-zinc-500" />
+                <span class="text-sm font-medium text-zinc-300">Sprint 14</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span class="text-[10px] text-zinc-500">3 agents working</span>
+              </div>
+            </div>
+
+            <!-- Columns -->
+            <div class="grid grid-cols-3 h-[320px]">
+              <!-- TODO -->
+              <div class="p-3 border-r border-white/[0.06]">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Todo</span>
+                  <span class="text-[10px] text-zinc-600 font-mono">{{ kanbanTodo.length }}</span>
+                </div>
+                <div class="space-y-2 relative">
+                  <TransitionGroup name="kanban-card">
+                    <div
+                      v-for="card in kanbanTodo"
+                      :key="card.id"
+                      class="rounded-lg border border-white/[0.06] bg-[#111113] p-3"
+                    >
+                      <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[13px] text-zinc-300">{{ card.title }}</span>
+                        <div v-if="card.agent" class="h-5 w-5 rounded-full flex items-center justify-center ring-1 ring-white/10"
+                          :class="{
+                            'bg-amber-500/10': card.agent.color === 'amber',
+                            'bg-emerald-500/10': card.agent.color === 'emerald',
+                            'bg-blue-500/10': card.agent.color === 'blue',
+                          }">
+                          <span class="text-[8px] font-bold"
+                            :class="{
+                              'text-amber-500': card.agent.color === 'amber',
+                              'text-emerald-500': card.agent.color === 'emerald',
+                              'text-blue-500': card.agent.color === 'blue',
+                            }">{{ card.agent.initial }}</span>
+                        </div>
+                      </div>
+                      <span v-if="card.badge" class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 uppercase font-semibold tracking-wider">{{ card.badge }}</span>
+                    </div>
+                  </TransitionGroup>
+                </div>
+              </div>
+
+              <!-- IN PROGRESS -->
+              <div class="p-3 border-r border-white/[0.06]">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-[11px] font-semibold text-blue-400/70 uppercase tracking-wider">In Progress</span>
+                  <span class="text-[10px] text-zinc-600 font-mono">{{ kanbanInProgress.length }}</span>
+                </div>
+                <div class="space-y-2 relative">
+                  <TransitionGroup name="kanban-card">
+                    <div
+                      v-for="card in kanbanInProgress"
+                      :key="card.id"
+                      class="rounded-lg border border-white/[0.06] bg-[#111113] p-3"
+                    >
+                      <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[13px] text-zinc-200">{{ card.title }}</span>
+                        <div v-if="card.agent" class="h-5 w-5 rounded-full flex items-center justify-center ring-1 ring-white/10"
+                          :class="{
+                            'bg-amber-500/10': card.agent.color === 'amber',
+                            'bg-emerald-500/10': card.agent.color === 'emerald',
+                            'bg-blue-500/10': card.agent.color === 'blue',
+                          }">
+                          <span class="text-[8px] font-bold"
+                            :class="{
+                              'text-amber-500': card.agent.color === 'amber',
+                              'text-emerald-500': card.agent.color === 'emerald',
+                              'text-blue-500': card.agent.color === 'blue',
+                            }">{{ card.agent.initial }}</span>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span v-if="card.badge" class="text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold tracking-wider"
+                          :class="card.badge === 'executing' ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'"
+                        >{{ card.badge }}</span>
+                      </div>
+                      <div v-if="card.progress !== undefined" class="mt-2">
+                        <div class="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                          <div class="h-full rounded-full bg-blue-500 transition-all duration-700" :style="{ width: `${card.progress}%` }" />
+                        </div>
+                      </div>
+                    </div>
+                  </TransitionGroup>
+                </div>
+              </div>
+
+              <!-- DONE -->
+              <div class="p-3">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-[11px] font-semibold text-emerald-400/70 uppercase tracking-wider">Done</span>
+                  <span class="text-[10px] text-zinc-600 font-mono">{{ kanbanDone.length }}</span>
+                </div>
+                <div class="space-y-2 relative">
+                  <TransitionGroup name="kanban-card">
+                    <div
+                      v-for="card in kanbanDone"
+                      :key="card.id"
+                      class="rounded-lg border border-emerald-500/10 bg-[#111113] p-3"
+                    >
+                      <div class="flex items-center justify-between">
+                        <span class="text-[13px] text-zinc-400">{{ card.title }}</span>
+                        <Icon name="heroicons:check-circle" class="w-4 h-4 text-emerald-500/60" />
+                      </div>
+                    </div>
+                  </TransitionGroup>
+                </div>
               </div>
             </div>
           </div>
@@ -1225,16 +1234,6 @@ onMounted(() => {
   50% { opacity: 0; }
 }
 
-/* Simulation accept button pulse */
-.sim-accept-pulse {
-  animation: accept-glow 1.5s ease-in-out infinite;
-}
-
-@keyframes accept-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  50% { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.2); }
-}
-
 /* Fade up transition */
 .fade-up-enter-active {
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -1271,5 +1270,26 @@ onMounted(() => {
 }
 .toast-slide-move {
   transition: transform 0.4s ease;
+}
+
+/* Kanban card transitions */
+.kanban-card-enter-active {
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.kanban-card-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+}
+.kanban-card-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  position: absolute;
+  width: calc(100% - 1rem);
+}
+.kanban-card-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.kanban-card-move {
+  transition: transform 0.5s ease;
 }
 </style>
