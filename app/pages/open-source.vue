@@ -210,25 +210,36 @@ const startTerminalReplay = () => {
     }, line.delay)
   })
 
-  // Loop after completion
+  // Fade out, reset, fade in, restart
   setTimeout(() => {
-    terminalStarted.value = false
-    startTerminalReplay()
-  }, 24000)
+    termFading.value = true
+    setTimeout(() => {
+      terminalVisibleCount.value = 0
+      terminalCursorChar.value = 0
+      terminalTypingLine.value = -1
+      cliToasts.value = []
+      terminalStarted.value = false
+      termFading.value = false
+      startTerminalReplay()
+    }, 800)
+  }, 22000)
 }
 
 // ── Agent simulation (feature #2) ──
-const simStage = ref(0) // 0=idle, 1=planning, 2=plan-ready, 3=accepting, 4=executing, 5=subtask1, 6=subtask2, 7=progress, 8=review, 9=done
+// Stages: 0=idle, 1=planning, 2=plan-ready, 3=accepting, 4=executing,
+//   5=subtask1-created, 6=subtask2-created, 7=subtask1-done, 8=subtask2-done, 9=review, 10=done
+const simStage = ref(0)
 const simStarted = ref(false)
 const simPlanText = ref('')
 const simProgress = ref(0)
 const simToasts = ref<{ agent: string; text: string; color: string; id: number }[]>([])
 const simAcceptFlash = ref(false)
+const simFading = ref(false) // for reset fade
+const termFading = ref(false)
 let simToastId = 0
 
 const addSimToast = (agent: string, text: string, color: string) => {
   simToasts.value.push({ agent, text, color, id: ++simToastId })
-  // Keep max 4 visible
   if (simToasts.value.length > 4) simToasts.value.shift()
 }
 
@@ -240,32 +251,36 @@ const simPlanFull = `## Implementation Plan
 4. Add idempotency keys for retry safety
 5. Write integration tests with Stripe test clock`
 
-const runSimulation = () => {
-  if (simStarted.value) return
-  simStarted.value = true
+const resetSim = () => {
   simStage.value = 0
   simPlanText.value = ''
   simProgress.value = 0
   simToasts.value = []
   simAcceptFlash.value = false
+}
+
+const runSimulation = () => {
+  if (simStarted.value) return
+  simStarted.value = true
+  resetSim()
 
   const stages = [
-    { stage: 1, delay: 1200 },    // planning begins
-    { stage: 2, delay: 5000 },    // plan ready
-    { stage: 3, delay: 8000 },    // user clicks accept
-    { stage: 4, delay: 10000 },   // executing
-    { stage: 5, delay: 12500 },   // subtask 1
-    { stage: 6, delay: 15000 },   // subtask 2
-    { stage: 7, delay: 17500 },   // progress update
-    { stage: 8, delay: 20500 },   // review
-    { stage: 9, delay: 23500 },   // done
+    { stage: 1, delay: 1200 },     // planning begins
+    { stage: 2, delay: 5000 },     // plan ready
+    { stage: 3, delay: 8000 },     // user clicks accept
+    { stage: 4, delay: 10000 },    // executing
+    { stage: 5, delay: 12000 },    // subtask 1 created
+    { stage: 6, delay: 14000 },    // subtask 2 created
+    { stage: 7, delay: 16500 },    // subtask 1 completed
+    { stage: 8, delay: 19000 },    // subtask 2 completed
+    { stage: 9, delay: 21500 },    // review
+    { stage: 10, delay: 24000 },   // done
   ]
 
   stages.forEach(({ stage, delay }) => {
     setTimeout(() => {
       simStage.value = stage
       if (stage === 1) {
-        // Type out plan text
         let charIndex = 0
         const typeInterval = setInterval(() => {
           charIndex += 2 + Math.floor(Math.random() * 3)
@@ -281,34 +296,42 @@ const runSimulation = () => {
         addSimToast('H', 'Plan document submitted for review', 'amber')
       }
       if (stage === 3) {
-        // Flash the accept button
         simAcceptFlash.value = true
         setTimeout(() => { simAcceptFlash.value = false }, 600)
         addSimToast('You', 'Plan accepted. Agent executing.', 'emerald')
       }
       if (stage === 5) {
         addSimToast('H', 'Created subtask: Set up Stripe webhook endpoint', 'amber')
-        simProgress.value = 25
+        simProgress.value = 20
       }
       if (stage === 6) {
         addSimToast('H', 'Created subtask: Handle subscription events', 'amber')
-        simProgress.value = 50
+        simProgress.value = 35
       }
       if (stage === 7) {
-        addSimToast('H', 'Progress updated: 50% → 90%', 'emerald')
-        simProgress.value = 90
+        addSimToast('H', 'Completed: Set up Stripe webhook endpoint', 'emerald')
+        simProgress.value = 65
       }
       if (stage === 8) {
+        addSimToast('H', 'Completed: Handle subscription events', 'emerald')
+        simProgress.value = 90
+      }
+      if (stage === 9) {
         addSimToast('H', 'Submitted for review', 'blue')
         simProgress.value = 100
       }
     }, delay)
   })
 
-  // Loop
+  // Fade out, reset, fade in, then restart
   setTimeout(() => {
-    simStarted.value = false
-    runSimulation()
+    simFading.value = true
+    setTimeout(() => {
+      resetSim()
+      simStarted.value = false
+      simFading.value = false
+      runSimulation()
+    }, 800)
   }, 28000)
 }
 
@@ -553,11 +576,14 @@ onMounted(() => {
 
         <!-- Interactive Agent Simulation -->
         <div id="agent-simulation" class="mt-12 intro" style="--d: 580ms">
-          <div class="rounded-2xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl overflow-hidden">
+          <div
+            class="rounded-2xl border border-white/[0.06] bg-[#0c0c0f]/95 backdrop-blur-xl overflow-hidden transition-opacity duration-700"
+            :class="simFading ? 'opacity-0' : 'opacity-100'"
+          >
             <!-- Sim header -->
             <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
               <div class="flex items-center gap-3">
-                <div class="w-2 h-2 rounded-full" :class="simStage >= 1 ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-700'" />
+                <div class="w-2 h-2 rounded-full transition-colors duration-500" :class="simStage >= 1 && simStage < 10 ? 'bg-emerald-400 animate-pulse' : simStage >= 10 ? 'bg-emerald-400' : 'bg-zinc-700'" />
                 <span class="text-sm font-medium text-zinc-300">Implement payment webhooks</span>
               </div>
               <div class="flex items-center gap-2">
@@ -568,12 +594,12 @@ onMounted(() => {
                     'bg-zinc-800 text-zinc-500': simStage === 0,
                     'bg-amber-500/15 text-amber-400': simStage >= 1 && simStage <= 2,
                     'bg-emerald-500/15 text-emerald-400': simStage === 3,
-                    'bg-blue-500/15 text-blue-400': simStage >= 4 && simStage <= 7,
-                    'bg-violet-500/15 text-violet-400': simStage === 8,
-                    'bg-emerald-500/15 text-emerald-400 ': simStage === 9,
+                    'bg-blue-500/15 text-blue-400': simStage >= 4 && simStage <= 8,
+                    'bg-violet-500/15 text-violet-400': simStage === 9,
+                    'bg-emerald-500/15 text-emerald-400': simStage === 10,
                   }"
                 >
-                  {{ simStage === 0 ? 'Idle' : simStage <= 2 ? 'Planning' : simStage === 3 ? 'Accepting' : simStage <= 7 ? 'Executing' : simStage === 8 ? 'In Review' : 'Complete ✓' }}
+                  {{ simStage === 0 ? 'Idle' : simStage <= 2 ? 'Planning' : simStage === 3 ? 'Accepting' : simStage <= 8 ? 'Executing' : simStage === 9 ? 'In Review' : 'Complete ✓' }}
                 </span>
               </div>
             </div>
@@ -625,18 +651,18 @@ onMounted(() => {
                 <div class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Subtasks</div>
                 <Transition name="fade-up">
                   <div v-if="simStage >= 5" class="flex items-center gap-2 text-sm">
-                    <div class="w-4 h-4 rounded border" :class="simStage >= 9 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
-                      <Icon v-if="simStage >= 9" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
+                    <div class="w-4 h-4 rounded border transition-all duration-300" :class="simStage >= 7 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
+                      <Icon v-if="simStage >= 7" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
                     </div>
-                    <span class="text-zinc-300">Set up Stripe webhook endpoint</span>
+                    <span class="text-zinc-300" :class="simStage >= 7 ? 'line-through text-zinc-500' : ''">Set up Stripe webhook endpoint</span>
                   </div>
                 </Transition>
                 <Transition name="fade-up">
                   <div v-if="simStage >= 6" class="flex items-center gap-2 text-sm">
-                    <div class="w-4 h-4 rounded border" :class="simStage >= 9 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
-                      <Icon v-if="simStage >= 9" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
+                    <div class="w-4 h-4 rounded border transition-all duration-300" :class="simStage >= 8 ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/[0.15] bg-transparent'">
+                      <Icon v-if="simStage >= 8" name="heroicons:check" class="w-3 h-3 text-emerald-400" />
                     </div>
-                    <span class="text-zinc-300">Handle subscription events</span>
+                    <span class="text-zinc-300" :class="simStage >= 8 ? 'line-through text-zinc-500' : ''">Handle subscription events</span>
                   </div>
                 </Transition>
               </div>
@@ -650,7 +676,7 @@ onMounted(() => {
                 <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                   <div
                     class="h-full rounded-full transition-all duration-700 ease-out"
-                    :class="simProgress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'"
+                    :class="simStage >= 10 ? 'bg-emerald-500' : 'bg-blue-500'"
                     :style="{ width: `${simProgress}%` }"
                   />
                 </div>
@@ -668,7 +694,10 @@ onMounted(() => {
           <p class="text-sm text-zinc-400 mb-6 max-w-2xl">
             Left: what the agent runs. Right: what you see. Same task, two perspectives.
           </p>
-          <div class="grid lg:grid-cols-2 gap-0 rounded-2xl border border-white/[0.06] overflow-hidden">
+          <div
+            class="grid lg:grid-cols-2 gap-0 rounded-2xl border border-white/[0.06] overflow-hidden transition-opacity duration-700"
+            :class="termFading ? 'opacity-0' : 'opacity-100'"
+          >
             <!-- Left: agent terminal -->
             <div id="terminal-replay" ref="terminalEl" class="bg-[#0c0c0f] p-5 font-mono text-[13px] border-r border-white/[0.06] overflow-y-auto scroll-smooth h-[400px]">
               <!-- Terminal window dots -->
