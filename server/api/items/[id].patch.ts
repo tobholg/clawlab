@@ -64,6 +64,8 @@ export default defineEventHandler(async (event) => {
     priority,
     ownerId,
     parentId,
+    agentMode,
+    acceptedPlanVersion,
   } = body
 
   if (title !== undefined && title.length > MAX_TITLE_LENGTH) {
@@ -77,7 +79,7 @@ export default defineEventHandler(async (event) => {
   // Get current item with hierarchy info
   const currentItem = await prisma.item.findUnique({
     where: { id },
-    select: { status: true, subStatus: true, startDate: true, parentId: true, projectId: true, workspaceId: true }
+    select: { status: true, subStatus: true, startDate: true, parentId: true, projectId: true, workspaceId: true, agentMode: true }
   })
 
   if (!currentItem) {
@@ -164,6 +166,29 @@ export default defineEventHandler(async (event) => {
   if (progress !== undefined) updateData.progress = progress
   if (ownerId !== undefined) updateData.ownerId = ownerId || null
 
+  // Agent mode management (human-only)
+  if (agentMode !== undefined) {
+    if (agentMode === null) {
+      updateData.agentMode = null
+    } else {
+      const normalized = String(agentMode).toUpperCase()
+      if (!['PLAN', 'EXECUTE'].includes(normalized)) {
+        throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, or null' })
+      }
+      updateData.agentMode = normalized
+    }
+  }
+
+  if (acceptedPlanVersion !== undefined) {
+    if (acceptedPlanVersion === null) {
+      updateData.acceptedPlanVersion = null
+    } else if (typeof acceptedPlanVersion === 'number' && Number.isInteger(acceptedPlanVersion) && acceptedPlanVersion > 0) {
+      updateData.acceptedPlanVersion = acceptedPlanVersion
+    } else {
+      throw createError({ statusCode: 400, message: 'acceptedPlanVersion must be a positive integer or null' })
+    }
+  }
+
   // Handle parentId change (reparenting)
   let needsDescendantUpdate = false
   let newProjectId: string | null = null
@@ -234,6 +259,23 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Create activity for agentMode changes
+  if (agentMode !== undefined) {
+    const oldMode = currentItem.agentMode ?? null
+    const newMode = updateData.agentMode ?? null
+    if (oldMode !== newMode) {
+      await prisma.activity.create({
+        data: {
+          itemId: id,
+          userId: user.id,
+          type: 'UPDATED',
+          oldValue: oldMode,
+          newValue: newMode,
+        }
+      })
+    }
+  }
+
   return {
     id: item.id,
     title: item.title,
@@ -241,6 +283,9 @@ export default defineEventHandler(async (event) => {
     subStatus: item.subStatus ?? null,
     parentId: item.parentId ?? null,
     projectId: item.projectId ?? null,
+    agentMode: item.agentMode ?? null,
+    planDocId: item.planDocId ?? null,
+    acceptedPlanVersion: item.acceptedPlanVersion ?? null,
     startDate: item.startDate?.toISOString() ?? null,
     updatedAt: item.updatedAt.toISOString(),
     owner: item.owner ? {
