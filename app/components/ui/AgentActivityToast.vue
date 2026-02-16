@@ -162,7 +162,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <div
-      class="pointer-events-none fixed right-5 top-5 z-50 flex w-96 flex-col gap-2.5"
+      class="pointer-events-none fixed right-5 top-5 z-50 flex w-[440px] flex-col gap-2.5"
       @mouseenter="containerHovered = true"
       @mouseleave="containerHovered = false"
     >
