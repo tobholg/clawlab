@@ -16,15 +16,52 @@ const navItems = [
   { id: 'quickstart', label: 'Quick Start' },
 ]
 
-const showcaseFeatures = [
-  { icon: 'heroicons:queue-list', title: 'Recursive everything', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically. See exactly which subtask is dragging your project down.', screenshots: ['/screenshots/board_1.png', '/screenshots/board_2.png', '/screenshots/board_3.png'] },
-  { icon: 'heroicons:chat-bubble-left-right', title: 'Built-in channels', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context lives next to the work, not in a separate app.', screenshots: ['/screenshots/channel_1.png', '/screenshots/channel_2.png'] },
-  { icon: 'heroicons:megaphone', title: 'Stakeholder spaces', desc: 'External portals for clients and investors. They see filtered views of your progress. AI translates status updates for different audiences.', screenshots: ['/screenshots/stakeholder_1.png', '/screenshots/stakeholder_2.png'] },
-  { icon: 'heroicons:clock', title: 'Focus tracking', desc: 'Deep work, meetings, admin, learning, break. Know where time goes. Spot burnout before it happens.', screenshots: ['/screenshots/focus_1.png'] },
+// Flattened carousel: each slide is one screenshot tied to a feature
+const featureSlides = [
+  { feature: 'Recursive everything', icon: 'heroicons:queue-list', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically.', screenshot: '/screenshots/board_1.png', label: 'Kanban board' },
+  { feature: 'Recursive everything', icon: 'heroicons:queue-list', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically.', screenshot: '/screenshots/board_2.png', label: 'Task detail' },
+  { feature: 'Recursive everything', icon: 'heroicons:queue-list', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically.', screenshot: '/screenshots/board_3.png', label: 'Timeline view' },
+  { feature: 'Built-in channels', icon: 'heroicons:chat-bubble-left-right', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context lives next to the work, not in a separate app.', screenshot: '/screenshots/channel_1.png', label: 'Team chat' },
+  { feature: 'Built-in channels', icon: 'heroicons:chat-bubble-left-right', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context lives next to the work, not in a separate app.', screenshot: '/screenshots/channel_2.png', label: 'AI summary' },
+  { feature: 'Stakeholder spaces', icon: 'heroicons:megaphone', desc: 'External portals for clients and investors. Filtered views of your progress. AI translates status for different audiences.', screenshot: '/screenshots/stakeholder_1.png', label: 'Portal view' },
+  { feature: 'Stakeholder spaces', icon: 'heroicons:megaphone', desc: 'External portals for clients and investors. Filtered views of your progress. AI translates status for different audiences.', screenshot: '/screenshots/stakeholder_2.png', label: 'Activity feed' },
+  { feature: 'Focus tracking', icon: 'heroicons:clock', desc: 'Deep work, meetings, admin, learning, break. Know where time goes. Spot burnout before it happens.', screenshot: '/screenshots/focus_1.png', label: 'Focus session' },
 ]
 
-// Per-feature active screenshot index
-const activeScreenshots = reactive<Record<number, number>>({ 0: 0, 1: 0, 2: 0, 3: 0 })
+const activeSlide = ref(0)
+const slideDirection = ref<'next' | 'prev'>('next')
+
+const currentSlide = computed(() => featureSlides[activeSlide.value])
+
+const goToSlide = (index: number) => {
+  slideDirection.value = index > activeSlide.value ? 'next' : 'prev'
+  activeSlide.value = index
+}
+
+const nextSlide = () => {
+  slideDirection.value = 'next'
+  activeSlide.value = (activeSlide.value + 1) % featureSlides.length
+}
+
+const prevSlide = () => {
+  slideDirection.value = 'prev'
+  activeSlide.value = (activeSlide.value - 1 + featureSlides.length) % featureSlides.length
+}
+
+// Group slides by feature for dot indicators
+const featureGroups = computed(() => {
+  const groups: { name: string; startIndex: number; count: number }[] = []
+  let current = ''
+  for (let i = 0; i < featureSlides.length; i++) {
+    if (featureSlides[i].feature !== current) {
+      current = featureSlides[i].feature
+      groups.push({ name: current, startIndex: i, count: 1 })
+    } else {
+      groups[groups.length - 1].count++
+    }
+  }
+  return groups
+})
 
 const quickStartSteps = [
   { num: '01', title: 'Clone it', cmd: 'git clone https://github.com/recursion-endeavours/context.git && cd context && npm install', desc: '' },
@@ -63,7 +100,14 @@ const lightbox = ref<{ featureIndex: number; rect: DOMRect; offsetX: number; off
 const lightboxOpen = ref(false)
 const lightboxImageIndex = ref(0)
 
-const openLightbox = (featureIndex: number, event: Event) => {
+const closeLightbox = () => {
+  lightboxOpen.value = false
+  setTimeout(() => {
+    lightbox.value = null
+  }, 350)
+}
+
+const openCarouselLightbox = (event: Event) => {
   const el = (event.currentTarget as HTMLElement)
   const rect = el.getBoundingClientRect()
   const viewW = window.innerWidth
@@ -72,50 +116,9 @@ const openLightbox = (featureIndex: number, event: Event) => {
   const scaleX = rect.width / targetW
   const offsetX = (rect.left + rect.width / 2) - viewW / 2
   const offsetY = (rect.top + rect.height / 2) - viewH / 2
-  lightboxImageIndex.value = activeScreenshots[featureIndex]
-  lightbox.value = { featureIndex, rect, offsetX, offsetY, scale: scaleX }
-  requestAnimationFrame(() => {
-    lightboxOpen.value = true
-  })
-}
-
-const closeLightbox = () => {
-  lightboxOpen.value = false
-  setTimeout(() => {
-    lightbox.value = null
-  }, 350)
-}
-
-const lightboxFeature = computed(() => lightbox.value ? showcaseFeatures[lightbox.value.featureIndex] : null)
-
-const setLightboxImage = (index: number) => {
-  lightboxImageIndex.value = index
-  if (lightbox.value) {
-    activeScreenshots[lightbox.value.featureIndex] = index
-  }
-}
-
-// Transition direction for screenshot flips
-const screenshotDirection = ref<'next' | 'prev'>('next')
-
-const setScreenshot = (featureIndex: number, imageIndex: number) => {
-  screenshotDirection.value = imageIndex > activeScreenshots[featureIndex] ? 'next' : 'prev'
-  activeScreenshots[featureIndex] = imageIndex
-}
-
-const handleLightboxClick = (event: MouseEvent) => {
-  if (!lightbox.value || !lightboxFeature.value) return
-  const screenshots = lightboxFeature.value.screenshots
-  if (screenshots.length <= 1) return
-  const el = event.currentTarget as HTMLElement
-  const rect = el.getBoundingClientRect()
-  const clickX = (event.clientX - rect.left) / rect.width
-  const len = screenshots.length
-  if (clickX < 0.3) {
-    setLightboxImage((lightboxImageIndex.value - 1 + len) % len)
-  } else if (clickX > 0.7) {
-    setLightboxImage((lightboxImageIndex.value + 1) % len)
-  }
+  lightboxImageIndex.value = activeSlide.value
+  lightbox.value = { featureIndex: 0, rect, offsetX, offsetY, scale: scaleX }
+  requestAnimationFrame(() => { lightboxOpen.value = true })
 }
 
 const copyCommand = async () => {
@@ -141,6 +144,12 @@ onMounted(() => {
   const onScroll = () => { scrolled.value = window.scrollY > 64 }
   window.addEventListener('scroll', onScroll, { passive: true })
 
+  const onKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowRight') nextSlide()
+    else if (e.key === 'ArrowLeft') prevSlide()
+  }
+  window.addEventListener('keydown', onKeydown)
+
   const observer = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -160,6 +169,7 @@ onMounted(() => {
   onUnmounted(() => {
     observer.disconnect()
     window.removeEventListener('scroll', onScroll)
+    window.removeEventListener('keydown', onKeydown)
   })
 })
 </script>
@@ -306,7 +316,7 @@ onMounted(() => {
 
         <!-- Agent lifecycle -->
         <div class="mt-12 grid lg:grid-cols-3 gap-6 intro" style="--d: 580ms">
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-6">
             <div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
               <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-amber-400" />
             </div>
@@ -315,7 +325,7 @@ onMounted(() => {
               Assign a task in PLAN mode. The agent researches, breaks it down, and submits a plan document for your review.
             </p>
           </div>
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-6">
             <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4">
               <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-400" />
             </div>
@@ -324,7 +334,7 @@ onMounted(() => {
               Review the plan, request changes, or accept it. The agent only starts executing after you say go. You stay in control.
             </p>
           </div>
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md p-6">
             <div class="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
               <Icon name="heroicons:bolt" class="w-5 h-5 text-blue-400" />
             </div>
@@ -363,7 +373,7 @@ onMounted(() => {
             <div class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">Real-time activity</div>
             <div class="space-y-3">
               <!-- Mock toast 1 -->
-              <div class="rounded-xl border border-white/[0.08] bg-[#161619] p-3">
+              <div class="rounded-xl border border-white/[0.08] bg-[#161619] backdrop-blur-md p-3">
                 <div class="flex items-start gap-3">
                   <div class="h-9 w-9 flex-shrink-0 rounded-full bg-amber-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
                     <span class="text-xs font-semibold text-amber-500">H</span>
@@ -379,7 +389,7 @@ onMounted(() => {
                 </div>
               </div>
               <!-- Mock toast 2 -->
-              <div class="rounded-xl border border-white/[0.08] bg-[#161619] p-3">
+              <div class="rounded-xl border border-white/[0.08] bg-[#161619] backdrop-blur-md p-3">
                 <div class="flex items-start gap-3">
                   <div class="h-9 w-9 flex-shrink-0 rounded-full bg-emerald-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
                     <span class="text-xs font-semibold text-emerald-500">C</span>
@@ -395,7 +405,7 @@ onMounted(() => {
                 </div>
               </div>
               <!-- Mock toast 3 -->
-              <div class="rounded-xl border border-white/[0.08] bg-[#161619] p-3">
+              <div class="rounded-xl border border-white/[0.08] bg-[#161619] backdrop-blur-md p-3">
                 <div class="flex items-start gap-3">
                   <div class="h-9 w-9 flex-shrink-0 rounded-full bg-blue-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
                     <span class="text-xs font-semibold text-blue-500">C</span>
@@ -454,50 +464,75 @@ onMounted(() => {
           </p>
         </div>
 
-        <!-- Showcase features -->
-        <div class="mt-12 space-y-16 lg:space-y-20">
-          <div
-            v-for="(feat, i) in showcaseFeatures"
-            :key="feat.title"
-            class="grid gap-8 lg:gap-12 items-center intro"
-            :class="i % 2 === 1 ? 'lg:grid-cols-[7fr_5fr]' : 'lg:grid-cols-[5fr_7fr]'"
-            :style="{ '--d': `${860 + i * 80}ms` }"
-          >
-            <!-- Text -->
-            <div :class="i % 2 === 1 ? 'lg:order-2' : ''">
-              <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4">
-                <Icon :name="feat.icon" class="w-4.5 h-4.5 text-emerald-400" />
+        <!-- Feature carousel -->
+        <div class="mt-12 intro" style="--d: 860ms">
+          <!-- Screenshot display -->
+          <div class="relative rounded-2xl border border-white/[0.06] bg-black overflow-hidden group">
+            <!-- Left/right click zones -->
+            <button
+              class="absolute left-0 top-0 bottom-0 w-1/4 z-10 cursor-pointer flex items-center justify-start pl-4 opacity-0 group-hover:opacity-100 transition-opacity"
+              @click="prevSlide"
+            >
+              <div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/[0.1] flex items-center justify-center">
+                <Icon name="heroicons:chevron-left" class="w-5 h-5 text-white" />
               </div>
-              <h3 class="text-xl sm:text-2xl font-semibold text-zinc-100">{{ feat.title }}</h3>
-              <p class="mt-2 text-sm sm:text-base text-zinc-400 leading-relaxed max-w-md">{{ feat.desc }}</p>
-            </div>
-            <!-- Screenshots -->
-            <div :class="i % 2 === 1 ? 'lg:order-1' : ''">
-              <div
-                class="rounded-xl border border-white/[0.06] bg-black overflow-hidden cursor-pointer hover:border-white/[0.1] transition-all relative"
-                @click="openLightbox(i, $event)"
-              >
-                <Transition name="screenshot-fade" mode="out-in">
-                  <img
-                    :key="feat.screenshots[activeScreenshots[i]]"
-                    :src="feat.screenshots[activeScreenshots[i]]"
-                    :alt="feat.title"
-                    class="w-full h-auto screenshot-crisp"
-                  />
-                </Transition>
+            </button>
+            <button
+              class="absolute right-0 top-0 bottom-0 w-1/4 z-10 cursor-pointer flex items-center justify-end pr-4 opacity-0 group-hover:opacity-100 transition-opacity"
+              @click="nextSlide"
+            >
+              <div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/[0.1] flex items-center justify-center">
+                <Icon name="heroicons:chevron-right" class="w-5 h-5 text-white" />
               </div>
-              <!-- Dots -->
-              <div v-if="feat.screenshots.length > 1" class="flex items-center justify-center gap-1.5 mt-3">
-                <button
-                  v-for="(_, si) in feat.screenshots"
-                  :key="si"
-                  class="w-1.5 h-1.5 rounded-full transition-all cursor-pointer"
-                  :class="activeScreenshots[i] === si ? 'bg-emerald-400 w-4' : 'bg-zinc-600 hover:bg-zinc-500'"
-                  @click="setScreenshot(i, si)"
-                />
+            </button>
+
+            <!-- Image -->
+            <Transition :name="slideDirection === 'next' ? 'slide-next' : 'slide-prev'" mode="out-in">
+              <img
+                :key="activeSlide"
+                :src="currentSlide.screenshot"
+                :alt="currentSlide.feature"
+                class="w-full h-auto screenshot-crisp"
+              />
+            </Transition>
+
+            <!-- Feature info overlay (bottom) -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-16 pb-5 px-6">
+              <div class="flex items-end justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <Icon :name="currentSlide.icon" class="w-4 h-4 text-emerald-400" />
+                    <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">{{ currentSlide.feature }}</span>
+                  </div>
+                  <p class="text-sm text-zinc-300 max-w-lg leading-relaxed">{{ currentSlide.desc }}</p>
+                </div>
+                <span class="text-xs text-zinc-500 flex-shrink-0">{{ currentSlide.label }}</span>
               </div>
             </div>
           </div>
+
+          <!-- Feature group indicators -->
+          <div class="flex items-center justify-center gap-3 mt-5">
+            <template v-for="(group, gi) in featureGroups" :key="group.name">
+              <div class="flex items-center gap-1">
+                <button
+                  v-for="si in group.count"
+                  :key="si"
+                  class="h-1.5 rounded-full transition-all duration-300 cursor-pointer"
+                  :class="activeSlide === group.startIndex + si - 1
+                    ? 'bg-emerald-400 w-6'
+                    : activeSlide >= group.startIndex && activeSlide < group.startIndex + group.count
+                      ? 'bg-zinc-500 w-1.5'
+                      : 'bg-zinc-700 w-1.5 hover:bg-zinc-600'"
+                  @click="goToSlide(group.startIndex + si - 1)"
+                />
+              </div>
+              <div v-if="gi < featureGroups.length - 1" class="w-px h-3 bg-white/[0.06]" />
+            </template>
+          </div>
+
+          <!-- Keyboard hint -->
+          <p class="text-center text-[11px] text-zinc-600 mt-2">Click or use arrow keys to navigate</p>
         </div>
       </div>
     </section>
@@ -535,16 +570,16 @@ onMounted(() => {
               >
                 <td class="px-4 py-2.5 text-zinc-300">{{ row.feature }}</td>
                 <td class="px-4 py-2.5 text-center">
-                  <Icon v-if="row.context" name="heroicons:check" class="w-4 h-4 text-emerald-400 inline" />
-                  <Icon v-else name="heroicons:x-mark" class="w-4 h-4 text-zinc-600 inline" />
+                  <span v-if="row.context" class="text-emerald-400 text-base">&#10003;</span>
+                  <span v-else class="text-zinc-700 text-base">&#x2013;</span>
                 </td>
                 <td class="px-4 py-2.5 text-center">
-                  <Icon v-if="row.linear" name="heroicons:check" class="w-4 h-4 text-zinc-400 inline" />
-                  <Icon v-else name="heroicons:x-mark" class="w-4 h-4 text-zinc-600 inline" />
+                  <span v-if="row.linear" class="text-zinc-400 text-base">&#10003;</span>
+                  <span v-else class="text-zinc-700 text-base">&#x2013;</span>
                 </td>
                 <td class="px-4 py-2.5 text-center">
-                  <Icon v-if="row.jira" name="heroicons:check" class="w-4 h-4 text-zinc-400 inline" />
-                  <Icon v-else name="heroicons:x-mark" class="w-4 h-4 text-zinc-600 inline" />
+                  <span v-if="row.jira" class="text-zinc-400 text-base">&#10003;</span>
+                  <span v-else class="text-zinc-700 text-base">&#x2013;</span>
                 </td>
               </tr>
             </tbody>
@@ -684,27 +719,11 @@ onMounted(() => {
           >
             <Icon name="heroicons:x-mark" class="w-6 h-6" />
           </button>
-          <div
-            class="rounded-xl border border-white/[0.1] bg-black overflow-hidden"
-            :class="lightboxFeature && lightboxFeature.screenshots.length > 1 ? 'cursor-pointer' : ''"
-            @click="handleLightboxClick($event)"
-          >
-            <Transition name="screenshot-fade" mode="out-in">
-              <img
-                :key="lightboxFeature?.screenshots[lightboxImageIndex]"
-                :src="lightboxFeature?.screenshots[lightboxImageIndex]"
-                :alt="lightboxFeature?.title"
-                class="w-full h-auto screenshot-crisp"
-              />
-            </Transition>
-          </div>
-          <div v-if="lightboxFeature && lightboxFeature.screenshots.length > 1" class="flex items-center justify-center gap-2 mt-4">
-            <button
-              v-for="(_, si) in lightboxFeature.screenshots"
-              :key="si"
-              class="w-2 h-2 rounded-full transition-all cursor-pointer"
-              :class="lightboxImageIndex === si ? 'bg-emerald-400 w-5' : 'bg-zinc-600 hover:bg-zinc-400'"
-              @click="setLightboxImage(si)"
+          <div class="rounded-xl border border-white/[0.1] bg-black overflow-hidden">
+            <img
+              :src="featureSlides[activeSlide]?.screenshot"
+              :alt="featureSlides[activeSlide]?.feature"
+              class="w-full h-auto screenshot-crisp"
             />
           </div>
         </div>
@@ -747,6 +766,34 @@ onMounted(() => {
 
 .screenshot-crisp {
   image-rendering: high-quality;
+}
+
+/* Feature carousel slide transitions */
+.slide-next-enter-active,
+.slide-next-leave-active,
+.slide-prev-enter-active,
+.slide-prev-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.slide-next-enter-from {
+  opacity: 0;
+  transform: translateX(60px);
+}
+
+.slide-next-leave-to {
+  opacity: 0;
+  transform: translateX(-60px);
+}
+
+.slide-prev-enter-from {
+  opacity: 0;
+  transform: translateX(-60px);
+}
+
+.slide-prev-leave-to {
+  opacity: 0;
+  transform: translateX(60px);
 }
 
 .lightbox-image {
