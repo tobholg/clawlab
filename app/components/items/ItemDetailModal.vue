@@ -1798,6 +1798,26 @@ const formatRelativeTime = (dateStr: string) => {
               </div>
             </div>
 
+            <!-- Progress complete but not formally done -->
+            <div v-else-if="estimatedCompletion?.complete" class="rounded-xl p-4 border border-blue-200 dark:border-blue-500/20 bg-blue-50/50 dark:bg-blue-500/5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center">
+                    <Icon name="heroicons:check" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-blue-800 dark:text-blue-300">Ready to complete</div>
+                    <div class="text-xs text-blue-600/70 dark:text-blue-400/60">
+                      Progress is 100% — {{ estimatedCompletion.daysSpent }} day{{ estimatedCompletion.daysSpent === 1 ? '' : 's' }} spent
+                    </div>
+                  </div>
+                </div>
+                <div class="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10 px-2.5 py-1 rounded-full">
+                  100%
+                </div>
+              </div>
+            </div>
+
             <div v-else-if="estimatedCompletion" class="rounded-xl p-4 border border-slate-200 dark:border-white/[0.06]">
               <div class="flex items-start justify-between gap-3">
                 <div>
