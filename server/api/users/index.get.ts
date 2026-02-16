@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
           name: true,
           email: true,
           avatar: true,
+          isAgent: true,
           currentProjectFocusId: true,
           currentTaskFocusId: true,
           currentLaneFocus: true,
@@ -35,6 +36,7 @@ export default defineEventHandler(async (event) => {
           name: true,
           email: true,
           avatar: true,
+          isAgent: true,
           currentProjectFocusId: true,
           currentTaskFocusId: true,
           currentLaneFocus: true,
@@ -47,6 +49,7 @@ export default defineEventHandler(async (event) => {
     name: u.name ?? u.email.split('@')[0],
     email: u.email,
     avatar: u.avatar,
+    isAgent: u.isAgent,
     hasFocus: !!(u.currentTaskFocusId || u.currentLaneFocus || u.currentProjectFocusId),
   }))
 })

@@ -42,6 +42,34 @@ const navigationHistory = ref<string[]>([])
 // Item detail fetched via $fetch when item changes
 const itemDetail = ref<any>(null)
 const parentDetail = ref<any>(null)
+const planDocument = ref<any | null>(null)
+const planDocumentLoading = ref(false)
+const planDocumentError = ref<string | null>(null)
+const showPlanDocModal = ref(false)
+const isUpdatingAgentMode = ref(false)
+const isAcceptingPlan = ref(false)
+const skipPlanningOnAgentAssign = ref(false)
+const showRequestChangesInput = ref(false)
+const requestChangesText = ref('')
+const requestChangesSubmitting = ref(false)
+
+const hasAgentAssignee = computed(() => {
+  return !!itemDetail.value?.assignees?.some((assignee: any) => !!assignee.isAgent)
+})
+
+const currentAgentMode = computed<'PLAN' | 'EXECUTE' | null>(() => {
+  const mode = itemDetail.value?.agentMode
+  if (mode === 'PLAN' || mode === 'EXECUTE') return mode
+  return null
+})
+
+const latestPlanVersion = computed(() => {
+  const versionCount = Number(planDocument.value?.versionCount ?? 0)
+  if (Number.isInteger(versionCount) && versionCount > 0) return versionCount
+  const acceptedVersion = Number(itemDetail.value?.acceptedPlanVersion ?? 0)
+  if (Number.isInteger(acceptedVersion) && acceptedVersion > 0) return acceptedVersion
+  return 1
+})
 
 const loadItem = async (itemId: string, addToHistory = true) => {
   if (!itemId) return
@@ -66,6 +94,116 @@ const loadItem = async (itemId: string, addToHistory = true) => {
 const refreshItem = async () => {
   if (currentItemId.value) {
     await loadItem(currentItemId.value, false)
+  }
+}
+
+const loadPlanDocument = async () => {
+  const planDocId = itemDetail.value?.planDocId
+  if (!planDocId || !hasAgentAssignee.value) {
+    planDocument.value = null
+    planDocumentError.value = null
+    return
+  }
+
+  planDocumentLoading.value = true
+  planDocumentError.value = null
+  try {
+    planDocument.value = await $fetch(`/api/documents/${planDocId}`)
+  } catch (e: any) {
+    console.error('Failed to load plan document:', e)
+    planDocument.value = null
+    planDocumentError.value = e?.data?.message || e?.message || 'Failed to load plan document'
+  } finally {
+    planDocumentLoading.value = false
+  }
+}
+
+const updateAgentMode = async (nextMode: 'PLAN' | 'EXECUTE' | null) => {
+  if (!currentItemId.value) return
+  const previousMode = currentAgentMode.value
+  const previousAcceptedVersion = itemDetail.value?.acceptedPlanVersion ?? null
+  const nextAcceptedVersion = nextMode === null ? null : previousAcceptedVersion
+  if (previousMode === nextMode && previousAcceptedVersion === nextAcceptedVersion) return
+
+  isUpdatingAgentMode.value = true
+  if (itemDetail.value) {
+    itemDetail.value.agentMode = nextMode
+    itemDetail.value.acceptedPlanVersion = nextAcceptedVersion
+  }
+
+  try {
+    await $fetch(`/api/items/${currentItemId.value}`, {
+      method: 'PATCH',
+      body: {
+        agentMode: nextMode,
+        acceptedPlanVersion: nextAcceptedVersion,
+      }
+    })
+    emit('update', currentItemId.value, { _saved: true, _close: false })
+    await refreshItem()
+  } catch (e) {
+    console.error('Failed to update agent mode:', e)
+    if (itemDetail.value) {
+      itemDetail.value.agentMode = previousMode
+      itemDetail.value.acceptedPlanVersion = previousAcceptedVersion
+    }
+  } finally {
+    isUpdatingAgentMode.value = false
+  }
+}
+
+const acceptAgentPlan = async () => {
+  if (!currentItemId.value || !itemDetail.value?.planDocId) return
+  const acceptedVersion = latestPlanVersion.value
+  const previousMode = currentAgentMode.value
+  const previousAcceptedVersion = itemDetail.value?.acceptedPlanVersion ?? null
+
+  isAcceptingPlan.value = true
+  if (itemDetail.value) {
+    itemDetail.value.agentMode = 'EXECUTE'
+    itemDetail.value.acceptedPlanVersion = acceptedVersion
+  }
+
+  try {
+    await $fetch(`/api/items/${currentItemId.value}`, {
+      method: 'PATCH',
+      body: {
+        acceptedPlanVersion: acceptedVersion,
+        agentMode: 'EXECUTE',
+      }
+    })
+    emit('update', currentItemId.value, { _saved: true, _close: false })
+    await refreshItem()
+  } catch (e) {
+    console.error('Failed to accept plan:', e)
+    if (itemDetail.value) {
+      itemDetail.value.agentMode = previousMode
+      itemDetail.value.acceptedPlanVersion = previousAcceptedVersion
+    }
+  } finally {
+    isAcceptingPlan.value = false
+  }
+}
+
+const submitPlanChangeRequest = async () => {
+  if (!currentItemId.value || !requestChangesText.value.trim()) return
+  requestChangesSubmitting.value = true
+
+  try {
+    await $fetch(`/api/items/${currentItemId.value}/comments`, {
+      method: 'POST',
+      body: {
+        content: requestChangesText.value.trim(),
+        userId: currentUserId.value
+      }
+    })
+    requestChangesText.value = ''
+    showRequestChangesInput.value = false
+    await refreshItem()
+  } catch (e) {
+    console.error('Failed to submit plan change request:', e)
+  } finally {
+    requestChangesSubmitting.value = false
   }
 }
 
@@ -189,6 +327,12 @@ watch([() => props.item?.id, () => props.open], ([id, isOpen]) => {
     showCompleteWithChildren.value = false
     completeWithChildrenError.value = null
     completeWithChildrenSource.value = null
+    planDocument.value = null
+    planDocumentError.value = null
+    showPlanDocModal.value = false
+    showRequestChangesInput.value = false
+    requestChangesText.value = ''
+    skipPlanningOnAgentAssign.value = false
   } else if (!isOpen) {
     // Clear when modal closes
     itemDetail.value = null
@@ -201,8 +345,27 @@ watch([() => props.item?.id, () => props.open], ([id, isOpen]) => {
     showCompleteWithChildren.value = false
     completeWithChildrenError.value = null
     completeWithChildrenSource.value = null
+    planDocument.value = null
+    planDocumentError.value = null
+    showPlanDocModal.value = false
+    showRequestChangesInput.value = false
+    requestChangesText.value = ''
+    skipPlanningOnAgentAssign.value = false
   }
 }, { immediate: true })
+
+watch(
+  [() => props.open, () => itemDetail.value?.planDocId, hasAgentAssignee],
+  ([isOpen, planDocId, hasAgent]) => {
+    if (!isOpen || !hasAgent || !planDocId) {
+      planDocument.value = null
+      planDocumentError.value = null
+      return
+    }
+    loadPlanDocument()
+  },
+  { immediate: true }
+)
 
 // Available users for assignment
 const availableUsers = ref<any[]>([])
@@ -644,12 +807,20 @@ const deleteItem = async () => {
 // Assign user
 const assignUser = async (userId: string) => {
   if (!currentItemId.value) return
+  const selectedUser = availableUsers.value.find((user: any) => user.id === userId)
   try {
     await $fetch(`/api/items/${currentItemId.value}/assignees`, {
       method: 'POST',
       body: { userId }
     })
     await refreshItem()
+
+    if (selectedUser?.isAgent && currentAgentMode.value === null) {
+      const targetMode = skipPlanningOnAgentAssign.value ? 'EXECUTE' : 'PLAN'
+      await updateAgentMode(targetMode)
+    } else if (!hasAgentAssignee.value && currentAgentMode.value !== null) {
+      await updateAgentMode(null)
+    }
   } catch (e) {
     console.error('Failed to assign user:', e)
   }
@@ -663,6 +834,10 @@ const removeAssignee = async (userId: string) => {
       method: 'DELETE'
     })
     await refreshItem()
+
+    if (!hasAgentAssignee.value && currentAgentMode.value !== null) {
+      await updateAgentMode(null)
+    }
   } catch (e) {
     console.error('Failed to remove assignee:', e)
   }
@@ -1313,12 +1488,18 @@ const formatRelativeTime = (dateStr: string) => {
                         <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
                       </div>
                       <span class="truncate">{{ assignee.name }}</span>
+                      <span
+                        v-if="assignee.isAgent"
+                        class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-medium"
+                      >
+                        AI
+                      </span>
                       <button
                         v-if="canEditItem"
                         @click="removeAssignee(assignee.id)"
-                        class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 dark:hover:bg-white/[0.08] rounded transition-all"
+                        class="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center leading-none hover:bg-slate-200 dark:hover:bg-white/[0.08] rounded transition-all"
                       >
-                        <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
+                        <Icon name="heroicons:x-mark" class="w-3.5 h-3.5 text-slate-400" />
                       </button>
                     </div>
                   </template>
@@ -1348,9 +1529,32 @@ const formatRelativeTime = (dateStr: string) => {
                             <span class="text-[9px] text-white font-medium">{{ user.name?.[0] ?? 'U' }}</span>
                           </div>
                           <span>{{ user.name }}</span>
+                          <span
+                            v-if="user.isAgent"
+                            class="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-medium"
+                          >
+                            AI
+                          </span>
                         </button>
                       </div>
                     </Transition>
+                  </div>
+                  <div
+                    v-if="canEditItem && (hasAgentAssignee || unassignedUsers.some((user: any) => !!user.isAgent))"
+                    class="w-full mt-1 flex items-center justify-between rounded-lg border border-blue-100 dark:border-blue-500/20 bg-blue-50/70 dark:bg-blue-500/10 px-2.5 py-1.5"
+                  >
+                    <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-zinc-300 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        :checked="skipPlanningOnAgentAssign"
+                        class="h-3.5 w-3.5 rounded border-slate-300 dark:border-zinc-600 text-blue-500 focus:ring-blue-200 dark:focus:ring-blue-500/30"
+                        @change="skipPlanningOnAgentAssign = ($event.target as HTMLInputElement).checked"
+                      />
+                      Skip planning -> Execute directly
+                    </label>
+                    <span class="text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                      {{ skipPlanningOnAgentAssign ? 'EXECUTE' : 'PLAN' }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1424,6 +1628,138 @@ const formatRelativeTime = (dateStr: string) => {
                   </div>
                   <span class="text-xs font-medium text-slate-700 dark:text-zinc-300 w-8 text-right tabular-nums">{{ editedConfidence }}%</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Agent Plan / Execute -->
+            <div
+              v-if="hasAgentAssignee"
+              class="rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03] p-4 space-y-3"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-medium text-slate-800 dark:text-zinc-200">Agent Workflow</h3>
+                  <p class="text-xs text-slate-500 dark:text-zinc-500">Choose whether the agent plans first or executes directly.</p>
+                </div>
+                <label class="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
+                  <span>Mode</span>
+                  <select
+                    :value="currentAgentMode ?? 'NONE'"
+                    :disabled="isUpdatingAgentMode || !canEditItem"
+                    class="text-xs px-2 py-1 rounded-md border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
+                    @change="updateAgentMode(($event.target as HTMLSelectElement).value === 'NONE' ? null : (($event.target as HTMLSelectElement).value as 'PLAN' | 'EXECUTE'))"
+                  >
+                    <option value="PLAN">Planning</option>
+                    <option value="EXECUTE">Executing</option>
+                    <option value="NONE">None</option>
+                  </select>
+                </label>
+              </div>
+
+              <div
+                v-if="currentAgentMode === 'EXECUTE'"
+                class="flex items-center justify-between gap-2 rounded-lg border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-3 py-2"
+              >
+                <div class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                  <Icon name="heroicons:bolt" class="w-4 h-4" />
+                  <span>Agent executing plan (v{{ itemDetail?.acceptedPlanVersion ?? latestPlanVersion }})</span>
+                </div>
+                <button
+                  v-if="itemDetail?.planDocId"
+                  class="text-xs font-medium text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                  @click="showPlanDocModal = true"
+                >
+                  View plan
+                </button>
+              </div>
+
+              <div
+                v-else-if="currentAgentMode === 'PLAN' && !itemDetail?.planDocId"
+                class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] px-3 py-2 text-sm text-slate-600 dark:text-zinc-400"
+              >
+                <Icon name="heroicons:clock" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                <span>Waiting for agent to submit a plan</span>
+              </div>
+
+              <div
+                v-else-if="currentAgentMode === 'PLAN' && itemDetail?.planDocId"
+                class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card overflow-hidden"
+              >
+                <div class="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-white/[0.06]">
+                  <div class="flex items-center gap-2 text-sm text-slate-700 dark:text-zinc-300">
+                    <Icon name="heroicons:clipboard-document-list" class="w-4 h-4 text-amber-500" />
+                    <span class="font-medium">Agent Plan</span>
+                  </div>
+                  <span class="text-xs text-slate-500 dark:text-zinc-500">v{{ latestPlanVersion }} (latest)</span>
+                </div>
+
+                <div v-if="planDocumentLoading" class="px-3 py-6 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-zinc-500">
+                  <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5 animate-spin" />
+                  Loading plan...
+                </div>
+                <div v-else-if="planDocumentError" class="px-3 py-3 text-xs text-rose-600 dark:text-rose-400">
+                  {{ planDocumentError }}
+                </div>
+                <div v-else class="px-3 py-3">
+                  <MarkdownRenderer
+                    :content="planDocument?.content || ''"
+                    class="text-sm text-slate-600 dark:text-zinc-400"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03]">
+                  <button
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                    :disabled="!canEditItem || isAcceptingPlan || planDocumentLoading"
+                    @click="acceptAgentPlan"
+                  >
+                    <Icon name="heroicons:check" class="w-3.5 h-3.5" />
+                    Accept Plan
+                  </button>
+                  <button
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                    :disabled="!canEditItem"
+                    @click="showRequestChangesInput = !showRequestChangesInput"
+                  >
+                    <Icon name="heroicons:pencil-square" class="w-3.5 h-3.5" />
+                    Request Changes
+                  </button>
+                </div>
+
+                <div
+                  v-if="showRequestChangesInput"
+                  class="px-3 py-3 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card"
+                >
+                  <textarea
+                    v-model="requestChangesText"
+                    rows="3"
+                    class="w-full text-sm text-slate-700 dark:text-zinc-200 bg-slate-50 dark:bg-white/[0.04] rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.06] focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 resize-none"
+                    placeholder="Describe what should change in the plan..."
+                  />
+                  <div class="mt-2 flex justify-end gap-2">
+                    <button
+                      class="px-2.5 py-1.5 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
+                      @click="showRequestChangesInput = false; requestChangesText = ''"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      class="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-900 text-white dark:bg-white/[0.12] dark:text-zinc-100 hover:bg-slate-800 dark:hover:bg-white/[0.18] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                      :disabled="requestChangesSubmitting || !requestChangesText.trim()"
+                      @click="submitPlanChangeRequest"
+                    >
+                      Send Request
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-else
+                class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] px-3 py-2 text-sm text-slate-600 dark:text-zinc-400"
+              >
+                <Icon name="heroicons:minus-circle" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                <span>Agent mode is set to none.</span>
               </div>
             </div>
             
@@ -1998,6 +2334,14 @@ const formatRelativeTime = (dateStr: string) => {
       </div>
     </Transition>
   </Teleport>
+
+  <DocumentsDocumentModal
+    :open="showPlanDocModal"
+    :document-id="itemDetail?.planDocId ?? null"
+    @close="showPlanDocModal = false"
+    @updated="loadPlanDocument"
+    @deleted="showPlanDocModal = false; refreshItem()"
+  />
 
   <ItemsCompleteWithChildrenModal
     :open="showCompleteWithChildren"

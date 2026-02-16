@@ -164,7 +164,7 @@ export function useItems() {
   }
 
   // Create a new item
-  const createItem = async (data: Partial<Item> & { ownerId?: string | null; assigneeIds?: string[]; complexity?: string | null; priority?: string | null }) => {
+  const createItem = async (data: Partial<Item> & { ownerId?: string | null; assigneeIds?: string[]; complexity?: string | null; priority?: string | null; agentMode?: 'PLAN' | 'EXECUTE' | null }) => {
     await $fetch('/api/items', {
       method: 'POST',
       body: {

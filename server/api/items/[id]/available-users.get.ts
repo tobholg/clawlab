@@ -63,5 +63,6 @@ export default defineEventHandler(async (event) => {
     name: u.name ?? u.email?.split('@')[0] ?? 'User',
     email: u.email,
     avatar: u.avatar,
+    isAgent: !!u.isAgent,
   }))
 })

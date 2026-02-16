@@ -784,6 +784,26 @@ function onHeaderPointerUp(event: PointerEvent) {
               {{ item.title }}
             </span>
 
+            <span
+              v-if="item.agentMode === 'PLAN' || item.agentMode === 'EXECUTE'"
+              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0"
+              :class="item.agentMode === 'EXECUTE'
+                ? 'bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                : item.planDocId
+                  ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                  : 'bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-zinc-400'"
+            >
+              <Icon
+                :name="item.agentMode === 'EXECUTE'
+                  ? 'heroicons:bolt'
+                  : item.planDocId
+                    ? 'heroicons:clipboard-document-list'
+                    : 'heroicons:clock'"
+                class="w-2.5 h-2.5"
+              />
+              {{ item.agentMode === 'EXECUTE' ? 'Executing' : (item.planDocId ? 'Plan Ready' : 'Awaiting Plan') }}
+            </span>
+
             <!-- Children count badge -->
             <span
               v-if="item.hasChildren && !item.isExpanded"

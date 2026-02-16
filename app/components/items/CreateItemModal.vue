@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  create: [item: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string }]
+  create: [item: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string; agentMode?: 'PLAN' | 'EXECUTE' | null }]
   aiCreated: [item: any]
 }>()
 
@@ -85,6 +85,15 @@ const assignedUsers = computed(() => {
   return availableUsers.value.filter((u: any) => assigned.has(u.id))
 })
 
+const hasAssignedAgent = computed(() => assignedUsers.value.some((u: any) => !!u.isAgent))
+const agentAssignmentMode = ref<'PLAN' | 'EXECUTE'>('PLAN')
+
+watch(hasAssignedAgent, (hasAgent) => {
+  if (!hasAgent) {
+    agentAssignmentMode.value = 'PLAN'
+  }
+})
+
 const unassignedUsers = computed(() => {
   const assigned = new Set(assigneeIds.value)
   return availableUsers.value.filter((u: any) => !assigned.has(u.id))
@@ -115,6 +124,7 @@ const resetManualForm = () => {
   ownerId.value = currentUserId.value ?? null
   priority.value = 'MEDIUM'
   status.value = 'IN_PROGRESS'
+  agentAssignmentMode.value = 'PLAN'
 }
 
 const resetAiState = () => {
@@ -139,6 +149,7 @@ const handleSubmit = () => {
     assigneeIds: assigneeIds.value.length ? assigneeIds.value : undefined,
     priority: priority.value || undefined,
     status: status.value,
+    agentMode: hasAssignedAgent.value ? agentAssignmentMode.value : null,
   })
   
   resetManualForm()
@@ -449,12 +460,18 @@ onUnmounted(() => {
                           <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
                         </div>
                         <span>{{ assignee.name }}</span>
+                        <span
+                          v-if="assignee.isAgent"
+                          class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-medium"
+                        >
+                          AI
+                        </span>
                         <button
                           type="button"
                           @click="removeAssignee(assignee.id)"
-                          class="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 dark:hover:bg-white/[0.12] rounded transition-all"
+                          class="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center leading-none hover:bg-slate-200 dark:hover:bg-white/[0.12] rounded transition-all"
                         >
-                          <Icon name="heroicons:x-mark" class="w-3 h-3 text-slate-400" />
+                          <Icon name="heroicons:x-mark" class="w-3.5 h-3.5 text-slate-400" />
                         </button>
                       </div>
                     </template>
@@ -493,6 +510,23 @@ onUnmounted(() => {
                       </div>
                     </Transition>
                   </div>
+                </div>
+                <div
+                  v-if="hasAssignedAgent"
+                  class="mt-2 w-full flex items-center justify-between rounded-lg border border-blue-100 dark:border-blue-500/20 bg-blue-50/70 dark:bg-blue-500/10 px-2.5 py-1.5"
+                >
+                  <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-zinc-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      :checked="agentAssignmentMode === 'EXECUTE'"
+                      class="h-3.5 w-3.5 rounded border-slate-300 dark:border-zinc-600 text-blue-500 focus:ring-blue-200 dark:focus:ring-blue-500/30"
+                      @change="agentAssignmentMode = ($event.target as HTMLInputElement).checked ? 'EXECUTE' : 'PLAN'"
+                    />
+                    Skip planning -> Execute directly
+                  </label>
+                  <span class="text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                    {{ agentAssignmentMode === 'EXECUTE' ? 'EXECUTE' : 'PLAN' }}
+                  </span>
                 </div>
               </div>
             </div>

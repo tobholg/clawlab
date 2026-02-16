@@ -18,6 +18,9 @@ export interface Item {
   category?: string
   complexity?: string | null
   priority?: string | null
+  agentMode?: 'PLAN' | 'EXECUTE' | null
+  planDocId?: string | null
+  acceptedPlanVersion?: number | null
   createdAt: string
   updatedAt: string
   lastActivityAt?: string | null
@@ -29,6 +32,7 @@ export interface Person {
   avatar: string
   role?: string
   position?: string | null
+  isAgent?: boolean
 }
 
 export interface DocumentSummary {

@@ -24,6 +24,30 @@ const activeChildrenCount = computed(() => {
 const allChildrenCompleted = computed(() => hasChildren.value && activeChildrenCount.value === 0)
 const isCurrentlyFocused = computed(() => isFocusedOnTask(props.item.id))
 const isPaused = computed(() => props.item.status === 'paused')
+const agentLifecycleBadge = computed(() => {
+  if (props.item.agentMode === 'EXECUTE') {
+    return {
+      label: 'Executing',
+      icon: 'heroicons:bolt',
+      classes: 'bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300',
+    }
+  }
+  if (props.item.agentMode === 'PLAN' && props.item.planDocId) {
+    return {
+      label: 'Plan Ready',
+      icon: 'heroicons:clipboard-document-list',
+      classes: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    }
+  }
+  if (props.item.agentMode === 'PLAN') {
+    return {
+      label: 'Awaiting Plan',
+      icon: 'heroicons:clock',
+      classes: 'bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-zinc-400',
+    }
+  }
+  return null
+})
 const showOwnerTooltip = ref(false)
 const ownerAvatarRef = ref<HTMLElement | null>(null)
 const tooltipPos = ref({ top: 0, left: 0 })
@@ -183,6 +207,14 @@ const handleCardClick = () => {
           >
             <Icon name="heroicons:pause" class="w-3 h-3" />
             Paused
+          </span>
+          <span
+            v-else-if="agentLifecycleBadge"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+            :class="agentLifecycleBadge.classes"
+          >
+            <Icon :name="agentLifecycleBadge.icon" class="w-3 h-3" />
+            {{ agentLifecycleBadge.label }}
           </span>
           <!-- Focus indicator (compact) -->
           <span v-else-if="isCurrentlyFocused" class="relative flex h-2 w-2 flex-shrink-0">

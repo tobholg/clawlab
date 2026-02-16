@@ -248,7 +248,7 @@ const filteredItems = computed(() => {
 })
 
 // Handle item creation
-const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string }) => {
+const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string; agentMode?: 'PLAN' | 'EXECUTE' | null }) => {
   await createItem(data)
   showCreateModal.value = false
 }

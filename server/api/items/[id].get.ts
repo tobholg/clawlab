@@ -61,6 +61,9 @@ export default defineEventHandler(async (event) => {
     category: item.category,
     complexity: item.complexity ?? null,
     priority: item.priority ?? null,
+    agentMode: item.agentMode ?? null,
+    planDocId: item.planDocId ?? null,
+    acceptedPlanVersion: item.acceptedPlanVersion ?? null,
     dueDate: item.dueDate?.toISOString() ?? null,
     startDate: item.startDate?.toISOString() ?? null,
     completedAt: item.completedAt?.toISOString() ?? null,
@@ -85,6 +88,7 @@ export default defineEventHandler(async (event) => {
       id: a.user.id,
       name: a.user.name,
       avatar: a.user.avatar,
+      isAgent: a.user.isAgent,
     })),
     stakeholders: item.stakeholders.map(s => ({
       id: s.user.id,

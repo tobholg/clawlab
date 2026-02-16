@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
     confidence,
     complexity,
     priority,
+    agentMode,
     assigneeIds,
     stakeholderIds,
   } = body
@@ -70,6 +71,16 @@ export default defineEventHandler(async (event) => {
   
   // Set first assignee as owner by default, fall back to authenticated user
   const ownerId = body.ownerId ?? assigneeIds?.[0] ?? user.id
+  let normalizedAgentMode: 'PLAN' | 'EXECUTE' | null | undefined = undefined
+  if (agentMode === null) {
+    normalizedAgentMode = null
+  } else if (agentMode !== undefined) {
+    const normalized = String(agentMode).toUpperCase()
+    if (!['PLAN', 'EXECUTE'].includes(normalized)) {
+      throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, or null' })
+    }
+    normalizedAgentMode = normalized as 'PLAN' | 'EXECUTE'
+  }
 
   // Determine projectId (root project) for efficient queries
   let projectId: string | null = null
@@ -97,6 +108,7 @@ export default defineEventHandler(async (event) => {
       confidence: confidence ?? 70,
       complexity: complexity ?? null,
       priority: priority ?? undefined,
+      ...(normalizedAgentMode !== undefined ? { agentMode: normalizedAgentMode } : {}),
       ownerId,
       assignees: assigneeIds?.length ? {
         create: assigneeIds.map((userId: string) => ({ userId }))
