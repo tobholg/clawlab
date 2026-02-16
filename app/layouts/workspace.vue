@@ -653,7 +653,7 @@ const statusDotClass = (status: string) => {
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-gradient-to-b from-slate-50 to-white dark:from-[#050506] dark:to-[#0f0f18]">
+    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-slate-50 dark:bg-dm-surface">
       <Transition name="content-fade">
         <div :key="route.path" class="absolute inset-0 flex flex-col overflow-auto">
           <slot />
