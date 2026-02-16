@@ -110,40 +110,42 @@ interface TermLine {
   toast?: { agent: string; text: string; color: string }
 }
 
+// Each line: command (typed char by char), then pauseAfter ms before next line
+// Non-commands appear instantly after the previous line's pause
 const terminalLines: TermLine[] = [
-  { text: '$ ctx task 7f3a --get', delay: 0, isCommand: true },
-  { text: '  Implement payment webhooks', delay: 800, color: 'zinc' },
-  { text: '  Status: TODO  Mode: PLAN  Assigned: harriet', delay: 1000, color: 'muted' },
-  { text: '', delay: 1600, isBlank: true },
-  { text: '$ ctx docs 7f3a --create "Implementation Plan"', delay: 2000, isCommand: true },
-  { text: '✓ Created doc d1 on task 7f3a', delay: 3200, isResult: true },
-  { text: '', delay: 3800, isBlank: true },
-  { text: '$ ctx task 7f3a --status active', delay: 4200, isCommand: true },
-  { text: '✓ Status → IN_PROGRESS/scoping', delay: 5200, isResult: true,
+  { text: '$ ctx task 7f3a --get', delay: 400, isCommand: true },
+  { text: '  Implement payment webhooks', delay: 100, color: 'zinc' },
+  { text: '  Status: TODO  Mode: PLAN  Assigned: harriet', delay: 600, color: 'muted' },
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx docs 7f3a --create "Implementation Plan"', delay: 400, isCommand: true },
+  { text: '✓ Created doc d1 on task 7f3a', delay: 600, isResult: true },
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx task 7f3a --status active', delay: 400, isCommand: true },
+  { text: '✓ Status → IN_PROGRESS/scoping', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Status changed: TODO → In Progress (scoping)', color: 'amber' } },
-  { text: '', delay: 5800, isBlank: true },
-  { text: '$ ctx subtask 7f3a "Set up Stripe webhook endpoint"', delay: 6200, isCommand: true },
-  { text: '✓ Created subtask abc1', delay: 7600, isResult: true,
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx subtask 7f3a "Set up Stripe webhook endpoint"', delay: 400, isCommand: true },
+  { text: '✓ Created subtask abc1', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Created subtask: Set up Stripe webhook endpoint', color: 'amber' } },
-  { text: '', delay: 8200, isBlank: true },
-  { text: '$ ctx subtask 7f3a "Handle subscription events"', delay: 8600, isCommand: true },
-  { text: '✓ Created subtask abc2', delay: 10000, isResult: true,
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx subtask 7f3a "Handle subscription events"', delay: 400, isCommand: true },
+  { text: '✓ Created subtask abc2', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Created subtask: Handle subscription events', color: 'amber' } },
-  { text: '', delay: 10600, isBlank: true },
-  { text: '$ ctx task abc1 --status done', delay: 11000, isCommand: true },
-  { text: '✓ abc1 → IN_PROGRESS/review', delay: 12200, isResult: true,
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx task abc1 --status done', delay: 400, isCommand: true },
+  { text: '✓ abc1 → IN_PROGRESS/review', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Subtask completed: Set up Stripe webhook endpoint', color: 'emerald' } },
-  { text: '', delay: 12800, isBlank: true },
-  { text: '$ ctx task 7f3a --progress 75', delay: 13200, isCommand: true },
-  { text: '✓ Progress updated: 0% → 75%', delay: 14200, isResult: true,
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx task 7f3a --progress 75', delay: 400, isCommand: true },
+  { text: '✓ Progress updated: 0% → 75%', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Progress updated: 0% → 75%', color: 'emerald' } },
-  { text: '', delay: 14800, isBlank: true },
-  { text: '$ ctx task abc2 --status done', delay: 15200, isCommand: true },
-  { text: '✓ abc2 → IN_PROGRESS/review', delay: 16400, isResult: true,
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx task abc2 --status done', delay: 400, isCommand: true },
+  { text: '✓ abc2 → IN_PROGRESS/review', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Subtask completed: Handle subscription events', color: 'emerald' } },
-  { text: '', delay: 17000, isBlank: true },
-  { text: '$ ctx task 7f3a --progress 100 --status done', delay: 17400, isCommand: true },
-  { text: '✓ 7f3a → IN_PROGRESS/review (100%)', delay: 18800, isResult: true,
+  { text: '', delay: 400, isBlank: true },
+  { text: '$ ctx task 7f3a --progress 100 --status done', delay: 400, isCommand: true },
+  { text: '✓ 7f3a → IN_PROGRESS/review (100%)', delay: 800, isResult: true,
     toast: { agent: 'H', text: 'Submitted for review — all subtasks complete ✓', color: 'blue' } },
 ]
 
@@ -154,6 +156,7 @@ const terminalTypingLine = ref(-1)
 const terminalEl = ref<HTMLElement | null>(null)
 const cliToasts = ref<{ agent: string; text: string; color: string; id: number }[]>([])
 let cliToastId = 0
+let terminalAbort = false
 
 const scrollTerminal = () => {
   nextTick(() => {
@@ -161,7 +164,6 @@ const scrollTerminal = () => {
   })
 }
 
-// Auto-scroll terminal when lines appear
 watch(terminalVisibleCount, scrollTerminal)
 watch(terminalCursorChar, scrollTerminal)
 
@@ -170,59 +172,81 @@ const addCliToast = (t: { agent: string; text: string; color: string }) => {
   if (cliToasts.value.length > 5) cliToasts.value.shift()
 }
 
-const startTerminalReplay = () => {
-  if (terminalStarted.value) return
-  terminalStarted.value = true
-  terminalVisibleCount.value = 0
-  terminalCursorChar.value = 0
-  terminalTypingLine.value = -1
-  cliToasts.value = []
-
-  const typeCommand = (lineIndex: number) => {
+// Type a command char by char, returns a promise that resolves when done
+const typeCommand = (lineIndex: number): Promise<void> => {
+  return new Promise((resolve) => {
     const line = terminalLines[lineIndex]
-    if (!line) return
+    if (!line) { resolve(); return }
     terminalTypingLine.value = lineIndex
     terminalCursorChar.value = 0
     const text = line.text
     let charIndex = 0
     const typeInterval = setInterval(() => {
+      if (terminalAbort) { clearInterval(typeInterval); resolve(); return }
       charIndex++
       terminalCursorChar.value = charIndex
       if (charIndex >= text.length) {
         clearInterval(typeInterval)
         terminalTypingLine.value = -1
         terminalVisibleCount.value = lineIndex + 1
+        resolve()
       }
-    }, 25 + Math.random() * 30)
+    }, 30)
+  })
+}
+
+// Show an output line instantly, returns a promise
+const showLine = (lineIndex: number): Promise<void> => {
+  return new Promise((resolve) => {
+    terminalVisibleCount.value = lineIndex + 1
+    const line = terminalLines[lineIndex]
+    if (line.toast) {
+      setTimeout(() => addCliToast(line.toast!), 300)
+    }
+    resolve()
+  })
+}
+
+const wait = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms))
+
+const startTerminalReplay = async () => {
+  if (terminalStarted.value) return
+  terminalStarted.value = true
+  terminalAbort = false
+  terminalVisibleCount.value = 0
+  terminalCursorChar.value = 0
+  terminalTypingLine.value = -1
+  cliToasts.value = []
+
+  for (let i = 0; i < terminalLines.length; i++) {
+    if (terminalAbort) break
+    const line = terminalLines[i]
+
+    if (line.isCommand) {
+      await typeCommand(i)
+      // Pause after command finishes typing before showing result
+      await wait(line.delay)
+    } else {
+      await showLine(i)
+      // Pause after output before next line
+      await wait(line.delay)
+    }
   }
 
-  terminalLines.forEach((line, i) => {
-    setTimeout(() => {
-      if (line.isCommand) {
-        typeCommand(i)
-      } else {
-        terminalVisibleCount.value = i + 1
-        // Fire synced toast after result appears
-        if (line.toast) {
-          setTimeout(() => addCliToast(line.toast!), 400)
-        }
-      }
-    }, line.delay)
-  })
+  // Hold the final state for a moment
+  await wait(3000)
 
-  // Fade out, reset, fade in, restart
-  setTimeout(() => {
-    termFading.value = true
-    setTimeout(() => {
-      terminalVisibleCount.value = 0
-      terminalCursorChar.value = 0
-      terminalTypingLine.value = -1
-      cliToasts.value = []
-      terminalStarted.value = false
-      termFading.value = false
-      startTerminalReplay()
-    }, 800)
-  }, 22000)
+  // Fade out, reset, fade in
+  termFading.value = true
+  await wait(800)
+  terminalVisibleCount.value = 0
+  terminalCursorChar.value = 0
+  terminalTypingLine.value = -1
+  cliToasts.value = []
+  terminalStarted.value = false
+  termFading.value = false
+  await wait(400)
+  startTerminalReplay()
 }
 
 const termFading = ref(false)
