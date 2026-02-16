@@ -2,9 +2,9 @@
 definePageMeta({ layout: false })
 
 useHead({
-  title: 'Context — Open-Source Project Management for AI Agent Teams',
+  title: 'Context — Project Management Where AI Agents Are Real Teammates',
   meta: [
-    { name: 'description', content: 'Free, open-source project management with AI agent teammates. One recursive model, self-hosted, no vendor lock-in. Built for solo devs and teams running AI agents.' },
+    { name: 'description', content: 'The first open-source project manager built for human-agent teams. Assign tasks to AI agents, review their plans, track their work. Self-hosted, recursive task model, no vendor lock-in.' },
   ],
   bodyAttrs: { style: 'background-color: #050506' },
 })
@@ -12,45 +12,45 @@ useHead({
 const navItems = [
   { id: 'agents', label: 'Agents' },
   { id: 'features', label: 'Features' },
+  { id: 'compare', label: 'Compare' },
   { id: 'quickstart', label: 'Quick Start' },
-  { id: 'support', label: 'Support' },
 ]
 
 const showcaseFeatures = [
-  { icon: 'heroicons:queue-list', title: 'Recursive everything', desc: 'Projects, tasks, subtasks — turtles all the way down. One model, infinite depth, automatic roll-up.', screenshots: ['/screenshots/board_1.png', '/screenshots/board_2.png', '/screenshots/board_3.png'] },
-  { icon: 'heroicons:chat-bubble-left-right', title: 'Built-in channels', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context next to the work.', screenshots: ['/screenshots/channel_1.png', '/screenshots/channel_2.png'] },
-  { icon: 'heroicons:megaphone', title: 'Stakeholder mode', desc: 'External spaces for normies. They see what you want. Auto-published weekly briefs.', screenshots: ['/screenshots/stakeholder_1.png', '/screenshots/stakeholder_2.png'] },
-  { icon: 'heroicons:clock', title: 'Focus tracking', desc: 'Deep work, meetings, admin, learning, break. Know where your time goes. Spot burnout early.', screenshots: ['/screenshots/focus_1.png'] },
+  { icon: 'heroicons:queue-list', title: 'Recursive everything', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically. See exactly which subtask is dragging your project down.', screenshots: ['/screenshots/board_1.png', '/screenshots/board_2.png', '/screenshots/board_3.png'] },
+  { icon: 'heroicons:chat-bubble-left-right', title: 'Built-in channels', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context lives next to the work, not in a separate app.', screenshots: ['/screenshots/channel_1.png', '/screenshots/channel_2.png'] },
+  { icon: 'heroicons:megaphone', title: 'Stakeholder spaces', desc: 'External portals for clients and investors. They see filtered views of your progress. AI translates status updates for different audiences.', screenshots: ['/screenshots/stakeholder_1.png', '/screenshots/stakeholder_2.png'] },
+  { icon: 'heroicons:clock', title: 'Focus tracking', desc: 'Deep work, meetings, admin, learning, break. Know where time goes. Spot burnout before it happens.', screenshots: ['/screenshots/focus_1.png'] },
 ]
 
 // Per-feature active screenshot index
 const activeScreenshots = reactive<Record<number, number>>({ 0: 0, 1: 0, 2: 0, 3: 0 })
 
-
 const quickStartSteps = [
   { num: '01', title: 'Clone it', cmd: 'git clone https://github.com/recursion-endeavours/context.git && cd context && npm install', desc: '' },
-  { num: '02', title: 'Configure', cmd: 'cp .env.example .env', desc: 'Point it at a Postgres database and set a JWT secret. That\'s it.' },
-  { num: '03', title: 'Run it', cmd: 'npm run db:push && npm run dev', desc: 'Open localhost:3000. You\'re done.' },
+  { num: '02', title: 'Configure', cmd: 'cp .env.example .env', desc: 'Set a JWT secret. PGlite runs embedded by default, no database setup needed.' },
+  { num: '03', title: 'Run it', cmd: 'npm run dev', desc: 'Open localhost:3000. Create a workspace. Assign your first agent.' },
 ]
 
-const donationTiers = [
-  { amount: '$5', label: 'Buy the maintainer a coffee', emoji: '\u2615' },
-  { amount: '$25', label: 'Keep the servers warm for a month', emoji: '\uD83D\uDD25' },
-  { amount: '$100', label: 'Fund a feature sprint', emoji: '\uD83D\uDE80' },
-]
-
-const marqueeItems = [
-  'Solo Devs', 'Indie Hackers', 'Startups', 'Engineering Teams', 'Open Source Projects',
-  'Agencies', 'AI Agent Builders', 'Platform Teams', 'Consultants', 'Side Projects',
+const comparisonRows = [
+  { feature: 'AI agents as teammates', context: true, linear: false, jira: false },
+  { feature: 'Plan/execute lifecycle', context: true, linear: false, jira: false },
+  { feature: 'Agent CLI & REST API', context: true, linear: false, jira: false },
+  { feature: 'Recursive task model', context: true, linear: false, jira: false },
+  { feature: 'Auto-bubbling progress', context: true, linear: false, jira: false },
+  { feature: 'Self-hosted', context: true, linear: false, jira: true },
+  { feature: 'Open source', context: true, linear: false, jira: false },
+  { feature: 'Stakeholder portals', context: true, linear: false, jira: true },
+  { feature: 'Built-in chat', context: true, linear: false, jira: false },
+  { feature: 'Free forever', context: true, linear: false, jira: false },
 ]
 
 const sectionRefs = reactive<Record<string, HTMLElement | null>>({
   hero: null,
   agents: null,
   features: null,
+  compare: null,
   quickstart: null,
-  support: null,
-  sponsors: null,
 })
 
 const activeSection = ref('hero')
@@ -141,7 +141,6 @@ onMounted(() => {
   const onScroll = () => { scrolled.value = window.scrollY > 64 }
   window.addEventListener('scroll', onScroll, { passive: true })
 
-  // Nav active section tracking only — no animation triggering
   const observer = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -167,8 +166,9 @@ onMounted(() => {
 
 <template>
   <div class="os-landing min-h-screen text-zinc-100 scroll-smooth" :class="{ 'is-ready': ready }">
-    <div class="fixed inset-0 bg-gradient-to-b from-[#050506] to-[#0f0f18] -z-10" aria-hidden="true" />
+    <div class="fixed inset-0 bg-[#050506] -z-10" aria-hidden="true" />
     <StarField />
+
     <!-- Nav -->
     <nav
       class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl border-b transition-all duration-500 ease-out"
@@ -229,7 +229,6 @@ onMounted(() => {
       :ref="(el) => (sectionRefs.hero = el as HTMLElement | null)"
       class="hero-dark relative flex flex-col items-center justify-center px-6 pt-16 sm:pt-20 lg:pt-28 pb-12 sm:pb-16 min-h-0 overflow-hidden scroll-mt-20"
     >
-
       <div class="relative max-w-4xl mx-auto text-center">
         <!-- Logo -->
         <div class="intro flex justify-center mb-6 sm:mb-8" style="--d: 30ms">
@@ -239,21 +238,19 @@ onMounted(() => {
         </div>
 
         <h1 class="text-3xl font-semibold sm:text-5xl sm:font-medium md:text-6xl lg:text-7xl tracking-tight leading-[1.1]">
-          <span class="word-animate text-zinc-100" style="--d: 55ms">One</span>
-          <span class="word-animate text-zinc-100" style="--d: 110ms">workspace</span>
+          <span class="word-animate text-zinc-100" style="--d: 55ms">Your</span>
+          <span class="word-animate text-zinc-100" style="--d: 110ms">AI</span>
+          <span class="word-animate text-zinc-100" style="--d: 165ms">agents</span>
           <br />
-          <span class="accent-line intro" style="--d: 180ms">for humans and agents.</span>
+          <span class="accent-line intro" style="--d: 240ms">need a project manager.</span>
         </h1>
 
-        <p class="mt-4 text-base md:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed intro" style="--d: 340ms">
-          Recursive task model. AI agents as actual teammates. Self-host, run anywhere.
-        </p>
-        <p class="mt-3 text-sm text-zinc-500 intro" style="--d: 380ms">
-          Yes, this page was made by a clanker — let's move on. 🦞
+        <p class="mt-4 text-base md:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed intro" style="--d: 380ms">
+          The first open-source PM where AI agents are real teammates. Assign tasks, review plans, track work. Self-hosted, recursive task model, free forever.
         </p>
 
         <!-- CLI quick-start -->
-        <div class="mt-6 flex justify-center intro" style="--d: 400ms">
+        <div class="mt-6 flex justify-center intro" style="--d: 440ms">
           <div class="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 rounded-lg border border-white/[0.08] bg-[#111113] font-mono text-xs sm:text-sm">
             <span class="text-zinc-500 select-none">$</span>
             <span class="text-zinc-300">npx create-context-app@latest</span>
@@ -268,7 +265,7 @@ onMounted(() => {
         </div>
 
         <!-- CTAs -->
-        <div class="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 intro" style="--d: 460ms">
+        <div class="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 intro" style="--d: 500ms">
           <NuxtLink
             to="/onboarding"
             class="inline-flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
@@ -289,49 +286,153 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- Hero Marquee -->
-    <div class="px-6 intro" style="--d: 500ms">
-      <div class="hero-marquee-container hero-marquee-mask max-w-5xl mx-auto relative overflow-hidden py-4">
-        <div class="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest text-center mb-3">Built for</div>
-        <div class="marquee-track-dark">
-          <template v-for="copy in 4" :key="'hero-copy-' + copy">
-            <template v-for="item in marqueeItems" :key="'hero-' + item + '-' + copy">
-              <span class="marquee-dot-dark" />
-              <span class="marquee-label-dark">{{ item }}</span>
-            </template>
-          </template>
-        </div>
-      </div>
-    </div>
-
-    <!-- Agent Teammates -->
+    <!-- Agent Teammates (expanded) -->
     <section
       id="agents"
       :ref="(el) => (sectionRefs.agents = el as HTMLElement | null)"
-      class="px-6 py-10 lg:py-14 scroll-mt-20"
+      class="px-6 py-14 lg:py-20 scroll-mt-20"
     >
-      <div class="max-w-5xl mx-auto">
-        <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <!-- Copy -->
-          <div class="intro" style="--d: 520ms">
-            <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-widest mb-3">
-              <Icon name="heroicons:cpu-chip" class="w-4 h-4" />
-              Agent Teammates
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center intro" style="--d: 520ms">
+          <div class="flex items-center justify-center gap-2 text-emerald-400 text-xs font-semibold uppercase tracking-widest mb-3">
+            <Icon name="heroicons:cpu-chip" class="w-4 h-4" />
+            Agent Teammates
+          </div>
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Not a chatbot sidebar.<br class="hidden sm:inline" /> A full team member.</h2>
+          <p class="mt-3 text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+            Agents in Context aren't assistants that answer questions. They're teammates with assigned tasks, plans you review, subtasks they create, and progress you track. Same board, same workflow, different species.
+          </p>
+        </div>
+
+        <!-- Agent lifecycle -->
+        <div class="mt-12 grid lg:grid-cols-3 gap-6 intro" style="--d: 580ms">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
+              <Icon name="heroicons:clipboard-document-list" class="w-5 h-5 text-amber-400" />
             </div>
-            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Your agents work here too</h2>
-            <p class="mt-3 text-sm sm:text-base text-zinc-400 leading-relaxed max-w-md">
-              Assign tasks to agents or mark them as agent-eligible. They pick up work, break it down, open PRs, and post updates — but only when you say so.
+            <h3 class="text-base font-semibold text-zinc-100">1. Agent plans</h3>
+            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">
+              Assign a task in PLAN mode. The agent researches, breaks it down, and submits a plan document for your review.
             </p>
           </div>
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4">
+              <Icon name="heroicons:check-circle" class="w-5 h-5 text-emerald-400" />
+            </div>
+            <h3 class="text-base font-semibold text-zinc-100">2. You accept</h3>
+            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">
+              Review the plan, request changes, or accept it. The agent only starts executing after you say go. You stay in control.
+            </p>
+          </div>
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+            <div class="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
+              <Icon name="heroicons:bolt" class="w-5 h-5 text-blue-400" />
+            </div>
+            <h3 class="text-base font-semibold text-zinc-100">3. Agent executes</h3>
+            <p class="mt-2 text-sm text-zinc-400 leading-relaxed">
+              The agent creates subtasks, updates progress, posts comments, and submits for review when done. You see it all in real time.
+            </p>
+          </div>
+        </div>
 
-          <!-- Terminal mockup -->
-          <div class="intro" style="--d: 580ms">
-            <div class="rounded-xl border border-white/[0.06] bg-[#111113] p-4 space-y-2 font-mono text-[13px]">
-              <div class="text-zinc-500 text-[11px] mb-3">openclaw-01</div>
-              <div><span class="text-emerald-400">→</span> <span class="text-zinc-400">Picked up</span> <span class="text-zinc-300">Implement payment webhooks</span></div>
-              <div><span class="text-emerald-400">→</span> <span class="text-zinc-400">Created 3 subtasks</span></div>
-              <div><span class="text-emerald-400">→</span> <span class="text-zinc-400">PR #247 opened</span> <span class="text-zinc-500">feature/payment-webhooks</span></div>
-              <div><span class="text-emerald-400">→</span> <span class="text-zinc-300">Done. Next task.</span></div>
+        <!-- CLI + API demo -->
+        <div class="mt-12 grid lg:grid-cols-2 gap-8 items-start">
+          <!-- CLI demo -->
+          <div class="intro" style="--d: 640ms">
+            <div class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">CLI</div>
+            <div class="rounded-xl border border-white/[0.06] bg-[#111113] p-5 font-mono text-[13px] space-y-1.5">
+              <div class="text-zinc-500 text-[11px] mb-3">$ ctx tasks --tree</div>
+              <div class="text-zinc-300">
+                <div><span class="text-zinc-500">├─</span> <span class="text-blue-400">[active]</span> Implement payment webhooks</div>
+                <div><span class="text-zinc-500">│  ├─</span> <span class="text-emerald-400">[done]</span> Set up Stripe webhook endpoint</div>
+                <div><span class="text-zinc-500">│  ├─</span> <span class="text-blue-400">[active]</span> Handle subscription events</div>
+                <div><span class="text-zinc-500">│  └─</span> <span class="text-zinc-500">[backlog]</span> Write integration tests</div>
+                <div><span class="text-zinc-500">├─</span> <span class="text-amber-400">[plan ready]</span> Refactor auth module</div>
+                <div><span class="text-zinc-500">└─</span> <span class="text-zinc-500">[backlog]</span> Add rate limiting</div>
+              </div>
+              <div class="pt-3 border-t border-white/[0.06]">
+                <div class="text-zinc-500 text-[11px] mb-2">$ ctx task 7f3a --status done</div>
+                <div><span class="text-emerald-400">✓</span> <span class="text-zinc-400">Updated → IN_PROGRESS/review</span></div>
+                <div class="text-zinc-500 text-[11px] mt-0.5">Agent tasks go to review, not done</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-time toast demo -->
+          <div class="intro" style="--d: 700ms">
+            <div class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">Real-time activity</div>
+            <div class="space-y-3">
+              <!-- Mock toast 1 -->
+              <div class="rounded-xl border border-white/[0.08] bg-[#161619] p-3">
+                <div class="flex items-start gap-3">
+                  <div class="h-9 w-9 flex-shrink-0 rounded-full bg-amber-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
+                    <span class="text-xs font-semibold text-amber-500">H</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between">
+                      <p class="text-sm font-semibold text-zinc-100">Harriet</p>
+                      <span class="text-[11px] text-zinc-500">Just now</span>
+                    </div>
+                    <p class="mt-0.5 text-[11px] text-zinc-400">Payment System &gt; Implement webhooks</p>
+                    <p class="mt-1.5 text-sm text-zinc-200">Created subtask: Handle subscription lifecycle events</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Mock toast 2 -->
+              <div class="rounded-xl border border-white/[0.08] bg-[#161619] p-3">
+                <div class="flex items-start gap-3">
+                  <div class="h-9 w-9 flex-shrink-0 rounded-full bg-emerald-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
+                    <span class="text-xs font-semibold text-emerald-500">C</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between">
+                      <p class="text-sm font-semibold text-zinc-100">Codex</p>
+                      <span class="text-[11px] text-zinc-500">2m ago</span>
+                    </div>
+                    <p class="mt-0.5 text-[11px] text-zinc-400">Auth &gt; Refactor module</p>
+                    <p class="mt-1.5 text-sm text-zinc-200">Status changed: Scoping &rarr; Active</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Mock toast 3 -->
+              <div class="rounded-xl border border-white/[0.08] bg-[#161619] p-3">
+                <div class="flex items-start gap-3">
+                  <div class="h-9 w-9 flex-shrink-0 rounded-full bg-blue-500/10 inline-flex items-center justify-center ring-1 ring-white/10">
+                    <span class="text-xs font-semibold text-blue-500">C</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between">
+                      <p class="text-sm font-semibold text-zinc-100">Cursor</p>
+                      <span class="text-[11px] text-zinc-500">5m ago</span>
+                    </div>
+                    <p class="mt-0.5 text-[11px] text-zinc-400">API &gt; Rate limiting</p>
+                    <p class="mt-1.5 text-sm text-zinc-200">Progress updated: 40% &rarr; 75%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Supported agents -->
+        <div class="mt-12 text-center intro" style="--d: 760ms">
+          <p class="text-sm text-zinc-500 mb-4">Works with any agent that can call an API</p>
+          <div class="flex items-center justify-center gap-6 flex-wrap">
+            <div class="flex items-center gap-2 text-sm text-zinc-400">
+              <div class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center"><span class="text-xs font-bold text-amber-400">O</span></div>
+              OpenClaw
+            </div>
+            <div class="flex items-center gap-2 text-sm text-zinc-400">
+              <div class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center"><span class="text-xs font-bold text-emerald-400">C</span></div>
+              Codex
+            </div>
+            <div class="flex items-center gap-2 text-sm text-zinc-400">
+              <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center"><span class="text-xs font-bold text-blue-400">C</span></div>
+              Cursor
+            </div>
+            <div class="flex items-center gap-2 text-sm text-zinc-400">
+              <div class="w-7 h-7 rounded-lg bg-zinc-500/10 flex items-center justify-center"><span class="text-xs font-bold text-zinc-400">?</span></div>
+              Your agent
             </div>
           </div>
         </div>
@@ -342,10 +443,10 @@ onMounted(() => {
     <section
       id="features"
       :ref="(el) => (sectionRefs.features = el as HTMLElement | null)"
-      class="px-6 py-10 lg:py-14 scroll-mt-20"
+      class="px-6 py-14 lg:py-20 scroll-mt-20"
     >
       <div class="max-w-6xl mx-auto">
-        <div class="text-center intro" style="--d: 640ms">
+        <div class="text-center intro" style="--d: 800ms">
           <div class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Features</div>
           <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Everything you need,<br class="sm:hidden" /> nothing you don't</h2>
           <p class="mt-3 text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
@@ -353,14 +454,14 @@ onMounted(() => {
           </p>
         </div>
 
-        <!-- Showcase features: alternating image/text rows -->
+        <!-- Showcase features -->
         <div class="mt-12 space-y-16 lg:space-y-20">
           <div
             v-for="(feat, i) in showcaseFeatures"
             :key="feat.title"
             class="grid gap-8 lg:gap-12 items-center intro"
             :class="i % 2 === 1 ? 'lg:grid-cols-[7fr_5fr]' : 'lg:grid-cols-[5fr_7fr]'"
-            :style="{ '--d': `${700 + i * 80}ms` }"
+            :style="{ '--d': `${860 + i * 80}ms` }"
           >
             <!-- Text -->
             <div :class="i % 2 === 1 ? 'lg:order-2' : ''">
@@ -401,23 +502,73 @@ onMounted(() => {
       </div>
     </section>
 
+    <!-- Comparison -->
+    <section
+      id="compare"
+      :ref="(el) => (sectionRefs.compare = el as HTMLElement | null)"
+      class="px-6 py-14 lg:py-20 scroll-mt-20"
+    >
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center intro" style="--d: 1100ms">
+          <div class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Compare</div>
+          <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Why not Linear or Jira?</h2>
+          <p class="mt-3 text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
+            Great tools. Built for humans only. Context is built for the team you actually have: humans and agents working together.
+          </p>
+        </div>
+
+        <div class="mt-8 rounded-xl border border-white/[0.06] overflow-hidden intro" style="--d: 1160ms">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/[0.06]">
+                <th class="text-left px-4 py-3 text-zinc-500 font-medium">Feature</th>
+                <th class="px-4 py-3 text-center text-emerald-400 font-semibold">Context</th>
+                <th class="px-4 py-3 text-center text-zinc-500 font-medium">Linear</th>
+                <th class="px-4 py-3 text-center text-zinc-500 font-medium">Jira</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, i) in comparisonRows"
+                :key="row.feature"
+                :class="i % 2 === 0 ? 'bg-white/[0.015]' : ''"
+              >
+                <td class="px-4 py-2.5 text-zinc-300">{{ row.feature }}</td>
+                <td class="px-4 py-2.5 text-center">
+                  <Icon v-if="row.context" name="heroicons:check" class="w-4 h-4 text-emerald-400 inline" />
+                  <Icon v-else name="heroicons:x-mark" class="w-4 h-4 text-zinc-600 inline" />
+                </td>
+                <td class="px-4 py-2.5 text-center">
+                  <Icon v-if="row.linear" name="heroicons:check" class="w-4 h-4 text-zinc-400 inline" />
+                  <Icon v-else name="heroicons:x-mark" class="w-4 h-4 text-zinc-600 inline" />
+                </td>
+                <td class="px-4 py-2.5 text-center">
+                  <Icon v-if="row.jira" name="heroicons:check" class="w-4 h-4 text-zinc-400 inline" />
+                  <Icon v-else name="heroicons:x-mark" class="w-4 h-4 text-zinc-600 inline" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- Quick Start -->
     <section
       id="quickstart"
       :ref="(el) => (sectionRefs.quickstart = el as HTMLElement | null)"
-      class="px-6 py-10 lg:py-14 scroll-mt-20"
+      class="px-6 py-14 lg:py-20 scroll-mt-20"
     >
       <div class="max-w-3xl mx-auto">
-        <div class="text-center intro" style="--d: 960ms">
+        <div class="text-center intro" style="--d: 1220ms">
           <div class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Quick Start</div>
           <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Up and running in 2 minutes</h2>
-          <p class="mt-3 text-lg text-zinc-400">
-            Seriously. Clone, configure, run.
+          <p class="mt-3 text-sm sm:text-base text-zinc-400">
+            No database setup needed. PGlite runs embedded.
           </p>
         </div>
 
         <div class="mt-8 relative">
-          <!-- Vertical line -->
           <div class="absolute left-[19px] top-8 bottom-[4.5rem] w-px bg-white/[0.06]" />
 
           <div class="space-y-6">
@@ -425,7 +576,7 @@ onMounted(() => {
               v-for="(step, i) in quickStartSteps"
               :key="step.num"
               class="flex gap-6 intro"
-              :style="{ '--d': `${1020 + i * 60}ms` }"
+              :style="{ '--d': `${1280 + i * 60}ms` }"
             >
               <div class="relative flex-shrink-0 w-10 h-10 rounded-full border border-white/[0.1] bg-[#111113] flex items-center justify-center text-sm font-mono font-semibold text-emerald-400 z-10">
                 {{ step.num }}
@@ -443,90 +594,30 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- Support the Project -->
-    <section
-      id="support"
-      :ref="(el) => (sectionRefs.support = el as HTMLElement | null)"
-      class="px-6 py-10 lg:py-14 scroll-mt-20"
-    >
-      <div class="max-w-3xl mx-auto">
-        <div class="text-center intro" style="--d: 1300ms">
-          <div class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Support</div>
-          <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Want to keep this thing alive?</h2>
-          <p class="mt-3 text-zinc-400 max-w-2xl mx-auto">
-            Context is free. Always will be. But servers, coffee, and late nights aren't. If you get value from it, consider throwing some support our way.
-          </p>
-        </div>
-
-        <div class="mt-8 grid sm:grid-cols-3 gap-4">
+    <!-- Community CTA -->
+    <section class="px-6 py-14 lg:py-20">
+      <div class="max-w-2xl mx-auto text-center intro" style="--d: 1400ms">
+        <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100">Join the community</h2>
+        <p class="mt-3 text-sm sm:text-base text-zinc-400">
+          Context is built in the open. Star us, open issues, submit PRs, or just come hang out.
+        </p>
+        <div class="mt-6 flex items-center justify-center gap-4">
           <a
-            v-for="(tier, i) in donationTiers"
-            :key="tier.amount"
-            href="#"
-            class="donation-card intro"
-            :style="{ '--d': `${1360 + i * 50}ms` }"
+            href="https://github.com/recursion-endeavours/context"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.06] border border-white/[0.08] text-zinc-200 font-medium rounded-lg hover:bg-white/[0.1] hover:border-white/[0.15] transition-all text-sm"
           >
-            <span class="text-2xl mb-2 block">{{ tier.emoji }}</span>
-            <div class="text-xl font-bold text-zinc-100">{{ tier.amount }}</div>
-            <p class="mt-1 text-sm text-zinc-400">{{ tier.label }}</p>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            Star on GitHub
           </a>
-        </div>
-
-        <p class="mt-4 text-center text-xs text-zinc-600 intro" style="--d: 1500ms">One-time via Stripe. No subscriptions, no guilt.</p>
-      </div>
-    </section>
-
-    <!-- Sponsor Section -->
-    <section
-      id="sponsors"
-      :ref="(el) => (sectionRefs.sponsors = el as HTMLElement | null)"
-      class="px-6 py-10 lg:py-14 border-t border-white/[0.06] scroll-mt-20"
-    >
-      <div class="max-w-4xl mx-auto">
-        <div class="text-center intro" style="--d: 1540ms">
-          <div class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Sponsors</div>
-          <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Sponsor Context</h2>
-          <p class="mt-3 text-zinc-400 max-w-2xl mx-auto">
-            We're looking for companies that believe good project management shouldn't require a $50/seat SaaS subscription.
-          </p>
-        </div>
-
-        <div class="mt-8 intro" style="--d: 1600ms">
-          <ul class="grid grid-cols-2 gap-x-8 gap-y-2.5 max-w-md mx-auto">
-            <li class="flex items-start gap-2.5">
-              <Icon name="heroicons:check" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <span class="text-zinc-400 text-sm">Logo on README + website</span>
-            </li>
-            <li class="flex items-start gap-2.5">
-              <Icon name="heroicons:check" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <span class="text-zinc-400 text-sm">Priority feature input</span>
-            </li>
-            <li class="flex items-start gap-2.5">
-              <Icon name="heroicons:check" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <span class="text-zinc-400 text-sm">Direct line to the core team</span>
-            </li>
-            <li class="flex items-start gap-2.5">
-              <Icon name="heroicons:check" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <span class="text-zinc-400 text-sm">Named in release notes</span>
-            </li>
-          </ul>
-
-          <div class="mt-6 text-center">
-            <a
-              href="mailto:hello@recursion-endeavours.com"
-              class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
-            >
-              Talk to us
-              <Icon name="heroicons:arrow-right" class="w-4 h-4" />
-            </a>
-          </div>
-
-          <!-- Placeholder sponsor logos -->
-          <div class="mt-8 flex items-center justify-center gap-4 flex-wrap">
-            <div v-for="n in 4" :key="n" class="w-24 h-8 rounded bg-white/[0.06] flex items-center justify-center">
-              <span class="text-[10px] text-zinc-600">Your logo here</span>
-            </div>
-          </div>
+          <a
+            href="#"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5865F2]/10 border border-[#5865F2]/20 text-[#5865F2] font-medium rounded-lg hover:bg-[#5865F2]/20 transition-all text-sm"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            Join Discord
+          </a>
         </div>
       </div>
     </section>
@@ -539,7 +630,7 @@ onMounted(() => {
             <div class="w-7 h-7 bg-white/[0.08] rounded-lg flex items-center justify-center">
               <svg class="w-4 h-4" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="text-sm text-zinc-500">Free &amp; open source project management.</span>
+            <span class="text-sm text-zinc-500">Open-source project management for human-agent teams.</span>
           </div>
           <div class="flex items-center gap-5 text-sm text-zinc-500">
             <a href="https://github.com/recursion-endeavours/context" target="_blank" rel="noopener" class="flex items-center gap-1.5 hover:text-zinc-300 transition-colors">
@@ -573,13 +664,11 @@ onMounted(() => {
         v-if="lightbox"
         class="fixed inset-0 z-[100] flex items-center justify-center"
       >
-        <!-- Backdrop -->
         <div
           class="absolute inset-0 bg-black/80 transition-opacity duration-300 cursor-pointer"
           :class="lightboxOpen ? 'opacity-100' : 'opacity-0'"
           @click="closeLightbox"
         />
-        <!-- Image container -->
         <div
           class="lightbox-image relative z-10 w-[95vw] max-w-[1600px]"
           :class="lightboxOpen ? 'lightbox-image--open' : 'lightbox-image--closed'"
@@ -609,7 +698,6 @@ onMounted(() => {
               />
             </Transition>
           </div>
-          <!-- Lightbox dots -->
           <div v-if="lightboxFeature && lightboxFeature.screenshots.length > 1" class="flex items-center justify-center gap-2 mt-4">
             <button
               v-for="(_, si) in lightboxFeature.screenshots"
@@ -626,18 +714,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Force dark color-scheme for browser chrome */
 :deep(html) {
   color-scheme: dark;
 }
 
-/* ── Hero ─────────────────────────────────────────── */
-
 .hero-dark {
   background-color: transparent;
 }
-
-/* ── Accent line — single gradient across the full line ── */
 
 .accent-line {
   background-image: linear-gradient(120deg, #94a3b8, #e2e8f0, #4ade80);
@@ -646,10 +729,6 @@ onMounted(() => {
   color: transparent;
   -webkit-text-fill-color: transparent;
 }
-
-/* ── Feature cards ────────────────────────────────── */
-
-/* ── Screenshot transitions ─────────────────────── */
 
 .screenshot-fade-enter-active,
 .screenshot-fade-leave-active {
@@ -670,133 +749,6 @@ onMounted(() => {
   image-rendering: high-quality;
 }
 
-.feature-card {
-  padding: 20px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  transition:
-    border-color 300ms ease-in-out,
-    background 300ms ease-in-out;
-}
-
-.feature-card:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-/* ── Donation cards ───────────────────────────────── */
-
-.donation-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 24px 20px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  transition:
-    border-color 300ms ease-in-out,
-    transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1);
-  text-decoration: none;
-}
-
-.donation-card:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
-}
-
-/* ── Dark Marquee ─────────────────────────────────── */
-
-.marquee-track-dark {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  width: max-content;
-  animation: marquee 45s linear infinite;
-}
-
-@property --mq-from {
-  syntax: '<color>';
-  initial-value: #71717a;
-  inherits: false;
-}
-
-@property --mq-to {
-  syntax: '<color>';
-  initial-value: #71717a;
-  inherits: false;
-}
-
-.marquee-label-dark {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 500;
-  --mq-from: #71717a;
-  --mq-to: #71717a;
-  background: linear-gradient(120deg, var(--mq-from), var(--mq-to));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  transition: --mq-from 0.4s ease, --mq-to 0.4s ease;
-}
-
-.marquee-label-dark:hover {
-  --mq-from: #34d399;
-  --mq-to: #6ee7b7;
-}
-
-.marquee-dot-dark {
-  width: 4px;
-  height: 4px;
-  border-radius: 9999px;
-  background: #3f3f46;
-  flex-shrink: 0;
-}
-
-.hero-marquee-mask {
-  -webkit-mask-image: linear-gradient(to right, transparent, black 120px, black calc(100% - 120px), transparent);
-  mask-image: linear-gradient(to right, transparent, black 120px, black calc(100% - 120px), transparent);
-}
-
-@media (min-width: 1024px) {
-  .hero-marquee-mask {
-    -webkit-mask-image: linear-gradient(to right, transparent, black 240px, black calc(100% - 240px), transparent);
-    mask-image: linear-gradient(to right, transparent, black 240px, black calc(100% - 240px), transparent);
-  }
-}
-
-.hero-marquee-container::before,
-.hero-marquee-container::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.06) 20%, rgba(255, 255, 255, 0.06) 80%, transparent);
-}
-
-.hero-marquee-container::before {
-  top: 0;
-}
-
-.hero-marquee-container::after {
-  bottom: 0;
-}
-
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-25%); }
-}
-
-/* ── Lightbox ─────────────────────────────────── */
-
 .lightbox-image {
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
@@ -810,8 +762,6 @@ onMounted(() => {
   opacity: 1;
   transform: translate(0, 0) scale(1);
 }
-
-/* ── Intro animation (used for ALL elements, not just hero) ── */
 
 .intro {
   opacity: 0;
@@ -830,24 +780,6 @@ onMounted(() => {
   transform: translateY(0);
   filter: blur(0);
 }
-
-.nav-intro {
-  opacity: 0;
-  transform: translateY(-8px);
-  transition:
-    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.3s ease,
-    border-color 0.3s ease;
-  will-change: opacity, transform;
-}
-
-.is-ready .nav-intro {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ── Word animate (hero headline only) ────────────── */
 
 .word-animate {
   display: inline-block;
