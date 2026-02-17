@@ -255,9 +255,11 @@ onUnmounted(() => {
                     <button
                       class="inline-flex h-5 w-5 items-center justify-center rounded-md leading-none text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/[0.08] dark:hover:text-zinc-300"
                       aria-label="Dismiss agent activity notification"
+                      @pointerdown.stop
+                      @pointerup.stop
                       @click.stop="dismissAgentActivity(activity.id)"
                     >
-                      <Icon name="heroicons:x-mark" class="h-3.5 w-3.5" />
+                      <Icon name="heroicons:x-mark" class="pointer-events-none h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
