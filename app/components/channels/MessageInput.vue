@@ -561,19 +561,67 @@ defineExpose({ focus })
 </script>
 
 <template>
-  <div class="border-t border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-surface px-4 py-3">
+  <div
+    class="border-t border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-surface px-4 py-3 transition-colors"
+    :class="isDragOver ? 'bg-blue-50/70 dark:bg-blue-500/[0.06]' : ''"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <div class="max-w-3xl mx-auto">
-      <div class="flex items-end gap-2">
+      <!-- Pending attachments strip -->
+      <div v-if="pendingAttachments.length > 0" class="mb-2 flex flex-wrap gap-2">
         <div
-          class="flex-1 relative rounded-xl border transition-colors"
-          :class="isDragOver
-            ? 'border-blue-400 bg-blue-50/70 dark:border-blue-400/70 dark:bg-blue-500/10'
-            : 'border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card'"
-          @dragenter="onDragEnter"
-          @dragover="onDragOver"
-          @dragleave="onDragLeave"
-          @drop="onDrop"
+          v-for="attachment in pendingAttachments"
+          :key="attachment.localId"
+          class="group relative flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-white/[0.06] pl-2 pr-1 py-1"
         >
+          <img
+            v-if="attachment.previewUrl"
+            :src="attachment.previewUrl"
+            :alt="attachment.name"
+            class="h-8 w-8 rounded object-cover"
+          >
+          <Icon
+            v-else
+            :name="fileIcon(attachment.mimeType)"
+            class="w-4 h-4 text-slate-400 dark:text-zinc-500"
+          />
+          <span class="text-xs text-slate-600 dark:text-zinc-300 truncate max-w-[120px]">{{ attachment.name }}</span>
+          <span
+            v-if="attachment.uploading"
+            class="text-[10px] text-blue-500"
+          >{{ attachment.progress }}%</span>
+          <span
+            v-else-if="attachment.error"
+            class="text-[10px] text-rose-500"
+            :title="attachment.error"
+          >!</span>
+          <button
+            type="button"
+            class="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-slate-400 hover:text-rose-500 dark:text-zinc-500 dark:hover:text-rose-400 transition-colors"
+            :class="attachment.uploading ? 'opacity-30 cursor-not-allowed' : ''"
+            :disabled="attachment.uploading"
+            @click="removePendingAttachment(attachment.localId)"
+          >
+            <Icon name="heroicons:x-mark" class="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="flex-shrink-0 p-1 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Attach files"
+          :disabled="disabled || sending"
+          @click="openFilePicker"
+        >
+          <Icon name="heroicons:paper-clip" class="w-5 h-5" />
+        </button>
+
+        <div class="flex-1 relative flex items-center">
           <Transition
             enter-active-class="transition-all duration-150 ease-out"
             enter-from-class="opacity-0 translate-y-1"
@@ -596,7 +644,7 @@ defineExpose({ focus })
                 @click="applyMention(member)"
               >
                 <div class="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-medium text-slate-700 dark:bg-white/[0.08] dark:text-zinc-200">
-                  <img v-if="member.avatar" :src="member.avatar" :alt="member.name" class="h-full w-full object-cover" >
+                  <img v-if="member.avatar" :src="member.avatar" :alt="member.name" class="h-full w-full object-cover" />
                   <span v-else>{{ member.name.charAt(0).toUpperCase() }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
@@ -612,9 +660,10 @@ defineExpose({ focus })
             </div>
           </Transition>
 
+          <!-- Highlight overlay -->
           <div
             v-if="highlightedSegments"
-            class="absolute inset-0 pointer-events-none px-3 py-2 text-sm whitespace-pre-wrap break-words overflow-hidden text-transparent"
+            class="absolute inset-0 pointer-events-none py-2 text-sm whitespace-pre-wrap break-words overflow-hidden text-transparent"
             aria-hidden="true"
           >
             <template v-for="(seg, i) in highlightedSegments" :key="i">
@@ -632,7 +681,7 @@ defineExpose({ focus })
             :placeholder="placeholder || 'Type a message...'"
             :disabled="disabled || sending"
             rows="1"
-            class="w-full px-3 py-2 text-sm text-slate-900 dark:text-zinc-100 bg-transparent placeholder-slate-400 dark:placeholder-zinc-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed relative z-10"
+            class="w-full py-2 text-sm text-slate-900 dark:text-zinc-100 bg-transparent placeholder-slate-400 dark:placeholder-zinc-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed relative z-10"
             :class="{ 'caret-slate-900 dark:caret-zinc-100': highlightedSegments }"
             @keydown="handleKeydown"
             @input="updateMentionState"
@@ -643,24 +692,14 @@ defineExpose({ focus })
         </div>
 
         <button
-          type="button"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card text-slate-500 dark:text-zinc-300 hover:text-slate-700 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Attach files"
-          :disabled="disabled || sending"
-          @click="openFilePicker"
-        >
-          <Icon name="heroicons:paper-clip" class="w-4 h-4" />
-        </button>
-
-        <button
           :disabled="!canSend"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-slate-700 dark:hover:bg-zinc-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          class="flex-shrink-0 p-2 text-slate-900 dark:text-zinc-100 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
           title="Send message"
           @click="sendMessage"
         >
           <Icon
             :name="sending ? 'heroicons:arrow-path' : 'heroicons:paper-airplane'"
-            :class="['w-4 h-4', sending ? 'animate-spin' : '']"
+            :class="['w-5 h-5', sending ? 'animate-spin' : '']"
           />
         </button>
       </div>
@@ -673,77 +712,12 @@ defineExpose({ focus })
         @change="onFileInput"
       >
 
-      <div v-if="pendingAttachments.length > 0" class="mt-2 space-y-2">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <article
-            v-for="attachment in pendingAttachments"
-            :key="attachment.localId"
-            class="group relative rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card overflow-hidden"
-          >
-            <button
-              type="button"
-              class="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center leading-none rounded-md bg-white/90 dark:bg-black/50 text-slate-500 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-300 transition-colors"
-              :class="attachment.uploading ? 'opacity-40 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'"
-              :disabled="attachment.uploading"
-              @click="removePendingAttachment(attachment.localId)"
-            >
-              <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
-            </button>
-
-            <div v-if="attachment.previewUrl" class="block">
-              <img
-                :src="attachment.previewUrl"
-                :alt="attachment.name"
-                class="w-full h-24 object-cover bg-slate-100 dark:bg-white/[0.04]"
-              >
-            </div>
-
-            <div v-else class="px-2.5 py-2.5">
-              <div class="flex items-start gap-2">
-                <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-white/[0.06] flex items-center justify-center text-slate-500 dark:text-zinc-400">
-                  <Icon :name="fileIcon(attachment.mimeType)" class="w-4 h-4" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="text-xs font-medium text-slate-700 dark:text-zinc-200 truncate">{{ attachment.name }}</p>
-                  <p class="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">{{ formatBytes(attachment.sizeBytes) }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="px-2.5 py-2 border-t border-slate-100 dark:border-white/[0.06]">
-              <div class="flex items-center justify-between gap-2 text-[11px]">
-                <span class="truncate text-slate-600 dark:text-zinc-300">{{ attachment.name }}</span>
-                <span
-                  v-if="attachment.uploading"
-                  class="text-blue-600 dark:text-blue-300"
-                >{{ attachment.progress }}%</span>
-                <span
-                  v-else-if="attachment.error"
-                  class="text-rose-600 dark:text-rose-400"
-                >Failed</span>
-                <span
-                  v-else
-                  class="text-emerald-600 dark:text-emerald-400"
-                >Ready</span>
-              </div>
-              <p class="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">{{ formatBytes(attachment.sizeBytes) }}</p>
-              <div v-if="attachment.uploading" class="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-white/[0.08] overflow-hidden">
-                <div class="h-full bg-blue-500 transition-all duration-200" :style="{ width: `${attachment.progress}%` }" />
-              </div>
-              <p v-if="attachment.error" class="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{{ attachment.error }}</p>
-            </div>
-          </article>
-        </div>
-      </div>
-
-      <p v-if="uploadError" class="mt-2 text-xs text-rose-600 dark:text-rose-400">
+      <p v-if="uploadError" class="mt-1.5 text-xs text-rose-600 dark:text-rose-400">
         {{ uploadError }}
       </p>
 
       <p v-if="!hideHelper" class="mt-1.5 text-xs text-slate-400 dark:text-zinc-500">
-        Type <kbd class="px-1 py-0.5 bg-slate-100 dark:bg-dm-card rounded text-[10px] font-mono">@</kbd> to mention someone
-        <span class="mx-1">·</span>
-        Drop files, paste images, or use the paperclip
+        Type <kbd class="px-1 py-0.5 bg-slate-100 dark:bg-dm-card rounded text-[10px] font-mono">@</kbd> to mention · drop files or use <Icon name="heroicons:paper-clip" class="inline w-3 h-3" />
       </p>
     </div>
   </div>
