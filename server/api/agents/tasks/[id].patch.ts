@@ -47,6 +47,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  let nextSubStatus: string | null | undefined
   let nextStatus: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED' | 'DONE' | undefined
   if (status !== undefined) {
     let normalizedStatus = typeof status === 'string' ? status.toUpperCase() : ''
@@ -75,7 +76,6 @@ export default defineEventHandler(async (event) => {
     nextProgress = Math.round(progress)
   }
 
-  let nextSubStatus: string | null | undefined
   if (subStatus !== undefined) {
     if (subStatus === null) {
       nextSubStatus = null

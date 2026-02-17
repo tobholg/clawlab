@@ -292,6 +292,26 @@ commands.projects = {
   },
 }
 
+// ── create-project ──────────────────────────────────────────────────────────
+
+commands['create-project'] = {
+  usage: 'ctx create-project <title> [--description "text"]',
+  desc: 'Create a new top-level project',
+  async run(args, flags) {
+    requireToken()
+    const title = args.join(' ')
+    if (!title) return die('Usage: ctx create-project <title>')
+
+    const body = { title }
+    const desc = flags.get('--description')
+    if (typeof desc === 'string') body.description = desc
+
+    const data = await post('/api/agents/projects', body)
+    if (JSON_OUT) return json(data)
+    print(`✓ Project created: ${data.title} (${data.id.slice(-8)})`)
+  },
+}
+
 // ── channels ────────────────────────────────────────────────────────────────
 
 commands.channels = {
