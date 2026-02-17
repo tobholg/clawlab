@@ -351,8 +351,25 @@ commands.catchup = {
         const modeLabel = mode.toUpperCase()
         const hint = modeHints[mode] || `Mode: ${modeLabel}`
         print(``)
-        print(`     ⚡ ${modeLabel}  ${t.title}  (${t.id.slice(-8)})`)
+        print(`     ⚡ ${modeLabel}  ${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
         print(`       → ${hint}`)
+
+        // Fetch subtasks for context
+        try {
+          const detail = await get(`/api/agents/tasks/${t.id}`)
+          const subs = detail.subtasks || detail.children || []
+          if (subs.length > 0) {
+            const done = subs.filter(s => s.status === 'DONE' || s.status === 'done').length
+            const inProg = subs.filter(s => s.status === 'IN_PROGRESS' || s.status === 'in_progress').length
+            print(`       ${done}/${subs.length} done${inProg ? `, ${inProg} in progress` : ''}`)
+            for (const s of subs) {
+              const icon = (s.status === 'DONE' || s.status === 'done') ? '✓' : (s.status === 'IN_PROGRESS' || s.status === 'in_progress') ? '◐' : '○'
+              const st = (s.status || '').toUpperCase().padEnd(12)
+              print(`         ${icon} ${st} ${s.title}`)
+            }
+          }
+        } catch { /* skip if fetch fails */ }
+
         print(`       $ ctx task ${t.id.slice(-8)}          # view details`)
         if (mode === 'plan') {
           print(`       $ ctx doc ${t.id.slice(-8)} --create  # start your plan`)
