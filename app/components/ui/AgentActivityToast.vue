@@ -149,13 +149,18 @@ const getSwipeOpacity = (id: string) => {
   return Math.max(0, 1 - dx / 200)
 }
 
-const onPointerUp = (id: string, activity: AgentActivity) => {
+const onPointerUp = (id: string, activity: AgentActivity, e: PointerEvent) => {
   const s = swipeState[id]
   if (!s) return
   const dx = s.currentX - s.startX
+
+  // Don't navigate if the user clicked the dismiss button
+  const target = e.target as HTMLElement | null
+  const isDismiss = target?.closest('[aria-label="Dismiss agent activity notification"]')
+
   if (dx > 100) {
     dismissAgentActivity(id)
-  } else if (!s.swiping) {
+  } else if (!s.swiping && !isDismiss) {
     navigateToTask(activity)
   }
   delete swipeState[id]
@@ -204,7 +209,7 @@ onUnmounted(() => {
           }"
           @pointerdown="onPointerDown(activity.id, $event)"
           @pointermove="onPointerMove(activity.id, $event)"
-          @pointerup="onPointerUp(activity.id, activity)"
+          @pointerup="onPointerUp(activity.id, activity, $event)"
           @pointercancel="delete swipeState[activity.id]"
           @keydown.enter.prevent="navigateToTask(activity)"
           @keydown.space.prevent="navigateToTask(activity)"
