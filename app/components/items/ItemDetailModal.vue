@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
 import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, SUB_STATUS_BY_STATUS, getSubStatusesForStatus, COMPLEXITY_OPTIONS, PRIORITY_OPTIONS } from '~/types'
+import TaskAttachments from '~/components/task/TaskAttachments.vue'
 
 const props = defineProps<{
   open: boolean
@@ -2026,6 +2027,8 @@ const formatRelativeTime = (dateStr: string) => {
               <span class="text-xs font-medium text-blue-700 dark:text-zinc-300">Top-level project</span>
               <span class="text-xs text-blue-500 dark:text-zinc-500">{{ itemDetail.childrenCount || 0 }} items inside</span>
             </div>
+
+            <TaskAttachments :item-id="currentItemId" />
 
             <!-- Tab Bar -->
             <div class="flex items-center gap-1 border-b border-slate-200 dark:border-white/[0.06]">

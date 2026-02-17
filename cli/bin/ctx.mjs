@@ -4,7 +4,7 @@
 // Auth: CTX_TOKEN + CTX_URL env vars, or ~/.config/context/config.json
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { homedir } from 'node:os'
 
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -39,6 +39,27 @@ async function api(method, path, body) {
   if (body) opts.body = JSON.stringify(body)
 
   const res = await fetch(`${BASE}${path}`, opts)
+  const text = await res.text()
+
+  let data
+  try { data = JSON.parse(text) } catch { data = text }
+
+  if (!res.ok) {
+    const msg = data?.message || data?.error || `HTTP ${res.status}`
+    throw new Error(msg)
+  }
+  return data
+}
+
+async function postMultipart(path, formData) {
+  const headers = {}
+  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`
+
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  })
   const text = await res.text()
 
   let data
@@ -90,6 +111,19 @@ function priorityIcon(p) {
 
 function statusIcon(s) {
   return { TODO: '○', IN_PROGRESS: '◐', BLOCKED: '✕', PAUSED: '⏸', DONE: '●' }[s] || '?'
+}
+
+function formatBytes(bytes) {
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = Number(bytes) || 0
+  let unitIndex = 0
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+
+  return unitIndex === 0 ? `${value} ${units[unitIndex]}` : `${value.toFixed(1)} ${units[unitIndex]}`
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -673,6 +707,56 @@ commands.comments = {
       print(`  ${c.user.name} — ${new Date(c.createdAt).toLocaleString()}`)
       print(`  ${c.content}\n`)
     })
+  },
+}
+
+// ── attach ──────────────────────────────────────────────────────────────────
+
+commands.attach = {
+  usage: 'ctx attach <task-id> <file-path>',
+  desc: 'Upload a file attachment to a task',
+  async run(args) {
+    requireToken()
+    if (!args[0] || !args[1]) return die('Usage: ctx attach <task-id> <file-path>')
+    const id = await resolveId(args[0])
+    const filePath = args[1]
+
+    if (!existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`)
+    }
+
+    const bytes = readFileSync(filePath)
+    const form = new FormData()
+    form.append('file', new Blob([bytes]), basename(filePath))
+
+    const data = await postMultipart(`/api/agents/tasks/${id}/attachments`, form)
+    if (JSON_OUT) return json(data)
+    print(`✓ Attachment uploaded: ${data.name} (${data.id.slice(-8)})`)
+  },
+}
+
+// ── attachments ─────────────────────────────────────────────────────────────
+
+commands.attachments = {
+  usage: 'ctx attachments <task-id>',
+  desc: 'List attachments on a task',
+  async run(args) {
+    requireToken()
+    if (!args[0]) return die('Usage: ctx attachments <task-id>')
+    const id = await resolveId(args[0])
+
+    const data = await get(`/api/agents/tasks/${id}/attachments`)
+    if (JSON_OUT) return json(data)
+    print('')
+    if (!data.length) return print('  No attachments.\n')
+    table(data, [
+      { label: 'ID', get: r => r.id.slice(-8) },
+      { label: 'Name', get: r => r.name },
+      { label: 'Size', get: r => formatBytes(r.sizeBytes) },
+      { label: 'Type', get: r => r.mimeType || 'application/octet-stream' },
+      { label: 'Created', get: r => new Date(r.createdAt).toLocaleString() },
+    ])
+    print('')
   },
 }
 
