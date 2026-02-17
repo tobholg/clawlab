@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { prisma } from '../../../utils/prisma'
 import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
+import { messageAttachmentSelect, toMessageAttachmentResponse } from '../../../utils/attachments'
 import { checkCanUseAICredit, consumeAICredit } from '../../../utils/planLimits'
 import { broadcastNewMessage } from '../../../utils/websocket'
 
@@ -109,11 +110,15 @@ export default defineEventHandler(async (event) => {
       channelId,
       userId: aiUser.id,
       content: content || 'I prepared a task proposal below.',
-      attachments: proposal ? [{ type: 'task_proposal', proposal }] : undefined,
+      embeds: proposal ? [{ type: 'task_proposal', proposal }] : undefined,
     },
     include: {
       user: { select: { id: true, name: true, avatar: true, isAgent: true } },
       _count: { select: { replies: true } },
+      attachments: {
+        select: messageAttachmentSelect,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      },
     },
   })
 
@@ -123,7 +128,8 @@ export default defineEventHandler(async (event) => {
     userId: message.userId,
     parentId: message.parentId,
     content: message.content,
-    attachments: message.attachments,
+    embeds: message.embeds,
+    attachments: message.attachments.map(toMessageAttachmentResponse),
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
     editedAt: message.editedAt?.toISOString() ?? null,

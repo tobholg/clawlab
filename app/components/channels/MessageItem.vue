@@ -73,10 +73,35 @@ const handleReaction = (emoji: string) => {
 }
 
 const taskProposal = computed<TaskProposal | null>(() => {
-  const attachments = Array.isArray(props.message.attachments) ? props.message.attachments : []
-  const match = attachments.find((attachment: any) => attachment?.type === 'task_proposal' && attachment?.proposal)
+  const embeds = Array.isArray(props.message.embeds) ? props.message.embeds : []
+  const match = embeds.find((entry: any) => entry?.type === 'task_proposal' && entry?.proposal)
   return (match?.proposal as TaskProposal) || null
 })
+
+const imageAttachments = computed(() => {
+  return props.message.attachments.filter((attachment) => attachment.mimeType.startsWith('image/'))
+})
+
+const fileAttachments = computed(() => {
+  return props.message.attachments.filter((attachment) => !attachment.mimeType.startsWith('image/'))
+})
+
+const attachmentUrl = (attachmentId: string) => `/api/files/${attachmentId}`
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
+const fileIcon = (mimeType: string) => {
+  if (mimeType.includes('pdf')) return 'heroicons:document-text'
+  if (mimeType.includes('zip') || mimeType.includes('tar')) return 'heroicons:archive-box'
+  if (mimeType.includes('audio')) return 'heroicons:musical-note'
+  if (mimeType.includes('video')) return 'heroicons:film'
+  return 'heroicons:document'
+}
 
 const mentionMemberMap = computed(() => {
   const map = new Map<string, MentionMember>()
@@ -229,6 +254,72 @@ const renderedMessageContent = computed(() => {
             >
               · edited
             </span>
+          </div>
+        </div>
+
+        <div
+          v-if="imageAttachments.length > 0 || fileAttachments.length > 0"
+          :class="['mt-2 space-y-2', isOwnMessage ? 'ml-auto' : '']"
+        >
+          <a
+            v-if="imageAttachments.length === 1"
+            :href="attachmentUrl(imageAttachments[0].id)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block max-w-sm"
+          >
+            <img
+              :src="attachmentUrl(imageAttachments[0].id)"
+              :alt="imageAttachments[0].name"
+              class="w-full rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-100 dark:bg-white/[0.04]"
+            >
+          </a>
+
+          <div
+            v-else-if="imageAttachments.length > 1"
+            class="grid grid-cols-2 gap-2 max-w-sm"
+          >
+            <a
+              v-for="attachment in imageAttachments"
+              :key="attachment.id"
+              :href="attachmentUrl(attachment.id)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="block"
+            >
+              <img
+                :src="attachmentUrl(attachment.id)"
+                :alt="attachment.name"
+                class="w-full h-28 object-cover rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-100 dark:bg-white/[0.04]"
+              >
+            </a>
+          </div>
+
+          <div v-if="fileAttachments.length > 0" class="space-y-1.5 max-w-sm">
+            <article
+              v-for="attachment in fileAttachments"
+              :key="attachment.id"
+              class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card px-2.5 py-2"
+            >
+              <div class="flex items-center gap-2">
+                <div class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-zinc-400">
+                  <Icon :name="fileIcon(attachment.mimeType)" class="w-4 h-4" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-medium text-slate-700 dark:text-zinc-200 truncate">{{ attachment.name }}</p>
+                  <p class="text-[11px] text-slate-400 dark:text-zinc-500">{{ formatBytes(attachment.sizeBytes) }}</p>
+                </div>
+                <a
+                  :href="attachmentUrl(attachment.id)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200 transition-colors"
+                >
+                  <Icon name="heroicons:arrow-down-tray" class="w-3 h-3" />
+                  Download
+                </a>
+              </div>
+            </article>
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import { prisma } from '../../../../utils/prisma'
 import { requireAgentUser } from '../../../../utils/agentApi'
+import { messageAttachmentSelect, toMessageAttachmentResponse } from '../../../../utils/attachments'
 
 const DEFAULT_LIMIT = 50
 const MAX_LIMIT = 100
@@ -91,6 +92,10 @@ export default defineEventHandler(async (event) => {
       _count: {
         select: { replies: true },
       },
+      attachments: {
+        select: messageAttachmentSelect,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      },
       reactions: {
         include: {
           user: {
@@ -113,7 +118,8 @@ export default defineEventHandler(async (event) => {
       userId: msg.userId,
       parentId: msg.parentId,
       content: msg.content,
-      attachments: msg.attachments,
+      embeds: msg.embeds,
+      attachments: msg.attachments.map(toMessageAttachmentResponse),
       createdAt: msg.createdAt.toISOString(),
       updatedAt: msg.updatedAt.toISOString(),
       editedAt: msg.editedAt?.toISOString() ?? null,

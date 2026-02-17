@@ -1,4 +1,4 @@
-import { requireWorkspaceMember } from '../../utils/auth'
+import { requireUser, requireWorkspaceMember } from '../../utils/auth'
 import { prisma } from '../../utils/prisma'
 import { deleteFile } from '../../utils/storage'
 
@@ -14,15 +14,52 @@ export default defineEventHandler(async (event) => {
       item: {
         select: { workspaceId: true },
       },
+      message: {
+        select: {
+          channelId: true,
+          channel: {
+            select: { workspaceId: true },
+          },
+        },
+      },
     },
   })
 
-  if (!attachment || !attachment.item) {
+  if (!attachment) {
     throw createError({ statusCode: 404, statusMessage: 'Attachment not found' })
   }
 
-  const auth = await requireWorkspaceMember(event, attachment.item.workspaceId)
-  const canDelete = auth.isWorkspaceAdmin || attachment.uploadedById === auth.user.id
+  let canDelete = false
+
+  if (attachment.item) {
+    const auth = await requireWorkspaceMember(event, attachment.item.workspaceId)
+    canDelete = auth.isWorkspaceAdmin || attachment.uploadedById === auth.user.id
+  } else if (attachment.message) {
+    const user = await requireUser(event)
+    const membership = await prisma.channelMember.findUnique({
+      where: {
+        channelId_userId: {
+          channelId: attachment.message.channelId,
+          userId: user.id,
+        },
+      },
+      select: { id: true },
+    })
+    if (!membership) {
+      throw createError({ statusCode: 403, statusMessage: 'Channel access required' })
+    }
+
+    if (attachment.uploadedById === user.id) {
+      canDelete = true
+    } else {
+      const auth = await requireWorkspaceMember(event, attachment.message.channel.workspaceId)
+      canDelete = auth.isWorkspaceAdmin
+    }
+  } else {
+    const user = await requireUser(event)
+    canDelete = attachment.uploadedById === user.id
+  }
+
   if (!canDelete) {
     throw createError({ statusCode: 403, statusMessage: 'Only uploader or workspace admin can delete attachment' })
   }

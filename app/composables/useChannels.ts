@@ -17,13 +17,23 @@ export interface MessageReaction {
   users: { id: string; name: string | null }[]
 }
 
+export interface ChannelAttachment {
+  id: string
+  name: string
+  mimeType: string
+  sizeBytes: number
+  metadata: Record<string, unknown> | null
+  createdAt: string
+}
+
 export interface ChannelMessage {
   id: string
   channelId: string
   userId: string
   parentId: string | null
   content: string
-  attachments: unknown[] | null
+  embeds: unknown[] | null
+  attachments: ChannelAttachment[]
   createdAt: string
   updatedAt: string
   editedAt: string | null
@@ -162,11 +172,11 @@ export function useChannels(workspaceId: MaybeRef<string | null>) {
   }
 
   // Send a new message
-  const sendMessage = async (channelId: string, content: string, parentId?: string) => {
+  const sendMessage = async (channelId: string, content: string, parentId?: string, attachmentIds: string[] = []) => {
     try {
       const message = await $fetch<ChannelMessage>(`/api/channels/${channelId}/messages`, {
         method: 'POST',
-        body: { content, parentId },
+        body: { content, parentId, attachmentIds },
       })
       
       // Add to messages if this is the current channel

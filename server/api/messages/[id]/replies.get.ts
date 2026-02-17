@@ -1,5 +1,6 @@
 import { prisma } from '../../../utils/prisma'
 import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
+import { messageAttachmentSelect, toMessageAttachmentResponse } from '../../../utils/attachments'
 
 export default defineEventHandler(async (event) => {
   const messageId = getRouterParam(event, 'id')
@@ -32,6 +33,10 @@ export default defineEventHandler(async (event) => {
           },
         },
       },
+      attachments: {
+        select: messageAttachmentSelect,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      },
       replies: {
         where: { deleted: false },
         include: {
@@ -44,6 +49,10 @@ export default defineEventHandler(async (event) => {
                 select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
               },
             },
+          },
+          attachments: {
+            select: messageAttachmentSelect,
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           },
         },
         orderBy: { createdAt: 'asc' },
@@ -64,7 +73,8 @@ export default defineEventHandler(async (event) => {
     userId: msg.userId,
     parentId: msg.parentId,
     content: msg.content,
-    attachments: msg.attachments,
+    embeds: msg.embeds,
+    attachments: msg.attachments.map(toMessageAttachmentResponse),
     createdAt: msg.createdAt.toISOString(),
     updatedAt: msg.updatedAt.toISOString(),
     editedAt: msg.editedAt?.toISOString() ?? null,

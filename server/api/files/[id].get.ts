@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
-import { requireWorkspaceMember } from '../../utils/auth'
+import { requireUser, requireWorkspaceMember } from '../../utils/auth'
 import { prisma } from '../../utils/prisma'
 import { getFilePath } from '../../utils/storage'
 
@@ -16,14 +16,39 @@ export default defineEventHandler(async (event) => {
       item: {
         select: { workspaceId: true },
       },
+      message: {
+        select: { channelId: true },
+      },
     },
   })
 
-  if (!attachment || !attachment.item) {
+  if (!attachment) {
     throw createError({ statusCode: 404, statusMessage: 'Attachment not found' })
   }
 
-  await requireWorkspaceMember(event, attachment.item.workspaceId)
+  if (attachment.item) {
+    await requireWorkspaceMember(event, attachment.item.workspaceId)
+  } else if (attachment.message) {
+    const user = await requireUser(event)
+    const membership = await prisma.channelMember.findUnique({
+      where: {
+        channelId_userId: {
+          channelId: attachment.message.channelId,
+          userId: user.id,
+        },
+      },
+      select: { id: true },
+    })
+
+    if (!membership) {
+      throw createError({ statusCode: 403, statusMessage: 'Channel access required' })
+    }
+  } else {
+    const user = await requireUser(event)
+    if (attachment.uploadedById !== user.id) {
+      throw createError({ statusCode: 404, statusMessage: 'Attachment not found' })
+    }
+  }
 
   const absolutePath = getFilePath(attachment.storagePath)
   let fileStats

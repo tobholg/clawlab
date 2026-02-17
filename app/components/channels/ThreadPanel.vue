@@ -36,11 +36,11 @@ const fetchReplies = async () => {
 }
 
 // Send reply
-const handleSendReply = async (content: string) => {
+const handleSendReply = async (payload: { content: string; attachmentIds: string[] }) => {
   try {
     const message = await $fetch<ChannelMessage>(`/api/channels/${props.channelId}/messages`, {
       method: 'POST',
-      body: { content, parentId: props.parentMessage.id },
+      body: { content: payload.content, parentId: props.parentMessage.id, attachmentIds: payload.attachmentIds },
     })
     replies.value = [...replies.value, message]
     emit('replySent', props.parentMessage.id)

@@ -1,5 +1,5 @@
 import { extension as mimeExtension } from 'mime-types'
-import { requireWorkspaceMemberForItem } from '../../utils/auth'
+import { requireUser, requireWorkspaceMemberForItem } from '../../utils/auth'
 import { toAttachmentResponse } from '../../utils/attachments'
 import { prisma } from '../../utils/prisma'
 import { deleteFile, saveFile, UPLOAD_MAX_SIZE } from '../../utils/storage'
@@ -29,13 +29,14 @@ export default defineEventHandler(async (event) => {
 
   const filePart = parts.find((part) => part.name === 'file' && part.data && part.data.length > 0)
   const itemId = parseTextPart(parts.find((part) => part.name === 'itemId'))
+  const messageId = parseTextPart(parts.find((part) => part.name === 'messageId'))
 
   if (!filePart?.data) {
     throw createError({ statusCode: 400, statusMessage: 'file is required' })
   }
 
-  if (!itemId) {
-    throw createError({ statusCode: 400, statusMessage: 'itemId is required' })
+  if (itemId && messageId) {
+    throw createError({ statusCode: 400, statusMessage: 'Provide either itemId or messageId, not both' })
   }
 
   if (filePart.data.byteLength > UPLOAD_MAX_SIZE) {
@@ -45,7 +46,41 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const auth = await requireWorkspaceMemberForItem(event, itemId)
+  let uploadedById: string
+  if (itemId) {
+    const auth = await requireWorkspaceMemberForItem(event, itemId)
+    uploadedById = auth.user.id
+  } else {
+    const user = await requireUser(event)
+    uploadedById = user.id
+  }
+
+  if (messageId) {
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      select: { channelId: true, deleted: true },
+    })
+    if (!message || message.deleted) {
+      throw createError({ statusCode: 404, statusMessage: 'Message not found' })
+    }
+
+    const membership = await prisma.channelMember.findUnique({
+      where: {
+        channelId_userId: {
+          channelId: message.channelId,
+          userId: uploadedById,
+        },
+      },
+      select: { id: true },
+    })
+
+    if (!membership) {
+      throw createError({ statusCode: 403, statusMessage: 'Channel access required' })
+    }
+  }
+
+  // Allow pending uploads with no parent; message creation links these later.
+  // TODO: add orphan cleanup for stale pending attachments.
   const originalName = normalizeFilename(filePart.filename, filePart.type)
 
   const stored = await saveFile(Buffer.from(filePart.data), originalName)
@@ -62,8 +97,9 @@ export default defineEventHandler(async (event) => {
         sizeBytes: stored.sizeBytes,
         storagePath: stored.storagePath,
         metadata: stored.metadata ?? undefined,
-        itemId,
-        uploadedById: auth.user.id,
+        itemId: itemId || undefined,
+        messageId: messageId || undefined,
+        uploadedById,
       },
     })
 

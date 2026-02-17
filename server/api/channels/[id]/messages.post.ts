@@ -1,13 +1,15 @@
 import { prisma } from '../../../utils/prisma'
 import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
+import { messageAttachmentSelect, toMessageAttachmentResponse } from '../../../utils/attachments'
 import { broadcast, broadcastNewMessage } from '../../../utils/websocket'
 import { createMentions, extractMentionIds } from '../../../utils/mentions'
 
 const MAX_MESSAGE_LENGTH = 5000
 
 interface CreateMessageBody {
-  content: string
+  content?: string
   parentId?: string
+  attachmentIds?: string[]
 }
 
 export default defineEventHandler(async (event) => {
@@ -34,12 +36,23 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<CreateMessageBody>(event)
+  const content = typeof body.content === 'string' ? body.content.trim() : ''
+  const attachmentIds = Array.isArray(body.attachmentIds)
+    ? Array.from(
+        new Set(
+          body.attachmentIds
+            .filter((id): id is string => typeof id === 'string')
+            .map((id) => id.trim())
+            .filter((id) => id.length > 0),
+        ),
+      )
+    : []
 
-  if (!body.content?.trim()) {
-    throw createError({ statusCode: 400, message: 'content is required' })
+  if (!content && attachmentIds.length === 0) {
+    throw createError({ statusCode: 400, message: 'content or attachmentIds is required' })
   }
 
-  if (body.content.length > MAX_MESSAGE_LENGTH) {
+  if (content.length > MAX_MESSAGE_LENGTH) {
     throw createError({ statusCode: 400, message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer` })
   }
 
@@ -57,13 +70,51 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const createdMessage = await prisma.message.create({
-    data: {
-      channelId,
-      userId: user.id,
-      content: body.content.trim(),
-      parentId: body.parentId || null,
-    },
+  if (attachmentIds.length > 0) {
+    const existing = await prisma.attachment.findMany({
+      where: {
+        id: { in: attachmentIds },
+        uploadedById: user.id,
+        itemId: null,
+        messageId: null,
+      },
+      select: { id: true },
+    })
+
+    if (existing.length !== attachmentIds.length) {
+      throw createError({ statusCode: 400, message: 'Some attachments are invalid or already linked' })
+    }
+  }
+
+  const createdMessage = await prisma.$transaction(async (tx) => {
+    const created = await tx.message.create({
+      data: {
+        channelId,
+        userId: user.id,
+        content,
+        parentId: body.parentId || null,
+      },
+    })
+
+    if (attachmentIds.length > 0) {
+      const updated = await tx.attachment.updateMany({
+        where: {
+          id: { in: attachmentIds },
+          uploadedById: user.id,
+          itemId: null,
+          messageId: null,
+        },
+        data: {
+          messageId: created.id,
+        },
+      })
+
+      if (updated.count !== attachmentIds.length) {
+        throw createError({ statusCode: 400, message: 'Failed to link all attachments' })
+      }
+    }
+
+    return created
   })
 
   await createMentions(createdMessage.id, createdMessage.content)
@@ -84,6 +135,10 @@ export default defineEventHandler(async (event) => {
       _count: {
         select: { replies: true },
       },
+      attachments: {
+        select: messageAttachmentSelect,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      },
     },
   })
 
@@ -93,7 +148,8 @@ export default defineEventHandler(async (event) => {
     userId: message.userId,
     parentId: message.parentId,
     content: message.content,
-    attachments: message.attachments,
+    embeds: message.embeds,
+    attachments: message.attachments.map(toMessageAttachmentResponse),
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
     editedAt: message.editedAt?.toISOString() ?? null,

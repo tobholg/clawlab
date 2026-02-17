@@ -362,13 +362,16 @@ model Attachment {
   storagePath String
   metadata    Json?
   itemId      String?
+  messageId   String?
   uploadedById String
   createdAt   DateTime       @default(now())
 
-  item       Item? @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  uploadedBy User  @relation(fields: [uploadedById], references: [id])
+  item       Item?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  message    Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploadedBy User     @relation(fields: [uploadedById], references: [id])
 
   @@index([itemId])
+  @@index([messageId])
   @@index([uploadedById])
   @@map("attachments")
 }
@@ -704,7 +707,7 @@ model Message {
   parentId  String? // For threads
 
   content     String
-  attachments Json? // Future: file attachments
+  embeds      Json?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -718,6 +721,7 @@ model Message {
   replies   Message[]  @relation("MessageThreads")
   mentions  MessageMention[]
   reactions Reaction[]
+  attachments Attachment[]
 
   @@index([channelId, createdAt])
   @@index([parentId])

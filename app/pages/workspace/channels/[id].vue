@@ -24,6 +24,7 @@ const {
 const refreshSidebarChannels = inject<() => Promise<void>>('refreshSidebarChannels')
 
 const showSettings = ref(false)
+type OutboundMessagePayload = { content: string; attachmentIds: string[] }
 
 const AI_TRIGGER = /\B@ai\b/i
 const MISSED_PROMPT_THRESHOLD = 5
@@ -127,10 +128,10 @@ watch(channelId, async (id) => {
 }, { immediate: true })
 
 // Handle sending message
-const handleSendMessage = async (content: string) => {
+const handleSendMessage = async ({ content, attachmentIds }: OutboundMessagePayload) => {
   if (!channelId.value) return
   try {
-    const sentMessage = await sendMessage(channelId.value, content)
+    const sentMessage = await sendMessage(channelId.value, content, undefined, attachmentIds)
     nextTick(() => messageListRef.value?.scrollToBottom())
     if (sentMessage?.createdAt) {
       queueSeenAt(sentMessage.createdAt)
