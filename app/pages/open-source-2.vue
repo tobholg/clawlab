@@ -13,6 +13,39 @@ const ready = ref(false)
 const scrolled = ref(false)
 const copied = ref(false)
 
+// Screenshots
+const screenshots = [
+  { src: '/screenshots/board_1.png', label: 'Kanban board', category: 'Board' },
+  { src: '/screenshots/board_2.png', label: 'Task detail', category: 'Board' },
+  { src: '/screenshots/board_3.png', label: 'Timeline view', category: 'Board' },
+  { src: '/screenshots/channel_1.png', label: 'Team chat', category: 'Channels' },
+  { src: '/screenshots/channel_2.png', label: 'AI summary', category: 'Channels' },
+  { src: '/screenshots/stakeholder_1.png', label: 'Portal view', category: 'Stakeholders' },
+  { src: '/screenshots/stakeholder_2.png', label: 'Activity feed', category: 'Stakeholders' },
+  { src: '/screenshots/focus_1.png', label: 'Focus session', category: 'Focus' },
+]
+const activeShot = ref(0)
+const shotDirection = ref<'next' | 'prev'>('next')
+let shotTimer: ReturnType<typeof setInterval> | null = null
+
+const nextShot = () => {
+  shotDirection.value = 'next'
+  activeShot.value = (activeShot.value + 1) % screenshots.length
+}
+const prevShot = () => {
+  shotDirection.value = 'prev'
+  activeShot.value = (activeShot.value - 1 + screenshots.length) % screenshots.length
+}
+const goToShot = (i: number) => {
+  shotDirection.value = i > activeShot.value ? 'next' : 'prev'
+  activeShot.value = i
+  resetShotTimer()
+}
+const resetShotTimer = () => {
+  if (shotTimer) clearInterval(shotTimer)
+  shotTimer = setInterval(nextShot, 6000)
+}
+
 // ── Navigation ──
 const navItems = [
   { id: 'features', label: 'Features' },
@@ -359,11 +392,14 @@ onMounted(() => {
     })
   })
 
+  resetShotTimer()
+
   onUnmounted(() => {
     observer.disconnect()
     terminalObs.disconnect()
     kanbanObs.disconnect()
     window.removeEventListener('scroll', onScroll)
+    if (shotTimer) clearInterval(shotTimer)
   })
 })
 </script>
@@ -387,7 +423,7 @@ onMounted(() => {
             <div class="w-8 h-8 bg-white/[0.06] rounded-xl flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
               <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="text-[17px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-normal text-zinc-400">context</span></span>
+            <span class="text-[17px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">context</span></span>
           </button>
           <div class="hidden md:flex items-center gap-1">
             <button
@@ -437,7 +473,7 @@ onMounted(() => {
         <div class="hero-arc-center" />
       </div>
 
-      <div class="relative max-w-[1440px] mx-auto w-full py-20">
+      <div class="relative max-w-[1200px] mx-auto w-full py-20">
         <!-- Headline — word-by-word blur fade -->
         <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1]">
           <span v-for="(word, i) in ['Your', 'agents', 'finally']" :key="word" class="hero-word text-zinc-100" :style="{ '--wd': `${80 + i * 100}ms` }">{{ word }}&nbsp;</span>
@@ -964,6 +1000,66 @@ onMounted(() => {
       </div>
     </section>
 
+    <!-- ═══════════════════════ SCREENSHOTS ═══════════════════════ -->
+    <section class="px-6 py-24 lg:py-32">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <p class="intro text-sm font-semibold text-emerald-400 uppercase tracking-widest mb-4" style="--d: 0ms">See it</p>
+          <h2 class="intro text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight" style="--d: 60ms">
+            Built to ship, not to demo
+          </h2>
+        </div>
+
+        <div class="intro relative rounded-2xl bg-[#161619] overflow-hidden group" style="--d: 120ms">
+          <!-- Nav arrows -->
+          <button
+            class="absolute left-0 top-0 bottom-12 w-1/5 z-10 cursor-pointer flex items-center justify-start pl-4 opacity-0 group-hover:opacity-100 transition-opacity"
+            @click="prevShot(); resetShotTimer()"
+          >
+            <div class="w-9 h-9 rounded-full bg-black/50 flex items-center justify-center">
+              <Icon name="heroicons:chevron-left" class="w-4 h-4 text-white" />
+            </div>
+          </button>
+          <button
+            class="absolute right-0 top-0 bottom-12 w-1/5 z-10 cursor-pointer flex items-center justify-end pr-4 opacity-0 group-hover:opacity-100 transition-opacity"
+            @click="nextShot(); resetShotTimer()"
+          >
+            <div class="w-9 h-9 rounded-full bg-black/50 flex items-center justify-center">
+              <Icon name="heroicons:chevron-right" class="w-4 h-4 text-white" />
+            </div>
+          </button>
+
+          <!-- Image -->
+          <div class="p-3 pb-0">
+            <Transition :name="shotDirection === 'next' ? 'shot-next' : 'shot-prev'" mode="out-in">
+              <img
+                :key="activeShot"
+                :src="screenshots[activeShot].src"
+                :alt="screenshots[activeShot].label"
+                class="w-full h-auto rounded-xl"
+                style="image-rendering: high-quality"
+              />
+            </Transition>
+          </div>
+
+          <!-- Dots + label -->
+          <div class="flex items-center justify-center gap-3 py-4">
+            <button
+              v-for="(shot, i) in screenshots"
+              :key="i"
+              @click="goToShot(i)"
+            >
+              <div
+                class="h-1.5 rounded-full transition-all duration-300"
+                :class="i === activeShot ? 'w-6 bg-emerald-400' : 'w-1.5 bg-zinc-600 hover:bg-zinc-500'"
+              />
+            </button>
+          </div>
+          <p class="text-center text-xs text-zinc-500 pb-4 -mt-1">{{ screenshots[activeShot].label }}</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ═══════════════════════ COMPARISON ═══════════════════════ -->
     <section
       id="compare"
@@ -1116,7 +1212,7 @@ onMounted(() => {
               <div class="w-8 h-8 bg-white/[0.06] rounded-xl flex items-center justify-center">
                 <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <span class="text-[17px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-normal text-zinc-400">context</span></span>
+              <span class="text-[17px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">context</span></span>
             </div>
             <p class="text-sm text-zinc-500 leading-relaxed max-w-xs">
               Open-source project management for human-agent teams. Built in the open, free forever.
@@ -1276,6 +1372,30 @@ onMounted(() => {
 }
 
 /* Gradient phrase animates as one unit via .hero-word (blur+opacity+translateY) */
+
+/* ── Screenshot transitions ── */
+.shot-next-enter-active,
+.shot-next-leave-active,
+.shot-prev-enter-active,
+.shot-prev-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.shot-next-enter-from {
+  opacity: 0;
+  transform: translateX(40px);
+}
+.shot-next-leave-to {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+.shot-prev-enter-from {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+.shot-prev-leave-to {
+  opacity: 0;
+  transform: translateX(40px);
+}
 
 /* ── Terminal ── */
 .terminal-line {
