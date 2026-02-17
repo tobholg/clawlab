@@ -22,6 +22,7 @@ const dragDepth = ref(0)
 const isDragOver = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadRows = ref<Array<{ key: string; name: string; progress: number }>>([])
+const lightbox = useLightbox()
 
 const isUploading = computed(() => uploadRows.value.length > 0)
 
@@ -33,6 +34,27 @@ const formatBytes = (bytes: number) => {
 }
 
 const isImage = (mimeType: string) => mimeType.startsWith('image/')
+const isPdf = (mimeType: string) => mimeType === 'application/pdf'
+const isViewable = (mimeType: string) => isImage(mimeType) || isPdf(mimeType)
+
+const viewableAttachments = computed(() => attachments.value.filter((attachment) => isViewable(attachment.mimeType)))
+const viewableLightboxItems = computed(() =>
+  viewableAttachments.value.map((attachment) => ({
+    url: attachment.url,
+    name: attachment.name,
+    mimeType: attachment.mimeType,
+    attachmentId: attachment.id,
+  }))
+)
+
+const openAttachmentInLightbox = (attachment: TaskAttachment) => {
+  if (!isViewable(attachment.mimeType)) return
+
+  const startIndex = viewableAttachments.value.findIndex((entry) => entry.id === attachment.id)
+  if (startIndex === -1) return
+
+  lightbox.openGallery(viewableLightboxItems.value, startIndex)
+}
 
 const fileIcon = (mimeType: string) => {
   if (mimeType.includes('pdf')) return 'heroicons:document-text'
@@ -259,12 +281,11 @@ watch(() => props.itemId, loadAttachments, { immediate: true })
           <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
         </button>
 
-        <a
+        <button
           v-if="isImage(attachment.mimeType)"
-          :href="attachment.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="block"
+          type="button"
+          class="block w-full text-left"
+          @click="openAttachmentInLightbox(attachment)"
         >
           <img
             :src="attachment.thumbUrl || attachment.url"
@@ -275,9 +296,14 @@ watch(() => props.itemId, loadAttachments, { immediate: true })
             <p class="text-xs font-medium text-slate-700 dark:text-zinc-200 truncate">{{ attachment.name }}</p>
             <p class="text-[11px] text-slate-400 dark:text-zinc-500">{{ formatBytes(attachment.sizeBytes) }}</p>
           </div>
-        </a>
+        </button>
 
-        <div v-else class="px-2.5 py-2.5">
+        <div
+          v-else
+          class="px-2.5 py-2.5"
+          :class="isPdf(attachment.mimeType) ? 'cursor-pointer hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors' : ''"
+          @click="openAttachmentInLightbox(attachment)"
+        >
           <div class="flex items-start gap-2">
             <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-white/[0.06] flex items-center justify-center text-slate-500 dark:text-zinc-400">
               <Icon :name="fileIcon(attachment.mimeType)" class="w-4 h-4" />
@@ -290,6 +316,7 @@ watch(() => props.itemId, loadAttachments, { immediate: true })
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1 mt-1 text-[11px] text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200 transition-colors"
+                @click.stop
               >
                 <Icon name="heroicons:arrow-down-tray" class="w-3 h-3" />
                 Download
