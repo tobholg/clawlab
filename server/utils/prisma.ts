@@ -1,12 +1,97 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
-import { execSync } from 'child_process'
-import { mkdirSync } from 'fs'
+import { readdirSync, readFileSync, mkdirSync, existsSync } from 'fs'
+import { join } from 'path'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
   pgliteInstance: any | undefined
 }
+
+// ---------------------------------------------------------------------------
+// Migration runner — works for both PGlite and real Postgres
+// Reads prisma/migrations/*/migration.sql and applies them in order,
+// tracking state in a _prisma_migrations table (same name Prisma uses).
+// ---------------------------------------------------------------------------
+
+interface MigrationRow {
+  migration_name: string
+}
+
+const MIGRATIONS_DIR = join(process.cwd(), 'prisma', 'migrations')
+
+function getMigrationFolders(): string[] {
+  if (!existsSync(MIGRATIONS_DIR)) return []
+  return readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+    .map(d => d.name)
+    .sort() // timestamp-prefixed names sort chronologically
+}
+
+function readMigrationSQL(folderName: string): string | null {
+  const sqlPath = join(MIGRATIONS_DIR, folderName, 'migration.sql')
+  if (!existsSync(sqlPath)) return null
+  return readFileSync(sqlPath, 'utf-8')
+}
+
+async function runMigrations(
+  exec: (sql: string) => Promise<void>,
+  query: <T = any>(sql: string) => Promise<{ rows: T[] }>
+): Promise<void> {
+  // Ensure tracking table exists
+  await exec(`
+    CREATE TABLE IF NOT EXISTS "_prisma_migrations" (
+      "id"                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      "migration_name"      TEXT NOT NULL UNIQUE,
+      "started_at"          TIMESTAMPTZ NOT NULL DEFAULT now(),
+      "finished_at"         TIMESTAMPTZ,
+      "applied_steps_count" INTEGER NOT NULL DEFAULT 0,
+      "logs"                TEXT
+    )
+  `)
+
+  // What's already applied?
+  const applied = await query<MigrationRow>(
+    `SELECT migration_name FROM "_prisma_migrations" ORDER BY migration_name`
+  )
+  const appliedSet = new Set(applied.rows.map(r => r.migration_name))
+
+  const folders = getMigrationFolders()
+  let newCount = 0
+
+  for (const folder of folders) {
+    if (appliedSet.has(folder)) continue
+
+    const sql = readMigrationSQL(folder)
+    if (!sql) continue
+
+    console.log(`[context] Applying migration: ${folder}`)
+    try {
+      await exec('BEGIN')
+      await exec(sql)
+      await exec(`
+        INSERT INTO "_prisma_migrations" (migration_name, finished_at, applied_steps_count)
+        VALUES ('${folder}', now(), 1)
+      `)
+      await exec('COMMIT')
+      newCount++
+    } catch (e: any) {
+      await exec('ROLLBACK').catch(() => {})
+      console.error(`[context] Migration ${folder} failed:`, e?.message || e)
+      throw new Error(`Migration ${folder} failed: ${e?.message || e}`)
+    }
+  }
+
+  if (newCount > 0) {
+    console.log(`[context] Applied ${newCount} migration(s)`)
+  } else {
+    console.log('[context] Database schema is up to date')
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PGlite initializer
+// ---------------------------------------------------------------------------
 
 async function initPGlite() {
   const { PGlite } = await import('@electric-sql/pglite')
@@ -19,39 +104,47 @@ async function initPGlite() {
     const pg = new PGlite(dataDir)
     globalForPrisma.pgliteInstance = pg
 
-    // Check if schema has been applied by looking for tables in pg_catalog
-    const result = await pg.query(
-      `SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' LIMIT 1`
+    await runMigrations(
+      (sql) => pg.exec(sql).then(() => {}),
+      (sql) => pg.query(sql)
     )
-    const schemaExists = result.rows.length > 0
-
-    if (schemaExists) {
-      console.log('[context] PGlite database loaded from', dataDir)
-    } else {
-      console.log('[context] Initializing PGlite schema...')
-      try {
-        const sql = execSync(
-          'npx prisma migrate diff --from-empty --to-schema ./prisma/schema.prisma --script',
-          {
-            encoding: 'utf-8',
-            cwd: process.cwd(),
-            env: { ...process.env, DATABASE_URL: 'postgresql://localhost:5432/placeholder' },
-          }
-        )
-        // Wrap in transaction so partial failures roll back cleanly
-        await pg.exec(`BEGIN;\n${sql}\nCOMMIT;`)
-        console.log('[context] PGlite schema applied successfully')
-      } catch (e) {
-        await pg.exec('ROLLBACK').catch(() => {})
-        console.error('[context] Failed to apply schema to PGlite:', e)
-        throw e
-      }
-    }
   }
 
   const adapter = new PrismaPGlite(globalForPrisma.pgliteInstance)
   return adapter
 }
+
+// ---------------------------------------------------------------------------
+// Real Postgres initializer
+// ---------------------------------------------------------------------------
+
+async function initRealPostgres(connectionString: string) {
+  const adapter = new PrismaPg({ connectionString })
+
+  // For real Postgres, we can run migrations through a temporary pg client
+  // to avoid mixing Prisma adapter internals with raw SQL.
+  const { default: pg } = await import('pg')
+  const client = new pg.Client({ connectionString })
+  await client.connect()
+
+  try {
+    await runMigrations(
+      (sql) => client.query(sql).then(() => {}),
+      async (sql) => {
+        const result = await client.query(sql)
+        return { rows: result.rows }
+      }
+    )
+  } finally {
+    await client.end()
+  }
+
+  return adapter
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export async function initPrisma(): Promise<PrismaClient> {
   if (globalForPrisma.prisma) return globalForPrisma.prisma
@@ -60,7 +153,7 @@ export async function initPrisma(): Promise<PrismaClient> {
 
   if (process.env.DATABASE_URL) {
     console.log('[context] Using PostgreSQL database')
-    adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+    adapter = await initRealPostgres(process.env.DATABASE_URL)
   } else {
     console.log('[context] No DATABASE_URL — using embedded PGlite')
     adapter = await initPGlite()
