@@ -439,7 +439,7 @@ onMounted(() => {
 
       <div class="relative max-w-[1440px] mx-auto w-full py-20">
         <!-- Headline — word-by-word blur fade -->
-        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1]">
           <span v-for="(word, i) in ['Your', 'agents', 'finally']" :key="word" class="hero-word text-zinc-100" :style="{ '--wd': `${80 + i * 100}ms` }">{{ word }}&nbsp;</span>
           <span class="hero-gradient hero-word" :style="{ '--wd': '380ms' }">have a workspace.</span>
         </h1>
