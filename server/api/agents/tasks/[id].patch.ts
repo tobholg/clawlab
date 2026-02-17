@@ -58,6 +58,7 @@ export default defineEventHandler(async (event) => {
         // Human-assigned tasks: agent can't set DONE, move to IN_PROGRESS/review instead
         normalizedStatus = 'IN_PROGRESS'
         nextSubStatus = 'review'
+        nextProgress = 90
       }
     } else if (!VALID_ITEM_STATUSES.has(normalizedStatus)) {
       throw createError({ statusCode: 400, message: 'Invalid status value' })
