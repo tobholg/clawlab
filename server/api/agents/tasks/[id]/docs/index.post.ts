@@ -57,6 +57,20 @@ export default defineEventHandler(async (event) => {
       },
     })
 
+    // Create initial version if content was provided
+    if (content) {
+      await tx.documentVersion.create({
+        data: {
+          documentId: doc.id,
+          title,
+          content,
+          label: 'Initial version',
+          type: 'MAJOR',
+          createdById: agent.id,
+        },
+      })
+    }
+
     await tx.item.update({
       where: { id: taskId },
       data: {

@@ -165,6 +165,14 @@ async function resolveId(idOrShort) {
   return idOrShort
 }
 
+async function resolveDocId(taskId, idOrShort) {
+  if (idOrShort.length > 16) return idOrShort
+  const docs = await get(`/api/agents/tasks/${taskId}/docs`)
+  const match = docs.find(d => d.id.endsWith(idOrShort))
+  if (match) return match.id
+  return idOrShort
+}
+
 async function resolveChannelId(idOrShort) {
   if (idOrShort.length > 16) return idOrShort
 
@@ -843,8 +851,9 @@ commands.doc = {
       print(`✓ Created document: ${data.title} (${data.id.slice(-8)})`)
     }
     else if (action === 'get') {
-      const docId = args[2]
-      if (!docId) return die('Usage: ctx doc <task-id> get <doc-id>')
+      const docIdRaw = args[2]
+      if (!docIdRaw) return die('Usage: ctx doc <task-id> get <doc-id>')
+      const docId = await resolveDocId(taskId, docIdRaw)
 
       const data = await get(`/api/agents/tasks/${taskId}/docs/${docId}`)
       if (JSON_OUT) return json(data)
@@ -859,9 +868,10 @@ commands.doc = {
       print('')
     }
     else if (action === 'update') {
-      const docId = args[2]
+      const docIdRaw = args[2]
       const contentArg = args[3]
-      if (!docId) return die('Usage: ctx doc <task-id> update <doc-id> [content | file | -] [--label L] [--major]')
+      if (!docIdRaw) return die('Usage: ctx doc <task-id> update <doc-id> [content | file | -] [--label L] [--major]')
+      const docId = await resolveDocId(taskId, docIdRaw)
 
       const body = {}
       if (contentArg) body.content = readStdinOrFile(contentArg)
