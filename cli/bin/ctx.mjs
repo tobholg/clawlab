@@ -271,6 +271,71 @@ commands.me = {
   },
 }
 
+// ── catchup ─────────────────────────────────────────────────────────────────
+
+commands.catchup = {
+  usage: 'ctx catchup [--since 4h]',
+  desc: 'Show everything you missed: tasks, mentions, comments, thread replies',
+  async run(args, flags) {
+    requireToken()
+
+    const since = flags.get('--since') || '4h'
+    const data = await get(`/api/agents/catchup?since=${encodeURIComponent(since)}`)
+    if (JSON_OUT) return json(data)
+
+    const s = data.summary
+    const total = s.newTaskCount + s.updatedTaskCount + s.commentCount + s.mentionCount + s.threadReplyCount
+
+    print(`\n  Catch-up since ${new Date(data.since).toLocaleString()}`)
+    print(`  ─────────────────────────────────`)
+
+    if (total === 0) {
+      print(`  Nothing new. All caught up! ✓\n`)
+      return
+    }
+
+    if (s.newTaskCount > 0) {
+      print(`\n  📋 New tasks (${s.newTaskCount})`)
+      for (const t of data.tasks.assigned) {
+        print(`     ${t.status.padEnd(12)} ${t.title}  (${t.id.slice(-8)})`)
+      }
+    }
+
+    if (s.updatedTaskCount > 0) {
+      print(`\n  🔄 Updated tasks (${s.updatedTaskCount})`)
+      for (const t of data.tasks.updated) {
+        print(`     ${t.status.padEnd(12)} ${t.title}  (${t.id.slice(-8)})`)
+      }
+    }
+
+    if (s.commentCount > 0) {
+      print(`\n  💬 New comments (${s.commentCount})`)
+      for (const c of data.tasks.commented) {
+        const preview = c.content.replace(/\s+/g, ' ').slice(0, 80)
+        print(`     ${c.author.name} on "${c.task.title}": ${preview}`)
+      }
+    }
+
+    if (s.mentionCount > 0) {
+      print(`\n  📣 Mentions (${s.mentionCount})`)
+      for (const m of data.channels.mentions) {
+        const preview = m.content.replace(/<@[^>]+>/g, '@someone').replace(/\s+/g, ' ').slice(0, 80)
+        print(`     #${m.channelName} — ${m.author.name}: ${preview}`)
+      }
+    }
+
+    if (s.threadReplyCount > 0) {
+      print(`\n  🧵 Thread replies (${s.threadReplyCount})`)
+      for (const r of data.channels.threadReplies) {
+        const preview = r.content.replace(/<@[^>]+>/g, '@someone').replace(/\s+/g, ' ').slice(0, 80)
+        print(`     #${r.channelName} — ${r.author.name}: ${preview}`)
+      }
+    }
+
+    print('')
+  },
+}
+
 // ── projects ────────────────────────────────────────────────────────────────
 
 commands.projects = {
