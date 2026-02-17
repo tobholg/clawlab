@@ -601,6 +601,7 @@ commands.task = {
     const d = flags.get('--desc')
     const c = flags.get('--category')
     const pr = flags.get('--priority')
+    const ss = flags.get('--substatus') || flags.get('--sub-status')
 
     if (s) updates.status = s.toUpperCase()
     if (p) updates.progress = parseInt(p)
@@ -608,6 +609,7 @@ commands.task = {
     if (d) updates.description = readStdinOrFile(d)
     if (c) updates.category = c
     if (pr) updates.priority = pr.toUpperCase()
+    if (ss) updates.subStatus = ss.toLowerCase()
 
     if (Object.keys(updates).length) {
       const data = await patch(`/api/agents/tasks/${id}`, updates)
