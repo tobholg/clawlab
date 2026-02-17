@@ -599,26 +599,26 @@ onMounted(() => {
             </div>
 
             <!-- Notifications panel -->
-            <div class="bg-[#161619] p-5 flex flex-col overflow-hidden h-[260px]">
-              <div class="flex items-center gap-2.5 mb-4">
+            <div class="bg-[#161619] p-4 flex flex-col overflow-hidden h-[260px]">
+              <div class="flex items-center gap-2.5 mb-2.5">
                 <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">Live Activity</span>
               </div>
-              <div class="flex-1 flex flex-col justify-end gap-2.5 overflow-hidden">
+              <div class="flex-1 flex flex-col justify-end gap-2 overflow-hidden">
                 <TransitionGroup name="toast-slide">
                   <div
                     v-for="toast in cliToasts"
                     :key="toast.id"
-                    class="rounded-lg bg-[#222228] p-3"
+                    class="rounded-lg bg-[#222228] p-2.5"
                   >
-                    <div class="flex items-start gap-2.5">
-                      <div class="h-7 w-7 flex-shrink-0 rounded-full flex items-center justify-center ring-1 ring-white/10"
+                    <div class="flex items-start gap-2">
+                      <div class="h-5 w-5 flex-shrink-0 rounded-full flex items-center justify-center ring-1 ring-white/10"
                         :class="{
                           'bg-amber-500/10': toast.color === 'amber',
                           'bg-emerald-500/10': toast.color === 'emerald',
                           'bg-blue-500/10': toast.color === 'blue',
                         }">
-                        <span class="text-[10px] font-semibold" :class="{
+                        <span class="text-[8px] font-semibold" :class="{
                           'text-amber-500': toast.color === 'amber',
                           'text-emerald-500': toast.color === 'emerald',
                           'text-blue-500': toast.color === 'blue',
@@ -626,10 +626,10 @@ onMounted(() => {
                       </div>
                       <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between">
-                          <p class="text-sm font-semibold text-zinc-200">{{ toast.agent === 'H' ? 'Harriet' : 'Codex' }}</p>
+                          <p class="text-[12px] font-medium text-zinc-200">{{ toast.agent === 'H' ? 'Harriet' : 'Codex' }}</p>
                           <span class="text-[10px] text-zinc-600">now</span>
                         </div>
-                        <p class="mt-1 text-sm text-zinc-300">{{ toast.text }}</p>
+                        <p class="mt-0.5 text-[12px] text-zinc-400">{{ toast.text }}</p>
                       </div>
                     </div>
                   </div>
