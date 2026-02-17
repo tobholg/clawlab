@@ -122,6 +122,17 @@ const navigateToTask = async (activity: AgentActivity) => {
   }
 }
 
+// Animate-dismiss state: tracks which toasts are animating out
+const dismissing = reactive<Set<string>>(new Set())
+
+const animateDismiss = (id: string) => {
+  dismissing.add(id)
+  setTimeout(() => {
+    dismissing.delete(id)
+    dismissAgentActivity(id)
+  }, 200)
+}
+
 // Swipe-to-dismiss state
 const swipeState = reactive<Record<string, { startX: number; currentX: number; swiping: boolean }>>({})
 
@@ -202,8 +213,11 @@ onUnmounted(() => {
           role="alert"
           tabindex="0"
           class="group pointer-events-auto relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-[#161619] shadow-lg dark:shadow-black/50 hover:-translate-y-0.5 hover:shadow-xl dark:hover:shadow-black/60 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-white/[0.16] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#050506] select-none touch-none"
-          :class="{ 'transition-all duration-200': !swipeState[activity.id]?.swiping }"
-          :style="{
+          :class="{
+            'transition-all duration-200': !swipeState[activity.id]?.swiping,
+            'toast-dismiss-out': dismissing.has(activity.id),
+          }"
+          :style="dismissing.has(activity.id) ? {} : {
             transform: `translateX(${getSwipeTranslate(activity.id)}px)`,
             opacity: getSwipeOpacity(activity.id),
           }"
@@ -255,9 +269,9 @@ onUnmounted(() => {
                     <button
                       class="inline-flex h-5 w-5 items-center justify-center rounded-md leading-none text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/[0.08] dark:hover:text-zinc-300"
                       aria-label="Dismiss agent activity notification"
-                      @pointerdown.stop
+                      @pointerdown.stop="animateDismiss(activity.id)"
                       @pointerup.stop
-                      @click.stop="dismissAgentActivity(activity.id)"
+                      @click.stop
                     >
                       <Icon name="heroicons:x-mark" class="pointer-events-none h-3.5 w-3.5" />
                     </button>
@@ -320,6 +334,21 @@ onUnmounted(() => {
   100% {
     opacity: 1;
     transform: translateX(0) scale(1);
+  }
+}
+
+.toast-dismiss-out {
+  animation: toast-slide-out 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes toast-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
   }
 }
 
