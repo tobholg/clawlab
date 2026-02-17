@@ -23,13 +23,27 @@ export default defineEventHandler(async (event) => {
     where: { id: messageId, deleted: false },
     include: {
       user: {
-        select: { id: true, name: true, avatar: true },
+        select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
+      },
+      mentions: {
+        include: {
+          user: {
+            select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
+          },
+        },
       },
       replies: {
         where: { deleted: false },
         include: {
           user: {
-            select: { id: true, name: true, avatar: true },
+            select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
+          },
+          mentions: {
+            include: {
+              user: {
+                select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
+              },
+            },
           },
         },
         orderBy: { createdAt: 'asc' },
@@ -55,6 +69,10 @@ export default defineEventHandler(async (event) => {
     updatedAt: msg.updatedAt.toISOString(),
     editedAt: msg.editedAt?.toISOString() ?? null,
     user: msg.user,
+    mentions: msg.mentions.map((mention) => ({
+      userId: mention.userId,
+      user: mention.user,
+    })),
     replyCount: '_count' in msg ? msg._count.replies : 0,
   })
 

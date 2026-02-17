@@ -131,6 +131,50 @@ async function resolveId(idOrShort) {
   return idOrShort
 }
 
+async function resolveChannelId(idOrShort) {
+  if (idOrShort.length > 16) return idOrShort
+
+  const payload = await get('/api/agents/channels')
+  const channels = Array.isArray(payload) ? payload : (payload.channels || [])
+  const match = channels.find(c => c.id.endsWith(idOrShort))
+  return match ? match.id : idOrShort
+}
+
+function parseSinceFlag(value) {
+  if (!value || typeof value !== 'string') return null
+
+  const directDate = new Date(value)
+  if (!Number.isNaN(directDate.getTime())) {
+    return directDate.toISOString()
+  }
+
+  const relative = value.trim().toLowerCase().match(/^(\d+)([smhdw])$/)
+  if (!relative) {
+    throw new Error('Invalid --since format. Use ISO datetime or relative values like 30m, 2h, 7d')
+  }
+
+  const amount = parseInt(relative[1], 10)
+  const unit = relative[2]
+
+  const unitMs = {
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+    w: 7 * 24 * 60 * 60 * 1000,
+  }[unit]
+
+  return new Date(Date.now() - amount * unitMs).toISOString()
+}
+
+function formatChannelMessageContent(message) {
+  const mentionMap = new Map((message.mentions || []).map(m => [m.userId, m.user?.name || 'unknown']))
+  return String(message.content || '')
+    .replace(/<@([a-zA-Z0-9_-]+)>/g, (_, userId) => `@${mentionMap.get(userId) || 'unknown'}`)
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function readStdinOrFile(arg) {
   if (!arg || arg === '-') {
     // Read from stdin
@@ -244,6 +288,97 @@ commands.projects = {
       { label: 'Progress', get: r => `${r.progress}%` },
       { label: 'Tasks', get: r => `${r.taskCount.todo}t ${r.taskCount.inProgress}p ${r.taskCount.done}d` },
     ])
+    print('')
+  },
+}
+
+// ── channels ────────────────────────────────────────────────────────────────
+
+commands.channels = {
+  usage: 'ctx channels [channel-id] [--since 2h] [--mentions-only] [--reply \"text\"] [--thread <message-id>] [--limit 20]',
+  desc: 'List channels, read channel messages, or reply in a channel/thread',
+  async run(args, flags) {
+    requireToken()
+
+    const channelArg = args[0]
+    if (!channelArg) {
+      const payload = await get('/api/agents/channels')
+      const channels = Array.isArray(payload) ? payload : (payload.channels || [])
+      if (JSON_OUT) return json(channels)
+
+      print('')
+      table(channels, [
+        { label: 'ID', get: r => r.id.slice(-8) },
+        { label: 'Channel', get: r => r.displayName || r.name },
+        { label: 'Type', get: r => String(r.type || '').toUpperCase() },
+        { label: 'Unread @', get: r => r.unreadMentions ?? 0 },
+      ])
+      print('')
+      return
+    }
+
+    const channelId = await resolveChannelId(channelArg)
+    const replyRaw = flags.get('--reply')
+    const threadRaw = flags.get('--thread')
+
+    if (flags.has('--reply')) {
+      const replyArg = typeof replyRaw === 'string' ? replyRaw : '-'
+      const content = readStdinOrFile(replyArg).trim()
+      if (!content) {
+        throw new Error('Reply content is required')
+      }
+
+      const body = { content }
+      if (typeof threadRaw === 'string' && threadRaw.trim()) {
+        body.parentId = threadRaw.trim()
+      }
+
+      const data = await post(`/api/agents/channels/${channelId}/messages`, body)
+      if (JSON_OUT) return json(data)
+      print(`✓ Sent message (${data.id.slice(-8)})`)
+      return
+    }
+
+    const limitRaw = flags.get('--limit')
+    let limit = 20
+    if (typeof limitRaw === 'string') {
+      const parsed = parseInt(limitRaw, 10)
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        throw new Error('Invalid --limit value')
+      }
+      limit = parsed
+    }
+
+    const query = new URLSearchParams()
+    query.set('limit', String(limit))
+
+    const sinceRaw = flags.get('--since')
+    if (typeof sinceRaw === 'string') {
+      query.set('since', parseSinceFlag(sinceRaw))
+    }
+
+    if (flags.has('--mentions-only')) {
+      query.set('mentionsMe', 'true')
+    }
+
+    const qs = query.toString()
+    const data = await get(`/api/agents/channels/${channelId}/messages${qs ? `?${qs}` : ''}`)
+    if (JSON_OUT) return json(data)
+
+    const messages = data.messages || []
+    print('')
+    if (!messages.length) {
+      print('  No messages.\n')
+      return
+    }
+
+    messages.forEach((message) => {
+      const stamp = new Date(message.createdAt).toLocaleString()
+      const author = message.user?.name || 'Unknown'
+      const suffix = message.parentId ? ' (thread)' : ''
+      const content = formatChannelMessageContent(message)
+      print(`  [${stamp}] ${author}${suffix}: ${content}`)
+    })
     print('')
   },
 }

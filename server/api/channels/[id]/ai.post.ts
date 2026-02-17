@@ -100,8 +100,8 @@ export default defineEventHandler(async (event) => {
 
   const aiUser = await prisma.user.upsert({
     where: { email: AI_EMAIL },
-    update: { name: AI_NAME },
-    create: { email: AI_EMAIL, name: AI_NAME },
+    update: { name: AI_NAME, isAgent: true },
+    create: { email: AI_EMAIL, name: AI_NAME, isAgent: true, agentProvider: 'custom' },
   })
 
   const message = await prisma.message.create({
@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
       attachments: proposal ? [{ type: 'task_proposal', proposal }] : undefined,
     },
     include: {
-      user: { select: { id: true, name: true, avatar: true } },
+      user: { select: { id: true, name: true, avatar: true, isAgent: true } },
       _count: { select: { replies: true } },
     },
   })

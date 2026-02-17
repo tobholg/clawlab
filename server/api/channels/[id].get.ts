@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       members: {
         include: {
           user: {
-            select: { id: true, name: true, email: true, avatar: true },
+            select: { id: true, name: true, email: true, avatar: true, isAgent: true, agentProvider: true },
           },
         },
         orderBy: { joinedAt: 'asc' },
@@ -25,7 +25,14 @@ export default defineEventHandler(async (event) => {
         where: { deleted: false, parentId: null }, // Only top-level messages
         include: {
           user: {
-            select: { id: true, name: true, avatar: true },
+            select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
+          },
+          mentions: {
+            include: {
+              user: {
+                select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
+              },
+            },
           },
           _count: {
             select: { replies: true },
@@ -163,6 +170,10 @@ export default defineEventHandler(async (event) => {
       updatedAt: msg.updatedAt.toISOString(),
       editedAt: msg.editedAt?.toISOString() ?? null,
       user: msg.user,
+      mentions: msg.mentions.map((mention) => ({
+        userId: mention.userId,
+        user: mention.user,
+      })),
       replyCount: msg._count.replies,
       reactions: groupReactions(msg.reactions),
     })),

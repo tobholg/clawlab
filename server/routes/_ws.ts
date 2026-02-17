@@ -394,6 +394,14 @@ onBroadcast((data) => {
     if (data.workspaceId) {
       broadcastToWorkspace(data.workspaceId, data)
     }
+  } else if (data.type === 'agent_channel_message') {
+    if (data.workspaceId) {
+      broadcastToWorkspace(data.workspaceId, data)
+    }
+  } else if (data.type === 'agent_channel_mention') {
+    if (data.workspaceId) {
+      broadcastToWorkspace(data.workspaceId, data)
+    }
   } else if (data.type === 'reaction_update') {
     // Broadcast reaction update to channel subscribers
     console.log('[WS] Broadcasting reaction_update to channel:', data.channelId)

@@ -2,6 +2,11 @@
 const props = defineProps<{
   content: string
   class?: string
+  mentions?: {
+    id: string
+    name: string
+    isAgent: boolean
+  }[]
 }>()
 
 const rendered = computed(() => {
@@ -16,6 +21,12 @@ const rendered = computed(() => {
   }
 
   let html = props.content
+  const mentionMap = new Map((props.mentions || []).map((mention) => [mention.id, mention]))
+  const escapeInlineHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
 
   // 1. Extract fenced code blocks BEFORE HTML escaping (so code content stays raw)
   html = html.replace(/^\s*```(\w*)[^\S\n]*\r?\n([\s\S]*?)^\s*```\s*$/gm, (_match, lang, code) => {
@@ -25,6 +36,24 @@ const rendered = computed(() => {
       .replace(/>/g, '&gt;')
     return placeholder(
       `<pre class="bg-slate-100 dark:bg-white/[0.06] rounded-lg px-3 py-2 text-xs font-mono overflow-x-auto my-2 text-slate-700 dark:text-zinc-300"><code>${escaped}</code></pre>`
+    )
+  })
+
+  // 1.5 Extract mentions before escaping.
+  html = html.replace(/<@([a-zA-Z0-9_-]+)>/g, (_match, userId) => {
+    const mention = mentionMap.get(userId)
+    if (!mention) {
+      return placeholder(
+        '<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-white/[0.08] px-1.5 py-0.5 text-xs font-medium text-slate-700 dark:text-zinc-300">@unknown</span>'
+      )
+    }
+
+    const colorClasses = mention.isAgent
+      ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400'
+      : 'bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400'
+
+    return placeholder(
+      `<span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ${colorClasses}">@${escapeInlineHtml(mention.name)}</span>`
     )
   })
 

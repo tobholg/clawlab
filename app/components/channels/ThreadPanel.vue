@@ -5,6 +5,7 @@ const props = defineProps<{
   parentMessage: ChannelMessage
   channelId: string
   channelName: string
+  members?: { id: string; name: string; isAgent: boolean; avatar?: string | null }[]
 }>()
 
 const emit = defineEmits<{
@@ -106,6 +107,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
           :show-author="true"
           :is-thread="true"
           :current-user-id="currentUser?.id"
+          :members="members"
         />
       </div>
 
@@ -130,6 +132,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
           :show-author="shouldShowAuthor(reply, index)"
           :is-thread="true"
           :current-user-id="currentUser?.id"
+          :members="members"
         />
         
         <!-- Empty state -->
@@ -146,6 +149,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
     <ChannelsMessageInput
       :channel-id="channelId"
       :parent-id="parentMessage.id"
+      :members="members"
       placeholder="Reply to thread..."
       hide-helper
       @message-sent="handleSendReply"

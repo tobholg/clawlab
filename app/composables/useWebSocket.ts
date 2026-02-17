@@ -23,6 +23,7 @@ export type AgentActivityAction =
   | 'comment_added'
   | 'doc_created'
   | 'doc_updated'
+  | 'channel_message'
 
 export interface AgentActivity {
   id: string
@@ -32,20 +33,25 @@ export interface AgentActivity {
     name: string
     provider: string | null
   }
-  project: {
+  project?: {
     id: string
     title: string
   } | null
-  task: {
+  task?: {
     id: string
     title: string
-  }
+  } | null
+  channel?: {
+    id: string
+    name: string
+  } | null
   action: AgentActivityAction
   detail: {
     field?: string
     oldValue?: string
     newValue?: string
     title?: string
+    threadId?: string | null
   }
   timestamp: string
   receivedAt: number
@@ -335,20 +341,52 @@ function handleMessage(data: any) {
         agent: data.agent,
         project: data.project || null,
         task: data.task,
+        channel: null,
         action: data.action,
         detail: data.detail || {},
         timestamp: data.timestamp,
         receivedAt: Date.now(),
       }
 
-      const nextActivities = [activity, ...agentActivities.value]
-      const trimmedActivities = nextActivities.slice(0, 5)
-      agentActivities.value = trimmedActivities
-      pruneAgentActivityState(new Set(trimmedActivities.map(entry => entry.id)))
-      // No auto-dismiss — agent activity toasts persist until manually dismissed
+      pushAgentActivity(activity)
+      break
+    }
+
+    case 'agent_channel_message': {
+      const channelName = typeof data.channelName === 'string' && data.channelName.trim()
+        ? data.channelName
+        : data.channelId
+
+      const activity: AgentActivity = {
+        id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        workspaceId: data.workspaceId,
+        agent: data.agent,
+        project: null,
+        task: null,
+        channel: {
+          id: data.channelId,
+          name: channelName,
+        },
+        action: 'channel_message',
+        detail: {
+          title: typeof data.messagePreview === 'string' ? data.messagePreview : '',
+          threadId: data.threadId ?? null,
+        },
+        timestamp: data.timestamp,
+        receivedAt: Date.now(),
+      }
+
+      pushAgentActivity(activity)
       break
     }
   }
+}
+
+function pushAgentActivity(activity: AgentActivity) {
+  const nextActivities = [activity, ...agentActivities.value]
+  const trimmedActivities = nextActivities.slice(0, 5)
+  agentActivities.value = trimmedActivities
+  pruneAgentActivityState(new Set(trimmedActivities.map(entry => entry.id)))
 }
 
 function authenticate(user: { id: string; name: string; avatar?: string | null }) {

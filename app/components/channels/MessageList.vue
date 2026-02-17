@@ -8,6 +8,7 @@ const props = defineProps<{
   currentUserId?: string
   channelId?: string
   missedBoundaryMessageId?: string | null
+  members?: { id: string; name: string; isAgent: boolean; avatar?: string | null }[]
 }>()
 
 const emit = defineEmits<{
@@ -271,6 +272,7 @@ defineExpose({ scrollToBottom, scrollToMessage, scrollToMissedDivider })
               :message="group.message"
               :show-author="group.showAuthor"
               :current-user-id="currentUserId"
+              :members="members"
               @reply="(msg) => emit('reply', msg)"
               @react="(msgId, emoji) => emit('react', msgId, emoji)"
             />

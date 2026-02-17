@@ -339,6 +339,15 @@ const handleWhatDidIMiss = () => {
   }
   handleMissedPromptDismiss()
 }
+
+const channelMembers = computed(() => {
+  return (currentChannel.value?.members || []).map((member) => ({
+    id: member.user.id,
+    name: member.user.name || 'Unknown User',
+    isAgent: member.user.isAgent === true,
+    avatar: member.user.avatar,
+  }))
+})
 </script>
 
 <template>
@@ -384,6 +393,7 @@ const handleWhatDidIMiss = () => {
         :loading="messagesLoading"
         :has-more="hasMoreMessages"
         :current-user-id="currentUser?.id"
+        :members="channelMembers"
         @load-more="handleLoadMore"
         @reply="handleOpenThread"
         @react="handleReaction"
@@ -430,6 +440,7 @@ const handleWhatDidIMiss = () => {
           ref="messageInputRef"
           v-if="currentChannel"
           :channel-id="currentChannel.id"
+          :members="channelMembers"
           :placeholder="`Message #${currentChannel.displayName}`"
           @message-sent="handleSendMessage"
           @typing="handleTyping"
@@ -452,6 +463,7 @@ const handleWhatDidIMiss = () => {
           :parent-message="activeThread"
           :channel-id="currentChannel.id"
           :channel-name="currentChannel.displayName"
+          :members="channelMembers"
           @close="handleCloseThread"
           @reply-sent="handleThreadReplySent"
         />

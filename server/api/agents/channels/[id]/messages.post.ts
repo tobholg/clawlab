@@ -1,23 +1,46 @@
-import { prisma } from '../../../utils/prisma'
-import { requireWorkspaceMemberForChannel } from '../../../utils/auth'
-import { broadcast, broadcastNewMessage } from '../../../utils/websocket'
-import { createMentions, extractMentionIds } from '../../../utils/mentions'
+import { prisma } from '../../../../utils/prisma'
+import { requireAgentUser } from '../../../../utils/agentApi'
+import { broadcast, broadcastNewMessage } from '../../../../utils/websocket'
+import { createMentions, extractMentionIds } from '../../../../utils/mentions'
 
 const MAX_MESSAGE_LENGTH = 5000
 
-interface CreateMessageBody {
-  content: string
+interface AgentCreateMessageBody {
+  content?: string
   parentId?: string
 }
 
 export default defineEventHandler(async (event) => {
   const channelId = getRouterParam(event, 'id')
-
   if (!channelId) {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
 
-  const { user } = await requireWorkspaceMemberForChannel(event, channelId)
+  const agent = requireAgentUser(event)
+  const body = await readBody<AgentCreateMessageBody>(event)
+  const content = typeof body.content === 'string' ? body.content.trim() : ''
+
+  if (!content) {
+    throw createError({ statusCode: 400, message: 'content is required' })
+  }
+
+  if (content.length > MAX_MESSAGE_LENGTH) {
+    throw createError({ statusCode: 400, message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer` })
+  }
+
+  const membership = await prisma.channelMember.findUnique({
+    where: {
+      channelId_userId: {
+        channelId,
+        userId: agent.id,
+      },
+    },
+    select: { id: true },
+  })
+
+  if (!membership) {
+    throw createError({ statusCode: 403, message: 'Access denied' })
+  }
 
   const channel = await prisma.channel.findUnique({
     where: { id: channelId },
@@ -33,17 +56,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Channel not found' })
   }
 
-  const body = await readBody<CreateMessageBody>(event)
-
-  if (!body.content?.trim()) {
-    throw createError({ statusCode: 400, message: 'content is required' })
-  }
-
-  if (body.content.length > MAX_MESSAGE_LENGTH) {
-    throw createError({ statusCode: 400, message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer` })
-  }
-
-  // If parentId provided, verify it exists
   if (body.parentId) {
     const parentMessage = await prisma.message.findFirst({
       where: {
@@ -51,7 +63,9 @@ export default defineEventHandler(async (event) => {
         channelId,
         deleted: false,
       },
+      select: { id: true },
     })
+
     if (!parentMessage) {
       throw createError({ statusCode: 400, message: 'Parent message not found' })
     }
@@ -60,8 +74,8 @@ export default defineEventHandler(async (event) => {
   const createdMessage = await prisma.message.create({
     data: {
       channelId,
-      userId: user.id,
-      content: body.content.trim(),
+      userId: agent.id,
+      content,
       parentId: body.parentId || null,
     },
   })
@@ -72,7 +86,7 @@ export default defineEventHandler(async (event) => {
     where: { id: createdMessage.id },
     include: {
       user: {
-        select: { id: true, name: true, avatar: true, isAgent: true },
+        select: { id: true, name: true, avatar: true, isAgent: true, agentProvider: true },
       },
       mentions: {
         include: {
@@ -105,6 +119,8 @@ export default defineEventHandler(async (event) => {
     replyCount: message._count.replies,
   }
 
+  broadcastNewMessage(channelId, formattedMessage, agent.id)
+
   const mentionIds = extractMentionIds(message.content)
   if (mentionIds.length > 0) {
     const mentionedAgents = await prisma.user.findMany({
@@ -119,20 +135,20 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    for (const agent of mentionedAgents) {
+    for (const mentionedAgent of mentionedAgents) {
       broadcast({
         type: 'agent_channel_mention',
         workspaceId: channel.workspaceId,
         channelId,
         messageId: message.id,
         agent: {
-          id: agent.id,
-          name: agent.name ?? 'Agent',
-          provider: agent.agentProvider,
+          id: mentionedAgent.id,
+          name: mentionedAgent.name ?? 'Agent',
+          provider: mentionedAgent.agentProvider,
         },
         author: {
-          id: user.id,
-          name: user.name ?? user.email,
+          id: agent.id,
+          name: agent.name ?? 'Agent',
         },
         content: message.content.slice(0, 200),
         threadId: body.parentId || null,
@@ -141,8 +157,20 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Broadcast to WebSocket clients
-  broadcastNewMessage(channelId, formattedMessage, user.id)
+  broadcast({
+    type: 'agent_channel_message',
+    workspaceId: channel.workspaceId,
+    channelId,
+    agent: {
+      id: agent.id,
+      name: agent.name ?? 'Agent',
+      provider: agent.agentProvider,
+    },
+    messagePreview: message.content.slice(0, 200),
+    threadId: body.parentId || null,
+    channelName: channel.displayName || channel.name,
+    timestamp: new Date().toISOString(),
+  })
 
   return formattedMessage
 })

@@ -2,6 +2,13 @@ export interface ChannelUser {
   id: string
   name: string | null
   avatar: string | null
+  isAgent?: boolean
+  agentProvider?: string | null
+}
+
+export interface ChannelMessageMention {
+  userId: string
+  user: ChannelUser
 }
 
 export interface MessageReaction {
@@ -21,6 +28,7 @@ export interface ChannelMessage {
   updatedAt: string
   editedAt: string | null
   user: ChannelUser
+  mentions?: ChannelMessageMention[]
   replyCount: number
   reactions?: MessageReaction[]
 }

@@ -54,6 +54,10 @@ const normalizeValue = (value?: string) => (value?.trim() || 'Unknown')
 const buildActivityLabel = (activity: AgentActivity) => {
   const detail = activity.detail || {}
   switch (activity.action) {
+    case 'channel_message':
+      return detail.title?.trim()
+        ? `Posted: ${detail.title}`
+        : 'Posted a channel message'
     case 'status_change':
       return `Status changed: ${normalizeValue(detail.oldValue)} → ${normalizeValue(detail.newValue)}`
     case 'progress_update':
@@ -80,10 +84,13 @@ const buildActivityLabel = (activity: AgentActivity) => {
 }
 
 const buildPathLabel = (activity: AgentActivity) => {
-  if (activity.project?.title) {
-    return `${activity.project.title} > ${activity.task.title}`
+  if (activity.channel?.name) {
+    return `#${activity.channel.name}`
   }
-  return activity.task.title
+  if (activity.project?.title) {
+    return `${activity.project.title} > ${activity.task?.title || 'Task'}`
+  }
+  return activity.task?.title || 'Task'
 }
 
 const formatRelativeTime = (timestamp?: string, fallbackMs?: number) => {
@@ -99,11 +106,20 @@ const formatRelativeTime = (timestamp?: string, fallbackMs?: number) => {
 const { openTask } = useTaskDetail()
 
 const navigateToTask = async (activity: AgentActivity) => {
+  if (activity.action === 'channel_message' && activity.channel?.id) {
+    try {
+      await router.push(`/workspace/channels/${activity.channel.id}`)
+    } catch { /* navigation cancelled */ }
+    return
+  }
+
   if (!activity.project?.id) return
   try {
     await router.push(`/workspace/projects/${activity.project.id}`)
   } catch { /* navigation cancelled */ }
-  openTask(activity.task.id, activity.project.id)
+  if (activity.task?.id) {
+    openTask(activity.task.id, activity.project.id)
+  }
 }
 
 // Swipe-to-dismiss state
