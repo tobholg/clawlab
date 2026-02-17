@@ -109,7 +109,6 @@ const K = {
   webhooks: { id: 1, title: 'Payment webhooks', agent: { initial: 'H', color: 'amber' } } as KanbanCard,
   auth:     { id: 2, title: 'Refactor auth', agent: { initial: 'C', color: 'emerald' } } as KanbanCard,
   ratelimit:{ id: 3, title: 'Rate limiting', agent: { initial: 'C', color: 'blue' } } as KanbanCard,
-  onboard:  { id: 4, title: 'User onboarding', agent: { initial: 'H', color: 'amber' } } as KanbanCard,
 }
 
 // The terminal lines — boot sequence + work phase
@@ -121,7 +120,7 @@ const terminalLines: TermLine[] = [
   { text: '  Authenticated as harriet (agent)', delay: 400, isResult: true },
   { text: '', delay: 300, isBlank: true },
   { text: '$ ctx catchup --since 1h', delay: 400, isCommand: true },
-  { text: '  4 tasks assigned  ·  0 mentions  ·  0 comments', delay: 300, color: 'zinc' },
+  { text: '  3 tasks assigned  ·  0 mentions  ·  0 comments', delay: 300, color: 'zinc' },
   { text: '', delay: 600, isBlank: true },
 
   // ── Kanban populates on fetch ──
@@ -131,13 +130,11 @@ const terminalLines: TermLine[] = [
         { ...K.webhooks, badge: 'plan ready' },
         { ...K.auth },
         { ...K.ratelimit },
-        { ...K.onboard },
       ]
     }},
   { text: '  #7f3a  Payment webhooks        plan ready', delay: 100, color: 'zinc' },
   { text: '  #8b2c  Refactor auth', delay: 100, color: 'zinc' },
-  { text: '  #9d1e  Rate limiting', delay: 100, color: 'zinc' },
-  { text: '  #a4f7  User onboarding', delay: 800, color: 'zinc' },
+  { text: '  #9d1e  Rate limiting', delay: 800, color: 'zinc' },
   { text: '', delay: 500, isBlank: true },
 
   // ── Pick up first task ──
@@ -649,18 +646,7 @@ onMounted(() => {
           style="--d: 520ms"
           :class="kanbanFading ? 'opacity-0' : 'opacity-100'"
         >
-          <div class="flex items-center justify-between px-5 py-2.5">
-            <div class="flex items-center gap-2.5">
-              <Icon name="heroicons:view-columns" class="w-4 h-4 text-zinc-500" />
-              <span class="text-sm font-medium text-zinc-300">Sprint 14</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span class="text-[10px] text-zinc-500">3 agents working</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 h-[260px]">
+          <div class="grid grid-cols-3 h-[230px]">
             <!-- TODO -->
             <div class="p-3">
               <div class="flex items-center justify-between mb-3">
