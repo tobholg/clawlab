@@ -158,3 +158,19 @@ ALTER TABLE "space_updates" ADD CONSTRAINT "space_updates_externalSpaceId_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "space_updates" ADD CONSTRAINT "space_updates_generatedById_fkey" FOREIGN KEY ("generatedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- CreateEnum
+CREATE TYPE "MemberStatus" AS ENUM ('ACTIVE', 'DEACTIVATED');
+
+-- AlterTable: users (missing columns)
+ALTER TABLE "users" ADD COLUMN "passwordHash" TEXT;
+ALTER TABLE "users" ADD COLUMN "position" TEXT;
+
+-- AlterTable: magic_link_tokens
+ALTER TABLE "magic_link_tokens" ADD COLUMN "code" TEXT NOT NULL DEFAULT '0000';
+
+-- AlterTable: organization_members
+ALTER TABLE "organization_members" ADD COLUMN "status" "MemberStatus" NOT NULL DEFAULT 'ACTIVE';
+
+-- AlterTable: workspace_members
+ALTER TABLE "workspace_members" ADD COLUMN "status" "MemberStatus" NOT NULL DEFAULT 'ACTIVE';
