@@ -401,4 +401,3 @@ defineExpose({ focus })
     </p>
   </div>
 </template>
-</script>
