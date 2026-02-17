@@ -328,16 +328,45 @@ commands.catchup = {
       return
     }
 
-    if (s.newTaskCount > 0) {
-      print(`\n  📋 New tasks (${s.newTaskCount})`)
-      for (const t of data.tasks.assigned) {
+    // Action required: tasks with agentMode set (from both new and updated)
+    const allTasks = [...(data.tasks.assigned || []), ...(data.tasks.updated || [])]
+    const actionTasks = allTasks.filter(t => t.agentMode)
+    if (actionTasks.length > 0) {
+      print(`\n  🎯 Action required (${actionTasks.length})`)
+      const modeHints = {
+        plan: 'Create a plan document and submit for review',
+        execute: 'Execute the approved plan',
+        review: 'Submit your work for human review',
+      }
+      for (const t of actionTasks) {
+        const mode = (t.agentMode || '').toLowerCase()
+        const modeLabel = mode.toUpperCase()
+        const hint = modeHints[mode] || `Mode: ${modeLabel}`
+        print(``)
+        print(`     ⚡ ${modeLabel}  ${t.title}  (${t.id.slice(-8)})`)
+        print(`       → ${hint}`)
+        print(`       $ ctx task ${t.id.slice(-8)}          # view details`)
+        if (mode === 'plan') {
+          print(`       $ ctx doc ${t.id.slice(-8)} --create  # start your plan`)
+        }
+      }
+    }
+
+    // Filter action tasks out of regular lists to avoid duplication
+    const actionIds = new Set(actionTasks.map(t => t.id))
+
+    const newTasks = (data.tasks.assigned || []).filter(t => !actionIds.has(t.id))
+    if (newTasks.length > 0) {
+      print(`\n  📋 New tasks (${newTasks.length})`)
+      for (const t of newTasks) {
         print(`     ${t.status.padEnd(12)} ${t.title}  (${t.id.slice(-8)})`)
       }
     }
 
-    if (s.updatedTaskCount > 0) {
-      print(`\n  🔄 Updated tasks (${s.updatedTaskCount})`)
-      for (const t of data.tasks.updated) {
+    const updatedTasks = (data.tasks.updated || []).filter(t => !actionIds.has(t.id))
+    if (updatedTasks.length > 0) {
+      print(`\n  🔄 Updated tasks (${updatedTasks.length})`)
+      for (const t of updatedTasks) {
         print(`     ${t.status.padEnd(12)} ${t.title}  (${t.id.slice(-8)})`)
       }
     }
