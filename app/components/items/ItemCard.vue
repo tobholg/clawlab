@@ -287,7 +287,7 @@ const handleCardClick = () => {
             >
               <Icon name="heroicons:square-3-stack-3d" class="w-3 h-3" />
               <span v-if="allChildrenCompleted">All done</span>
-              <span v-else>{{ activeChildrenCount }} items</span>
+              <span v-else>{{ activeChildrenCount }}</span>
             </button>
             <button
               v-if="(item.atRiskChildrenCount ?? 0) > 0"
@@ -311,18 +311,34 @@ const handleCardClick = () => {
               <Icon name="heroicons:document-text" class="w-3 h-3" />
               {{ item.documentCount }}
             </button>
+            <span
+              v-if="item.attachmentCount"
+              class="flex items-center gap-1 text-slate-400 dark:text-zinc-500"
+            >
+              <Icon name="heroicons:paper-clip" class="w-3 h-3" />
+              {{ item.attachmentCount }}
+            </span>
           </div>
         </template>
 
-        <!-- Document indicator (when no children but has docs) -->
-        <button
-          v-else-if="item.documentCount"
-          class="flex items-center gap-1 text-[10px] text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
-          @click.stop="emit('openDocs', item)"
-        >
-          <Icon name="heroicons:document-text" class="w-3 h-3" />
-          {{ item.documentCount }} {{ item.documentCount === 1 ? 'doc' : 'docs' }}
-        </button>
+        <!-- Document/attachment indicators (when no children) -->
+        <div v-else-if="item.documentCount || item.attachmentCount" class="flex items-center gap-2 text-[10px]">
+          <button
+            v-if="item.documentCount"
+            class="flex items-center gap-1 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+            @click.stop="emit('openDocs', item)"
+          >
+            <Icon name="heroicons:document-text" class="w-3 h-3" />
+            {{ item.documentCount }}
+          </button>
+          <span
+            v-if="item.attachmentCount"
+            class="flex items-center gap-1 text-slate-400 dark:text-zinc-500"
+          >
+            <Icon name="heroicons:paper-clip" class="w-3 h-3" />
+            {{ item.attachmentCount }}
+          </span>
+        </div>
 
         <!-- Stakeholders (when no children info to show) -->
         <template v-else-if="item.stakeholders && item.stakeholders.length > 0">

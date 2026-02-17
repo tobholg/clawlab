@@ -424,7 +424,8 @@ const descriptionRef = ref<HTMLTextAreaElement | null>(null)
 const editingDescription = ref(false)
 const descriptionExpanded = ref(false)
 const descriptionContentRef = ref<HTMLElement | null>(null)
-const activeTab = ref<'subtasks' | 'comments'>('subtasks')
+const activeTab = ref<'subtasks' | 'comments' | 'attachments'>('subtasks')
+const taskAttachmentsRef = ref<InstanceType<typeof TaskAttachments> | null>(null)
 
 // Auto-resize description textarea
 const autoResizeDescription = () => {
@@ -2028,8 +2029,6 @@ const formatRelativeTime = (dateStr: string) => {
               <span class="text-xs text-blue-500 dark:text-zinc-500">{{ itemDetail.childrenCount || 0 }} items inside</span>
             </div>
 
-            <TaskAttachments :item-id="currentItemId" />
-
             <!-- Tab Bar -->
             <div class="flex items-center gap-1 border-b border-slate-200 dark:border-white/[0.06]">
               <button
@@ -2053,6 +2052,17 @@ const formatRelativeTime = (dateStr: string) => {
                 Comments
                 <span v-if="itemDetail?.comments?.length" class="ml-1 text-slate-400 dark:text-zinc-500 font-normal">({{ itemDetail.comments.length }})</span>
                 <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
+              </button>
+              <button
+                @click="activeTab = 'attachments'"
+                class="px-3 py-2 text-xs transition-colors relative"
+                :class="activeTab === 'attachments'
+                  ? 'text-slate-900 dark:text-zinc-100 font-medium'
+                  : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'"
+              >
+                Attachments
+                <span v-if="taskAttachmentsRef?.count" class="ml-1 text-slate-400 dark:text-zinc-500 font-normal">({{ taskAttachmentsRef.count }})</span>
+                <div v-if="activeTab === 'attachments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-zinc-100" />
               </button>
             </div>
 
@@ -2339,6 +2349,11 @@ const formatRelativeTime = (dateStr: string) => {
                 <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p class="text-xs">No comments yet. Start the conversation!</p>
               </div>
+            </div>
+
+            <!-- Tab Content: Attachments (always mounted for count) -->
+            <div v-show="activeTab === 'attachments'">
+              <TaskAttachments ref="taskAttachmentsRef" :item-id="currentItemId" :hide-header="true" />
             </div>
 
 

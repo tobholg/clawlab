@@ -13,6 +13,7 @@ type TaskAttachment = {
 
 const props = defineProps<{
   itemId: string | null
+  hideHeader?: boolean
 }>()
 
 const attachments = ref<TaskAttachment[]>([])
@@ -25,6 +26,9 @@ const uploadRows = ref<Array<{ key: string; name: string; progress: number }>>([
 const lightbox = useLightbox()
 
 const isUploading = computed(() => uploadRows.value.length > 0)
+const count = computed(() => attachments.value.length)
+
+defineExpose({ count })
 
 const formatBytes = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`
@@ -196,8 +200,8 @@ watch(() => props.itemId, loadAttachments, { immediate: true })
 </script>
 
 <template>
-  <section class="rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03] p-3 space-y-3">
-    <div class="flex items-center justify-between gap-2">
+  <section :class="hideHeader ? 'space-y-3' : 'rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03] p-3 space-y-3'">
+    <div v-if="!hideHeader" class="flex items-center justify-between gap-2">
       <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
         Attachments
         <span class="font-normal text-slate-400 dark:text-zinc-500">({{ attachments.length }})</span>
@@ -217,6 +221,16 @@ watch(() => props.itemId, loadAttachments, { immediate: true })
         multiple
         @change="onFileInput"
       >
+    </div>
+    <div v-if="hideHeader" class="flex justify-end">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-dm-card px-2.5 py-1.5 text-xs text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+        @click="openFilePicker"
+      >
+        <Icon name="heroicons:paper-clip" class="w-3.5 h-3.5" />
+        Upload
+      </button>
     </div>
 
     <div

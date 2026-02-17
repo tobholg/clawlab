@@ -8,25 +8,25 @@ const childrenInclude = {
   owner: true,
   assignees: { include: { user: true } },
   blockedBy: true,
-  _count: { select: { documents: true } },
+  _count: { select: { documents: true, attachments: true } },
   children: {
     include: {
       owner: true,
       assignees: { include: { user: true } },
       blockedBy: true,
-      _count: { select: { documents: true } },
+      _count: { select: { documents: true, attachments: true } },
       children: {
         include: {
           owner: true,
           assignees: { include: { user: true } },
           blockedBy: true,
-          _count: { select: { documents: true } },
+          _count: { select: { documents: true, attachments: true } },
           children: {
             include: {
               owner: true,
               assignees: { include: { user: true } },
               blockedBy: true,
-              _count: { select: { documents: true } },
+              _count: { select: { documents: true, attachments: true } },
             }
           }
         }
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
         include: { user: true }
       },
       blockedBy: true,
-      _count: { select: { documents: true } },
+      _count: { select: { documents: true, attachments: true } },
       children: {
         include: childrenInclude
       },
@@ -83,6 +83,7 @@ export default defineEventHandler(async (event) => {
     const atRiskCount = countAtRisk(item)
     const needsEstimateCount = countNeedsEstimate(item)
     const docCount = item._count?.documents ?? 0
+    const attachCount = item._count?.attachments ?? 0
     const totalDocCount = countAllDocuments(item)
 
     // Prune done children older than cutoff from the response
@@ -150,6 +151,7 @@ export default defineEventHandler(async (event) => {
       // Document counts
       documentCount: docCount,
       totalDocumentCount: totalDocCount,
+      attachmentCount: attachCount,
       // Recursive children (up to 4 levels, done items pruned to last 7 days)
       children: depth < 4 && prunedChildren.length
         ? prunedChildren.map((child: any) => transformItem(child, depth + 1))
