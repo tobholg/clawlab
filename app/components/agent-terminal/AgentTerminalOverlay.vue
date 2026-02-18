@@ -9,7 +9,8 @@
         <div
           class="absolute inset-0 bg-black/80 backdrop-blur-sm"
           @click="close"
-        />
+        >
+        </div>
 
         <!-- Overlay content -->
         <div class="relative z-10 flex flex-col h-full p-6 pt-16 pb-20">
@@ -124,7 +125,7 @@
             v-if="showLauncher"
             class="absolute inset-0 z-20 flex items-center justify-center"
           >
-            <div class="absolute inset-0" @click="showLauncher = false" />
+            <div class="absolute inset-0" @click="showLauncher = false"></div>
             <div class="relative w-[440px] bg-[#161619] border border-white/[0.06] rounded-2xl shadow-2xl p-6">
               <h3 class="text-white font-medium mb-4">Launch Terminal</h3>
 
@@ -145,9 +146,9 @@
 
                 <!-- Divider -->
                 <div v-if="workspaceAgents.length" class="flex items-center gap-2 py-1">
-                  <div class="flex-1 h-px bg-white/[0.06]" />
+                  <div class="flex-1 h-px bg-white/[0.06]"></div>
                   <span class="text-[10px] text-zinc-600 uppercase tracking-wider">Agents</span>
-                  <div class="flex-1 h-px bg-white/[0.06]" />
+                  <div class="flex-1 h-px bg-white/[0.06]"></div>
                 </div>
 
                 <!-- Agent options -->
@@ -186,7 +187,6 @@
             </div>
           </div>
         </Transition>
-      </div>
     </div>
   </Teleport>
 </template>
