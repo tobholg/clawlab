@@ -43,7 +43,7 @@
                 </div>
                 <div
                   class="text-xs truncate max-w-[220px] transition-colors"
-                  :class="tab.taskTitle ? 'text-zinc-400 hover:text-violet-400 cursor-pointer' : 'text-zinc-600 italic'"
+                  :class="tab.taskTitle ? 'text-zinc-400 hover:text-violet-400 cursor-pointer' : 'text-zinc-600'"
                   @click.stop="tab.taskTitle ? openTaskFromTab(tab) : null"
                 >
                   {{ tab.taskTitle || 'No task checked out' }}
