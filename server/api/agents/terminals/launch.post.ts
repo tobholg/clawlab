@@ -215,7 +215,8 @@ export default defineEventHandler(async (event) => {
   // Bootstrap sequence
   setTimeout(() => {
     if (agent) {
-      // Agent terminal: set prompt, show banner, launch agent CLI
+      // Agent terminal: add ctx CLI to PATH, set prompt, show banner, launch agent CLI
+      writeToPty(terminalId, `export PATH="${cwd}/cli/bin:$PATH"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[35m${agentName}\\e[0m \\e[34m%~\\e[0m $ '\n`)
       writeToPty(terminalId, `echo $'\\e[35m═══ OpenContext Agent Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, `echo "Agent: ${agentName}"\n`)
@@ -234,7 +235,8 @@ export default defineEventHandler(async (event) => {
         }, 500)
       }
     } else {
-      // Plain terminal: just a nice prompt
+      // Plain terminal: add ctx CLI to PATH, nice prompt
+      writeToPty(terminalId, `export PATH="${cwd}/cli/bin:$PATH"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[36mctx\\e[0m \\e[34m%~\\e[0m $ '\n`)
       writeToPty(terminalId, `echo $'\\e[36m═══ OpenContext Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, 'echo ""\n')
