@@ -10,9 +10,7 @@ function toStringEnv(env: NodeJS.ProcessEnv) {
   return normalized
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are {{agentName}}, an AI agent working in OpenContext.
-You have a CLI tool called \`ctx\`. Run \`ctx help\` to discover available commands, then run \`ctx catchup\` to see your current assignments and recent activity.
-Use ctx to manage your work: check out tasks, update progress, add comments, and submit for review when done.`
+const DEFAULT_SYSTEM_PROMPT = `You are {{agentName}}, an AI agent working in OpenContext. You have a CLI tool called ctx. Start by running: ctx help -- then run: ctx catchup -- to see your assignments. Use ctx to check out tasks, update progress, add comments, and submit for review when done.`
 
 function buildSystemPrompt(agentName: string): string {
   return DEFAULT_SYSTEM_PROMPT.replace(/\{\{agentName\}\}/g, agentName)
@@ -23,18 +21,28 @@ function buildLaunchCommand(runner: string | null, args: string | null, systemPr
 
   const parts = [runner]
 
-  // Add system prompt flag based on runner
-  if (runner === 'codex') {
-    parts.push('-s', JSON.stringify(systemPrompt))
-  } else if (runner === 'claude') {
-    parts.push('--system-prompt', JSON.stringify(systemPrompt))
-  } else if (runner === 'aider') {
-    parts.push('--message', JSON.stringify(systemPrompt))
-  }
-
-  // Add extra args
+  // Add extra args first
   if (args?.trim()) {
     parts.push(args.trim())
+  }
+
+  // Add system prompt as initial prompt/instruction based on runner
+  // Codex: pass as the prompt argument (no --system-prompt flag)
+  // Claude: has --system-prompt
+  // Aider: pass as --message
+  const singleLinePrompt = systemPrompt.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+
+  if (runner === 'codex') {
+    // Codex takes prompt as positional arg, wrap in single quotes
+    // Escape any single quotes in the prompt
+    const escaped = singleLinePrompt.replace(/'/g, "'\\''")
+    parts.push(`'${escaped}'`)
+  } else if (runner === 'claude') {
+    const escaped = singleLinePrompt.replace(/'/g, "'\\''")
+    parts.push('--system-prompt', `'${escaped}'`)
+  } else if (runner === 'aider') {
+    const escaped = singleLinePrompt.replace(/'/g, "'\\''")
+    parts.push('--message', `'${escaped}'`)
   }
 
   return parts.join(' ')
