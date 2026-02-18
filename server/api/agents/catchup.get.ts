@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
   const agent = requireAgentUser(event)
   const query = getQuery(event)
   const sinceParam = typeof query.since === 'string' ? query.since : DEFAULT_SINCE
+  const refreshRequested = query.refresh === 'true' || query.refresh === '1'
   const since = parseSince(sinceParam)
 
   // 1. Tasks assigned to agent that were created since `since`
@@ -198,7 +199,17 @@ export default defineEventHandler(async (event) => {
     createdAt: m.message.createdAt.toISOString(),
   }))
 
+  const isActionableTask = (task: { status: string; subStatus: string | null; agentMode: string | null }) => {
+    if (!task.agentMode) return false
+    if (String(task.status || '').toUpperCase() === 'DONE') return false
+    return String(task.subStatus || '').toLowerCase() !== 'review'
+  }
+
+  const actionableTaskCount = [...assignedTasks, ...updatedTasks].filter(isActionableTask).length
+
   return {
+    generatedAt: new Date().toISOString(),
+    refreshRequested,
     since: since.toISOString(),
     tasks: {
       assigned: assignedTasks.map((t) => ({
@@ -235,6 +246,7 @@ export default defineEventHandler(async (event) => {
       commentCount: commentedTasks.length,
       mentionCount: channelMentions.length,
       threadReplyCount: threadReplies.length,
+      actionRequiredCount: actionableTaskCount,
     },
   }
 })

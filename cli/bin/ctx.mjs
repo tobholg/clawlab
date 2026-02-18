@@ -147,6 +147,13 @@ function formatDurationMs(durationMs) {
   return `${minutes}m`
 }
 
+function formatAgeMs(durationMs) {
+  const safeDuration = Number.isFinite(durationMs) ? Math.max(0, durationMs) : 0
+  const totalSeconds = Math.floor(safeDuration / 1000)
+  if (totalSeconds < 60) return `${totalSeconds}s`
+  return formatDurationMs(safeDuration)
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function requireToken() {
@@ -199,8 +206,233 @@ async function resolveChannelId(idOrShort) {
 
   const payload = await get('/api/agents/channels')
   const channels = Array.isArray(payload) ? payload : (payload.channels || [])
-  const match = channels.find(c => c.id.endsWith(idOrShort))
-  return match ? match.id : idOrShort
+  const idMatch = channels.find(c => c.id.endsWith(idOrShort))
+  if (idMatch) return idMatch.id
+
+  const normalized = String(idOrShort).trim().toLowerCase().replace(/^#/, '')
+  const slugify = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^#/, '')
+    .replace(/\s+/g, '-')
+
+  const nameMatches = channels.filter((c) => {
+    const candidates = [
+      c.name,
+      c.displayName,
+      slugify(c.name),
+      slugify(c.displayName),
+    ].map(v => String(v || '').trim().toLowerCase().replace(/^#/, ''))
+    return candidates.includes(normalized)
+  })
+
+  if (nameMatches.length === 1) return nameMatches[0].id
+  if (nameMatches.length > 1) {
+    const names = nameMatches.map(c => c.displayName || c.name || c.id.slice(-8)).join(', ')
+    throw new Error(`Channel name is ambiguous: "${idOrShort}" matches ${names}. Use channel ID instead.`)
+  }
+
+  return idOrShort
+}
+
+async function inferActiveTaskId() {
+  const session = await get('/api/agents/sessions?current=true')
+  return session?.itemId || session?.task?.id || null
+}
+
+async function resolveTaskIdArgOrActive(taskArg, usageHint) {
+  if (taskArg) return resolveId(taskArg)
+
+  const inferred = await inferActiveTaskId()
+  if (inferred) return inferred
+  die(`No active session. Usage: ${usageHint}`)
+}
+
+function looksLikeTaskIdToken(value) {
+  if (!value || typeof value !== 'string') return false
+  return /^[a-z0-9]{8}$/i.test(value) || /^c[a-z0-9]{16,}$/i.test(value)
+}
+
+function normalizeMode(value) {
+  if (!value) return null
+  const normalized = String(value).trim().toUpperCase()
+  if (normalized === 'PLAN' || normalized === 'EXECUTE') return normalized
+  return null
+}
+
+function priorityRank(priority) {
+  return { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }[String(priority || '').toUpperCase()] ?? 4
+}
+
+function statusRank(status) {
+  return { IN_PROGRESS: 0, TODO: 1, BLOCKED: 2, PAUSED: 3, DONE: 4 }[String(status || '').toUpperCase()] ?? 5
+}
+
+function modeRank(mode, preferredMode) {
+  const normalized = normalizeMode(mode)
+  if (preferredMode) {
+    if (normalized === preferredMode) return 0
+    if (normalized) return 1
+    return 2
+  }
+  if (normalized === 'EXECUTE') return 0
+  if (normalized === 'PLAN') return 1
+  return 2
+}
+
+function isStartableTask(task) {
+  if (!task) return false
+  const status = String(task.status || '').toUpperCase()
+  if (status === 'DONE') return false
+  const subStatus = String(task.subStatus || '').toLowerCase()
+  return subStatus !== 'review'
+}
+
+function selectStartTask(tasks, preferredMode) {
+  const startable = tasks.filter(isStartableTask)
+  const sorted = [...startable].sort((a, b) => {
+    const modeDiff = modeRank(a.agentMode, preferredMode) - modeRank(b.agentMode, preferredMode)
+    if (modeDiff !== 0) return modeDiff
+    const priorityDiff = priorityRank(a.priority) - priorityRank(b.priority)
+    if (priorityDiff !== 0) return priorityDiff
+    const statusDiff = statusRank(a.status) - statusRank(b.status)
+    if (statusDiff !== 0) return statusDiff
+    const updatedDiff = new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    if (updatedDiff !== 0) return updatedDiff
+    return String(a.title || '').localeCompare(String(b.title || ''))
+  })
+  return { candidate: sorted[0] || null, totalStartable: startable.length }
+}
+
+function buildStartRationale(task, preferredMode) {
+  const details = [
+    `mode=${task.agentMode || 'none'}`,
+    `priority=${task.priority || 'none'}`,
+    `status=${task.status}${task.subStatus ? `/${task.subStatus}` : ''}`,
+    `updated=${new Date(task.updatedAt).toLocaleString()}`,
+  ]
+  if (preferredMode) details.push(`preferredMode=${preferredMode}`)
+  return details.join(' · ')
+}
+
+function renderCheckoutSummary(data) {
+  const task = data.task || {}
+  const subtasks = task.subtasks || []
+  const done = subtasks.filter(s => s.status === 'DONE').length
+  const inProgress = subtasks.filter(s => s.status === 'IN_PROGRESS').length
+  const todo = Math.max(0, subtasks.length - done - inProgress)
+  const planText = task.planDoc ? `${task.planDoc.title} (${task.planDoc.id.slice(-8)})` : 'None'
+
+  print(`✓ Checked out: ${task.title}`)
+  print(`  Mode:     ${task.agentMode || 'N/A'}`)
+  print(`  Plan:     ${planText}`)
+  print(`  Subtasks: ${subtasks.length} (${done} done, ${inProgress} in progress, ${todo} todo)`)
+  print('  Duration tracking started.')
+}
+
+async function runSubmitPreflight(taskId, activeSession) {
+  const task = await get(`/api/agents/tasks/${taskId}`)
+  const checks = []
+
+  const isTaskActive = activeSession?.itemId === taskId
+  checks.push({
+    key: 'active_session',
+    level: isTaskActive ? 'pass' : 'fail',
+    message: isTaskActive
+      ? 'Active session is checked out on this task'
+      : 'No active session found for this task. Run ctx checkout first.',
+  })
+
+  const inReview = String(task.subStatus || '').toLowerCase() === 'review'
+  checks.push({
+    key: 'review_state',
+    level: inReview ? 'warn' : 'pass',
+    message: inReview
+      ? 'Task is already in review. Submitting again is usually unnecessary.'
+      : 'Task is not yet in review state',
+  })
+
+  if (task.agentMode === 'PLAN') {
+    const hasPlanDoc = Boolean(task.planDocId)
+    checks.push({
+      key: 'plan_doc',
+      level: hasPlanDoc ? 'pass' : 'fail',
+      message: hasPlanDoc
+        ? `Plan document linked (${String(task.planDocId).slice(-8)})`
+        : 'PLAN mode task requires a linked plan document before submit.',
+    })
+  }
+
+  const hasFailures = checks.some(check => check.level === 'fail')
+  const hasWarnings = checks.some(check => check.level === 'warn')
+
+  return {
+    ok: !hasFailures,
+    hasWarnings,
+    task: {
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      subStatus: task.subStatus,
+      progress: task.progress,
+      agentMode: task.agentMode,
+      planDocId: task.planDocId,
+    },
+    checks,
+  }
+}
+
+function buildPlanTemplate(task) {
+  const title = task?.title || 'Task'
+  const projectTitle = task?.project?.title || 'N/A'
+  const date = new Date().toISOString().slice(0, 10)
+  return [
+    `# Plan: ${title}`,
+    '',
+    `Date: ${date}`,
+    `Task ID: ${task?.id || 'N/A'}`,
+    `Project: ${projectTitle}`,
+    '',
+    '## Objective',
+    '- What outcome should this task produce?',
+    '- What user/team value will it unlock?',
+    '',
+    '## Scope',
+    '- In scope:',
+    '- Out of scope:',
+    '',
+    '## Implementation Steps',
+    '1. ',
+    '2. ',
+    '3. ',
+    '',
+    '## Validation',
+    '- What tests/checks will confirm correctness?',
+    '',
+    '## Risks and Mitigations',
+    '- Risk:',
+    '  Mitigation:',
+    '',
+    '## Acceptance Criteria',
+    '- [ ] ',
+    '- [ ] ',
+  ].join('\n')
+}
+
+function isActionableCatchupTask(task) {
+  if (!task?.agentMode) return false
+  const status = String(task.status || '').toUpperCase()
+  if (status === 'DONE') return false
+  const subStatus = String(task.subStatus || '').toLowerCase()
+  return subStatus !== 'review'
+}
+
+function isWaitingReviewCatchupTask(task) {
+  if (!task?.agentMode) return false
+  const status = String(task.status || '').toUpperCase()
+  if (status === 'DONE') return false
+  const subStatus = String(task.subStatus || '').toLowerCase()
+  return subStatus === 'review'
 }
 
 function parseSinceFlag(value) {
@@ -268,20 +500,38 @@ commands.login = {
     }
 
     saveConfig({ url, token })
-    print(`✓ Config saved to ${CONFIG_FILE}`)
 
     // Verify
+    let verified = false
+    let agent = null
     try {
       const headers = { Authorization: `Bearer ${token}` }
       const res = await fetch(`${url}/api/agents/me`, { headers })
       if (res.ok) {
-        const me = await res.json()
-        print(`✓ Authenticated as ${me.name} (${me.agentProvider})`)
+        agent = await res.json()
+        verified = true
       } else {
-        print('⚠ Token saved but verification failed — check your token and URL')
+        verified = false
       }
-    } catch (e) {
-      print(`⚠ Token saved but could not reach ${url} — is the server running?`)
+    } catch {
+      verified = false
+    }
+
+    if (JSON_OUT) {
+      return json({
+        saved: true,
+        configFile: CONFIG_FILE,
+        url,
+        verified,
+        agent,
+      })
+    }
+
+    print(`✓ Config saved to ${CONFIG_FILE}`)
+    if (verified && agent) {
+      print(`✓ Authenticated as ${agent.name} (${agent.agentProvider})`)
+    } else {
+      print(`⚠ Token saved but verification failed — check your token and URL (${url})`)
     }
   },
 }
@@ -337,19 +587,40 @@ commands.me = {
 // ── catchup ─────────────────────────────────────────────────────────────────
 
 commands.catchup = {
-  usage: 'ctx catchup [--since 4h]',
+  usage: 'ctx catchup [--since 4h] [--refresh]',
   desc: 'Show everything you missed: tasks, mentions, comments, thread replies',
+  help: [
+    'Examples:',
+    '  ctx catchup',
+    '  ctx catchup --since 2h',
+    '  ctx catchup --refresh',
+    '  ctx catchup --since 2026-02-18T17:00:00Z',
+  ].join('\n'),
   async run(args, flags) {
     requireToken()
 
     const since = flags.get('--since') || '4h'
-    const data = await get(`/api/agents/catchup?since=${encodeURIComponent(since)}`)
+    const refresh = flags.has('--refresh')
+    const query = new URLSearchParams({ since: String(since) })
+    if (refresh) {
+      query.set('refresh', 'true')
+      query.set('r', String(Date.now()))
+    }
+
+    const data = await get(`/api/agents/catchup?${query.toString()}`)
     if (JSON_OUT) return json(data)
 
     const s = data.summary
     const total = s.newTaskCount + s.updatedTaskCount + s.commentCount + s.mentionCount + s.threadReplyCount
 
     print(`\n  Catch-up since ${new Date(data.since).toLocaleString()}`)
+    if (data.generatedAt) {
+      print(`  Snapshot at ${new Date(data.generatedAt).toLocaleString()}`)
+      print(`  Data age ${formatAgeMs(Date.now() - new Date(data.generatedAt).getTime())}`)
+    }
+    if (refresh) {
+      print('  Refresh mode requested')
+    }
     print(`  ─────────────────────────────────`)
 
     if (total === 0) {
@@ -357,9 +628,10 @@ commands.catchup = {
       return
     }
 
-    // Action required: tasks with agentMode set (from both new and updated)
+    // Action required: tasks with agentMode set and not already in review/done
     const allTasks = [...(data.tasks.assigned || []), ...(data.tasks.updated || [])]
-    const actionTasks = allTasks.filter(t => t.agentMode)
+    const actionTasks = allTasks.filter(isActionableCatchupTask)
+    const waitingReviewTasks = allTasks.filter(isWaitingReviewCatchupTask)
     let currentSession = null
     try {
       currentSession = await get('/api/agents/sessions?current=true')
@@ -409,8 +681,15 @@ commands.catchup = {
 
         print(`       $ ctx task ${t.id.slice(-8)}          # view details`)
         if (mode === 'plan') {
-          print(`       $ ctx doc ${t.id.slice(-8)} --create  # start your plan`)
+          print(`       $ ctx doc ${t.id.slice(-8)} create "Plan title"  # start your plan`)
         }
+      }
+    }
+
+    if (waitingReviewTasks.length > 0) {
+      print(`\n  ⏳ Awaiting human review (${waitingReviewTasks.length})`)
+      for (const t of waitingReviewTasks) {
+        print(`     ${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
       }
     }
 
@@ -473,39 +752,118 @@ commands.checkout = {
 
     const data = await post('/api/agents/checkout', { taskId })
     if (JSON_OUT) return json(data)
+    renderCheckoutSummary(data)
+  },
+}
 
-    const task = data.task || {}
-    const subtasks = task.subtasks || []
-    const done = subtasks.filter(s => s.status === 'DONE').length
-    const inProgress = subtasks.filter(s => s.status === 'IN_PROGRESS').length
-    const todo = Math.max(0, subtasks.length - done - inProgress)
-    const planText = task.planDoc ? `${task.planDoc.title} (${task.planDoc.id.slice(-8)})` : 'None'
+// ── start ──────────────────────────────────────────────────────────────────
 
-    print(`✓ Checked out: ${task.title}`)
-    print(`  Mode:     ${task.agentMode || 'N/A'}`)
-    print(`  Plan:     ${planText}`)
-    print(`  Subtasks: ${subtasks.length} (${done} done, ${inProgress} in progress, ${todo} todo)`)
-    print('  Duration tracking started.')
+commands.start = {
+  usage: 'ctx start [--preview] [--mode PLAN|EXECUTE]',
+  desc: 'Pick the next actionable assigned task and optionally check it out',
+  help: [
+    'Examples:',
+    '  ctx start',
+    '  ctx start --preview',
+    '  ctx start --mode PLAN',
+  ].join('\n'),
+  async run(args, flags) {
+    requireToken()
+
+    const modeFlag = flags.get('--mode')
+    const preferredMode = normalizeMode(modeFlag)
+    if (modeFlag && !preferredMode) {
+      throw new Error('Invalid --mode value. Use PLAN or EXECUTE.')
+    }
+
+    const preview = flags.has('--preview')
+    const tasks = await get('/api/agents/tasks')
+    const { candidate, totalStartable } = selectStartTask(tasks, preferredMode)
+
+    if (!candidate) {
+      if (JSON_OUT) return json({ found: false, reason: 'No actionable assigned tasks' })
+      print('No actionable assigned tasks found.')
+      print('Run `ctx catchup --refresh` to sync latest assignments.')
+      return
+    }
+
+    const rationale = buildStartRationale(candidate, preferredMode)
+
+    if (JSON_OUT) {
+      if (preview) {
+        return json({
+          found: true,
+          preview: true,
+          totalStartable,
+          selectedTask: candidate,
+          rationale,
+        })
+      }
+
+      const data = await post('/api/agents/checkout', { taskId: candidate.id })
+      return json({
+        found: true,
+        preview: false,
+        totalStartable,
+        selectedTask: candidate,
+        rationale,
+        checkout: data,
+      })
+    }
+
+    print(`Selected task: ${candidate.title} (${candidate.id.slice(-8)})`)
+    print(`  Rationale: ${rationale}`)
+    print(`  Startable tasks: ${totalStartable}`)
+
+    if (preview) {
+      print(`  Next: ctx checkout ${candidate.id.slice(-8)}`)
+      return
+    }
+
+    const data = await post('/api/agents/checkout', { taskId: candidate.id })
+    renderCheckoutSummary(data)
   },
 }
 
 // ── submit ─────────────────────────────────────────────────────────────────
 
 commands.submit = {
-  usage: 'ctx submit [task-id]',
+  usage: 'ctx submit [task-id] [--dry-run]',
   desc: 'Submit active work session for review. Infers task from active session if omitted.',
-  async run(args) {
+  help: [
+    'Examples:',
+    '  ctx submit',
+    '  ctx submit --dry-run',
+    '  ctx submit 7f3a --dry-run',
+  ].join('\n'),
+  async run(args, flags) {
     requireToken()
-    let taskId
-    if (args[0]) {
-      taskId = await resolveId(args[0])
-    } else {
-      // Infer from active session
-      try {
-        const session = await get('/api/agents/sessions?current=true')
-        taskId = session?.itemId
-      } catch {}
-      if (!taskId) return die('No active session. Usage: ctx submit <task-id>')
+
+    const dryRun = flags.has('--dry-run')
+    const taskId = await resolveTaskIdArgOrActive(args[0], 'ctx submit [task-id] [--dry-run]')
+    const activeSession = await get('/api/agents/sessions?current=true')
+
+    if (dryRun) {
+      const preflight = await runSubmitPreflight(taskId, activeSession)
+      if (JSON_OUT) return json(preflight)
+
+      print('\n  Submit preflight')
+      print('  ───────────────')
+      print(`  Task: ${preflight.task.title} (${preflight.task.id.slice(-8)})`)
+      print(`  Mode: ${preflight.task.agentMode || 'N/A'}`)
+      print(`  Status: ${preflight.task.status}${preflight.task.subStatus ? `/${preflight.task.subStatus}` : ''}`)
+      preflight.checks.forEach((check) => {
+        const icon = check.level === 'pass' ? '✓' : check.level === 'warn' ? '⚠' : '✕'
+        print(`  ${icon} ${check.message}`)
+      })
+      if (preflight.ok) {
+        print('\n  Ready to submit.')
+      } else {
+        print('\n  Preflight failed. Resolve blockers before submit.')
+      }
+      print('')
+      if (!preflight.ok) process.exit(1)
+      return
     }
 
     const data = await post('/api/agents/submit', { taskId })
@@ -599,8 +957,15 @@ commands['create-project'] = {
 // ── channels ────────────────────────────────────────────────────────────────
 
 commands.channels = {
-  usage: 'ctx channels [channel-id] [--since 2h] [--mentions-only] [--reply \"text\"] [--thread <message-id>] [--limit 20]',
+  usage: 'ctx channels [channel-id|channel-name] [--since 2h] [--mentions-only] [--reply \"text\"] [--thread <message-id>] [--limit 20]',
   desc: 'List channels, read channel messages, or reply in a channel/thread',
+  help: [
+    'Examples:',
+    '  ctx channels',
+    '  ctx channels general --limit 10',
+    '  ctx channels 6mol66p4 --reply "Working on it"',
+    '  ctx channels general --reply "Ack" --thread <message-id>',
+  ].join('\n'),
   async run(args, flags) {
     requireToken()
 
@@ -743,12 +1108,17 @@ commands.tasks = {
 // ── task (detail / update) ──────────────────────────────────────────────────
 
 commands.task = {
-  usage: 'ctx task <id> [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]',
-  desc: 'View or update a task. Status: TODO, IN_PROGRESS, DONE. SubStatus: planning, executing, review.',
+  usage: 'ctx task [task-id] [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]',
+  desc: 'View or update a task. Infers active task when task-id is omitted.',
+  help: [
+    'Examples:',
+    '  ctx task',
+    '  ctx task 7f3a',
+    '  ctx task --progress 60',
+  ].join('\n'),
   async run(args, flags) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx task <id>')
-    const id = await resolveId(args[0])
+    const id = await resolveTaskIdArgOrActive(args[0], 'ctx task [task-id] [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]')
 
     const updates = {}
     const s = flags.get('--status')
@@ -852,6 +1222,7 @@ commands.rm = {
     if (!args[0]) return die('Usage: ctx rm <task-id>')
     const id = await resolveId(args[0])
     await del(`/api/agents/tasks/${id}`)
+    if (JSON_OUT) return json({ deleted: true, id })
     print(`✓ Deleted ${id.slice(-8)}`)
   },
 }
@@ -860,31 +1231,27 @@ commands.rm = {
 
 commands.comment = {
   usage: 'ctx comment [task-id] <text | file | ->',
-  desc: 'Add a comment to a task. Infers task from active session if only text is given.',
+  desc: 'Add a comment to a task. Infers active task when task-id is omitted.',
+  help: [
+    'Examples:',
+    '  ctx comment "Investigating regression"',
+    '  ctx comment 7f3a "Implemented auth fallback"',
+  ].join('\n'),
   async run(args, flags) {
     requireToken()
     if (!args[0]) return die('Usage: ctx comment [task-id] <text>')
 
-    // Try to detect if first arg is a task ID or comment text
-    // If there's only one arg, or if it looks like text (contains spaces in the joined args),
-    // try to infer the task from the active session
-    let id, text
+    let id
+    let text
     if (args.length === 1) {
-      // Single arg — could be task ID (no comment) or comment text (infer task)
-      // Try to infer task from active session
-      try {
-        const session = await get('/api/agents/sessions?current=true')
-        if (session?.itemId) {
-          id = session.itemId
-          text = args[0]
-        }
-      } catch {}
-      if (!id) {
-        return die('Usage: ctx comment <task-id> <text> (or check out a task first)')
-      }
-    } else {
+      id = await resolveTaskIdArgOrActive(null, 'ctx comment [task-id] <text>')
+      text = args[0]
+    } else if (looksLikeTaskIdToken(args[0])) {
       id = await resolveId(args[0])
       text = args.slice(1).join(' ')
+    } else {
+      id = await resolveTaskIdArgOrActive(null, 'ctx comment [task-id] <text>')
+      text = args.join(' ')
     }
     if (!text) return die('Usage: ctx comment [task-id] <text>')
 
@@ -898,12 +1265,16 @@ commands.comment = {
 // ── comments ────────────────────────────────────────────────────────────────
 
 commands.comments = {
-  usage: 'ctx comments <task-id>',
-  desc: 'List comments on a task',
+  usage: 'ctx comments [task-id]',
+  desc: 'List comments on a task. Infers active task when task-id is omitted.',
+  help: [
+    'Examples:',
+    '  ctx comments',
+    '  ctx comments 7f3a',
+  ].join('\n'),
   async run(args, flags) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx comments <task-id>')
-    const id = await resolveId(args[0])
+    const id = await resolveTaskIdArgOrActive(args[0], 'ctx comments [task-id]')
 
     const data = await get(`/api/agents/tasks/${id}/comments`)
     if (JSON_OUT) return json(data)
@@ -920,13 +1291,26 @@ commands.comments = {
 // ── attach ──────────────────────────────────────────────────────────────────
 
 commands.attach = {
-  usage: 'ctx attach <task-id> <file-path>',
-  desc: 'Upload a file attachment to a task',
+  usage: 'ctx attach [task-id] <file-path>',
+  desc: 'Upload a file attachment to a task. Infers active task when task-id is omitted.',
+  help: [
+    'Examples:',
+    '  ctx attach ./trace.log',
+    '  ctx attach 7f3a ./trace.log',
+  ].join('\n'),
   async run(args) {
     requireToken()
-    if (!args[0] || !args[1]) return die('Usage: ctx attach <task-id> <file-path>')
-    const id = await resolveId(args[0])
-    const filePath = args[1]
+    if (!args[0]) return die('Usage: ctx attach [task-id] <file-path>')
+
+    let id
+    let filePath
+    if (args.length === 1) {
+      id = await resolveTaskIdArgOrActive(null, 'ctx attach [task-id] <file-path>')
+      filePath = args[0]
+    } else {
+      id = await resolveTaskIdArgOrActive(args[0], 'ctx attach [task-id] <file-path>')
+      filePath = args[1]
+    }
 
     if (!existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`)
@@ -945,12 +1329,16 @@ commands.attach = {
 // ── attachments ─────────────────────────────────────────────────────────────
 
 commands.attachments = {
-  usage: 'ctx attachments <task-id>',
-  desc: 'List attachments on a task',
+  usage: 'ctx attachments [task-id]',
+  desc: 'List attachments on a task. Infers active task when task-id is omitted.',
+  help: [
+    'Examples:',
+    '  ctx attachments',
+    '  ctx attachments 7f3a',
+  ].join('\n'),
   async run(args) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx attachments <task-id>')
-    const id = await resolveId(args[0])
+    const id = await resolveTaskIdArgOrActive(args[0], 'ctx attachments [task-id]')
 
     const data = await get(`/api/agents/tasks/${id}/attachments`)
     if (JSON_OUT) return json(data)
@@ -970,12 +1358,16 @@ commands.attachments = {
 // ── docs ────────────────────────────────────────────────────────────────────
 
 commands.docs = {
-  usage: 'ctx docs <task-id>',
+  usage: 'ctx docs [task-id]',
   desc: 'List documents on a task',
+  help: [
+    'Task ID is optional when you have an active checkout session.',
+    'Example: ctx docs',
+    'Example: ctx docs 7f3a',
+  ].join('\n'),
   async run(args, flags) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx docs <task-id>')
-    const id = await resolveId(args[0])
+    const id = await resolveTaskIdArgOrActive(args[0], 'ctx docs [task-id]')
 
     const data = await get(`/api/agents/tasks/${id}/docs`)
     if (JSON_OUT) return json(data)
@@ -995,32 +1387,95 @@ commands.docs = {
 // ── doc ─────────────────────────────────────────────────────────────────────
 
 commands.doc = {
-  usage: 'ctx doc <task-id> <action> [args]',
+  usage: 'ctx doc [task-id] <create|get|update> [args]',
   desc: 'Create, view, or update a document',
+  help: [
+    'Task ID is optional when you have an active checkout session.',
+    '',
+    'Actions:',
+    '  create <title> [content | file | -] [--plan] [--plan-template]',
+    '  get <doc-id>',
+    '  update <doc-id> [content | file | -] [--label L] [--major] [--title T]',
+    '',
+    'Examples:',
+    '  ctx doc 7f3a create "Implementation Plan" ./plan.md --plan',
+    '  ctx doc create "Implementation Plan" ./plan.md --plan',
+    '  ctx doc create "Execution Plan" --plan-template',
+    '  ctx doc 7f3a get 12ab34cd',
+    '  ctx doc get 12ab34cd',
+    '  ctx doc 7f3a update 12ab34cd ./next.md --label "v2 draft"',
+  ].join('\n'),
   async run(args, flags) {
     requireToken()
-    if (!args[0] || !args[1]) {
-      return die('Usage: ctx doc <task-id> create|get|update [args]')
+    if (!args[0] && !flags.has('--create') && !flags.has('--get') && !flags.has('--update')) {
+      return die('Usage: ctx doc [task-id] create|get|update [args]')
     }
-    const taskId = await resolveId(args[0])
-    const action = args[1]
+
+    const normalizeAction = (value) => {
+      const candidate = String(value || '').replace(/^--/, '').toLowerCase()
+      return ['create', 'get', 'update'].includes(candidate) ? candidate : null
+    }
+
+    const actionAsFirst = normalizeAction(args[0])
+    const actionAsSecond = normalizeAction(args[1])
+    const flagActions = ['create', 'get', 'update'].filter((candidate) => flags.has(`--${candidate}`))
+
+    let taskId
+    let action
+    let actionArgs
+
+    if (actionAsFirst) {
+      // ctx doc create ...
+      taskId = await resolveTaskIdArgOrActive(null, 'ctx doc [task-id] create|get|update [args]')
+      action = actionAsFirst
+      actionArgs = args.slice(1)
+    } else if (actionAsSecond) {
+      // ctx doc <task-id> create ...
+      taskId = await resolveTaskIdArgOrActive(args[0], 'ctx doc [task-id] create|get|update [args]')
+      action = actionAsSecond
+      actionArgs = args.slice(2)
+    } else if (flagActions.length === 1) {
+      // Legacy compatibility:
+      // ctx doc <task-id> --create "Title" [content]
+      // ctx doc --get <doc-id>
+      action = flagActions[0]
+      const maybeTaskArg = args[0]
+      const remaining = maybeTaskArg ? args.slice(1) : []
+      taskId = await resolveTaskIdArgOrActive(maybeTaskArg || null, 'ctx doc [task-id] create|get|update [args]')
+      const flagValue = flags.get(`--${action}`)
+      actionArgs = []
+      if (typeof flagValue === 'string' && flagValue.trim()) actionArgs.push(flagValue)
+      actionArgs.push(...remaining)
+    } else {
+      return die('Usage: ctx doc [task-id] create|get|update [args]')
+    }
 
     if (action === 'create') {
-      const title = args[2]
-      const contentArg = args[3]
-      if (!title) return die('Usage: ctx doc <task-id> create <title> [content | file | -] [--plan]')
+      const title = actionArgs[0]
+      const contentArg = actionArgs[1]
+      if (!title) return die('Usage: ctx doc [task-id] create <title> [content | file | -] [--plan] [--plan-template]')
 
       const body = { title }
+      let templateTask = null
       if (contentArg) body.content = readStdinOrFile(contentArg)
-      if (flags.has('--plan')) body.setAsPlan = true
+      if (flags.has('--plan-template') && !body.content) {
+        templateTask = await get(`/api/agents/tasks/${taskId}`)
+        body.content = buildPlanTemplate(templateTask)
+      }
+      if (flags.has('--plan')) {
+        body.setAsPlan = true
+      } else if (flags.has('--plan-template')) {
+        if (!templateTask) templateTask = await get(`/api/agents/tasks/${taskId}`)
+        if (templateTask.agentMode === 'PLAN') body.setAsPlan = true
+      }
 
       const data = await post(`/api/agents/tasks/${taskId}/docs`, body)
       if (JSON_OUT) return json(data)
       print(`✓ Created document: ${data.title} (${data.id.slice(-8)})`)
     }
     else if (action === 'get') {
-      const docIdRaw = args[2]
-      if (!docIdRaw) return die('Usage: ctx doc <task-id> get <doc-id>')
+      const docIdRaw = actionArgs[0]
+      if (!docIdRaw) return die('Usage: ctx doc [task-id] get <doc-id>')
       const docId = await resolveDocId(taskId, docIdRaw)
 
       const data = await get(`/api/agents/tasks/${taskId}/docs/${docId}`)
@@ -1036,9 +1491,9 @@ commands.doc = {
       print('')
     }
     else if (action === 'update') {
-      const docIdRaw = args[2]
-      const contentArg = args[3]
-      if (!docIdRaw) return die('Usage: ctx doc <task-id> update <doc-id> [content | file | -] [--label L] [--major]')
+      const docIdRaw = actionArgs[0]
+      const contentArg = actionArgs[1]
+      if (!docIdRaw) return die('Usage: ctx doc [task-id] update <doc-id> [content | file | -] [--label L] [--major]')
       const docId = await resolveDocId(taskId, docIdRaw)
 
       const body = {}
@@ -1092,6 +1547,22 @@ function die(msg) {
   process.exit(1)
 }
 
+function printCommandHelp(commandName) {
+  const command = commands[commandName]
+  if (!command) {
+    console.error(`Unknown command: ${commandName}. Run 'ctx help' for usage.`)
+    process.exit(1)
+  }
+
+  print(`\n  ${command.usage}`)
+  print(`  ${command.desc}`)
+  if (command.help) {
+    print('')
+    command.help.split('\n').forEach((line) => print(`  ${line}`))
+  }
+  print('\n  Supports: --json\n')
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 const [cmd, ...rawArgs] = process.argv.slice(2)
@@ -1100,13 +1571,31 @@ const JSON_OUT_FLAG = globalFlags.has('--json')
 
 JSON_OUT = JSON_OUT_FLAG
 
-if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
+if (!cmd || cmd === '--help' || cmd === '-h') {
   print('\n  Context CLI — project management for humans and agents\n')
   print('  Usage: ctx <command> [args] [--json]\n')
   Object.entries(commands).forEach(([name, c]) => {
     print(`  ${name.padEnd(12)} ${c.desc}`)
   })
+  print('\n  Command help: ctx help <command>')
+  print('  All commands support: --json')
   print(`\n  Config: CTX_TOKEN and CTX_URL env vars, or 'ctx login'\n`)
+  process.exit(0)
+}
+
+if (cmd === 'help') {
+  if (!cleanArgs[0]) {
+    print('\n  Context CLI — project management for humans and agents\n')
+    print('  Usage: ctx <command> [args] [--json]\n')
+    Object.entries(commands).forEach(([name, c]) => {
+      print(`  ${name.padEnd(12)} ${c.desc}`)
+    })
+    print('\n  Command help: ctx help <command>')
+    print('  All commands support: --json')
+    print(`\n  Config: CTX_TOKEN and CTX_URL env vars, or 'ctx login'\n`)
+    process.exit(0)
+  }
+  printCommandHelp(cleanArgs[0])
   process.exit(0)
 }
 
@@ -1117,8 +1606,7 @@ if (!commands[cmd]) {
 
 // Per-command --help: show usage string
 if (globalFlags.has('--help') || globalFlags.has('-h')) {
-  print(`\n  ${commands[cmd].usage}`)
-  print(`  ${commands[cmd].desc}\n`)
+  printCommandHelp(cmd)
   process.exit(0)
 }
 

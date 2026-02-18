@@ -6,7 +6,7 @@ useHead({
   meta: [
     { name: 'description', content: 'The first open-source project manager built for human-agent teams. Assign tasks to AI agents, review their plans, track their work. Self-hosted, recursive task model, no vendor lock-in.' },
   ],
-  bodyAttrs: { style: 'background-color: #0c0c10' },
+  bodyAttrs: { style: 'background-color: #08080c' },
 })
 
 const ready = ref(false)
@@ -404,7 +404,7 @@ onMounted(() => {
 <template>
   <div class="os2 min-h-screen text-zinc-100 scroll-smooth" :class="{ 'is-ready': ready }">
     <!-- Gradient mesh background -->
-    <div class="fixed inset-0 -z-10 bg-[#0c0c10]" aria-hidden="true">
+    <div class="fixed inset-0 -z-10 bg-[#08080c]" aria-hidden="true">
       <div class="absolute top-[60vh] right-0 w-[600px] h-[600px] rounded-full bg-gradient-to-bl from-violet-500/[0.05] via-blue-500/[0.03] to-transparent blur-[100px]" />
       <div class="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-amber-500/[0.04] to-transparent blur-[100px]" />
     </div>
@@ -412,7 +412,7 @@ onMounted(() => {
     <!-- Nav -->
     <nav
       class="nav-intro fixed top-0 inset-x-0 z-50 transition-all duration-500 ease-out"
-      :class="scrolled ? 'bg-[#0c0c10]/80 backdrop-blur-xl border-b border-white/[0.06]' : 'bg-transparent border-b border-transparent'"
+      :class="scrolled ? 'bg-[#08080c]/80 backdrop-blur-xl border-b border-white/[0.06]' : 'bg-transparent border-b border-transparent'"
     >
       <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div class="flex items-center gap-10">
