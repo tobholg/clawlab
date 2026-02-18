@@ -252,14 +252,10 @@ watch(activeTabId, async () => {
 watch(isOpen, async (open) => {
   if (open) {
     await nextTick()
-    // Fit after transition (200ms) + extra buffer
-    setTimeout(() => {
-      fitAllTerminals()
-    }, 50)
-    // And again after a longer delay to catch any layout shifts
-    setTimeout(() => {
-      fitAllTerminals()
-    }, 300)
+    // Fit at multiple intervals to catch layout settling
+    for (const delay of [50, 200, 500]) {
+      setTimeout(() => fitAllTerminals(), delay)
+    }
   }
 })
 
