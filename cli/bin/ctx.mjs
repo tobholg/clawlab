@@ -35,10 +35,18 @@ async function api(method, path, body) {
   const headers = { 'Content-Type': 'application/json' }
   if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`
 
-  const opts = { method, headers }
+  const opts = { method, headers, signal: AbortSignal.timeout(15000) }
   if (body) opts.body = JSON.stringify(body)
 
-  const res = await fetch(`${BASE}${path}`, opts)
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, opts)
+  } catch (e) {
+    const cause = e?.cause?.code || e?.code || ''
+    if (cause === 'ECONNREFUSED') throw new Error(`Cannot connect to ${BASE} - is the server running?`)
+    if (e.name === 'TimeoutError') throw new Error(`Request timed out: ${method} ${path}`)
+    throw new Error(`Network error: ${e.message}${cause ? ` (${cause})` : ''}`)
+  }
   const text = await res.text()
 
   let data
