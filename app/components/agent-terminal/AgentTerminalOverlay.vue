@@ -1,10 +1,10 @@
 <template>
   <Teleport to="body">
-    <Transition name="overlay">
-      <div
-        v-if="isOpen"
-        class="fixed inset-0 z-40 flex flex-col"
-      >
+    <div
+      v-show="isOpen"
+      class="fixed inset-0 z-40 flex flex-col transition-opacity duration-200"
+      :class="isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'"
+    >
         <!-- Backdrop -->
         <div
           class="absolute inset-0 bg-black/80 backdrop-blur-sm"
@@ -187,7 +187,7 @@
           </div>
         </Transition>
       </div>
-    </Transition>
+    </div>
   </Teleport>
 </template>
 
@@ -248,19 +248,37 @@ watch(activeTabId, async () => {
   }
 })
 
-// Re-fit when overlay opens
+// Re-fit all terminals when overlay opens
 watch(isOpen, async (open) => {
   if (open) {
     await nextTick()
-    // Small delay to let the overlay transition complete
+    // Fit after transition (200ms) + extra buffer
     setTimeout(() => {
-      if (activeTabId.value) {
-        const inst = terminals.get(activeTabId.value)
-        if (inst) inst.fit.fit()
-      }
-    }, 200)
+      fitAllTerminals()
+    }, 50)
+    // And again after a longer delay to catch any layout shifts
+    setTimeout(() => {
+      fitAllTerminals()
+    }, 300)
   }
 })
+
+function fitAllTerminals() {
+  for (const [terminalId, inst] of terminals) {
+    try {
+      inst.fit.fit()
+      // Send resize to PTY via WebSocket
+      const tab = tabs.value.find(t => t.terminalId === terminalId)
+      if (tab?.ws?.readyState === WebSocket.OPEN) {
+        tab.ws.send(JSON.stringify({
+          type: 'resize',
+          cols: inst.term.cols,
+          rows: inst.term.rows,
+        }))
+      }
+    } catch {}
+  }
+}
 
 function initTerminal(terminalId: string) {
   const container = terminalRefs.get(terminalId)
@@ -351,8 +369,20 @@ function initTerminal(terminalId: string) {
   // Handle resize observer for container
   const resizeObserver = new ResizeObserver(() => {
     fit.fit()
+    // Also notify PTY of new size
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+    }
   })
   resizeObserver.observe(container)
+
+  // Initial fit with delay to ensure container is fully laid out
+  setTimeout(() => {
+    fit.fit()
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+    }
+  }, 100)
 
   terminals.set(terminalId, { term, fit })
 }
@@ -516,17 +546,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.overlay-enter-active {
-  transition: opacity 0.2s ease;
-}
-.overlay-leave-active {
-  transition: opacity 0.15s ease;
-}
-.overlay-enter-from,
-.overlay-leave-to {
-  opacity: 0;
-}
-
 .modal-enter-active {
   transition: all 0.15s ease-out;
 }
