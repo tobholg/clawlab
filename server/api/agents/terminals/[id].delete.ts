@@ -10,6 +10,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Terminal ID is required' })
   }
 
+  // Always try to kill the PTY process regardless of DB state
+  destroyPtySession(terminalId)
+
   const session = await prisma.agentSession.findUnique({
     where: { terminalId },
     select: {
@@ -26,7 +29,8 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!session) {
-    throw createError({ statusCode: 404, message: 'Terminal session not found' })
+    // PTY already killed above — just return success
+    return { success: true }
   }
 
   const resolvedProjectId = session.projectId ?? session.item?.projectId ?? session.itemId ?? null
@@ -40,13 +44,9 @@ export default defineEventHandler(async (event) => {
     : null
 
   const workspaceId = session.item?.workspaceId ?? project?.workspaceId ?? null
-  if (!workspaceId) {
-    throw createError({ statusCode: 400, message: 'Unable to resolve workspace for terminal session' })
+  if (workspaceId) {
+    await requireWorkspaceMember(event, workspaceId)
   }
-
-  await requireWorkspaceMember(event, workspaceId)
-
-  destroyPtySession(terminalId)
 
   await prisma.agentSession.update({
     where: { id: session.id },
@@ -56,7 +56,5 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  return {
-    success: true,
-  }
+  return { success: true }
 })

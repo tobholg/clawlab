@@ -4,6 +4,7 @@ let pty: typeof import('node-pty') | null = null
 async function getPty() {
   if (!pty) {
     pty = await import('node-pty')
+    console.log('[PTY] node-pty loaded, spawn:', typeof pty.spawn, 'keys:', Object.keys(pty))
   }
   return pty
 }
@@ -118,6 +119,7 @@ export async function createPtySession(opts: {
   }
 
   sessions.set(terminalId, session)
+  console.log(`[PTY] Session created: ${terminalId}, pid: ${spawned.pid}`)
 
   spawned.onData((data) => {
     appendToBuffer(session, data)
