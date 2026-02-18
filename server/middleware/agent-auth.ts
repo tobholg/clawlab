@@ -17,6 +17,11 @@ export default defineEventHandler(async (event) => {
     return
   }
 
+  // Terminal endpoints use session auth (requireUser), not agent auth
+  if (event.path.startsWith('/api/agents/terminals') || event.path.startsWith('/api/agents/sessions')) {
+    return
+  }
+
   const authHeader = getHeader(event, 'authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     throw createError({ statusCode: 401, message: 'Missing or invalid API key' })
