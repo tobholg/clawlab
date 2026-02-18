@@ -215,7 +215,7 @@ const {
 // xterm instances
 // ─────────────────────────────────────────────────────────────────────────────
 
-const terminals = new Map<string, { term: Terminal; fit: FitAddon }>()
+const terminals = new Map<string, { term: Terminal; fit: FitAddon; lastCols?: number; lastRows?: number }>()
 const terminalRefs = new Map<string, HTMLElement>()
 
 const setTerminalRef = (terminalId: string, el: HTMLElement | null) => {
@@ -263,6 +263,14 @@ function fitAllTerminals() {
   for (const [terminalId, inst] of terminals) {
     try {
       inst.fit.fit()
+      // Only accept the fit if it gave us reasonable dimensions
+      if (inst.term.cols > 10) {
+        inst.lastCols = inst.term.cols
+        inst.lastRows = inst.term.rows
+      } else if (inst.lastCols) {
+        // Container is collapsed (overlay hidden) — restore last good size
+        inst.term.resize(inst.lastCols, inst.lastRows!)
+      }
       // Send resize to PTY via WebSocket
       const tab = tabs.value.find(t => t.terminalId === terminalId)
       if (tab?.ws?.readyState === WebSocket.OPEN) {
@@ -364,23 +372,37 @@ function initTerminal(terminalId: string) {
 
   // Handle resize observer for container
   const resizeObserver = new ResizeObserver(() => {
+    const inst = terminals.get(terminalId)
     fit.fit()
-    // Also notify PTY of new size
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+    // Only accept if container gave us reasonable dimensions
+    if (term.cols > 10 && inst) {
+      inst.lastCols = term.cols
+      inst.lastRows = term.rows
+      // Notify PTY of new size
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+      }
+    } else if (inst?.lastCols) {
+      // Container collapsed — restore last known good size
+      term.resize(inst.lastCols, inst.lastRows!)
     }
   })
   resizeObserver.observe(container)
 
+  terminals.set(terminalId, { term, fit })
+
   // Initial fit with delay to ensure container is fully laid out
   setTimeout(() => {
     fit.fit()
+    const inst = terminals.get(terminalId)
+    if (inst && term.cols > 10) {
+      inst.lastCols = term.cols
+      inst.lastRows = term.rows
+    }
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
     }
   }, 100)
-
-  terminals.set(terminalId, { term, fit })
 }
 
 // Cleanup terminals when tabs are removed
