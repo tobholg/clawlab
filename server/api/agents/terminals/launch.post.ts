@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
         apiToken: true,
         runnerCommand: true,
         runnerArgs: true,
-        workspaceMemberships: {
+        workspaceMembers: {
           select: { workspaceId: true },
           take: 1,
         },
@@ -97,7 +97,7 @@ export default defineEventHandler(async (event) => {
       apiToken: agentUser.apiToken,
       runnerCommand: agentUser.runnerCommand,
       runnerArgs: agentUser.runnerArgs,
-      workspaceId: agentUser.workspaceMemberships[0]?.workspaceId ?? null,
+      workspaceId: agentUser.workspaceMembers[0]?.workspaceId ?? null,
     }
 
     if (agent.workspaceId) {
