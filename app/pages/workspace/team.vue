@@ -298,6 +298,9 @@ const activityIconClassMap: Record<string, string> = {
   slate: 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-zinc-400',
 }
 
+const isClickableSession = (session: any) =>
+  session.task && (session.activityType === 'TASK' || session.activityType === 'AGENT_SESSION')
+
 const getActivityIconClasses = (session: any) => {
   return activityIconClassMap[getActivityColor(session)] || activityIconClassMap.slate
 }
@@ -612,11 +615,11 @@ const getDueDateClass = (task: any) => {
                       class="flex items-start gap-4 px-4 py-3 transition-colors"
                       :class="[
                         session.isActive && 'bg-emerald-50 dark:bg-emerald-500/10',
-                        session.activityType === 'TASK' && session.task
+                        isClickableSession(session)
                           ? 'hover:bg-white dark:hover:bg-white/[0.06] cursor-pointer'
                           : 'hover:bg-white/60 dark:hover:bg-white/[0.04]'
                       ]"
-                      @click="session.activityType === 'TASK' && session.task ? openTaskDetail(session.task) : null"
+                      @click="isClickableSession(session) ? openTaskDetail(session.task) : null"
                     >
                       <span class="text-xs text-slate-400 dark:text-zinc-500 w-14 flex-shrink-0 pt-0.5 font-mono">
                         {{ formatTime(session.startedAt) }}
@@ -687,11 +690,11 @@ const getDueDateClass = (task: any) => {
                       class="flex items-start gap-4 px-4 py-3 transition-colors"
                       :class="[
                         session.isActive && 'bg-emerald-50 dark:bg-emerald-500/10',
-                        session.activityType === 'TASK' && session.task
+                        isClickableSession(session)
                           ? 'hover:bg-white dark:hover:bg-white/[0.06] cursor-pointer'
                           : 'hover:bg-white/60 dark:hover:bg-white/[0.04]'
                       ]"
-                      @click="session.activityType === 'TASK' && session.task ? openTaskDetail(session.task) : null"
+                      @click="isClickableSession(session) ? openTaskDetail(session.task) : null"
                     >
                       <span class="text-xs text-slate-400 dark:text-zinc-500 w-20 flex-shrink-0 pt-0.5 font-mono">
                         {{ session.dayLabel }} {{ formatTime(session.startedAt) }}
