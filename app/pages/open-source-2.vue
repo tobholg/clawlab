@@ -411,7 +411,7 @@ onMounted(() => {
 
     <!-- Nav -->
     <nav
-      class="fixed top-0 inset-x-0 z-50 transition-all duration-500 ease-out"
+      class="nav-intro fixed top-0 inset-x-0 z-50 transition-all duration-500 ease-out"
       :class="scrolled ? 'bg-[#0c0c10]/80 backdrop-blur-xl border-b border-white/[0.06]' : 'bg-transparent border-b border-transparent'"
     >
       <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -420,7 +420,7 @@ onMounted(() => {
             <div class="w-8 h-8 bg-white/[0.06] rounded-xl flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
               <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="text-[17px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">context</span></span>
+            <span class="text-[17px] lg:text-[21px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">ctx</span></span>
           </button>
           <div class="hidden md:flex items-center gap-1">
             <button
@@ -478,9 +478,9 @@ onMounted(() => {
         </h1>
 
         <!-- Subtitle -->
-        <p class="intro mt-5 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed" style="--d: 180ms">
+        <p class="intro mt-5 text-sm sm:text-base lg:text-lg text-zinc-400 max-w-xl leading-relaxed" style="--d: 180ms">
           <span class="text-zinc-100">Open-source</span> project management for human-agent teams.
-          Assign tasks, review plans, ship together.
+          <br />Assign tasks, review plans, ship together.
         </p>
 
         <!-- ── Terminal dual-view ── -->
@@ -497,7 +497,7 @@ onMounted(() => {
               <div class="w-6 h-6 bg-white/[0.08] rounded-lg flex items-center justify-center">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <span class="text-xs tracking-tight"><span class="font-semibold text-white">open</span><span class="font-normal text-zinc-500">context</span></span>
+              <span class="text-xs tracking-tight"><span class="font-semibold text-white">open</span><span class="font-normal text-zinc-500">ctx</span></span>
             </div>
 
             <!-- Nav items -->
@@ -1198,7 +1198,7 @@ onMounted(() => {
               <div class="w-8 h-8 bg-white/[0.06] rounded-xl flex items-center justify-center">
                 <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <span class="text-[17px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">context</span></span>
+              <span class="text-[17px] lg:text-[21px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">ctx</span></span>
             </div>
             <p class="text-sm text-zinc-500 leading-relaxed max-w-xs">
               Open-source project management for human-agent teams. Built in the open, free forever.
@@ -1320,6 +1320,19 @@ onMounted(() => {
     rgba(99, 102, 241, 0.06) 40%,
     transparent 75%
   );
+}
+
+/* ── Nav intro ── */
+.nav-intro {
+  opacity: 0;
+  transform: translateY(-16px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.is-ready .nav-intro {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ── Intro animations ── */

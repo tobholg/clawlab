@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Terminal endpoints use session auth (requireUser), not agent auth
-  if (event.path.startsWith('/api/agents/terminals') || event.path.startsWith('/api/agents/sessions')) {
+  if (event.path.startsWith('/api/agents/terminals')) {
     return
   }
 
