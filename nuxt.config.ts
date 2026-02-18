@@ -12,6 +12,12 @@ export default defineNuxtConfig({
     experimental: {
       websocket: true,
     },
+    externals: {
+      inline: [],
+    },
+    rollupConfig: {
+      external: ['node-pty'],
+    },
   },
 
   tailwindcss: {
