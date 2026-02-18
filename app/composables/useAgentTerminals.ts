@@ -24,6 +24,12 @@ const isOpen = ref(false)
 const tabs = ref<TerminalTab[]>([])
 const activeTabId = ref<string | null>(null)
 const launching = ref(false)
+const launcherDefaults = ref<{
+  agentName?: string
+  agentId?: string
+  taskTitle?: string
+  taskId?: string
+}>({})
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Composable
@@ -56,6 +62,19 @@ export const useAgentTerminals = () => {
     isOpen.value = !isOpen.value
   }
 
+  const openLauncherForAgent = (
+    agent: { name: string; id: string },
+    context?: { taskTitle?: string; taskId?: string }
+  ) => {
+    launcherDefaults.value = {
+      agentName: agent.name,
+      agentId: agent.id,
+      taskTitle: context?.taskTitle,
+      taskId: context?.taskId,
+    }
+    isOpen.value = true
+  }
+
   /**
    * Launch a new terminal for an agent session
    */
@@ -77,6 +96,7 @@ export const useAgentTerminals = () => {
         body: {
           agentSessionId: opts.agentSessionId,
           agentToken: opts.agentToken,
+          agentName: opts.agentName,
           cwd: opts.cwd,
         },
       })
@@ -219,6 +239,7 @@ export const useAgentTerminals = () => {
     tabs,
     activeTabId,
     launching,
+    launcherDefaults,
 
     // Computed
     activeTab,
@@ -229,6 +250,7 @@ export const useAgentTerminals = () => {
     open,
     close,
     toggle,
+    openLauncherForAgent,
     launchTerminal,
     connectTerminal,
     closeTerminal,

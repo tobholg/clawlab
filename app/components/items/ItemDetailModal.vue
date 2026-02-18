@@ -2,6 +2,7 @@
 import type { ItemNode } from '~/types'
 import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, SUB_STATUS_BY_STATUS, getSubStatusesForStatus, COMPLEXITY_OPTIONS, PRIORITY_OPTIONS } from '~/types'
 import TaskAttachments from '~/components/task/TaskAttachments.vue'
+import { useAgentTerminals } from '~/composables/useAgentTerminals'
 
 const props = defineProps<{
   open: boolean
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { openLauncherForAgent } = useAgentTerminals()
 
 // Focus management
 const { focusState, startTaskFocus, completeTask, isFocusedOnTask, isLoading: focusLoading, currentUserId } = useFocus()
@@ -59,11 +61,31 @@ const hasAgentAssignee = computed(() => {
   return !!itemDetail.value?.assignees?.some((assignee: any) => !!assignee.isAgent)
 })
 
+const primaryAgentAssignee = computed(() => {
+  return itemDetail.value?.assignees?.find((assignee: any) => !!assignee.isAgent) ?? null
+})
+
 const currentAgentMode = computed<'PLAN' | 'EXECUTE' | null>(() => {
   const mode = itemDetail.value?.agentMode
   if (mode === 'PLAN' || mode === 'EXECUTE') return mode
   return null
 })
+
+const openAgentTerminalLauncher = () => {
+  const assignee = primaryAgentAssignee.value
+  if (!assignee?.id) return
+
+  openLauncherForAgent(
+    {
+      id: assignee.id,
+      name: assignee.name || 'Agent',
+    },
+    {
+      taskId: itemDetail.value?.id ?? undefined,
+      taskTitle: itemDetail.value?.title ?? undefined,
+    }
+  )
+}
 
 const planContentPreview = computed(() => {
   const content = planDocument.value?.content || ''
@@ -1358,43 +1380,52 @@ const formatRelativeTime = (dateStr: string) => {
             >
               <div class="flex items-center justify-between gap-3">
                 <h3 class="text-sm font-semibold text-slate-800 dark:text-zinc-200">Agent Workflow</h3>
-                <div class="group/agentmode relative">
-                  <div
-                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/agentmode:border-slate-300 dark:group-hover/agentmode:border-white/[0.1] group-hover/agentmode:shadow-sm"
-                    :class="{ 'opacity-60 pointer-events-none': isUpdatingAgentMode || !canEditItem }"
+                <div class="flex items-center gap-2">
+                  <button
+                    @click="openAgentTerminalLauncher"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10 text-xs font-medium text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-500/15 transition-colors"
                   >
+                    <Icon name="heroicons:command-line" class="w-3.5 h-3.5" />
+                    Launch Terminal
+                  </button>
+                  <div class="group/agentmode relative">
                     <div
-                      class="w-1.5 h-1.5 rounded-full"
-                      :class="{
-                        'bg-amber-500': currentAgentMode === 'PLAN',
-                        'bg-blue-500': currentAgentMode === 'EXECUTE',
-                        'bg-slate-400': !currentAgentMode,
-                      }"
-                    />
-                    <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">
-                      {{ currentAgentMode === 'PLAN' ? 'Planning' : currentAgentMode === 'EXECUTE' ? 'Executing' : 'None' }}
-                    </span>
-                    <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/agentmode:rotate-180" />
-                  </div>
-                  <div class="absolute top-full right-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/agentmode:opacity-100 group-hover/agentmode:visible group-hover/agentmode:translate-y-0 min-w-[120px]">
-                    <div class="py-1">
-                      <button
-                        v-for="opt in [
-                          { value: 'PLAN', label: 'Planning', color: 'bg-amber-500', icon: 'heroicons:clipboard-document-list' },
-                          { value: 'EXECUTE', label: 'Executing', color: 'bg-blue-500', icon: 'heroicons:bolt' },
-                          { value: 'NONE', label: 'None', color: 'bg-slate-400', icon: 'heroicons:minus-circle' },
-                        ]"
-                        :key="opt.value"
-                        class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
-                        :class="(currentAgentMode ?? 'NONE') === opt.value
-                          ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
-                          : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
-                        @click="updateAgentMode(opt.value === 'NONE' ? null : (opt.value as 'PLAN' | 'EXECUTE'))"
-                      >
-                        <div class="w-1.5 h-1.5 rounded-full" :class="opt.color" />
-                        <Icon :name="opt.icon" class="w-3 h-3 text-slate-500 dark:text-zinc-500" />
-                        <span class="flex-1 text-left">{{ opt.label }}</span>
-                      </button>
+                      class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/agentmode:border-slate-300 dark:group-hover/agentmode:border-white/[0.1] group-hover/agentmode:shadow-sm"
+                      :class="{ 'opacity-60 pointer-events-none': isUpdatingAgentMode || !canEditItem }"
+                    >
+                      <div
+                        class="w-1.5 h-1.5 rounded-full"
+                        :class="{
+                          'bg-amber-500': currentAgentMode === 'PLAN',
+                          'bg-blue-500': currentAgentMode === 'EXECUTE',
+                          'bg-slate-400': !currentAgentMode,
+                        }"
+                      />
+                      <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">
+                        {{ currentAgentMode === 'PLAN' ? 'Planning' : currentAgentMode === 'EXECUTE' ? 'Executing' : 'None' }}
+                      </span>
+                      <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/agentmode:rotate-180" />
+                    </div>
+                    <div class="absolute top-full right-0 mt-1 bg-white dark:bg-dm-card rounded-lg border border-slate-200 dark:border-white/[0.06] shadow-lg z-30 opacity-0 invisible translate-y-[-4px] transition-all duration-150 group-hover/agentmode:opacity-100 group-hover/agentmode:visible group-hover/agentmode:translate-y-0 min-w-[120px]">
+                      <div class="py-1">
+                        <button
+                          v-for="opt in [
+                            { value: 'PLAN', label: 'Planning', color: 'bg-amber-500', icon: 'heroicons:clipboard-document-list' },
+                            { value: 'EXECUTE', label: 'Executing', color: 'bg-blue-500', icon: 'heroicons:bolt' },
+                            { value: 'NONE', label: 'None', color: 'bg-slate-400', icon: 'heroicons:minus-circle' },
+                          ]"
+                          :key="opt.value"
+                          class="w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors"
+                          :class="(currentAgentMode ?? 'NONE') === opt.value
+                            ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
+                            : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
+                          @click="updateAgentMode(opt.value === 'NONE' ? null : (opt.value as 'PLAN' | 'EXECUTE'))"
+                        >
+                          <div class="w-1.5 h-1.5 rounded-full" :class="opt.color" />
+                          <Icon :name="opt.icon" class="w-3 h-3 text-slate-500 dark:text-zinc-500" />
+                          <span class="flex-1 text-left">{{ opt.label }}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

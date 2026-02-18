@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAgentTerminals } from '~/composables/useAgentTerminals'
+
 const route = useRoute()
 const router = useRouter()
 
@@ -6,6 +8,7 @@ const { workspaceId, currentScope, navigateTo } = useItems()
 const { isWorkspaceAdmin, isOrgAdmin, currentRole } = useWorkspaces()
 const { toggleSection, isSectionCollapsed } = useSidebarSections()
 const { sidebarPreview, activeCount: myTasksActiveCount, hasMoreTasks, fetchMyTasks } = useMyTasks()
+const { fetchExistingTerminals, toggle: toggleAgentTerminalOverlay } = useAgentTerminals()
 
 // Fetch channels for sidebar
 const { channels: allChannels, channelTree, loading: channelsLoading, fetchChannels: refreshChannels } = useChannels(workspaceId)
@@ -111,9 +114,16 @@ watch(workspaceId, (wsId) => {
 }, { immediate: true })
 onMounted(() => {
   if (workspaceId.value) fetchProjects()
+  void fetchExistingTerminals()
 
   // Global keyboard shortcut: P → navigate to projects
   const handleGlobalKeydown = (e: KeyboardEvent) => {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'Backquote') {
+      e.preventDefault()
+      toggleAgentTerminalOverlay()
+      return
+    }
+
     if (e.metaKey || e.ctrlKey || e.altKey) return
     const tag = (e.target as HTMLElement)?.tagName
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable) return

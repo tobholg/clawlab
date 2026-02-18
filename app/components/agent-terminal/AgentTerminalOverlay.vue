@@ -203,6 +203,7 @@ const {
   tabs,
   activeTabId,
   launching,
+  launcherDefaults,
   activeCount,
   close,
   switchTab,
@@ -385,6 +386,30 @@ const launchForm = ref({
   agentName: '',
   cwd: '',
 })
+const launchContext = ref<{ taskTitle?: string; taskId?: string }>({})
+
+watch(
+  () => launcherDefaults.value,
+  (defaults) => {
+    const hasDefaults = Boolean(
+      defaults.agentName || defaults.agentId || defaults.taskTitle || defaults.taskId
+    )
+    if (!hasDefaults) return
+
+    launchForm.value.agentName = defaults.agentName ?? ''
+    launchContext.value = {
+      taskTitle: defaults.taskTitle,
+      taskId: defaults.taskId,
+    }
+    showLauncher.value = true
+  }
+)
+
+watch(showLauncher, (open) => {
+  if (!open) {
+    launchContext.value = {}
+  }
+})
 
 const handleLaunch = async () => {
   if (!launchForm.value.agentSessionId || !launchForm.value.agentToken) return
@@ -394,9 +419,12 @@ const handleLaunch = async () => {
       agentSessionId: launchForm.value.agentSessionId,
       agentToken: launchForm.value.agentToken,
       agentName: launchForm.value.agentName || 'Agent',
+      taskTitle: launchContext.value.taskTitle,
+      taskId: launchContext.value.taskId,
       cwd: launchForm.value.cwd || undefined,
     })
     showLauncher.value = false
+    launchContext.value = {}
     launchForm.value = { agentSessionId: '', agentToken: '', agentName: '', cwd: '' }
   } catch (e: any) {
     console.error('Launch failed:', e)

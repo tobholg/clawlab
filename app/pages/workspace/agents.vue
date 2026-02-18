@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { useAgentTerminals } from '~/composables/useAgentTerminals'
+
 definePageMeta({
   layout: 'workspace',
   middleware: 'auth',
 })
 
 const { workspaceId } = useItems()
+const { openLauncherForAgent } = useAgentTerminals()
 
 const { data: membership, refresh: refreshMembership } = useFetch('/api/workspaces/membership', {
   query: computed(() => ({ workspaceId: workspaceId.value })),
@@ -253,6 +256,13 @@ const removeAgent = async (agentId: string) => {
   }
 }
 
+const launchTerminalForAgent = (agent: { id: string; name: string }) => {
+  openLauncherForAgent({
+    id: agent.id,
+    name: agent.name,
+  })
+}
+
 watch(workspaceId, async (id) => {
   if (!id) return
   await refreshMembership()
@@ -351,6 +361,13 @@ watch(workspaceId, async (id) => {
               <td class="px-4 py-3 text-sm text-slate-500 dark:text-zinc-400">{{ formatLastActive(agent.lastActiveAt) }}</td>
               <td class="px-4 py-3">
                 <div class="flex items-center justify-end gap-2">
+                  <button
+                    @click="launchTerminalForAgent(agent)"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-md transition-colors"
+                  >
+                    <Icon name="heroicons:command-line" class="w-3.5 h-3.5" />
+                    Launch Terminal
+                  </button>
                   <button
                     @click="regenerateKey(agent)"
                     :disabled="regenerating === agent.id || !isOrgAdmin"
