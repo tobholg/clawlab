@@ -108,15 +108,19 @@ export default defineEventHandler(async (event) => {
   }
 
   // Broadcast so terminal tabs can update their task title
-  broadcast({
-    type: 'agent_session_update',
-    agentId: agent.id,
-    sessionId: session.id,
-    terminalId: session.terminalId,
-    taskId: updatedTask.id,
-    taskTitle: updatedTask.title,
-    status: session.status,
-  })
+  try {
+    broadcast({
+      type: 'agent_session_update',
+      agentId: agent.id,
+      sessionId: session.id,
+      terminalId: session.terminalId,
+      taskId: updatedTask.id,
+      taskTitle: updatedTask.title,
+      status: session.status,
+    })
+  } catch {
+    // Non-critical — don't fail the checkout if broadcast fails
+  }
 
   return {
     session: {
