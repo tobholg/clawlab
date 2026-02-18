@@ -42,11 +42,11 @@
                   <span class="text-zinc-600 text-[10px]">{{ formatDuration(tab.startedAt) }}</span>
                 </div>
                 <div
-                  v-if="tab.taskTitle"
-                  class="text-[11px] text-zinc-500 truncate max-w-[200px] hover:text-violet-400 transition-colors"
-                  @click.stop="openTaskFromTab(tab)"
+                  class="text-xs truncate max-w-[220px] transition-colors"
+                  :class="tab.taskTitle ? 'text-zinc-400 hover:text-violet-400 cursor-pointer' : 'text-zinc-600 italic'"
+                  @click.stop="tab.taskTitle ? openTaskFromTab(tab) : null"
                 >
-                  {{ tab.taskTitle }}
+                  {{ tab.taskTitle || 'No task checked out' }}
                 </div>
               </div>
 

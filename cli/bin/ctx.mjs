@@ -400,7 +400,9 @@ commands.catchup = {
             for (const s of subs) {
               const icon = (s.status === 'DONE' || s.status === 'done') ? '✓' : (s.status === 'IN_PROGRESS' || s.status === 'in_progress') ? '◐' : '○'
               const st = (s.status || '').toUpperCase().padEnd(12)
-              print(`         ${icon} ${st} ${s.title}`)
+              const assignee = s.assignees?.[0]?.user?.name || s.owner?.name || ''
+              const assigneeTag = assignee ? ` [${assignee}]` : ''
+              print(`         ${icon} ${st} ${s.title}${assigneeTag}`)
             }
           }
         } catch { /* skip if fetch fails */ }
@@ -490,12 +492,21 @@ commands.checkout = {
 // ── submit ─────────────────────────────────────────────────────────────────
 
 commands.submit = {
-  usage: 'ctx submit <task-id>',
-  desc: 'Submit active work session for review',
+  usage: 'ctx submit [task-id]',
+  desc: 'Submit active work session for review. Infers task from active session if omitted.',
   async run(args) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx submit <task-id>')
-    const taskId = await resolveId(args[0])
+    let taskId
+    if (args[0]) {
+      taskId = await resolveId(args[0])
+    } else {
+      // Infer from active session
+      try {
+        const session = await get('/api/agents/sessions?current=true')
+        taskId = session?.itemId
+      } catch {}
+      if (!taskId) return die('No active session. Usage: ctx submit <task-id>')
+    }
 
     const data = await post('/api/agents/submit', { taskId })
     if (JSON_OUT) return json(data)
@@ -510,7 +521,7 @@ commands.submit = {
 
     print(`✓ Submitted for review: ${task.title}`)
     print(`  Duration:  ${formatDurationMs(durationMs)}`)
-    print(`  Progress:  ${task.progress}% (awaiting human approval)`)
+    print(`  Progress:  ${task.progress}% (set automatically — human approval required for 100%)`)
   },
 }
 
@@ -732,8 +743,8 @@ commands.tasks = {
 // ── task (detail / update) ──────────────────────────────────────────────────
 
 commands.task = {
-  usage: 'ctx task <id> [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P]',
-  desc: 'View or update a task',
+  usage: 'ctx task <id> [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]',
+  desc: 'View or update a task. Status: TODO, IN_PROGRESS, DONE. SubStatus: planning, executing, review.',
   async run(args, flags) {
     requireToken()
     if (!args[0]) return die('Usage: ctx task <id>')
@@ -848,14 +859,34 @@ commands.rm = {
 // ── comment ─────────────────────────────────────────────────────────────────
 
 commands.comment = {
-  usage: 'ctx comment <task-id> <text | file | ->',
-  desc: 'Add a comment to a task',
+  usage: 'ctx comment [task-id] <text | file | ->',
+  desc: 'Add a comment to a task. Infers task from active session if only text is given.',
   async run(args, flags) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx comment <task-id> <text>')
-    const id = await resolveId(args[0])
-    const text = args.slice(1).join(' ')
-    if (!text) return die('Usage: ctx comment <task-id> <text>')
+    if (!args[0]) return die('Usage: ctx comment [task-id] <text>')
+
+    // Try to detect if first arg is a task ID or comment text
+    // If there's only one arg, or if it looks like text (contains spaces in the joined args),
+    // try to infer the task from the active session
+    let id, text
+    if (args.length === 1) {
+      // Single arg — could be task ID (no comment) or comment text (infer task)
+      // Try to infer task from active session
+      try {
+        const session = await get('/api/agents/sessions?current=true')
+        if (session?.itemId) {
+          id = session.itemId
+          text = args[0]
+        }
+      } catch {}
+      if (!id) {
+        return die('Usage: ctx comment <task-id> <text> (or check out a task first)')
+      }
+    } else {
+      id = await resolveId(args[0])
+      text = args.slice(1).join(' ')
+    }
+    if (!text) return die('Usage: ctx comment [task-id] <text>')
 
     const content = readStdinOrFile(text)
     const data = await post(`/api/agents/tasks/${id}/comments`, { content })
@@ -1082,6 +1113,13 @@ if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
 if (!commands[cmd]) {
   console.error(`Unknown command: ${cmd}. Run 'ctx help' for usage.`)
   process.exit(1)
+}
+
+// Per-command --help: show usage string
+if (globalFlags.has('--help') || globalFlags.has('-h')) {
+  print(`\n  ${commands[cmd].usage}`)
+  print(`  ${commands[cmd].desc}\n`)
+  process.exit(0)
 }
 
 commands[cmd].run(cleanArgs, globalFlags).catch(e => {
