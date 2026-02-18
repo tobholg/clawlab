@@ -83,18 +83,28 @@ export default defineWebSocketHandler({
         lines,
       }))
 
-      state.outputListener = session.pty.onData((data) => {
+      // Listen for stdout/stderr data
+      const onData = (data: Buffer) => {
         peer.send(JSON.stringify({
           type: 'output',
-          data,
+          data: data.toString(),
         }))
-      })
+      }
+      session.process.stdout?.on('data', onData)
+      session.process.stderr?.on('data', onData)
+      state.outputListener = { dispose: () => {
+        session.process.stdout?.off('data', onData)
+        session.process.stderr?.off('data', onData)
+      }}
 
-      state.exitListener = session.pty.onExit((event) => {
-        const code = typeof event.exitCode === 'number' ? event.exitCode : 0
-        peer.send(JSON.stringify({ type: 'exit', code }))
+      const onExit = (code: number | null) => {
+        peer.send(JSON.stringify({ type: 'exit', code: code ?? 0 }))
         detachPeer(state)
-      })
+      }
+      session.process.on('exit', onExit)
+      state.exitListener = { dispose: () => {
+        session.process.off('exit', onExit)
+      }}
       return
     }
 
