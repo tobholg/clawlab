@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto'
-import * as pty from 'node-pty'
+// Lazy-load node-pty to avoid import-time crashes
+let pty: typeof import('node-pty') | null = null
+function getPty() {
+  if (!pty) {
+    pty = require('node-pty')
+  }
+  return pty
+}
 import { prisma } from './prisma'
 
 const MAX_BUFFER_LINES = 1000
@@ -40,7 +47,7 @@ function spawnWithFallback(opts: {
 
   for (const shell of shells) {
     try {
-      return pty.spawn(shell, [], {
+      return getPty().spawn(shell, [], {
         name: 'xterm-256color',
         cwd: opts.cwd,
         env: opts.env,
@@ -115,13 +122,10 @@ export function createPtySession(opts: {
     appendToBuffer(session, data)
   })
 
-  spawned.onExit(() => {
-    sessions.delete(terminalId)
-
-    void markSessionTerminated(session.agentSessionId).catch((error) => {
-      console.error('[PTY] Failed to mark session terminated on exit:', error)
-    })
-  })
+  // NOTE: We intentionally do NOT register spawned.onExit().
+  // node-pty 1.0.0 has a fatal V8 HandleScope race in pty_after_waitpid
+  // that crashes the entire process. Instead, we detect exit via onData
+  // stopping (the WebSocket close handler cleans up) and explicit destroy calls.
 
   return session
 }
@@ -136,20 +140,24 @@ export function destroyPtySession(terminalId: string): void {
 
   sessions.delete(terminalId)
 
-  // Graceful shutdown: send exit command first, then force-kill after delay.
-  // Calling pty.kill() directly races with the native waitpid callback in
-  // node-pty 1.0.0 and crashes the process with a V8 HandleScope error.
+  // Graceful shutdown only — never call pty.kill().
+  // node-pty 1.0.0 has a fatal V8 HandleScope race in pty_after_waitpid
+  // that crashes the entire Node process. Sending 'exit' + SIGHUP is enough.
   try {
+    session.pty.write('\x03\n')  // Ctrl+C first to break any running command
     session.pty.write('exit\n')
   } catch {}
 
+  // Send SIGHUP via process.kill as a fallback (bypasses node-pty's broken handler)
   setTimeout(() => {
     try {
-      session.pty.kill()
+      process.kill(session.pty.pid, 'SIGHUP')
     } catch {
-      // Already exited — safe to ignore
+      // Already dead — fine
     }
-  }, 500)
+  }, 1000)
+
+  void markSessionTerminated(session.agentSessionId).catch(() => {})
 }
 
 export function writeToPty(terminalId: string, data: string): void {
