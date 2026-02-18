@@ -14,6 +14,13 @@ export default defineNuxtConfig({
     },
     externals: {
       inline: [],
+      external: ['node-pty'],
+    },
+    rollupConfig: {
+      external: ['node-pty'],
+    },
+    unenv: {
+      external: ['node-pty'],
     },
   },
 

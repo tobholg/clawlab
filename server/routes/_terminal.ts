@@ -83,27 +83,25 @@ export default defineWebSocketHandler({
         lines,
       }))
 
-      // Listen for stdout/stderr data
-      const onData = (data: Buffer) => {
+      // Listen for data from the PTY worker
+      const onData = (data: string) => {
         peer.send(JSON.stringify({
           type: 'output',
-          data: data.toString(),
+          data,
         }))
       }
-      session.process.stdout?.on('data', onData)
-      session.process.stderr?.on('data', onData)
+      session.dataListeners.add(onData)
       state.outputListener = { dispose: () => {
-        session.process.stdout?.off('data', onData)
-        session.process.stderr?.off('data', onData)
+        session.dataListeners.delete(onData)
       }}
 
-      const onExit = (code: number | null) => {
-        peer.send(JSON.stringify({ type: 'exit', code: code ?? 0 }))
+      const onExit = (code: number) => {
+        peer.send(JSON.stringify({ type: 'exit', code }))
         detachPeer(state)
       }
-      session.process.on('exit', onExit)
+      session.exitListeners.add(onExit)
       state.exitListener = { dispose: () => {
-        session.process.off('exit', onExit)
+        session.exitListeners.delete(onExit)
       }}
       return
     }

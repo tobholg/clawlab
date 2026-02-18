@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { spawn, type ChildProcess } from 'node:child_process'
+import { fork, type ChildProcess } from 'node:child_process'
+import { resolve } from 'node:path'
 import { prisma } from './prisma'
 
 const MAX_BUFFER_LINES = 1000
@@ -8,17 +9,116 @@ const DEFAULT_ROWS = 30
 
 export interface PtySession {
   id: string
-  process: ChildProcess
   pid: number
   buffer: string[]
   agentSessionId: string
   pendingLine: string
-  cols: number
-  rows: number
   exited: boolean
+  dataListeners: Set<(data: string) => void>
+  exitListeners: Set<(code: number) => void>
 }
 
 const sessions = new Map<string, PtySession>()
+
+// ── Worker process management ───────────────────────────────────────────────
+
+let worker: ChildProcess | null = null
+let workerReady = false
+const pendingSpawns = new Map<string, { resolve: (s: PtySession) => void; reject: (e: Error) => void }>()
+
+function getWorkerPath(): string {
+  // In dev, the file is at server/utils/pty-worker.mjs
+  // We need the source path, not the built path
+  return resolve(process.cwd(), 'server/utils/pty-worker.mjs')
+}
+
+function ensureWorker(): ChildProcess {
+  if (worker && !worker.killed) return worker
+
+  console.log('[PTY] Spawning worker process...')
+  worker = fork(getWorkerPath(), [], {
+    serialization: 'json',
+    stdio: ['pipe', 'inherit', 'inherit', 'ipc'],
+  })
+
+  workerReady = false
+
+  worker.on('message', (msg: any) => {
+    if (msg.type === 'ready') {
+      workerReady = true
+      console.log('[PTY] Worker ready')
+      return
+    }
+
+    if (msg.type === 'spawned') {
+      const session = sessions.get(msg.id)
+      const pending = pendingSpawns.get(msg.id)
+      if (session) {
+        session.pid = msg.pid
+      }
+      if (pending) {
+        pendingSpawns.delete(msg.id)
+        if (session) pending.resolve(session)
+        else pending.reject(new Error('Session not found after spawn'))
+      }
+      return
+    }
+
+    if (msg.type === 'error') {
+      const pending = pendingSpawns.get(msg.id)
+      if (pending) {
+        pendingSpawns.delete(msg.id)
+        pending.reject(new Error(msg.error))
+      }
+      return
+    }
+
+    if (msg.type === 'data') {
+      const session = sessions.get(msg.id)
+      if (session) {
+        appendToBuffer(session, msg.data)
+        for (const listener of session.dataListeners) {
+          listener(msg.data)
+        }
+      }
+      return
+    }
+
+    if (msg.type === 'exit') {
+      const session = sessions.get(msg.id)
+      if (session) {
+        session.exited = true
+        sessions.delete(msg.id)
+        for (const listener of session.exitListeners) {
+          listener(msg.code ?? 0)
+        }
+        void markSessionTerminated(session.agentSessionId).catch(() => {})
+      }
+      return
+    }
+  })
+
+  worker.on('exit', (code, signal) => {
+    console.log(`[PTY] Worker exited: code=${code}, signal=${signal}`)
+    worker = null
+    workerReady = false
+
+    // Mark all sessions as exited
+    for (const [id, session] of sessions) {
+      session.exited = true
+      for (const listener of session.exitListeners) {
+        listener(-1)
+      }
+      void markSessionTerminated(session.agentSessionId).catch(() => {})
+    }
+    sessions.clear()
+    pendingSpawns.clear()
+  })
+
+  return worker
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function cuid() {
   const time = Date.now().toString(36)
@@ -52,13 +152,7 @@ function markSessionTerminated(agentSessionId: string) {
   })
 }
 
-function findShell(): string {
-  const shells = process.platform === 'win32'
-    ? ['powershell.exe']
-    : ['/bin/zsh', '/bin/bash', '/bin/sh']
-  // On Unix, these paths are standard — just return the first
-  return shells[0]
-}
+// ── Public API ──────────────────────────────────────────────────────────────
 
 export async function createPtySession(opts: {
   terminalId: string
@@ -69,66 +163,45 @@ export async function createPtySession(opts: {
   rows?: number
 }): Promise<PtySession> {
   const terminalId = opts.terminalId?.trim() || generateTerminalId()
-  const cols = opts.cols ?? DEFAULT_COLS
-  const rows = opts.rows ?? DEFAULT_ROWS
 
   destroyPtySession(terminalId)
 
-  const shell = findShell()
-
-  // Use `script` to allocate a real PTY without node-pty.
-  // macOS: script -q /dev/null <shell>
-  // Linux: script -qc <shell> /dev/null
-  const isDarwin = process.platform === 'darwin'
-  const args = isDarwin
-    ? ['-q', '/dev/null', shell]
-    : ['-qc', shell, '/dev/null']
-
-  const child = spawn('script', args, {
-    cwd: opts.cwd,
-    env: {
-      ...opts.env,
-      TERM: 'xterm-256color',
-      COLUMNS: String(cols),
-      LINES: String(rows),
-    },
-    stdio: ['pipe', 'pipe', 'pipe'],
-  })
-
-  if (!child.pid) {
-    throw new Error('Failed to spawn PTY process')
-  }
-
   const session: PtySession = {
     id: terminalId,
-    process: child,
-    pid: child.pid,
+    pid: 0,
     buffer: [],
     agentSessionId: opts.agentSessionId,
     pendingLine: '',
-    cols,
-    rows,
     exited: false,
+    dataListeners: new Set(),
+    exitListeners: new Set(),
   }
 
   sessions.set(terminalId, session)
-  console.log(`[PTY] Session created: ${terminalId}, pid: ${child.pid}`)
 
-  child.stdout?.on('data', (data: Buffer) => {
-    appendToBuffer(session, data.toString())
+  const w = ensureWorker()
+
+  return new Promise<PtySession>((resolve, reject) => {
+    pendingSpawns.set(terminalId, { resolve, reject })
+
+    w.send({
+      type: 'spawn',
+      id: terminalId,
+      cwd: opts.cwd,
+      env: opts.env,
+      cols: opts.cols ?? DEFAULT_COLS,
+      rows: opts.rows ?? DEFAULT_ROWS,
+    })
+
+    // Timeout
+    setTimeout(() => {
+      if (pendingSpawns.has(terminalId)) {
+        pendingSpawns.delete(terminalId)
+        sessions.delete(terminalId)
+        reject(new Error('PTY spawn timed out'))
+      }
+    }, 5000)
   })
-
-  child.stderr?.on('data', (data: Buffer) => {
-    appendToBuffer(session, data.toString())
-  })
-
-  child.on('exit', () => {
-    session.exited = true
-    sessions.delete(terminalId)
-    void markSessionTerminated(session.agentSessionId).catch(() => {})
-  })
-
-  return session
 }
 
 export function getPtySession(terminalId: string): PtySession | undefined {
@@ -141,18 +214,8 @@ export function destroyPtySession(terminalId: string): void {
 
   sessions.delete(terminalId)
 
-  if (!session.exited) {
-    try {
-      session.process.stdin?.write('\x03\n')  // Ctrl+C
-      session.process.stdin?.write('exit\n')
-    } catch {}
-
-    // Force kill after 1s if still alive
-    setTimeout(() => {
-      if (!session.exited) {
-        try { process.kill(session.pid, 'SIGKILL') } catch {}
-      }
-    }, 1000)
+  if (!session.exited && worker && !worker.killed) {
+    worker.send({ type: 'kill', id: terminalId })
   }
 
   void markSessionTerminated(session.agentSessionId).catch(() => {})
@@ -162,26 +225,23 @@ export function writeToPty(terminalId: string, data: string): void {
   const session = sessions.get(terminalId)
   if (!session || session.exited) return
 
-  session.process.stdin?.write(data)
+  if (worker && !worker.killed) {
+    worker.send({ type: 'write', id: terminalId, data })
+  }
 }
 
 export function resizePty(terminalId: string, cols: number, rows: number): void {
   const session = sessions.get(terminalId)
   if (!session || session.exited) return
 
-  session.cols = cols
-  session.rows = rows
-
-  // Send SIGWINCH to the child process to notify of resize
-  // Also set stty size via the shell
-  try {
-    session.process.stdin?.write(`stty cols ${cols} rows ${rows}\n`)
-  } catch {}
+  if (worker && !worker.killed) {
+    worker.send({ type: 'resize', id: terminalId, cols, rows })
+  }
 }
 
 export function listPtySessions(): Array<{ terminalId: string; agentSessionId: string }> {
-  return [...sessions.values()].map((session) => ({
-    terminalId: session.id,
-    agentSessionId: session.agentSessionId,
+  return [...sessions.values()].map((s) => ({
+    terminalId: s.id,
+    agentSessionId: s.agentSessionId,
   }))
 }
