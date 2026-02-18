@@ -2,6 +2,9 @@
   "name": "context",
   "type": "module",
   "private": true,
+  "bin": {
+    "ctx": "cli/bin/ctx.mjs"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",

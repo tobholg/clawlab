@@ -10,7 +10,7 @@ function toStringEnv(env: NodeJS.ProcessEnv) {
   return normalized
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are {{agentName}}, an AI agent working in OpenContext. You have a CLI tool called ctx. Start by running: ctx help -- then run: ctx catchup -- to see your assignments. Use ctx to check out tasks, update progress, add comments, and submit for review when done.`
+const DEFAULT_SYSTEM_PROMPT = `You are {{agentName}}, an AI agent working in OpenContext. You have a CLI tool called ctx (available on PATH and as an alias). Start by running: ctx help -- then run: ctx catchup -- to see your assignments. Use ctx to check out tasks, update progress, add comments, and submit for review when done.`
 
 function buildSystemPrompt(agentName: string): string {
   return DEFAULT_SYSTEM_PROMPT.replace(/\{\{agentName\}\}/g, agentName)
@@ -215,8 +215,9 @@ export default defineEventHandler(async (event) => {
   // Bootstrap sequence
   setTimeout(() => {
     if (agent) {
-      // Agent terminal: add ctx CLI to PATH, set prompt, show banner, launch agent CLI
+      // Agent terminal: make ctx available, set prompt, show banner, launch agent CLI
       writeToPty(terminalId, `export PATH="${cwd}/cli/bin:$PATH"\n`)
+      writeToPty(terminalId, `alias ctx="node ${cwd}/cli/bin/ctx.mjs"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[35m${agentName}\\e[0m \\e[34m%~\\e[0m $ '\n`)
       writeToPty(terminalId, `echo $'\\e[35m═══ OpenContext Agent Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, `echo "Agent: ${agentName}"\n`)
