@@ -1,5 +1,4 @@
 import type { AgentContextUser } from '../utils/agentApi'
-import { compareAgentApiKey } from '../utils/agentKeyHash'
 import { prisma } from '../utils/prisma'
 
 export default defineEventHandler(async (event) => {
@@ -28,10 +27,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Missing or invalid API key' })
   }
 
-  const agentCandidates = await prisma.user.findMany({
+  // Direct lookup by plain text token
+  const agent = await prisma.user.findUnique({
     where: {
-      isAgent: true,
-      apiKeyHash: { not: null },
+      apiToken: apiKey,
     },
     select: {
       id: true,
@@ -40,32 +39,19 @@ export default defineEventHandler(async (event) => {
       avatar: true,
       isAgent: true,
       agentProvider: true,
-      apiKeyHash: true,
     },
   })
 
-  let authenticatedAgent: AgentContextUser | null = null
-
-  for (const candidate of agentCandidates) {
-    if (!candidate.apiKeyHash) continue
-
-    const isMatch = await compareAgentApiKey(apiKey, candidate.apiKeyHash)
-    if (!isMatch) continue
-
-    authenticatedAgent = {
-      id: candidate.id,
-      email: candidate.email,
-      name: candidate.name,
-      avatar: candidate.avatar,
-      isAgent: candidate.isAgent,
-      agentProvider: candidate.agentProvider,
-    }
-    break
-  }
-
-  if (!authenticatedAgent) {
+  if (!agent || !agent.isAgent) {
     throw createError({ statusCode: 401, message: 'Invalid API key' })
   }
 
-  ;(event.context as { agentUser?: AgentContextUser }).agentUser = authenticatedAgent
+  ;(event.context as { agentUser?: AgentContextUser }).agentUser = {
+    id: agent.id,
+    email: agent.email,
+    name: agent.name,
+    avatar: agent.avatar,
+    isAgent: agent.isAgent,
+    agentProvider: agent.agentProvider,
+  }
 })

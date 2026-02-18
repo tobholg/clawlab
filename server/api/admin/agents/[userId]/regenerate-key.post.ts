@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto'
 import { requireUser } from '../../../../utils/auth'
-import { hashAgentApiKey } from '../../../../utils/agentKeyHash'
 import { prisma } from '../../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
@@ -51,11 +50,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const apiKey = `ctx_${randomBytes(20).toString('hex')}`
-  const apiKeyHash = await hashAgentApiKey(apiKey)
 
   await prisma.user.update({
     where: { id: targetAgent.id },
-    data: { apiKeyHash },
+    data: { apiToken: apiKey },
   })
 
   return { apiKey }

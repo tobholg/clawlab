@@ -26,6 +26,7 @@ onMounted(() => {
   let smoothScrollY = 0       // lerped toward scrollY for momentum/inertia
   let prevSmoothScrollY = 0
   let scrollGlow = 0          // smoothed 0→1 glow intensity driven by scroll speed
+  let introOffset = 120       // stars start shifted down, drift up on load
 
   const resize = () => {
     el.width = window.innerWidth
@@ -41,7 +42,7 @@ onMounted(() => {
       x: Math.random() * el.width,
       y: Math.random() * fieldH,
       r: Math.random() * 0.9 + 0.2,
-      baseAlpha: Math.random() * 0.3 + 0.08,
+      baseAlpha: Math.random() * 0.4 + 0.12,
       phase: Math.random() * Math.PI * 2,
       speed: Math.random() * 0.8 + 0.3,
     }))
@@ -62,7 +63,10 @@ onMounted(() => {
     const rate = target > scrollGlow ? 0.12 : 0.06  // fast attack, slow release
     scrollGlow += (target - scrollGlow) * rate
 
-    const parallaxOffset = smoothScrollY * 0.06
+    // Intro drift: ease toward 0
+    introOffset += (0 - introOffset) * 0.02
+
+    const parallaxOffset = smoothScrollY * 0.06 + introOffset
 
     for (const s of stars) {
       const twinkle = Math.sin(t * 0.001 * s.speed + s.phase)

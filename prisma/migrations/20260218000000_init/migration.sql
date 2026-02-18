@@ -153,8 +153,10 @@ CREATE TABLE "users" (
     "name" TEXT,
     "passwordHash" TEXT,
     "isAgent" BOOLEAN NOT NULL DEFAULT false,
-    "apiKeyHash" TEXT,
+    "apiToken" TEXT,
     "agentProvider" TEXT,
+    "runnerCommand" TEXT,
+    "runnerArgs" TEXT,
     "position" TEXT,
     "avatar" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -601,7 +603,7 @@ CREATE UNIQUE INDEX "organization_members_organizationId_userId_key" ON "organiz
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_apiKeyHash_key" ON "users"("apiKeyHash");
+CREATE UNIQUE INDEX "users_apiToken_key" ON "users"("apiToken");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "magic_link_tokens_token_key" ON "magic_link_tokens"("token");

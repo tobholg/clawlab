@@ -5,7 +5,7 @@ import { createDefaultChannels } from '../../utils/channelUtils'
 import { createSession } from '../../utils/auth'
 import { provisionDefaultSeats } from '../../utils/seats'
 import { hashPassword } from '../../utils/password'
-import { hashAgentApiKey } from '../../utils/agentKeyHash'
+// Agent tokens stored as plain text (self-hosted, no hashing needed)
 
 interface SetupRequest {
   mode: 'personal' | 'team'
@@ -176,7 +176,6 @@ export default defineEventHandler(async (event) => {
 
     for (const agent of parsedAgents) {
       const apiKey = `ctx_${randomBytes(20).toString('hex')}`
-      const apiKeyHash = await hashAgentApiKey(apiKey)
       const email = `agent-${slugify(agent.name) || 'agent'}-${randomBytes(4).toString('hex')}@agents.context.local`
 
       const agentUser = await tx.user.create({
@@ -184,7 +183,7 @@ export default defineEventHandler(async (event) => {
           name: agent.name,
           email,
           isAgent: true,
-          apiKeyHash,
+          apiToken: apiKey,
           agentProvider: agent.provider,
         },
       })

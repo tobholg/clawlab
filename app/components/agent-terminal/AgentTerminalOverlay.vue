@@ -126,17 +126,35 @@
           >
             <div class="absolute inset-0" @click="showLauncher = false" />
             <div class="relative w-[440px] bg-[#161619] border border-white/[0.06] rounded-2xl shadow-2xl p-6">
-              <h3 class="text-white font-medium mb-4">Launch Agent Terminal</h3>
+              <h3 class="text-white font-medium mb-4">Launch Terminal</h3>
 
-              <!-- Agent picker (if no agent pre-selected) -->
-              <div v-if="!selectedAgent" class="space-y-2 mb-4">
-                <p class="text-xs text-zinc-400 mb-2">Select an agent:</p>
-                <div v-if="loadingAgents" class="text-sm text-zinc-500 py-4 text-center">Loading agents...</div>
+              <div v-if="!launching" class="space-y-2">
+                <!-- Plain terminal option -->
                 <button
-                  v-else
+                  @click="launchPlainTerminal"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-cyan-500/30 transition-all text-left"
+                >
+                  <div class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
+                    <Icon name="heroicons:command-line" class="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-white">Plain Terminal</div>
+                    <div class="text-xs text-zinc-500">Shell session in project directory</div>
+                  </div>
+                </button>
+
+                <!-- Divider -->
+                <div v-if="workspaceAgents.length" class="flex items-center gap-2 py-1">
+                  <div class="flex-1 h-px bg-white/[0.06]" />
+                  <span class="text-[10px] text-zinc-600 uppercase tracking-wider">Agents</span>
+                  <div class="flex-1 h-px bg-white/[0.06]" />
+                </div>
+
+                <!-- Agent options -->
+                <button
                   v-for="agent in workspaceAgents"
                   :key="agent.id"
-                  @click="selectAgent(agent)"
+                  @click="launchAgentTerminal(agent)"
                   class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-violet-500/30 transition-all text-left"
                 >
                   <div class="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
@@ -144,69 +162,27 @@
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="text-sm font-medium text-white">{{ agent.name }}</div>
-                    <div class="text-xs text-zinc-500">{{ agent.provider || 'Agent' }}</div>
+                    <div class="text-xs text-zinc-500">
+                      {{ agent.runnerCommand || agent.agentProvider || 'No runner configured' }}
+                      <span v-if="agent.runnerArgs" class="text-zinc-600">{{ agent.runnerArgs }}</span>
+                    </div>
                   </div>
-                  <span
-                    v-if="hasAgentToken(agent.id)"
-                    class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded"
-                  >
-                    token saved
-                  </span>
-                  <span
-                    v-else
-                    class="text-[10px] text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded"
-                  >
-                    needs token
-                  </span>
                 </button>
-                <p v-if="!loadingAgents && !workspaceAgents.length" class="text-sm text-zinc-500 py-4 text-center">
+
+                <div v-if="loadingAgents" class="text-sm text-zinc-500 py-4 text-center">Loading agents...</div>
+                <p v-if="!loadingAgents && !workspaceAgents.length" class="text-sm text-zinc-500 py-2 text-center">
                   No agents configured. Add one in Settings → Agents.
                 </p>
               </div>
 
-              <!-- Token input (only if agent selected but no stored token) -->
-              <div v-else-if="needsToken">
-                <div class="flex items-center gap-2 mb-3">
-                  <div class="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center">
-                    <Icon name="heroicons:cpu-chip" class="w-4 h-4 text-violet-400" />
-                  </div>
-                  <div>
-                    <div class="text-sm font-medium text-white">{{ selectedAgent.name }}</div>
-                    <button @click="selectedAgent = null" class="text-xs text-zinc-500 hover:text-zinc-300">change</button>
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <label class="text-xs text-zinc-400 mb-1 block">Paste the agent's API token (stored locally, one-time)</label>
-                  <input
-                    v-model="tokenInput"
-                    type="password"
-                    placeholder="ctx_..."
-                    class="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50"
-                    @keydown.enter="saveTokenAndLaunch"
-                  />
-                </div>
-                <div class="flex items-center justify-end gap-2">
-                  <button @click="showLauncher = false" class="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-white transition-colors">Cancel</button>
-                  <button
-                    @click="saveTokenAndLaunch"
-                    :disabled="!tokenInput.trim() || launching"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {{ launching ? 'Launching...' : 'Save & Launch' }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Launching state (token exists, just go) -->
-              <div v-else class="text-center py-4">
-                <div class="flex items-center justify-center gap-2 text-zinc-300">
-                  <Icon name="heroicons:arrow-path" class="w-5 h-5 animate-spin text-violet-400" />
-                  <span>Launching terminal for {{ selectedAgent.name }}...</span>
-                </div>
+              <!-- Launching state -->
+              <div v-else class="text-center py-6">
+                <Icon name="heroicons:arrow-path" class="w-6 h-6 animate-spin text-violet-400 mx-auto mb-2" />
+                <span class="text-sm text-zinc-300">Launching...</span>
               </div>
 
               <!-- Error -->
-              <p v-if="launchError" class="text-xs text-red-400 mt-2">{{ launchError }}</p>
+              <p v-if="launchError" class="text-xs text-red-400 mt-3">{{ launchError }}</p>
             </div>
           </div>
         </Transition>
@@ -233,8 +209,6 @@ const {
   closeTerminal,
   quickLaunch,
   connectTerminal,
-  storeAgentToken,
-  hasAgentToken,
 } = useAgentTerminals()
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -405,8 +379,6 @@ watch(
 // ─────────────────────────────────────────────────────────────────────────────
 
 const showLauncher = ref(false)
-const selectedAgent = ref<{ id: string; name: string; provider?: string } | null>(null)
-const tokenInput = ref('')
 const launchError = ref('')
 const launchContext = ref<{ taskId?: string }>({})
 
@@ -428,40 +400,29 @@ const fetchWorkspaceAgents = async () => {
   }
 }
 
-const needsToken = computed(() => {
-  if (!selectedAgent.value) return false
-  return !hasAgentToken(selectedAgent.value.id)
-})
-
-const selectAgent = (agent: any) => {
-  selectedAgent.value = { id: agent.id, name: agent.name, provider: agent.provider }
+const launchPlainTerminal = async () => {
   launchError.value = ''
-
-  // If we already have the token, launch immediately
-  if (hasAgentToken(agent.id)) {
-    doLaunch()
-  }
-}
-
-const saveTokenAndLaunch = () => {
-  if (!tokenInput.value.trim() || !selectedAgent.value) return
-  storeAgentToken(selectedAgent.value.id, tokenInput.value.trim())
-  tokenInput.value = ''
-  doLaunch()
-}
-
-const doLaunch = async () => {
-  if (!selectedAgent.value) return
-  launchError.value = ''
-
   try {
     await quickLaunch({
-      agentId: selectedAgent.value.id,
-      agentName: selectedAgent.value.name,
+      agentName: 'Terminal',
       taskId: launchContext.value.taskId,
     })
     showLauncher.value = false
-    selectedAgent.value = null
+    launchContext.value = {}
+  } catch (e: any) {
+    launchError.value = e?.data?.message || e?.message || 'Launch failed'
+  }
+}
+
+const launchAgentTerminal = async (agent: any) => {
+  launchError.value = ''
+  try {
+    await quickLaunch({
+      agentId: agent.id,
+      agentName: agent.name,
+      taskId: launchContext.value.taskId,
+    })
+    showLauncher.value = false
     launchContext.value = {}
   } catch (e: any) {
     launchError.value = e?.data?.message || e?.message || 'Launch failed'
@@ -477,18 +438,9 @@ watch(
     launchContext.value = { taskId: defaults.taskId }
 
     if (defaults.agentId) {
-      // Pre-select the agent
-      selectedAgent.value = {
-        id: defaults.agentId,
-        name: defaults.agentName || 'Agent',
-      }
-
-      // If we have the token, launch immediately
-      if (hasAgentToken(defaults.agentId)) {
-        showLauncher.value = true
-        nextTick(() => doLaunch())
-        return
-      }
+      // Direct launch - skip the picker
+      launchAgentTerminal({ id: defaults.agentId, name: defaults.agentName || 'Agent' })
+      return
     }
 
     showLauncher.value = true
@@ -500,8 +452,6 @@ watch(showLauncher, (open) => {
   if (open) {
     fetchWorkspaceAgents()
   } else {
-    selectedAgent.value = null
-    tokenInput.value = ''
     launchError.value = ''
     launchContext.value = {}
   }

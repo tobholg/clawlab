@@ -158,8 +158,10 @@ model User {
   name          String?
   passwordHash  String?
   isAgent       Boolean  @default(false)
-  apiKeyHash    String?  @unique // bcrypt hash of agent API key
+  apiToken      String?  @unique // plain text agent API token (ctx_...)
   agentProvider String? // "openclaw", "cursor", "codex", "custom"
+  runnerCommand String? // CLI to launch: "codex", "claude", "aider", null for plain terminal
+  runnerArgs    String? // extra CLI args: "--full-auto", "--yes-always"
   position      String? // Job title: "Engineering Manager", "CTO"
   avatar        String?
   createdAt     DateTime @default(now())
