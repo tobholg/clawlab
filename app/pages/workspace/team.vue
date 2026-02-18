@@ -81,9 +81,12 @@ const sortedMembers = computed(() => {
 })
 
 const filteredMembers = computed(() => {
+  let list = sortedMembers.value
+  if (memberFilter.value === 'humans') list = list.filter((m: any) => !m.isAgent)
+  else if (memberFilter.value === 'agents') list = list.filter((m: any) => m.isAgent)
   const q = memberSearch.value.trim().toLowerCase()
-  if (!q) return sortedMembers.value
-  return sortedMembers.value.filter((m: any) =>
+  if (!q) return list
+  return list.filter((m: any) =>
     m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q)
   )
 })
@@ -108,9 +111,10 @@ watch([daysBack, selectedProjectId, isAdmin, workspaceId], () => {
 }, { immediate: true })
 
 const memberSearch = ref('')
+const memberFilter = ref<'all' | 'humans' | 'agents'>('all')
 
 const expandedMembers = ref<Set<string>>(new Set())
-const memberViews = ref<Record<string, 'timeline' | 'tasks'>>({})
+const memberViews = ref<Record<string, 'timeline' | 'tasks' | 'sessions'>>({})
 const memberTimelineMode = ref<Record<string, 'daily' | 'weekly'>>({})
 
 const toggleMember = (memberId: string) => {
@@ -147,7 +151,7 @@ const collapseAllMembers = () => {
   expandedMembers.value = new Set()
 }
 
-const setMemberView = (memberId: string, view: 'timeline' | 'tasks') => {
+const setMemberView = (memberId: string, view: 'timeline' | 'tasks' | 'sessions') => {
   memberViews.value = { ...memberViews.value, [memberId]: view }
 }
 
@@ -260,18 +264,22 @@ const buildWeeklyTimeline = (dailyTimeline: any[]) => {
 }
 
 const getActivityLabel = (session: any) => {
+  if (session.activityType === 'AGENT_SESSION' && session.task) return session.task.title
+  if (session.activityType === 'AGENT_SESSION') return 'Agent session'
   if (session.activityType === 'TASK' && session.task) return session.task.title
   if (session.lane) return LANE_LABELS[session.lane as keyof typeof LANE_LABELS] || session.lane
   return 'Unknown'
 }
 
 const getActivityIcon = (session: any) => {
+  if (session.activityType === 'AGENT_SESSION') return 'heroicons:cpu-chip'
   if (session.activityType === 'TASK') return 'heroicons:bolt'
   if (session.lane) return LANE_ICONS[session.lane as keyof typeof LANE_ICONS]
   return 'heroicons:question-mark-circle'
 }
 
 const getActivityColor = (session: any) => {
+  if (session.activityType === 'AGENT_SESSION') return 'violet'
   if (session.activityType === 'TASK') return 'emerald'
   if (session.lane === 'MEETING') return 'purple'
   if (session.lane === 'ADMIN') return 'amber'
@@ -282,6 +290,7 @@ const getActivityColor = (session: any) => {
 
 const activityIconClassMap: Record<string, string> = {
   emerald: 'bg-emerald-100 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400',
+  violet: 'bg-violet-100 text-violet-500 dark:bg-violet-500/10 dark:text-violet-400',
   purple: 'bg-purple-100 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400',
   amber: 'bg-amber-100 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400',
   indigo: 'bg-indigo-100 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400',
@@ -429,14 +438,27 @@ const getDueDateClass = (task: any) => {
       <!-- Member timelines -->
       <div v-else class="space-y-5">
         <div class="flex items-center justify-between gap-3">
-          <div class="relative">
-            <Icon name="heroicons:magnifying-glass" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              v-model="memberSearch"
-              type="text"
-              placeholder="Search members..."
-              class="pl-8 pr-3 py-1.5 text-xs border border-slate-200 dark:border-white/[0.06] rounded-lg bg-white dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-zinc-600 focus:border-slate-300 w-52 placeholder-slate-400 dark:placeholder-zinc-500"
-            />
+          <div class="flex items-center gap-3">
+            <div class="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-white/[0.08] p-1 text-xs">
+              <button
+                v-for="opt in ([{ value: 'all', label: 'All' }, { value: 'humans', label: 'Humans' }, { value: 'agents', label: 'Agents' }] as const)"
+                :key="opt.value"
+                class="px-3 py-1 rounded-full transition-colors"
+                :class="memberFilter === opt.value ? 'bg-white dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300'"
+                @click="memberFilter = opt.value"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+            <div class="relative">
+              <Icon name="heroicons:magnifying-glass" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                v-model="memberSearch"
+                type="text"
+                placeholder="Search members..."
+                class="pl-8 pr-3 py-1.5 text-xs border border-slate-200 dark:border-white/[0.06] rounded-lg bg-white dark:bg-dm-card dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-zinc-600 focus:border-slate-300 w-52 placeholder-slate-400 dark:placeholder-zinc-500"
+              />
+            </div>
           </div>
           <div class="flex items-center gap-2">
             <button
@@ -475,6 +497,12 @@ const getDueDateClass = (task: any) => {
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">{{ member.name }}</span>
                     <span
+                      v-if="member.isAgent"
+                      class="text-[10px] uppercase tracking-wide bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 px-2 py-0.5 rounded-full font-medium"
+                    >
+                      Agent
+                    </span>
+                    <span
                       v-if="selectedProjectId && member.isProjectAssignee === false"
                       class="text-[10px] uppercase tracking-wide bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full"
                     >
@@ -482,7 +510,12 @@ const getDueDateClass = (task: any) => {
                     </span>
                   </div>
                   <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                    {{ member.totals.sessions }} sessions · {{ member.totals.totalHours }}h focused
+                    <template v-if="member.isAgent">
+                      {{ member.agentSessions?.length || 0 }} sessions · {{ member.totals.totalHours }}h worked
+                    </template>
+                    <template v-else>
+                      {{ member.totals.sessions }} sessions · {{ member.totals.totalHours }}h focused
+                    </template>
                   </p>
                   <div class="mt-3">
                     <UiUserCompletionHeatmap
@@ -527,10 +560,18 @@ const getDueDateClass = (task: any) => {
                 >
                   Current tasks
                 </button>
+                <button
+                  v-if="member.isAgent && member.agentSessions?.length"
+                  class="px-3 py-1 rounded-full transition-colors"
+                  :class="memberViews[member.userId] === 'sessions' ? 'bg-white dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300'"
+                  @click="setMemberView(member.userId, 'sessions')"
+                >
+                  Sessions
+                </button>
               </div>
             </div>
 
-            <div v-if="memberViews[member.userId] !== 'tasks'">
+            <div v-if="!memberViews[member.userId] || memberViews[member.userId] === 'timeline'">
               <div class="flex items-center justify-between mb-4">
                 <div class="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-white/[0.08] p-1 text-xs">
                   <button
@@ -598,9 +639,17 @@ const getDueDateClass = (task: any) => {
                             class="text-xs text-emerald-500 font-medium"
                           >Done</span>
                           <span
+                            v-if="session.endReason === 'TERMINATED'"
+                            class="text-xs text-slate-400 dark:text-zinc-500 font-medium"
+                          >Ended</span>
+                          <span
                             v-if="session.isActive"
                             class="text-xs text-emerald-500 font-medium animate-pulse"
                           >Active</span>
+                          <span
+                            v-if="session.agentSessionStatus === 'AWAITING_REVIEW'"
+                            class="text-xs text-amber-500 font-medium"
+                          >Awaiting review</span>
                         </div>
 
                         <p v-if="session.project && !selectedProjectId" class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
@@ -665,9 +714,17 @@ const getDueDateClass = (task: any) => {
                             class="text-xs text-emerald-500 font-medium"
                           >Done</span>
                           <span
+                            v-if="session.endReason === 'TERMINATED'"
+                            class="text-xs text-slate-400 dark:text-zinc-500 font-medium"
+                          >Ended</span>
+                          <span
                             v-if="session.isActive"
                             class="text-xs text-emerald-500 font-medium animate-pulse"
                           >Active</span>
+                          <span
+                            v-if="session.agentSessionStatus === 'AWAITING_REVIEW'"
+                            class="text-xs text-amber-500 font-medium"
+                          >Awaiting review</span>
                         </div>
 
                         <p v-if="session.project && !selectedProjectId" class="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
@@ -689,7 +746,7 @@ const getDueDateClass = (task: any) => {
               </div>
             </div>
 
-            <div v-else>
+            <div v-else-if="memberViews[member.userId] === 'tasks'">
               <div v-if="!member.currentTasks?.length" class="text-sm text-slate-400 dark:text-zinc-500">
                 No current tasks assigned.
               </div>
@@ -756,6 +813,51 @@ const getDueDateClass = (task: any) => {
                     </div>
                   </div>
                 </button>
+              </div>
+            </div>
+
+            <!-- Agent Sessions view -->
+            <div v-else-if="memberViews[member.userId] === 'sessions'">
+              <div v-if="!member.agentSessions?.length" class="text-sm text-slate-400 dark:text-zinc-500">
+                No agent sessions recorded.
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="as in member.agentSessions"
+                  :key="as.id"
+                  class="px-4 py-3 rounded-xl border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card transition-all"
+                  :class="as.task ? 'hover:border-slate-300 dark:hover:border-white/[0.08] hover:shadow-sm cursor-pointer' : ''"
+                  @click="as.task ? openTaskDetail(as.task) : null"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <Icon name="heroicons:cpu-chip" class="w-4 h-4 text-violet-500 flex-shrink-0" />
+                        <span class="text-sm font-medium text-slate-900 dark:text-zinc-100 truncate">
+                          {{ as.task?.title || 'Unlinked session' }}
+                        </span>
+                      </div>
+                      <div class="text-xs text-slate-400 dark:text-zinc-500 mt-1 ml-6">
+                        {{ new Date(as.checkedOutAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                        at {{ new Date(as.checkedOutAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false }) }}
+                        · {{ formatDuration(as.durationMins) }}
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <span
+                        class="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full font-medium"
+                        :class="{
+                          'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400': as.status === 'AWAITING_REVIEW',
+                          'bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 animate-pulse': as.status === 'ACTIVE',
+                          'bg-slate-100 dark:bg-white/[0.08] text-slate-500 dark:text-zinc-400': as.status === 'TERMINATED',
+                          'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400': as.status === 'IDLE',
+                        }"
+                      >
+                        {{ as.status === 'AWAITING_REVIEW' ? 'Review' : as.status === 'ACTIVE' ? 'Active' : as.status === 'TERMINATED' ? 'Ended' : 'Idle' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

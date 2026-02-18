@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
     where: { workspaceId, status: 'ACTIVE' },
     include: {
       user: {
-        select: { id: true, name: true, email: true, avatar: true }
+        select: { id: true, name: true, email: true, avatar: true, isAgent: true }
       }
     }
   })
@@ -148,6 +148,7 @@ export default defineEventHandler(async (event) => {
       userId: member.userId,
       name: userName,
       avatar: user.avatar ?? null,
+      isAgent: user.isAgent ?? false,
       totals: {
         totalMins: 0,
         taskMins: 0,
@@ -162,6 +163,7 @@ export default defineEventHandler(async (event) => {
       timelineByDate: new Map<string, any[]>(),
       isProjectAssignee: projectId ? projectAssigneeIds.has(member.userId) : null,
       currentTasksById: new Map<string, any>(),
+      agentSessions: [] as any[],
     })
   }
 
@@ -222,6 +224,78 @@ export default defineEventHandler(async (event) => {
       commentedAt: session.commentedAt?.toISOString() ?? null,
       isActive: !session.endedAt,
     })
+  }
+
+  // Fetch agent sessions for agent members
+  const agentMemberIds = workspaceMembers
+    .filter((m) => m.user.isAgent)
+    .map((m) => m.userId)
+
+  if (agentMemberIds.length) {
+    const agentSessionWhere: any = {
+      agentId: { in: agentMemberIds },
+      createdAt: { gte: startDate },
+    }
+    if (projectId) {
+      agentSessionWhere.projectId = projectId
+    }
+
+    const agentSessions = await prisma.agentSession.findMany({
+      where: agentSessionWhere,
+      include: {
+        item: { select: { id: true, title: true, status: true } },
+        agent: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    for (const as of agentSessions) {
+      const member = membersMap.get(as.agentId)
+      if (!member) continue
+
+      const startTime = as.checkedOutAt ?? as.createdAt
+      const endTime = as.completedAt ?? (as.status === 'ACTIVE' ? now : as.createdAt)
+      const durationMs = endTime.getTime() - startTime.getTime()
+      const durationMins = Math.max(0, Math.round(durationMs / 60000))
+
+      member.agentSessions.push({
+        id: as.id,
+        status: as.status,
+        taskId: as.itemId,
+        task: as.item ? { id: as.item.id, title: as.item.title, status: as.item.status } : null,
+        terminalId: as.terminalId,
+        checkedOutAt: startTime.toISOString(),
+        completedAt: as.completedAt?.toISOString() ?? null,
+        durationMins,
+        isActive: as.status === 'ACTIVE',
+      })
+
+      // Count agent session time in totals
+      member.totals.totalMins += durationMins
+      member.totals.taskMins += durationMins
+      member.totals.sessions += 1
+
+      // Add to timeline
+      const dateKey = startTime.toISOString().split('T')[0]
+      if (!member.timelineByDate.has(dateKey)) {
+        member.timelineByDate.set(dateKey, [])
+      }
+      member.timelineByDate.get(dateKey).push({
+        id: as.id,
+        activityType: 'AGENT_SESSION',
+        lane: null,
+        task: as.item ? { id: as.item.id, title: as.item.title, status: as.item.status } : null,
+        project: null,
+        startedAt: startTime.toISOString(),
+        endedAt: as.completedAt?.toISOString() ?? null,
+        durationMins,
+        endReason: as.status === 'TERMINATED' ? 'TERMINATED' : as.status === 'AWAITING_REVIEW' ? 'COMPLETED' : null,
+        comment: null,
+        commentedAt: null,
+        isActive: as.status === 'ACTIVE',
+        agentSessionStatus: as.status,
+      })
+    }
   }
 
   for (const item of activeItems) {
@@ -292,9 +366,11 @@ export default defineEventHandler(async (event) => {
         sessions: member.totals.sessions,
         completedTasks: member.totals.completedTasks,
       },
+      isAgent: member.isAgent,
       isProjectAssignee: member.isProjectAssignee,
       timeline,
       currentTasks: Array.from(member.currentTasksById.values()),
+      agentSessions: member.agentSessions,
     }
   })
 
