@@ -1,4 +1,5 @@
 import type { ChannelMessage, ChannelUser, MessageReaction } from './useChannels'
+import { useAgentTerminals } from './useAgentTerminals'
 
 interface WebSocketState {
   connected: boolean
@@ -349,6 +350,12 @@ function handleMessage(data: any) {
       }
 
       pushAgentActivity(activity)
+      break
+    }
+
+    case 'agent_session_update': {
+      const { updateTabFromSession } = useAgentTerminals()
+      updateTabFromSession(data)
       break
     }
 

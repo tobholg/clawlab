@@ -7,6 +7,7 @@ import { ref, computed, shallowRef } from 'vue'
 export interface TerminalTab {
   terminalId: string
   agentSessionId: string
+  agentId: string
   agentName: string
   taskTitle: string | null
   taskId: string | null
@@ -118,6 +119,7 @@ export const useAgentTerminals = () => {
       const tab: TerminalTab = {
         terminalId: res.terminalId,
         agentSessionId: res.agentSessionId ?? res.terminalId,
+        agentId: opts.agentId || '',
         agentName: res.agentName || opts.agentName || 'Terminal',
         taskTitle: res.taskTitle,
         taskId: res.taskId,
@@ -228,6 +230,7 @@ export const useAgentTerminals = () => {
           tabs.value.push({
             terminalId: session.terminalId,
             agentSessionId: session.id,
+            agentId: session.agentId ?? '',
             agentName: session.agent?.name ?? 'Agent',
             taskTitle: session.item?.title ?? null,
             taskId: session.itemId ?? null,
@@ -244,6 +247,24 @@ export const useAgentTerminals = () => {
       }
     } catch (e) {
       console.warn('Failed to fetch existing terminals:', e)
+    }
+  }
+
+  function updateTabFromSession(data: { agentId?: string; terminalId?: string; sessionId?: string; taskId?: string; taskTitle?: string; status?: string }) {
+    for (const tab of tabs.value) {
+      const match = (data.terminalId && tab.terminalId === data.terminalId)
+        || (data.sessionId && tab.agentSessionId === data.sessionId)
+        || (data.agentId && tab.agentId === data.agentId)  // fallback: match by agent
+      if (!match) continue
+
+      if (data.taskId) tab.taskId = data.taskId
+      if (data.taskTitle) tab.taskTitle = data.taskTitle
+      if (data.status) {
+        const s = data.status.toLowerCase()
+        if (s === 'active' || s === 'awaiting_review' || s === 'idle' || s === 'terminated') {
+          tab.status = s
+        }
+      }
     }
   }
 
@@ -270,6 +291,7 @@ export const useAgentTerminals = () => {
     closeTerminal,
     switchTab,
     updateTabStatus,
+    updateTabFromSession,
     fetchExistingTerminals,
   }
 }

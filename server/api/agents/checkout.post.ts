@@ -1,5 +1,6 @@
 import { prisma } from '../../utils/prisma'
 import { requireAgentUser, requireAssignedTask } from '../../utils/agentApi'
+import { broadcast } from '../../utils/websocket'
 
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null
@@ -27,15 +28,29 @@ export default defineEventHandler(async (event) => {
       orderBy: { updatedAt: 'desc' },
     })
 
-    if (activeSession && activeSession.itemId !== taskId) {
+    if (activeSession && activeSession.itemId === taskId) {
+      return activeSession
+    }
+
+    // If there's an active session with a terminal, update it to point to the new task
+    // rather than creating a new one (keeps the terminal link alive)
+    if (activeSession?.terminalId) {
+      return tx.agentSession.update({
+        where: { id: activeSession.id },
+        data: {
+          itemId: taskId,
+          projectId,
+          checkedOutAt: now,
+        },
+      })
+    }
+
+    // Otherwise close the old session and create a new one
+    if (activeSession) {
       await tx.agentSession.update({
         where: { id: activeSession.id },
         data: { status: 'IDLE' },
       })
-    }
-
-    if (activeSession && activeSession.itemId === taskId) {
-      return activeSession
     }
 
     return tx.agentSession.create({
@@ -91,6 +106,17 @@ export default defineEventHandler(async (event) => {
   if (!updatedTask) {
     throw createError({ statusCode: 404, message: 'Task not found' })
   }
+
+  // Broadcast so terminal tabs can update their task title
+  broadcast({
+    type: 'agent_session_update',
+    agentId: agent.id,
+    sessionId: session.id,
+    terminalId: session.terminalId,
+    taskId: updatedTask.id,
+    taskTitle: updatedTask.title,
+    status: session.status,
+  })
 
   return {
     session: {
