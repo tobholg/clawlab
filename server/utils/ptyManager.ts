@@ -136,11 +136,20 @@ export function destroyPtySession(terminalId: string): void {
 
   sessions.delete(terminalId)
 
+  // Graceful shutdown: send exit command first, then force-kill after delay.
+  // Calling pty.kill() directly races with the native waitpid callback in
+  // node-pty 1.0.0 and crashes the process with a V8 HandleScope error.
   try {
-    session.pty.kill()
-  } catch (error) {
-    console.warn('[PTY] Failed to kill PTY:', error)
-  }
+    session.pty.write('exit\n')
+  } catch {}
+
+  setTimeout(() => {
+    try {
+      session.pty.kill()
+    } catch {
+      // Already exited — safe to ignore
+    }
+  }, 500)
 }
 
 export function writeToPty(terminalId: string, data: string): void {
