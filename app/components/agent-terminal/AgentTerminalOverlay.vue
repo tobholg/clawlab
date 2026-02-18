@@ -13,48 +13,15 @@
         </div>
 
         <!-- Overlay content -->
-        <div class="relative z-10 flex flex-col h-full p-6 pt-16 pb-20">
-          <!-- Header -->
-          <div class="flex items-center justify-between mb-4 px-2">
-            <div class="flex items-center gap-3">
-              <Icon name="heroicons:command-line" class="w-5 h-5 text-violet-400" />
-              <h2 class="text-lg font-medium text-white">Command Central</h2>
-              <span
-                v-if="activeCount > 0"
-                class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full"
-              >
-                {{ activeCount }} active
-              </span>
-            </div>
-            <div class="flex items-center gap-2">
-              <!-- Launch new terminal button -->
-              <button
-                @click="showLauncher = true"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 transition-colors"
-              >
-                <Icon name="heroicons:plus" class="w-4 h-4" />
-                Launch
-              </button>
-              <button
-                @click="close"
-                class="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-              >
-                <Icon name="heroicons:x-mark" class="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          <!-- Tabs -->
-          <div
-            v-if="tabs.length"
-            class="flex items-center gap-1 mb-3 px-2 overflow-x-auto"
-          >
+        <div class="relative z-10 flex flex-col h-full p-6 pt-10 pb-20">
+          <!-- Tab bar with launch + close -->
+          <div class="flex items-center gap-1 mb-3 px-2 overflow-x-auto">
             <div
               v-for="tab in tabs"
               :key="tab.terminalId"
               @click="switchTab(tab.terminalId)"
               :class="[
-                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-150 shrink-0 group cursor-pointer',
+                'flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-lg text-sm transition-all duration-150 shrink-0 group cursor-pointer min-w-0',
                 activeTabId === tab.terminalId
                   ? 'bg-white/[0.1] text-white'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05]'
@@ -62,29 +29,55 @@
             >
               <!-- Status dot -->
               <span :class="[
-                'w-2 h-2 rounded-full shrink-0',
+                'w-2 h-2 rounded-full shrink-0 mt-0.5',
                 tab.status === 'active' ? 'bg-emerald-400 animate-pulse' :
                 tab.status === 'awaiting_review' ? 'bg-emerald-400' :
                 tab.status === 'idle' ? 'bg-amber-400' :
                 'bg-zinc-500'
               ]" />
 
-              <span class="font-medium">{{ tab.agentName }}</span>
-              <span v-if="tab.taskTitle" class="text-zinc-500 max-w-[150px] truncate">
-                · {{ tab.taskTitle }}
-              </span>
-              <span class="text-zinc-600 text-xs">
-                {{ formatDuration(tab.startedAt) }}
-              </span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium text-xs">{{ tab.agentName }}</span>
+                  <span class="text-zinc-600 text-[10px]">{{ formatDuration(tab.startedAt) }}</span>
+                </div>
+                <div
+                  v-if="tab.taskTitle"
+                  class="text-[11px] text-zinc-500 truncate max-w-[200px] hover:text-violet-400 transition-colors"
+                  @click.stop="openTaskFromTab(tab)"
+                >
+                  {{ tab.taskTitle }}
+                </div>
+              </div>
 
               <!-- Close tab button -->
               <button
                 @click.stop="closeTerminal(tab.terminalId)"
-                class="w-4 h-4 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                class="w-4 h-4 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
               >
                 <Icon name="heroicons:x-mark" class="w-3 h-3" />
               </button>
             </div>
+
+            <!-- Spacer -->
+            <div class="flex-1"></div>
+
+            <!-- Launch button -->
+            <button
+              @click="showLauncher = true"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 transition-colors shrink-0"
+            >
+              <Icon name="heroicons:plus" class="w-4 h-4" />
+              Launch
+            </button>
+
+            <!-- Close overlay -->
+            <button
+              @click="close"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
+            >
+              <Icon name="heroicons:x-mark" class="w-5 h-5" />
+            </button>
           </div>
 
           <!-- Terminal container -->
@@ -210,6 +203,14 @@ const {
   quickLaunch,
   connectTerminal,
 } = useAgentTerminals()
+
+const { openTask } = useTaskDetail()
+
+function openTaskFromTab(tab: any) {
+  if (tab.taskId) {
+    openTask(tab.taskId, '')
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // xterm instances
