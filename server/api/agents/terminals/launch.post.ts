@@ -208,8 +208,8 @@ export default defineEventHandler(async (event) => {
   setTimeout(() => {
     if (agent) {
       // Agent terminal: set prompt, show banner, launch agent CLI
-      writeToPty(terminalId, `export PS1="\\033[35m${agentName}\\033[0m \\033[34m\\w\\033[0m $ "\n`)
-      writeToPty(terminalId, 'echo "\\033[35m═══ OpenContext Agent Terminal ═══\\033[0m"\n')
+      writeToPty(terminalId, `export PS1=$'\\e[35m${agentName}\\e[0m \\e[34m%~\\e[0m $ '\n`)
+      writeToPty(terminalId, `echo $'\\e[35m═══ OpenContext Agent Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, `echo "Agent: ${agentName}"\n`)
       if (task) {
         writeToPty(terminalId, `echo "Task: ${task.title}"\n`)
@@ -227,8 +227,8 @@ export default defineEventHandler(async (event) => {
       }
     } else {
       // Plain terminal: just a nice prompt
-      writeToPty(terminalId, 'export PS1="\\033[36mctx\\033[0m \\033[34m\\w\\033[0m $ "\n')
-      writeToPty(terminalId, 'echo "\\033[36m═══ OpenContext Terminal ═══\\033[0m"\n')
+      writeToPty(terminalId, `export PS1=$'\\e[36mctx\\e[0m \\e[34m%~\\e[0m $ '\n`)
+      writeToPty(terminalId, `echo $'\\e[36m═══ OpenContext Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, 'echo ""\n')
     }
   }, 300)
