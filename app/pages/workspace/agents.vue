@@ -216,25 +216,41 @@ const saveAgent = async () => {
   }
 }
 
-const regenerateKey = async (agent: any) => {
+const viewApiKey = async (agent: any) => {
   if (regenerating.value) return
-
   regenerating.value = agent.id
 
   try {
-    const result: any = await $fetch(`/api/admin/agents/${agent.id}/regenerate-key`, {
-      method: 'POST',
-    })
-
+    const result: any = await $fetch(`/api/admin/agents/${agent.id}/api-key`)
     revealKey({
       name: agent.name,
       provider: agent.provider,
       apiKey: result.apiKey,
     })
   } catch (e: any) {
-    error.value = e?.data?.message || e?.message || 'Failed to regenerate API key'
+    error.value = e?.data?.message || e?.message || 'Failed to fetch API key'
   } finally {
     regenerating.value = null
+  }
+}
+
+const regenerateKey = async () => {
+  if (!generatedAgentKey.value) return
+
+  const agent = agents.value?.find((a: any) => a.name === generatedAgentKey.value?.name)
+  if (!agent) return
+
+  try {
+    const result: any = await $fetch(`/api/admin/agents/${agent.id}/regenerate-key`, {
+      method: 'POST',
+    })
+
+    generatedAgentKey.value = {
+      ...generatedAgentKey.value,
+      apiKey: result.apiKey,
+    }
+  } catch (e: any) {
+    error.value = e?.data?.message || e?.message || 'Failed to regenerate API key'
   }
 }
 
@@ -369,7 +385,7 @@ watch(workspaceId, async (id) => {
                     Launch Terminal
                   </button>
                   <button
-                    @click="regenerateKey(agent)"
+                    @click="viewApiKey(agent)"
                     :disabled="regenerating === agent.id || !isOrgAdmin"
                     class="px-2.5 py-1 text-xs text-slate-600 dark:text-zinc-300 hover:text-slate-800 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-md transition-colors disabled:opacity-50"
                   >
@@ -555,23 +571,27 @@ watch(workspaceId, async (id) => {
             <code class="text-xs break-all text-slate-700 dark:text-zinc-300">{{ generatedAgentKey?.apiKey }}</code>
           </div>
 
-          <div class="p-3 rounded-lg border border-amber-100 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300">
-            Save this key — it wont be shown again.
-          </div>
-
-          <div class="flex items-center justify-end gap-3 pt-1">
+          <div class="flex items-center justify-between pt-1">
             <button
-              @click="copyGeneratedKey"
-              class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
+              @click="regenerateKey"
+              class="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
             >
-              {{ copiedKey ? 'Copied!' : 'Copy key' }}
+              Regenerate key
             </button>
-            <button
-              @click="closeApiKeyModal()"
-              class="px-4 py-2 text-sm font-medium text-white bg-slate-900 dark:bg-zinc-100 dark:text-zinc-900 rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
-            >
-              Done
-            </button>
+            <div class="flex items-center gap-3">
+              <button
+                @click="copyGeneratedKey"
+                class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
+              >
+                {{ copiedKey ? 'Copied!' : 'Copy key' }}
+              </button>
+              <button
+                @click="closeApiKeyModal()"
+                class="px-4 py-2 text-sm font-medium text-white bg-slate-900 dark:bg-zinc-100 dark:text-zinc-900 rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       </div>
