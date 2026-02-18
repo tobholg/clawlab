@@ -203,7 +203,7 @@ export default defineEventHandler(async (event) => {
     env.CTX_AGENT_NAME = agentName
   }
 
-  createPtySession({
+  await createPtySession({
     terminalId,
     agentSessionId: session?.id ?? `plain-${terminalId}`,
     cwd,

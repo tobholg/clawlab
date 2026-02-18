@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
     TERM: 'xterm-256color',
   }
 
-  createPtySession({
+  await createPtySession({
     terminalId,
     agentSessionId: session.id,
     cwd,

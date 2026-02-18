@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 // Lazy-load node-pty to avoid import-time crashes
 let pty: typeof import('node-pty') | null = null
-function getPty() {
+async function getPty() {
   if (!pty) {
-    pty = require('node-pty')
+    pty = await import('node-pty')
   }
   return pty
 }
@@ -33,12 +33,13 @@ export function generateTerminalId() {
   return cuid()
 }
 
-function spawnWithFallback(opts: {
+async function spawnWithFallback(opts: {
   cwd: string
   env: Record<string, string>
   cols: number
   rows: number
 }) {
+  const nodePty = await getPty()
   const shells = process.platform === 'win32'
     ? ['powershell.exe']
     : ['zsh', 'bash']
@@ -47,7 +48,7 @@ function spawnWithFallback(opts: {
 
   for (const shell of shells) {
     try {
-      return getPty().spawn(shell, [], {
+      return nodePty.spawn(shell, [], {
         name: 'xterm-256color',
         cwd: opts.cwd,
         env: opts.env,
@@ -89,7 +90,7 @@ function markSessionTerminated(agentSessionId: string) {
   })
 }
 
-export function createPtySession(opts: {
+export async function createPtySession(opts: {
   terminalId: string
   agentSessionId: string
   cwd: string
@@ -101,7 +102,7 @@ export function createPtySession(opts: {
 
   destroyPtySession(terminalId)
 
-  const spawned = spawnWithFallback({
+  const spawned = await spawnWithFallback({
     cwd: opts.cwd,
     env: opts.env,
     cols: opts.cols ?? DEFAULT_COLS,
