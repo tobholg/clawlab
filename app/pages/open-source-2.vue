@@ -446,7 +446,7 @@ onMounted(() => {
           </a>
           <NuxtLink
             to="/onboarding"
-            class="inline-flex items-center px-4 py-2 bg-white text-zinc-900 text-sm font-semibold rounded-lg hover:bg-zinc-100 transition-colors"
+            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/15 to-violet-500/15 border border-white/[0.14] text-zinc-100 text-sm font-semibold rounded-lg hover:from-blue-500/25 hover:to-violet-500/25 hover:border-white/[0.22] transition-all"
           >
             Get Started
           </NuxtLink>
@@ -480,7 +480,7 @@ onMounted(() => {
         <!-- Subtitle -->
         <p class="intro mt-5 text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed" style="--d: 180ms">
           <span class="text-zinc-100">Open-source</span> project management for human-agent teams.
-          Assign tasks, review plans, ship together. <span class="text-zinc-100">Free forever.</span>
+          Assign tasks, review plans, ship together.
         </p>
 
         <!-- ── Terminal dual-view ── -->
