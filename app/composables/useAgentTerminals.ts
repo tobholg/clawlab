@@ -75,8 +75,93 @@ export const useAgentTerminals = () => {
     isOpen.value = true
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Agent token storage (localStorage)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const storeAgentToken = (agentId: string, token: string) => {
+    if (import.meta.client) {
+      const tokens = JSON.parse(localStorage.getItem('ctx_agent_tokens') || '{}')
+      tokens[agentId] = token
+      localStorage.setItem('ctx_agent_tokens', JSON.stringify(tokens))
+    }
+  }
+
+  const getAgentToken = (agentId: string): string | null => {
+    if (!import.meta.client) return null
+    const tokens = JSON.parse(localStorage.getItem('ctx_agent_tokens') || '{}')
+    return tokens[agentId] || null
+  }
+
+  const hasAgentToken = (agentId: string): boolean => {
+    return !!getAgentToken(agentId)
+  }
+
   /**
-   * Launch a new terminal for an agent session
+   * One-click launch: just provide agentId, optionally taskId.
+   * Creates session + PTY server-side. Token from localStorage.
+   */
+  const quickLaunch = async (opts: {
+    agentId: string
+    agentName?: string
+    taskId?: string
+    cwd?: string
+  }) => {
+    const token = getAgentToken(opts.agentId)
+    if (!token) {
+      throw new Error('No stored token for this agent. Please set the token first.')
+    }
+
+    launching.value = true
+    try {
+      const res = await $fetch<{
+        terminalId: string
+        agentSessionId: string
+        agentName: string
+        taskTitle: string | null
+        taskId: string | null
+        reused: boolean
+      }>('/api/agents/terminals/launch', {
+        method: 'POST',
+        body: {
+          agentId: opts.agentId,
+          agentToken: token,
+          taskId: opts.taskId,
+          cwd: opts.cwd,
+        },
+      })
+
+      // Don't add duplicate tab if reused
+      const existing = tabs.value.find(t => t.terminalId === res.terminalId)
+      if (existing) {
+        activeTabId.value = res.terminalId
+        isOpen.value = true
+        return existing
+      }
+
+      const tab: TerminalTab = {
+        terminalId: res.terminalId,
+        agentSessionId: res.agentSessionId,
+        agentName: res.agentName || opts.agentName || 'Agent',
+        taskTitle: res.taskTitle,
+        taskId: res.taskId,
+        status: 'active',
+        startedAt: Date.now(),
+        ws: null,
+      }
+
+      tabs.value.push(tab)
+      activeTabId.value = tab.terminalId
+      isOpen.value = true
+
+      return tab
+    } finally {
+      launching.value = false
+    }
+  }
+
+  /**
+   * Legacy launch (with explicit session ID + token)
    */
   const launchTerminal = async (opts: {
     agentSessionId: string
@@ -251,7 +336,11 @@ export const useAgentTerminals = () => {
     close,
     toggle,
     openLauncherForAgent,
+    quickLaunch,
     launchTerminal,
+    storeAgentToken,
+    getAgentToken,
+    hasAgentToken,
     connectTerminal,
     closeTerminal,
     switchTab,
