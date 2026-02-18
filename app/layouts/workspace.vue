@@ -665,6 +665,10 @@ const statusDotClass = (status: string) => {
     <QuickChatOrb />
     <QuickChatBubble />
 
+    <!-- Agent Terminal Overlay -->
+    <AgentTerminalOrb />
+    <AgentTerminalOverlay />
+
     <!-- Command Palette (Cmd+K) -->
     <CommandPalette />
 
