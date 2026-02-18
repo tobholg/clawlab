@@ -126,6 +126,19 @@ function formatBytes(bytes) {
   return unitIndex === 0 ? `${value} ${units[unitIndex]}` : `${value.toFixed(1)} ${units[unitIndex]}`
 }
 
+function formatDurationMs(durationMs) {
+  const safeDuration = Number.isFinite(durationMs) ? Math.max(0, durationMs) : 0
+  const totalMinutes = Math.floor(safeDuration / (60 * 1000))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  }
+
+  return `${minutes}m`
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function requireToken() {
@@ -339,6 +352,14 @@ commands.catchup = {
     // Action required: tasks with agentMode set (from both new and updated)
     const allTasks = [...(data.tasks.assigned || []), ...(data.tasks.updated || [])]
     const actionTasks = allTasks.filter(t => t.agentMode)
+    let currentSession = null
+    try {
+      currentSession = await get('/api/agents/sessions?current=true')
+    } catch { /* optional enrichment */ }
+
+    const currentTaskId = currentSession?.task?.id || currentSession?.itemId || null
+    const currentCheckedOutAt = currentSession?.checkedOutAt || null
+
     if (actionTasks.length > 0) {
       print(`\n  🎯 Action required (${actionTasks.length})`)
       const modeHints = {
@@ -350,9 +371,15 @@ commands.catchup = {
         const mode = (t.agentMode || '').toLowerCase()
         const modeLabel = mode.toUpperCase()
         const hint = modeHints[mode] || `Mode: ${modeLabel}`
+        const isCurrentTask = currentTaskId === t.id
         print(``)
         print(`     ⚡ ${modeLabel}  ${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
-        print(`       → ${hint}`)
+        if (isCurrentTask) {
+          const elapsedMs = currentCheckedOutAt ? Date.now() - new Date(currentCheckedOutAt).getTime() : 0
+          print(`       → Currently checked out (${formatDurationMs(elapsedMs)})`)
+        } else {
+          print(`       → ${hint}`)
+        }
 
         // Fetch subtasks for context
         try {
@@ -420,6 +447,91 @@ commands.catchup = {
       }
     }
 
+    print('')
+  },
+}
+
+// ── checkout ───────────────────────────────────────────────────────────────
+
+commands.checkout = {
+  usage: 'ctx checkout <task-id>',
+  desc: 'Start a tracked work session on a task',
+  async run(args) {
+    requireToken()
+    if (!args[0]) return die('Usage: ctx checkout <task-id>')
+    const taskId = await resolveId(args[0])
+
+    const data = await post('/api/agents/checkout', { taskId })
+    if (JSON_OUT) return json(data)
+
+    const task = data.task || {}
+    const subtasks = task.subtasks || []
+    const done = subtasks.filter(s => s.status === 'DONE').length
+    const inProgress = subtasks.filter(s => s.status === 'IN_PROGRESS').length
+    const todo = Math.max(0, subtasks.length - done - inProgress)
+    const planText = task.planDoc ? `${task.planDoc.title} (${task.planDoc.id.slice(-8)})` : 'None'
+
+    print(`✓ Checked out: ${task.title}`)
+    print(`  Mode:     ${task.agentMode || 'N/A'}`)
+    print(`  Plan:     ${planText}`)
+    print(`  Subtasks: ${subtasks.length} (${done} done, ${inProgress} in progress, ${todo} todo)`)
+    print('  Duration tracking started.')
+  },
+}
+
+// ── submit ─────────────────────────────────────────────────────────────────
+
+commands.submit = {
+  usage: 'ctx submit <task-id>',
+  desc: 'Submit active work session for review',
+  async run(args) {
+    requireToken()
+    if (!args[0]) return die('Usage: ctx submit <task-id>')
+    const taskId = await resolveId(args[0])
+
+    const data = await post('/api/agents/submit', { taskId })
+    if (JSON_OUT) return json(data)
+
+    const session = data.session || {}
+    const task = data.task || {}
+    const durationMs = Number.isFinite(session.durationMs)
+      ? session.durationMs
+      : session.checkedOutAt && session.completedAt
+        ? new Date(session.completedAt).getTime() - new Date(session.checkedOutAt).getTime()
+        : 0
+
+    print(`✓ Submitted for review: ${task.title}`)
+    print(`  Duration:  ${formatDurationMs(durationMs)}`)
+    print(`  Progress:  ${task.progress}% (awaiting human approval)`)
+  },
+}
+
+// ── status ─────────────────────────────────────────────────────────────────
+
+commands.status = {
+  usage: 'ctx status',
+  desc: 'Show current active session status',
+  async run() {
+    requireToken()
+    const session = await get('/api/agents/sessions?current=true')
+    if (JSON_OUT) return json(session)
+
+    if (!session) {
+      print('No active session. Run `ctx checkout <task-id>` to start working.')
+      return
+    }
+
+    const checkedOutAt = session.checkedOutAt ? new Date(session.checkedOutAt).getTime() : Date.now()
+    const elapsed = formatDurationMs(Date.now() - checkedOutAt)
+    const taskId = session.task?.id || session.itemId || ''
+    const taskIdSuffix = taskId ? taskId.slice(-8) : 'unknown'
+
+    print('')
+    print(`  Agent:    ${session.agent?.name || 'Unknown'}`)
+    print(`  Session:  active since ${elapsed} ago`)
+    print(`  Task:     ${session.task?.title || 'Unknown task'} (${taskIdSuffix})`)
+    print(`  Mode:     ${session.task?.agentMode || 'N/A'}`)
+    print(`  Progress: ${session.task?.progress ?? 0}%`)
     print('')
   },
 }

@@ -23,6 +23,9 @@ CREATE TYPE "MemberStatus" AS ENUM ('ACTIVE', 'DEACTIVATED');
 CREATE TYPE "WorkspaceRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER', 'VIEWER');
 
 -- CreateEnum
+CREATE TYPE "AttachmentType" AS ENUM ('FILE', 'LINK', 'EMBED');
+
+-- CreateEnum
 CREATE TYPE "VersionType" AS ENUM ('MINOR', 'MAJOR');
 
 -- CreateEnum
@@ -36,6 +39,9 @@ CREATE TYPE "ItemPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
 
 -- CreateEnum
 CREATE TYPE "AgentMode" AS ENUM ('PLAN', 'EXECUTE');
+
+-- CreateEnum
+CREATE TYPE "AgentSessionStatus" AS ENUM ('IDLE', 'ACTIVE', 'AWAITING_REVIEW', 'TERMINATED');
 
 -- CreateEnum
 CREATE TYPE "FocusLane" AS ENUM ('GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK');
@@ -222,11 +228,31 @@ CREATE TABLE "items" (
     "agentMode" "AgentMode",
     "planDocId" TEXT,
     "acceptedPlanVersion" INTEGER,
+    "repoUrl" TEXT,
+    "repoPath" TEXT,
+    "defaultBranch" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "lastActivityAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "attachments" (
+    "id" TEXT NOT NULL,
+    "type" "AttachmentType" NOT NULL DEFAULT 'FILE',
+    "name" TEXT NOT NULL,
+    "mimeType" TEXT,
+    "sizeBytes" INTEGER NOT NULL,
+    "storagePath" TEXT NOT NULL,
+    "metadata" JSONB,
+    "itemId" TEXT,
+    "messageId" TEXT,
+    "uploadedById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "attachments_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -286,6 +312,22 @@ CREATE TABLE "item_dependencies" (
     "blockingItemId" TEXT NOT NULL,
 
     CONSTRAINT "item_dependencies_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "agent_sessions" (
+    "id" TEXT NOT NULL,
+    "agentId" TEXT NOT NULL,
+    "itemId" TEXT,
+    "projectId" TEXT,
+    "terminalId" TEXT,
+    "checkedOutAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+    "status" "AgentSessionStatus" NOT NULL DEFAULT 'IDLE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "agent_sessions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -383,7 +425,7 @@ CREATE TABLE "messages" (
     "userId" TEXT NOT NULL,
     "parentId" TEXT,
     "content" TEXT NOT NULL,
-    "attachments" JSONB,
+    "embeds" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "editedAt" TIMESTAMP(3),
@@ -604,6 +646,15 @@ CREATE INDEX "items_lastActivityAt_idx" ON "items"("lastActivityAt");
 CREATE INDEX "items_completedAt_idx" ON "items"("completedAt");
 
 -- CreateIndex
+CREATE INDEX "attachments_itemId_idx" ON "attachments"("itemId");
+
+-- CreateIndex
+CREATE INDEX "attachments_messageId_idx" ON "attachments"("messageId");
+
+-- CreateIndex
+CREATE INDEX "attachments_uploadedById_idx" ON "attachments"("uploadedById");
+
+-- CreateIndex
 CREATE INDEX "documents_itemId_idx" ON "documents"("itemId");
 
 -- CreateIndex
@@ -623,6 +674,18 @@ CREATE UNIQUE INDEX "item_stakeholders_itemId_userId_key" ON "item_stakeholders"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "item_dependencies_blockedItemId_blockingItemId_key" ON "item_dependencies"("blockedItemId", "blockingItemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "agent_sessions_terminalId_key" ON "agent_sessions"("terminalId");
+
+-- CreateIndex
+CREATE INDEX "agent_sessions_agentId_idx" ON "agent_sessions"("agentId");
+
+-- CreateIndex
+CREATE INDEX "agent_sessions_itemId_idx" ON "agent_sessions"("itemId");
+
+-- CreateIndex
+CREATE INDEX "agent_sessions_terminalId_idx" ON "agent_sessions"("terminalId");
 
 -- CreateIndex
 CREATE INDEX "focus_sessions_userId_idx" ON "focus_sessions"("userId");
@@ -823,6 +886,15 @@ ALTER TABLE "items" ADD CONSTRAINT "items_ownerId_fkey" FOREIGN KEY ("ownerId") 
 ALTER TABLE "items" ADD CONSTRAINT "items_planDocId_fkey" FOREIGN KEY ("planDocId") REFERENCES "documents"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "messages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "documents" ADD CONSTRAINT "documents_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -854,6 +926,12 @@ ALTER TABLE "item_dependencies" ADD CONSTRAINT "item_dependencies_blockedItemId_
 
 -- AddForeignKey
 ALTER TABLE "item_dependencies" ADD CONSTRAINT "item_dependencies_blockingItemId_fkey" FOREIGN KEY ("blockingItemId") REFERENCES "items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agent_sessions" ADD CONSTRAINT "agent_sessions_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agent_sessions" ADD CONSTRAINT "agent_sessions_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "focus_sessions" ADD CONSTRAINT "focus_sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

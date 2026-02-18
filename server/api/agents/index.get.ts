@@ -30,6 +30,56 @@ const userSummarySchema = {
   additionalProperties: false,
 } as const
 
+const agentSessionSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    agentId: { type: 'string' },
+    itemId: { type: ['string', 'null'] },
+    projectId: { type: ['string', 'null'] },
+    terminalId: { type: ['string', 'null'] },
+    status: { type: 'string', enum: ['IDLE', 'ACTIVE', 'AWAITING_REVIEW', 'TERMINATED'] },
+    checkedOutAt: { type: ['string', 'null'], format: 'date-time' },
+    completedAt: { type: ['string', 'null'], format: 'date-time' },
+    createdAt: { type: ['string', 'null'], format: 'date-time' },
+    updatedAt: { type: ['string', 'null'], format: 'date-time' },
+    durationMs: { type: ['number', 'null'] },
+    task: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+        title: { type: 'string' },
+        status: { type: 'string' },
+        subStatus: { type: ['string', 'null'] },
+        progress: { type: 'number' },
+        agentMode: { type: ['string', 'null'], enum: ['PLAN', 'EXECUTE', null] },
+      },
+      required: ['id', 'title', 'status', 'subStatus', 'progress', 'agentMode'],
+      additionalProperties: false,
+    },
+    project: {
+      type: ['object', 'null'],
+      properties: {
+        id: { type: 'string' },
+        title: { type: 'string' },
+      },
+      required: ['id', 'title'],
+      additionalProperties: false,
+    },
+    agent: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+      },
+      required: ['id', 'name'],
+      additionalProperties: false,
+    },
+  },
+  required: ['id', 'agentId', 'itemId', 'projectId', 'terminalId', 'status', 'checkedOutAt', 'completedAt', 'createdAt', 'updatedAt', 'durationMs', 'task', 'project', 'agent'],
+  additionalProperties: false,
+} as const
+
 export const AGENT_API_NAME = 'Context Agent API'
 export const AGENT_API_VERSION = '1.0'
 export const AGENT_API_AUTH = 'Bearer token via Authorization header (prefix: ctx_)'
@@ -193,6 +243,160 @@ export const AGENT_API_ENDPOINTS: AgentApiEndpoint[] = [
         response: {
           type: 'array',
           items: taskSchema,
+        },
+      },
+      {
+        method: 'POST',
+        path: '/api/agents/checkout',
+        description: 'Start work on a task by creating or reusing an active agent session',
+        auth: true,
+        params: {
+          body: {
+            type: 'object',
+            properties: { taskId: { type: 'string' } },
+            required: ['taskId'],
+            additionalProperties: false,
+          },
+        },
+        response: {
+          type: 'object',
+          properties: {
+            session: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                agentId: { type: 'string' },
+                itemId: { type: ['string', 'null'] },
+                projectId: { type: ['string', 'null'] },
+                terminalId: { type: ['string', 'null'] },
+                status: { type: 'string', enum: ['IDLE', 'ACTIVE', 'AWAITING_REVIEW', 'TERMINATED'] },
+                checkedOutAt: { type: ['string', 'null'], format: 'date-time' },
+                completedAt: { type: ['string', 'null'], format: 'date-time' },
+                createdAt: { type: ['string', 'null'], format: 'date-time' },
+                updatedAt: { type: ['string', 'null'], format: 'date-time' },
+              },
+              required: ['id', 'agentId', 'itemId', 'projectId', 'terminalId', 'status', 'checkedOutAt', 'completedAt', 'createdAt', 'updatedAt'],
+              additionalProperties: false,
+            },
+            task: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                title: { type: 'string' },
+                description: { type: ['string', 'null'] },
+                status: { type: 'string' },
+                subStatus: { type: ['string', 'null'] },
+                progress: { type: 'number' },
+                agentMode: { type: ['string', 'null'], enum: ['PLAN', 'EXECUTE', null] },
+                planDoc: {
+                  type: ['object', 'null'],
+                  properties: {
+                    id: { type: 'string' },
+                    title: { type: 'string' },
+                  },
+                  required: ['id', 'title'],
+                  additionalProperties: false,
+                },
+                subtasks: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      title: { type: 'string' },
+                      status: { type: 'string' },
+                      subStatus: { type: ['string', 'null'] },
+                      progress: { type: 'number' },
+                    },
+                    required: ['id', 'title', 'status', 'subStatus', 'progress'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['id', 'title', 'description', 'status', 'subStatus', 'progress', 'agentMode', 'planDoc', 'subtasks'],
+              additionalProperties: false,
+            },
+          },
+          required: ['session', 'task'],
+          additionalProperties: false,
+        },
+      },
+      {
+        method: 'POST',
+        path: '/api/agents/submit',
+        description: 'Submit an active session for review and move the task into review sub-status',
+        auth: true,
+        params: {
+          body: {
+            type: 'object',
+            properties: { taskId: { type: 'string' } },
+            required: ['taskId'],
+            additionalProperties: false,
+          },
+        },
+        response: {
+          type: 'object',
+          properties: {
+            session: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                agentId: { type: 'string' },
+                itemId: { type: ['string', 'null'] },
+                projectId: { type: ['string', 'null'] },
+                terminalId: { type: ['string', 'null'] },
+                status: { type: 'string', enum: ['IDLE', 'ACTIVE', 'AWAITING_REVIEW', 'TERMINATED'] },
+                checkedOutAt: { type: ['string', 'null'], format: 'date-time' },
+                completedAt: { type: ['string', 'null'], format: 'date-time' },
+                createdAt: { type: ['string', 'null'], format: 'date-time' },
+                updatedAt: { type: ['string', 'null'], format: 'date-time' },
+                durationMs: { type: ['number', 'null'] },
+              },
+              required: ['id', 'agentId', 'itemId', 'projectId', 'terminalId', 'status', 'checkedOutAt', 'completedAt', 'createdAt', 'updatedAt', 'durationMs'],
+              additionalProperties: false,
+            },
+            task: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                title: { type: 'string' },
+                progress: { type: 'number' },
+                agentMode: { type: ['string', 'null'], enum: ['PLAN', 'EXECUTE', null] },
+                status: { type: 'string' },
+                subStatus: { type: ['string', 'null'] },
+              },
+              required: ['id', 'title', 'progress', 'agentMode', 'status', 'subStatus'],
+              additionalProperties: false,
+            },
+          },
+          required: ['session', 'task'],
+          additionalProperties: false,
+        },
+      },
+      {
+        method: 'GET',
+        path: '/api/agents/sessions',
+        description: 'List agent sessions; supports filtering by status and fetching only the current active session',
+        auth: true,
+        params: {
+          query: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['idle', 'active', 'awaiting_review', 'terminated'] },
+              current: { type: 'boolean' },
+            },
+            additionalProperties: false,
+          },
+        },
+        response: {
+          oneOf: [
+            { type: 'null' },
+            agentSessionSchema,
+            {
+              type: 'array',
+              items: agentSessionSchema,
+            },
+          ],
         },
       },
       {

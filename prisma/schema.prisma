@@ -211,6 +211,7 @@ model User {
   monthlyUsage          UserMonthlyUsage[]
   generatedSpaceUpdates SpaceUpdate[]        @relation("SpaceUpdateGeneratedBy")
   uploads               Attachment[]
+  agentSessions         AgentSession[]       @relation("AgentSessions")
 
   @@map("users")
 }
@@ -309,6 +310,9 @@ model Item {
   agentMode           AgentMode? // null = not an agent task
   planDocId           String? // designated plan document
   acceptedPlanVersion Int? // accepted plan document version number
+  repoUrl             String?
+  repoPath            String?
+  defaultBranch       String?
 
   // Timestamps for temperature calculation
   createdAt      DateTime @default(now())
@@ -341,6 +345,7 @@ model Item {
   linkedFromExternalTask ExternalTask? // If created from external task
   aiContextDocs          AIContextDoc[]
   attachments            Attachment[]
+  agentSessions          AgentSession[]
 
   @@index([workspaceId])
   @@index([parentId])
@@ -354,17 +359,17 @@ model Item {
 }
 
 model Attachment {
-  id          String         @id @default(cuid())
-  type        AttachmentType @default(FILE)
-  name        String
-  mimeType    String?
-  sizeBytes   Int
-  storagePath String
-  metadata    Json?
-  itemId      String?
-  messageId   String?
+  id           String         @id @default(cuid())
+  type         AttachmentType @default(FILE)
+  name         String
+  mimeType     String?
+  sizeBytes    Int
+  storagePath  String
+  metadata     Json?
+  itemId       String?
+  messageId    String?
   uploadedById String
-  createdAt   DateTime       @default(now())
+  createdAt    DateTime       @default(now())
 
   item       Item?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
   message    Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
@@ -496,6 +501,34 @@ enum ItemPriority {
 enum AgentMode {
   PLAN
   EXECUTE
+}
+
+enum AgentSessionStatus {
+  IDLE
+  ACTIVE
+  AWAITING_REVIEW
+  TERMINATED
+}
+
+model AgentSession {
+  id           String             @id @default(cuid())
+  agentId      String
+  itemId       String?
+  projectId    String?
+  terminalId   String?            @unique
+  checkedOutAt DateTime?
+  completedAt  DateTime?
+  status       AgentSessionStatus @default(IDLE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  agent User  @relation("AgentSessions", fields: [agentId], references: [id])
+  item  Item? @relation(fields: [itemId], references: [id])
+
+  @@index([agentId])
+  @@index([itemId])
+  @@index([terminalId])
+  @@map("agent_sessions")
 }
 
 // ============================================
@@ -706,8 +739,8 @@ model Message {
   userId    String
   parentId  String? // For threads
 
-  content     String
-  embeds      Json?
+  content String
+  embeds  Json?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -715,12 +748,12 @@ model Message {
   deleted   Boolean   @default(false)
 
   // Relations
-  channel   Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user      User       @relation(fields: [userId], references: [id])
-  parent    Message?   @relation("MessageThreads", fields: [parentId], references: [id])
-  replies   Message[]  @relation("MessageThreads")
-  mentions  MessageMention[]
-  reactions Reaction[]
+  channel     Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id])
+  parent      Message?         @relation("MessageThreads", fields: [parentId], references: [id])
+  replies     Message[]        @relation("MessageThreads")
+  mentions    MessageMention[]
+  reactions   Reaction[]
   attachments Attachment[]
 
   @@index([channelId, createdAt])
