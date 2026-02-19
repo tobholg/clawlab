@@ -158,10 +158,10 @@ const bubbleStyle = computed(() => {
       bottom: 'auto',
     }
   }
-  // Default position: bottom-right, above the orb
+  // Default position: bottom-right, above the command dock pill (~89px tall at bottom-6)
   return {
     right: '24px',
-    bottom: '96px',
+    bottom: '120px',
   }
 })
 

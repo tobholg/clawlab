@@ -672,12 +672,13 @@ const statusDotClass = (status: string) => {
     </main>
 
     <!-- Quick Chat -->
-    <QuickChatOrb />
     <QuickChatBubble />
 
     <!-- Agent Terminal Overlay -->
-    <AgentTerminalOrb />
     <AgentTerminalOverlay />
+
+    <!-- Command Dock (center-bottom pill) -->
+    <CommandDock />
 
     <!-- Command Palette (Cmd+K) -->
     <CommandPalette />
