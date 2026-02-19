@@ -118,7 +118,7 @@ onMounted(() => {
 
   // Global keyboard shortcut: P → navigate to projects
   const handleGlobalKeydown = (e: KeyboardEvent) => {
-    if (e.ctrlKey && !e.metaKey && !e.altKey && e.code === 'Backquote') {
+    if (e.metaKey && !e.ctrlKey && !e.altKey && e.code === 'KeyJ') {
       e.preventDefault()
       toggleAgentTerminalOverlay()
       return
@@ -251,7 +251,7 @@ const statusDotClass = (status: string) => {
     <!-- Sidebar -->
     <aside
       :class="[
-        'bg-white dark:bg-[#0e0e11] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        'bg-white dark:bg-[#111115] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
         sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
       ]"
     >
@@ -274,7 +274,7 @@ const statusDotClass = (status: string) => {
       >
 
       <!-- Search button -->
-      <div v-if="!sidebarCollapsed" class="px-4 mb-3">
+      <div v-if="!sidebarCollapsed" class="px-4">
         <button
           @click="openSearch"
           class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200"
@@ -282,6 +282,27 @@ const statusDotClass = (status: string) => {
           <Icon name="heroicons:magnifying-glass" class="w-4 h-4" />
           <span class="flex-1 text-left">Search</span>
           <kbd class="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+        </button>
+      </div>
+
+      <!-- Terminals button -->
+      <div v-if="!sidebarCollapsed" class="px-4 mb-3">
+        <button
+          @click="toggleAgentTerminalOverlay"
+          class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
+          :class="hasTerminals || terminalOpen
+            ? 'text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300'
+            : 'text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white'"
+        >
+          <Icon name="heroicons:command-line" class="w-4 h-4 flex-shrink-0" />
+          <span class="flex-1 text-left">Terminals</span>
+          <span
+            v-if="terminalActiveCount > 0"
+            class="inline-flex items-center justify-center w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full"
+          >
+            {{ terminalActiveCount }}
+          </span>
+          <kbd v-else class="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded font-mono">⌘J</kbd>
         </button>
       </div>
 
@@ -623,48 +644,6 @@ const statusDotClass = (status: string) => {
       </div>
 
       </div><!-- end scrollable content -->
-
-      <!-- Agent Terminals -->
-      <div class="px-4 mb-1">
-        <button
-          @click="toggleAgentTerminalOverlay"
-          :title="terminalOpen ? 'Close Terminals' : 'Agent Terminals'"
-          :class="[
-            'w-full flex items-center rounded-lg transition-all duration-200 relative',
-            terminalOpen
-              ? 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-500/10'
-              : hasTerminals
-                ? 'text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-500/10'
-                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06]',
-            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2 py-1'
-          ]"
-        >
-          <div class="relative flex-shrink-0 inline-flex items-center justify-center leading-none">
-            <Icon
-              :name="terminalOpen ? 'heroicons:x-mark' : 'heroicons:command-line'"
-              class="w-4 h-4 transition-transform duration-200"
-            />
-            <span
-              v-if="!terminalOpen && terminalActiveCount > 0"
-              class="absolute inset-0 rounded-full bg-violet-400/50 dark:bg-violet-400/40 animate-ping"
-              style="animation-duration: 2s"
-            />
-            <span
-              v-if="terminalActiveCount > 0 && sidebarCollapsed"
-              class="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center ring-1 ring-white dark:ring-dm-surface"
-            >
-              {{ terminalActiveCount }}
-            </span>
-          </div>
-          <span v-if="!sidebarCollapsed" class="text-sm">Terminals</span>
-          <span
-            v-if="terminalActiveCount > 0 && !sidebarCollapsed"
-            class="ml-auto inline-flex items-center justify-center w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full"
-          >
-            {{ terminalActiveCount }}
-          </span>
-        </button>
-      </div>
 
       <!-- Collapse/Expand Toggle -->
       <div class="px-4 mb-1">

@@ -27,6 +27,8 @@ onMounted(() => {
   let prevSmoothScrollY = 0
   let scrollGlow = 0          // smoothed 0→1 glow intensity driven by scroll speed
   let introOffset = 120       // stars start shifted down, drift up on load
+  let mouseX = -9999
+  let mouseY = -9999
 
   const resize = () => {
     el.width = window.innerWidth
@@ -49,6 +51,8 @@ onMounted(() => {
   }
 
   const onScroll = () => { scrollY = window.scrollY }
+  const onMouseMove = (e: MouseEvent) => { mouseX = e.clientX; mouseY = e.clientY }
+  const onMouseLeave = () => { mouseX = -9999; mouseY = -9999 }
 
   const draw = (t: number) => {
     ctx.clearRect(0, 0, el.width, el.height)
@@ -74,9 +78,14 @@ onMounted(() => {
       const sy = s.y - parallaxOffset
       if (sy < -10 || sy > el.height + 10) continue
 
-      // Glow: boost alpha + expand radius when scrolling
-      const glowAlpha = alpha + scrollGlow * 0.12
-      const r = s.r + scrollGlow * s.r * 0.5
+      // Cursor proximity: Gaussian falloff, sigma ~130px
+      const dx = s.x - mouseX
+      const dy = sy - mouseY
+      const cursorBoost = 0.35 * Math.exp(-(dx * dx + dy * dy) / (2 * 130 * 130))
+
+      // Glow: boost alpha + expand radius when scrolling + cursor
+      const glowAlpha = alpha + scrollGlow * 0.12 + cursorBoost
+      const r = s.r + scrollGlow * s.r * 0.5 + cursorBoost * s.r * 1.2
 
       ctx.beginPath()
       ctx.arc(s.x, sy, r, 0, Math.PI * 2)
@@ -91,11 +100,16 @@ onMounted(() => {
   raf = requestAnimationFrame(draw)
   window.addEventListener('resize', resize)
   window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('mousemove', onMouseMove, { passive: true })
+  window.addEventListener('mouseleave', onMouseLeave)
   setTimeout(() => { visible.value = true }, props.delay)
 
   onUnmounted(() => {
     cancelAnimationFrame(raf)
     window.removeEventListener('resize', resize)
+    window.removeEventListener('scroll', onScroll)
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('mouseleave', onMouseLeave)
   })
 })
 </script>

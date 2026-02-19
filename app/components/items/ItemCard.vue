@@ -174,11 +174,11 @@ const handleCardClick = () => {
     class="group p-4 pb-3 rounded-xl transition-all duration-200 cursor-pointer"
     :class="[
       isPaused
-        ? 'bg-slate-50 dark:bg-white/[0.02] opacity-75'
-        : 'bg-white dark:bg-white/[0.04]',
+        ? 'bg-slate-50 dark:bg-white/[0.04] opacity-75'
+        : 'bg-white dark:bg-white/[0.06]',
       isCurrentlyFocused
         ? 'ring-2 ring-amber-100 dark:ring-amber-500/15 shadow-sm'
-        : !isPaused && 'dark:hover:bg-white/[0.02] hover:shadow-sm'
+        : !isPaused && 'dark:hover:bg-white/[0.08] hover:shadow-sm'
     ]"
     @click="handleCardClick"
   >

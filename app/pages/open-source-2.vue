@@ -11,6 +11,7 @@ useHead({
 
 const ready = ref(false)
 const scrolled = ref(false)
+const pastHero = ref(false)
 const copied = ref(false)
 
 // Screenshots
@@ -357,7 +358,10 @@ const copyCommand = async () => {
 onMounted(() => {
   requestAnimationFrame(() => { ready.value = true })
 
-  const onScroll = () => { scrolled.value = window.scrollY > 64 }
+  const onScroll = () => {
+    scrolled.value = window.scrollY > 64
+    pastHero.value = window.scrollY > window.innerHeight * 0.85
+  }
   window.addEventListener('scroll', onScroll, { passive: true })
 
   // Terminal + kanban replay triggers
@@ -414,7 +418,13 @@ onMounted(() => {
       class="nav-intro fixed top-0 inset-x-0 z-50 transition-all duration-500 ease-out"
       :class="scrolled ? 'bg-[#08080c]/80 backdrop-blur-xl border-b border-white/[0.06]' : 'bg-transparent border-b border-transparent'"
     >
-      <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <!-- Vibrant gradient overlay, fades in once past the hero -->
+      <div
+        class="absolute inset-0 pointer-events-none transition-opacity duration-700"
+        :style="{ opacity: pastHero ? 1 : 0 }"
+        style="background: linear-gradient(90deg, rgba(74,222,128,0.07) 0%, rgba(34,211,238,0.04) 18%, transparent 40%, transparent 60%, rgba(244,114,182,0.04) 82%, rgba(251,146,60,0.07) 100%)"
+      />
+      <div class="relative z-10 max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div class="flex items-center gap-10">
           <button @click="scrollToSection('hero')" class="flex items-center gap-2.5 cursor-pointer group">
             <div class="w-8 h-8 bg-white/[0.06] rounded-xl flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
@@ -479,8 +489,9 @@ onMounted(() => {
 
         <!-- Subtitle -->
         <p class="intro mt-5 text-sm sm:text-base lg:text-lg text-zinc-400 max-w-xl leading-relaxed" style="--d: 180ms">
-          <span class="text-zinc-100">Open-source</span> project management for human-agent teams.
-          <br />Assign tasks, review plans, ship together.
+          The <span class="text-zinc-100">open-source</span> orchestration layer for human-agent teams.
+          
+          <br /><span v-if="true">Give agents context. Give humans visibility. Ship as one.</span>
         </p>
 
         <!-- ── Terminal dual-view ── -->
@@ -803,7 +814,7 @@ onMounted(() => {
                   <h3 class="text-lg font-semibold text-zinc-100">Recursive Task Model</h3>
                 </div>
                 <p class="text-sm text-zinc-400 leading-relaxed max-w-lg">
-                  Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and time estimates bubble up automatically from leaves to root.
+                  Agents need granular, atomic steps to execute. Humans need high-level progress. The recursive model gives agents the detail they need while bubbling up the macro-view for humans.
                 </p>
               </div>
               <div class="px-8 pb-6">
@@ -866,7 +877,7 @@ onMounted(() => {
                   <h3 class="text-lg font-semibold text-zinc-100">Built-in Channels</h3>
                 </div>
                 <p class="text-sm text-zinc-400 leading-relaxed">
-                  Project-linked chat rooms. AI summarizes threads and extracts action items. Context lives next to the work.
+                  Agent-native threads. AI extracts action items directly from the conversation into the workflow.
                 </p>
               </div>
               <div class="px-8 pb-6 mt-auto">
