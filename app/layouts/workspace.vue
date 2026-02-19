@@ -8,7 +8,7 @@ const { workspaceId, currentScope, navigateTo } = useItems()
 const { isWorkspaceAdmin, isOrgAdmin, currentRole } = useWorkspaces()
 const { toggleSection, isSectionCollapsed } = useSidebarSections()
 const { sidebarPreview, activeCount: myTasksActiveCount, hasMoreTasks, fetchMyTasks } = useMyTasks()
-const { fetchExistingTerminals, toggle: toggleAgentTerminalOverlay } = useAgentTerminals()
+const { fetchExistingTerminals, toggle: toggleAgentTerminalOverlay, isOpen: terminalOpen, activeCount: terminalActiveCount, hasTerminals } = useAgentTerminals()
 
 // Fetch channels for sidebar
 const { channels: allChannels, channelTree, loading: channelsLoading, fetchChannels: refreshChannels } = useChannels(workspaceId)
@@ -624,6 +624,48 @@ const statusDotClass = (status: string) => {
 
       </div><!-- end scrollable content -->
 
+      <!-- Agent Terminals -->
+      <div class="px-4 mb-1">
+        <button
+          @click="toggleAgentTerminalOverlay"
+          :title="terminalOpen ? 'Close Terminals' : 'Agent Terminals'"
+          :class="[
+            'w-full flex items-center rounded-lg transition-all duration-200 relative',
+            terminalOpen
+              ? 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-500/10'
+              : hasTerminals
+                ? 'text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-500/10'
+                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06]',
+            sidebarCollapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2 py-1'
+          ]"
+        >
+          <div class="relative flex-shrink-0 inline-flex items-center justify-center leading-none">
+            <Icon
+              :name="terminalOpen ? 'heroicons:x-mark' : 'heroicons:command-line'"
+              class="w-4 h-4 transition-transform duration-200"
+            />
+            <span
+              v-if="!terminalOpen && terminalActiveCount > 0"
+              class="absolute inset-0 rounded-full bg-violet-400/50 dark:bg-violet-400/40 animate-ping"
+              style="animation-duration: 2s"
+            />
+            <span
+              v-if="terminalActiveCount > 0 && sidebarCollapsed"
+              class="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center ring-1 ring-white dark:ring-dm-surface"
+            >
+              {{ terminalActiveCount }}
+            </span>
+          </div>
+          <span v-if="!sidebarCollapsed" class="text-sm">Terminals</span>
+          <span
+            v-if="terminalActiveCount > 0 && !sidebarCollapsed"
+            class="ml-auto inline-flex items-center justify-center w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full"
+          >
+            {{ terminalActiveCount }}
+          </span>
+        </button>
+      </div>
+
       <!-- Collapse/Expand Toggle -->
       <div class="px-4 mb-1">
         <button
@@ -672,13 +714,11 @@ const statusDotClass = (status: string) => {
     </main>
 
     <!-- Quick Chat -->
+    <QuickChatOrb />
     <QuickChatBubble />
 
     <!-- Agent Terminal Overlay -->
     <AgentTerminalOverlay />
-
-    <!-- Command Dock (center-bottom pill) -->
-    <CommandDock />
 
     <!-- Command Palette (Cmd+K) -->
     <CommandPalette />
