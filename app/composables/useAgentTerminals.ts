@@ -193,13 +193,9 @@ export const useAgentTerminals = () => {
     // Remove tab
     tabs.value.splice(idx, 1)
 
-    // Switch to another tab or close overlay
+    // Switch to another tab if the active one was closed
     if (activeTabId.value === terminalId) {
       activeTabId.value = tabs.value[0]?.terminalId ?? null
-    }
-
-    if (!tabs.value.length) {
-      isOpen.value = false
     }
   }
 

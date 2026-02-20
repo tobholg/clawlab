@@ -491,13 +491,13 @@ onMounted(() => {
         <p class="intro mt-5 text-sm sm:text-base lg:text-lg text-zinc-400 max-w-xl leading-relaxed" style="--d: 180ms">
           The <span class="text-zinc-100">open-source</span> orchestration layer for human-agent teams.
           
-          <br /><span v-if="true">Give agents context. Give humans visibility. Ship as one.</span>
+          <br /><span v-if="true">Assign to carbon. Delegate to silicon. Ship faster.</span>
         </p>
 
         <!-- ── Terminal dual-view ── -->
         <!-- ── App shell with floating sidebar ── -->
         <div
-          class="intro mt-12 flex gap-4 transition-opacity duration-700"
+          class="intro mt-8 flex gap-4 transition-opacity duration-700"
           style="--d: 440ms"
           :class="(termFading || kanbanFading) ? 'opacity-0' : 'opacity-100'"
         >
