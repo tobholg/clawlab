@@ -309,7 +309,7 @@ const tileClass = (index: number) => {
 // xterm instances
 // ─────────────────────────────────────────────────────────────────────────────
 
-const terminals = new Map<string, { term: Terminal; fit: FitAddon; lastCols?: number; lastRows?: number }>()
+const terminals = new Map<string, { term: Terminal; fit: FitAddon; ro: ResizeObserver; lastCols?: number; lastRows?: number }>()
 const terminalRefs = new Map<string, HTMLElement>()
 
 const setTerminalRef = (terminalId: string, el: HTMLElement | null) => {
@@ -340,8 +340,13 @@ watch(isOpen, async (open) => {
       const inst = terminals.get(tab.terminalId)
       const container = terminalRefs.get(tab.terminalId)
       if (inst && container) {
-        // Reattach existing terminal instance to the new DOM container
-        try { inst.term.open(container) } catch {}
+        // Move xterm's own element into the fresh container (open() can't be called twice)
+        if (inst.term.element && inst.term.element.parentElement !== container) {
+          container.appendChild(inst.term.element)
+        }
+        // Reconnect ResizeObserver to the new container element
+        inst.ro.disconnect()
+        inst.ro.observe(container)
       } else if (!inst && container) {
         initTerminal(tab.terminalId)
       }
@@ -470,7 +475,7 @@ function initTerminal(terminalId: string) {
   })
   resizeObserver.observe(container)
 
-  terminals.set(terminalId, { term, fit })
+  terminals.set(terminalId, { term, fit, ro: resizeObserver })
 
   setTimeout(() => {
     fit.fit()
@@ -494,6 +499,7 @@ watch(
     for (const id of removed) {
       const inst = terminals.get(id)
       if (inst) {
+        inst.ro.disconnect()
         inst.term.dispose()
         terminals.delete(id)
       }
@@ -591,7 +597,10 @@ watch(isOpen, (open) => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
-  for (const [, inst] of terminals) inst.term.dispose()
+  for (const [, inst] of terminals) {
+    inst.ro.disconnect()
+    inst.term.dispose()
+  }
   terminals.clear()
 })
 
