@@ -505,14 +505,25 @@ const repoDetectError = ref('')
 const repoDetectSuccess = ref(false)
 
 const repoDisplayName = computed(() => {
-  if (!editedRepoPath.value) return ''
-  // Extract name from path or URL
-  if (editedRepoUrl.value) {
-    const match = editedRepoUrl.value.match(/\/([^/]+?)(?:\.git)?$/)
+  const path = editedRepoPath.value || inheritedRepo.value?.repoPath
+  const url = editedRepoUrl.value || inheritedRepo.value?.repoUrl
+  if (!path) return ''
+  if (url) {
+    const match = url.match(/\/([^/]+?)(?:\.git)?$/)
     if (match) return match[1]
   }
-  return editedRepoPath.value.split('/').filter(Boolean).pop() || ''
+  return path.split('/').filter(Boolean).pop() || ''
 })
+
+const inheritedRepo = computed(() => {
+  if (editedRepoPath.value) return null // has own repo, no inheritance
+  const parent = parentDetail.value
+  if (parent?.repoPath) return { repoPath: parent.repoPath, defaultBranch: parent.defaultBranch, repoUrl: parent.repoUrl }
+  return null
+})
+
+const effectiveBranch = computed(() => editedDefaultBranch.value || inheritedRepo.value?.defaultBranch || '')
+const isRepoInherited = computed(() => !editedRepoPath.value && !!inheritedRepo.value)
 
 watch(showRepoModal, (open) => {
   if (open) {
@@ -1937,14 +1948,18 @@ defineExpose({ handleClose })
                 <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Repository</span>
                 <div class="flex-1 min-w-0">
                   <button
-                    v-if="editedRepoPath"
+                    v-if="editedRepoPath || isRepoInherited"
                     :disabled="!canEditItem"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer disabled:opacity-60"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs transition-colors cursor-pointer disabled:opacity-60"
+                    :class="isRepoInherited
+                      ? 'border-dashed border-slate-200 dark:border-white/[0.06] bg-transparent text-slate-500 dark:text-zinc-500 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
+                      : 'border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
                     @click="showRepoModal = true"
                   >
                     <Icon name="heroicons:code-bracket" class="w-3 h-3 text-slate-400 dark:text-zinc-500" />
                     <span class="truncate max-w-[160px]">{{ repoDisplayName }}</span>
-                    <span v-if="editedDefaultBranch" class="text-slate-400 dark:text-zinc-500">:{{ editedDefaultBranch }}</span>
+                    <span v-if="effectiveBranch" class="text-slate-400 dark:text-zinc-500">:{{ effectiveBranch }}</span>
+                    <span v-if="isRepoInherited" class="text-slate-400 dark:text-zinc-600 text-[10px]">inherited</span>
                   </button>
                   <button
                     v-else

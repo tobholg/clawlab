@@ -136,6 +136,9 @@ export default defineEventHandler(async (event) => {
       parentId: item.parent.parentId,
       status: item.parent.status.toLowerCase(),
       progress: item.parent.progress,
+      repoPath: item.parent.repoPath,
+      defaultBranch: item.parent.defaultBranch,
+      repoUrl: item.parent.repoUrl,
       childrenCount: 0, // We'd need another query for this
     } : null,
     comments: item.comments.map(c => ({
