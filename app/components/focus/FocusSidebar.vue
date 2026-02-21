@@ -226,7 +226,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         @click.self="showProjectPicker = false"
       >
         <div class="absolute inset-0 bg-black/20 dark:bg-black/40" @click="showProjectPicker = false"></div>
-        <div class="relative bg-white dark:bg-dm-card rounded-xl shadow-xl dark:shadow-2xl w-80 max-h-96 overflow-hidden border border-transparent dark:border-white/[0.06]">
+        <div class="relative bg-white dark:bg-dm-panel rounded-xl shadow-xl dark:shadow-2xl w-80 max-h-96 overflow-hidden border border-transparent dark:border-white/[0.06]">
           <div class="p-4 border-b border-slate-100 dark:border-white/[0.06]">
             <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Select Project</h3>
           </div>
@@ -273,7 +273,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         @click.self="showLanePicker = false"
       >
         <div class="absolute inset-0 bg-black/20 dark:bg-black/40" @click="showLanePicker = false"></div>
-        <div class="relative bg-white dark:bg-dm-card rounded-xl shadow-xl dark:shadow-2xl w-64 overflow-hidden border border-transparent dark:border-white/[0.06]">
+        <div class="relative bg-white dark:bg-dm-panel rounded-xl shadow-xl dark:shadow-2xl w-64 overflow-hidden border border-transparent dark:border-white/[0.06]">
           <div class="p-4 border-b border-slate-100 dark:border-white/[0.06]">
             <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Activity</h3>
           </div>
@@ -301,7 +301,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         @click.self="showTaskActionModal = false"
       >
         <div class="absolute inset-0 bg-black/25 dark:bg-black/50" @click="showTaskActionModal = false"></div>
-        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-transparent dark:border-white/[0.06]">
+        <div class="relative bg-white dark:bg-dm-panel rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-transparent dark:border-white/[0.06]">
           <!-- Header -->
           <div class="px-5 pt-5 pb-4">
             <p class="text-base font-medium text-slate-900 dark:text-zinc-100 leading-snug">
@@ -380,7 +380,7 @@ const lanes: FocusLane[] = ['GENERAL', 'MEETING', 'ADMIN', 'LEARNING', 'BREAK']
         @click.self="showTimeline = false"
       >
         <div class="absolute inset-0 bg-black/25 dark:bg-black/50" @click="showTimeline = false"></div>
-        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-2xl w-full max-w-lg max-h-full overflow-hidden flex flex-col border border-transparent dark:border-white/[0.06]">
+        <div class="relative bg-white dark:bg-dm-panel rounded-2xl shadow-2xl w-full max-w-lg max-h-full overflow-hidden flex flex-col border border-transparent dark:border-white/[0.06]">
           <!-- Header -->
           <div class="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between flex-shrink-0">
             <h2 class="text-base font-medium text-slate-900 dark:text-zinc-100">Focus Timeline</h2>

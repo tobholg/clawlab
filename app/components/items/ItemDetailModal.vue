@@ -17,6 +17,7 @@ const emit = defineEmits<{
 const pushedItemId = ref<string | null>(null)
 const pushPanel = (id: string) => { pushedItemId.value = id }
 const popPanel = () => { pushedItemId.value = null }
+const syncPushedPanelItem = (id: string) => { pushedItemId.value = id }
 
 // Ref to panel 1 for programmatic close (ensures pending saves flush)
 const panel1Ref = ref<{ handleClose: () => Promise<void> } | null>(null)
@@ -45,13 +46,13 @@ watch([() => props.item?.id, () => props.open], () => {
         <!-- Panel 1: main item -->
         <div
           class="panel relative w-full max-w-xl lg:max-w-2xl 2xl:max-w-3xl h-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
-          :class="pushedItemId ? '-translate-x-[440px]' : ''"
+          :class="pushedItemId ? '-translate-x-[320px] xl:-translate-x-[360px]' : ''"
         >
           <!-- Dark scrim + click-to-pop overlay when panel 2 is open -->
           <Transition name="scrim">
             <div
               v-if="pushedItemId"
-              class="absolute inset-0 bg-black/50 cursor-pointer z-20"
+              class="absolute inset-0 bg-slate-900/20 dark:bg-black/25 cursor-pointer z-20"
               @click="popPanel"
             />
           </Transition>
@@ -75,6 +76,8 @@ watch([() => props.item?.id, () => props.open], () => {
           >
             <ItemsItemDetailPanel
               :item-id="pushedItemId"
+              :is-child-pane="true"
+              @navigated="syncPushedPanelItem"
               @close="popPanel"
               @update="(id, data) => emit('update', id, data)"
               @view-full="(i) => emit('viewFull', i)"

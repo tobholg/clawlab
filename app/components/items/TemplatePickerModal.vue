@@ -104,7 +104,7 @@ const getCategoryColor = (category: string) => {
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         @click.self="emit('close')"
       >
-        <div class="bg-white dark:bg-dm-surface rounded-xl shadow-2xl dark:shadow-black/40 border border-slate-200 dark:border-white/[0.06] w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <div class="bg-white dark:bg-dm-panel rounded-xl shadow-2xl dark:shadow-black/40 border border-slate-200 dark:border-white/[0.06] w-full max-w-2xl max-h-[80vh] flex flex-col">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
             <div>

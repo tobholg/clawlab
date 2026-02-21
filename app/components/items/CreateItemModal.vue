@@ -285,7 +285,7 @@ onUnmounted(() => {
         />
         
         <!-- Modal -->
-        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-visible">
+        <div class="relative bg-white dark:bg-dm-panel rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-visible">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
             <h2 class="text-base font-medium text-slate-900 dark:text-zinc-100">

@@ -7,6 +7,7 @@ import { useAgentTerminals } from '~/composables/useAgentTerminals'
 const props = defineProps<{
   itemId: string
   pushed?: boolean
+  isChildPane?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -15,6 +16,7 @@ const emit = defineEmits<{
   viewFull: [item: any]
   deleted: [id: string]
   pushSubtask: [id: string]
+  navigated: [id: string]
 }>()
 
 const router = useRouter()
@@ -117,6 +119,7 @@ const loadItem = async (itemId: string, addToHistory = true) => {
   }
   
   currentItemId.value = itemId
+  emit('navigated', itemId)
   
   try {
     itemDetail.value = await $fetch(`/api/items/${itemId}`)
@@ -497,7 +500,7 @@ watch(itemDetail, (detail) => {
     descriptionExpanded.value = false
     // Only reset tab when navigating to a different item, not on refresh
     if (detail.id !== lastLoadedItemId.value) {
-      activeTab.value = (detail.children?.length > 0 || detail.childrenCount > 0) ? 'subtasks' : 'comments'
+      activeTab.value = 'subtasks'
       lastLoadedItemId.value = detail.id
     }
     // Allow auto-save after a tick
@@ -1062,13 +1065,13 @@ defineExpose({ handleClose })
 </script>
 
 <template>
-  <div class="relative bg-white dark:bg-dm-card w-full h-full flex flex-col">
+  <div class="relative bg-white dark:bg-dm-panel w-full h-full flex flex-col">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
             <div class="flex items-center gap-2">
               <!-- Back button (when navigated within modal) -->
               <button
-                v-if="navigationHistory.length > 0"
+                v-if="navigationHistory.length > 0 && !props.isChildPane"
                 @click="navigateBack"
                 class="flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-white/[0.06] rounded-md transition-colors"
               >
@@ -1281,7 +1284,7 @@ defineExpose({ handleClose })
                   <!-- Fade overlay when collapsed -->
                   <div
                     v-if="!descriptionExpanded && descriptionOverflows"
-                    class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-dm-card pointer-events-none rounded-b"
+                    class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-dm-panel pointer-events-none rounded-b"
                   />
                 </div>
                 <button
@@ -1444,7 +1447,7 @@ defineExpose({ handleClose })
                   </div>
                   <div
                     v-if="!planExpanded && planNeedsTruncation"
-                    class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-dm-card pointer-events-none"
+                    class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-dm-panel pointer-events-none"
                   />
                   <button
                     v-if="planNeedsTruncation"
@@ -2079,7 +2082,7 @@ defineExpose({ handleClose })
                   <div
                     v-for="subtask in itemDetail.children"
                     :key="subtask.id"
-                    class="group flex items-center gap-3 p-3 bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
+                    class="group flex items-center gap-3 p-3 bg-slate-50 dark:bg-white/[0.03] hover:bg-slate-100 dark:hover:bg-white/[0.07] rounded-lg transition-colors cursor-pointer"
                     @click="emit('pushSubtask', subtask.id)"
                   >
                     <!-- Status checkbox -->
@@ -2092,7 +2095,7 @@ defineExpose({ handleClose })
                             ? 'bg-rose-100 dark:bg-rose-500/10 border-rose-300 dark:border-rose-700'
                             : subtask.status === 'in_progress'
                               ? 'bg-blue-100 dark:bg-blue-500/10 border-blue-400 dark:border-blue-600'
-                              : 'bg-white dark:bg-dm-card border-slate-300 dark:border-white/[0.1]'
+                              : 'bg-white dark:bg-white/[0.04] border-slate-300 dark:border-white/[0.1]'
                       ]"
                     >
                       <Icon
@@ -2113,7 +2116,7 @@ defineExpose({ handleClose })
 
                     <!-- Content -->
                     <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-2 min-h-5">
                         <span
                           :class="[
                             'text-sm font-medium truncate',
@@ -2132,7 +2135,7 @@ defineExpose({ handleClose })
                       </div>
 
                       <!-- Meta row -->
-                      <div class="flex items-center gap-2 mt-1">
+                      <div v-if="(subtask.status === 'in_progress' && subtask.progress > 0) || subtask.dueDate" class="flex items-center gap-2 mt-1">
                         <div v-if="subtask.status === 'in_progress' && subtask.progress > 0" class="flex items-center gap-1.5">
                           <div class="w-16 h-1 bg-slate-200 dark:bg-white/[0.08] rounded-full overflow-hidden">
                             <div
@@ -2193,7 +2196,7 @@ defineExpose({ handleClose })
                 <!-- View all button -->
                 <button
                   v-if="itemDetail.children?.length > 5"
-                  class="w-full mt-3 py-2 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 font-medium text-center bg-slate-50 dark:bg-dm-card hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors"
+                  class="w-full mt-3 py-2 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 font-medium text-center bg-slate-50 dark:bg-white/[0.03] hover:bg-slate-100 dark:hover:bg-white/[0.07] rounded-lg transition-colors"
                   @click="$emit('viewFull', itemDetail)"
                 >
                   View all {{ itemDetail.childrenCount }} subtasks

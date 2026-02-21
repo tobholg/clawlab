@@ -286,7 +286,7 @@ const getInitial = (name: string | null, email: string) => {
         />
 
         <!-- Panel -->
-        <div class="panel relative bg-white dark:bg-dm-card w-full max-w-sm h-full flex flex-col shadow-2xl border-l border-slate-200 dark:border-white/[0.06]">
+        <div class="panel relative bg-white dark:bg-dm-panel w-full max-w-sm h-full flex flex-col shadow-2xl border-l border-slate-200 dark:border-white/[0.06]">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] shrink-0">
             <div class="min-w-0">

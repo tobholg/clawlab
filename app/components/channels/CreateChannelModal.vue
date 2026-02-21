@@ -66,7 +66,7 @@ const handleCreate = async () => {
         <div class="absolute inset-0 bg-black/40" @click="emit('close')" />
 
         <!-- Panel -->
-        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-xl w-full max-w-md mx-4 border border-slate-200 dark:border-white/[0.06]">
+        <div class="relative bg-white dark:bg-dm-panel rounded-2xl shadow-xl w-full max-w-md mx-4 border border-slate-200 dark:border-white/[0.06]">
           <!-- Header -->
           <div class="flex items-center justify-between px-6 pt-5 pb-4">
             <h2 class="text-lg font-semibold text-slate-900 dark:text-zinc-100">Create Channel</h2>

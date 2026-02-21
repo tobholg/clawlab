@@ -58,6 +58,7 @@ export default {
           DEFAULT: '#09090b',
           surface: '#050506',
           card: '#111113',
+          panel: '#17171a',
         },
         // Status colors
         hot: '#ef4444',

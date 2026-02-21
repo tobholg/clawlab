@@ -396,25 +396,29 @@ onMounted(() => {
   <!-- Header -->
   <header class="relative z-30 p-5 flex flex-col gap-4">
     <!-- Breadcrumbs -->
-    <nav class="flex items-center gap-1.5 text-sm">
+    <nav class="flex items-center gap-1.5 text-sm min-w-0 overflow-hidden flex-nowrap">
       <button
         v-for="(crumb, i) in breadcrumbs"
         :key="crumb.id"
-        class="flex items-center gap-1.5"
+        class="flex items-center gap-1.5 min-w-0 max-w-full"
         @click="handleBreadcrumbClick(crumb.id)"
       >
         <Icon
           :name="i === 0 ? 'heroicons:home' : i === 1 ? 'heroicons:folder' : 'heroicons:clipboard-document-list'"
           :class="[
-            'w-3.5 h-3.5 transition-colors',
+            'w-3.5 h-3.5 transition-colors flex-shrink-0',
             i === breadcrumbs.length - 1
               ? (i === 0 ? 'text-slate-500' : i === 1 ? 'text-blue-500' : 'text-emerald-500')
               : 'text-slate-300 dark:text-zinc-600'
           ]"
         />
         <span
+          :title="crumb.title"
           :class="[
-            'hover:text-slate-900 dark:hover:text-zinc-100 transition-colors',
+            'truncate hover:text-slate-900 dark:hover:text-zinc-100 transition-colors',
+            i === breadcrumbs.length - 1
+              ? 'max-w-[11rem] md:max-w-[15rem] xl:max-w-[18rem]'
+              : 'max-w-[8rem] md:max-w-[10rem] xl:max-w-[12rem]',
             i === breadcrumbs.length - 1 ? 'text-slate-800 dark:text-zinc-200 font-medium' : 'text-slate-400 dark:text-zinc-500'
           ]"
         >
@@ -423,7 +427,7 @@ onMounted(() => {
         <Icon
           v-if="i < breadcrumbs.length - 1"
           name="heroicons:chevron-right"
-          class="w-3 h-3 text-slate-300 dark:text-zinc-600"
+          class="w-3 h-3 text-slate-300 dark:text-zinc-600 flex-shrink-0"
         />
       </button>
     </nav>
@@ -705,7 +709,7 @@ onMounted(() => {
   </header>
 
   <!-- Content -->
-  <div class="flex-1 overflow-auto p-5">
+  <div class="flex-1 overflow-auto px-5 pb-5">
     <!-- Documents View -->
     <DocumentsSection
       v-if="activeView === 'documents'"

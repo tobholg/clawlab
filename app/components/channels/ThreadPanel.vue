@@ -83,7 +83,7 @@ const shouldShowAuthor = (reply: ChannelMessage, index: number): boolean => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-white dark:bg-dm-surface border-l border-slate-200 dark:border-white/[0.06] w-full">
+  <div class="flex flex-col h-full bg-white dark:bg-dm-panel border-l border-slate-200 dark:border-white/[0.06] w-full">
     <!-- Header -->
     <header class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-white/[0.06]">
       <div>

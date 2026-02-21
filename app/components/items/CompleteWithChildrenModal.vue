@@ -18,7 +18,7 @@ const emit = defineEmits<{
     <Transition name="modal">
       <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/40 dark:bg-black/60" @click="emit('cancel')" />
-        <div class="relative bg-white dark:bg-dm-card rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-sm overflow-hidden border border-slate-200/60 dark:border-white/[0.06]">
+        <div class="relative bg-white dark:bg-dm-panel rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-sm overflow-hidden border border-slate-200/60 dark:border-white/[0.06]">
           <div class="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06]">
             <h3 class="text-base font-medium text-slate-900 dark:text-zinc-100">Complete with subtasks?</h3>
             <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">

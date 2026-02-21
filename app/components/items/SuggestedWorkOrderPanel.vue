@@ -108,7 +108,7 @@ const handleSelect = (item: ItemNode) => {
       <div v-if="open" class="fixed inset-0 z-50 flex justify-end">
         <div class="absolute inset-0 bg-black/30" @click="$emit('close')" />
 
-        <div class="panel relative bg-white dark:bg-dm-card w-full max-w-lg h-full flex flex-col shadow-2xl border-l border-transparent dark:border-white/[0.06]">
+        <div class="panel relative bg-white dark:bg-dm-panel w-full max-w-lg h-full flex flex-col shadow-2xl border-l border-transparent dark:border-white/[0.06]">
           <div class="px-6 py-5 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
             <div>
               <div class="text-xs uppercase tracking-wider text-slate-400 dark:text-zinc-500">Suggested work order</div>

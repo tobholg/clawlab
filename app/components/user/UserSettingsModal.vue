@@ -110,7 +110,7 @@ const initials = computed(() => {
 <template>
   <Teleport to="body">
     <div class="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50" @click.self="emit('close')">
-      <div class="bg-white dark:bg-dm-card rounded-2xl shadow-xl border border-transparent dark:border-white/[0.06] w-full max-w-md mx-4 overflow-hidden">
+      <div class="bg-white dark:bg-dm-panel rounded-2xl shadow-xl border border-transparent dark:border-white/[0.06] w-full max-w-md mx-4 overflow-hidden">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
           <h2 class="text-base font-semibold text-slate-900 dark:text-zinc-100">Account settings</h2>

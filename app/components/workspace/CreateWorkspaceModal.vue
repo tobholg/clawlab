@@ -43,7 +43,7 @@ const handleSubmit = async () => {
 <template>
   <Teleport to="body">
     <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="emit('close')">
-      <div class="bg-white dark:bg-dm-card rounded-xl shadow-xl w-full max-w-md mx-4">
+      <div class="bg-white dark:bg-dm-panel rounded-xl shadow-xl w-full max-w-md mx-4">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/[0.06]">
           <h2 class="text-lg font-semibold text-slate-900 dark:text-zinc-100">Create workspace</h2>
           <button @click="emit('close')" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]">

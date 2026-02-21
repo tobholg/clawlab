@@ -251,8 +251,8 @@ const statusDotClass = (status: string) => {
     <!-- Sidebar -->
     <aside
       :class="[
-        'bg-white dark:bg-[#111115] flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
-        sidebarCollapsed ? 'w-16' : 'w-60 2xl:w-72'
+        'bg-white dark:bg-dm-panel/65 flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        sidebarCollapsed ? 'w-[3.75rem]' : 'w-60 2xl:w-72'
       ]"
     >
       <!-- Workspace Switcher -->

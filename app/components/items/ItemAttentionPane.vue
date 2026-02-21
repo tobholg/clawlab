@@ -64,7 +64,7 @@ const formatDate = (dateStr?: string | null) => {
         <div class="fixed inset-0 bg-black/30" @click="emit('close')" />
 
         <!-- Panel -->
-        <div class="panel relative bg-white dark:bg-dm-card shadow-2xl w-full max-w-lg h-full flex flex-col">
+        <div class="panel relative bg-white dark:bg-dm-panel shadow-2xl w-full max-w-lg h-full flex flex-col">
           <!-- Header -->
           <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
             <div class="flex items-center justify-between">
