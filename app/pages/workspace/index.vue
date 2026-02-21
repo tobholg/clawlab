@@ -179,7 +179,7 @@ const activeViewOption = computed(() => {
 const refreshSidebar = inject<() => Promise<void>>('refreshSidebarProjects')
 
 // Handle item creation
-const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string; agentMode?: 'PLAN' | 'EXECUTE' | null }) => {
+const handleCreateItem = async (data: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string; agentMode?: 'PLAN' | 'EXECUTE' | 'COMPLETED' | null }) => {
   try {
     await createItem(data)
     showCreateModal.value = false

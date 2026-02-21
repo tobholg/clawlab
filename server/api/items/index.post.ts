@@ -71,15 +71,15 @@ export default defineEventHandler(async (event) => {
   
   // Set first assignee as owner by default, fall back to authenticated user
   const ownerId = body.ownerId ?? assigneeIds?.[0] ?? user.id
-  let normalizedAgentMode: 'PLAN' | 'EXECUTE' | null | undefined = undefined
+  let normalizedAgentMode: 'PLAN' | 'EXECUTE' | 'COMPLETED' | null | undefined = undefined
   if (agentMode === null) {
     normalizedAgentMode = null
   } else if (agentMode !== undefined) {
     const normalized = String(agentMode).toUpperCase()
-    if (!['PLAN', 'EXECUTE'].includes(normalized)) {
-      throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, or null' })
+    if (!['PLAN', 'EXECUTE', 'COMPLETED'].includes(normalized)) {
+      throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, COMPLETED, or null' })
     }
-    normalizedAgentMode = normalized as 'PLAN' | 'EXECUTE'
+    normalizedAgentMode = normalized as 'PLAN' | 'EXECUTE' | 'COMPLETED'
   }
 
   // Determine projectId (root project) for efficient queries

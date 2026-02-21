@@ -59,18 +59,30 @@ const skipPlanningOnAgentAssign = ref(false)
 const showRequestChangesInput = ref(false)
 const requestChangesText = ref('')
 const requestChangesSubmitting = ref(false)
+const commits = ref<any[]>([])
+const commitsLoading = ref(false)
+const commitsError = ref<string | null>(null)
+const expandedCommitIds = ref<Set<string>>(new Set())
 
 const hasAgentAssignee = computed(() => {
   return !!itemDetail.value?.assignees?.some((assignee: any) => !!assignee.isAgent)
+})
+
+const isRootProjectItem = computed(() => {
+  return !!itemDetail.value && !itemDetail.value.parentId
+})
+
+const showRepositoryConfig = computed(() => {
+  return isRootProjectItem.value || hasAgentAssignee.value
 })
 
 const primaryAgentAssignee = computed(() => {
   return itemDetail.value?.assignees?.find((assignee: any) => !!assignee.isAgent) ?? null
 })
 
-const currentAgentMode = computed<'PLAN' | 'EXECUTE' | null>(() => {
+const currentAgentMode = computed<'PLAN' | 'EXECUTE' | 'COMPLETED' | null>(() => {
   const mode = itemDetail.value?.agentMode
-  if (mode === 'PLAN' || mode === 'EXECUTE') return mode
+  if (mode === 'PLAN' || mode === 'EXECUTE' || mode === 'COMPLETED') return mode
   return null
 })
 
@@ -126,8 +138,11 @@ const loadItem = async (itemId: string, addToHistory = true) => {
     
     // Use parent from API response
     parentDetail.value = itemDetail.value?.parent ?? null
+    await loadCommits(itemId)
   } catch (e) {
     console.error('Failed to fetch item details:', e)
+    commits.value = []
+    commitsError.value = null
   }
 }
 
@@ -158,7 +173,46 @@ const loadPlanDocument = async () => {
   }
 }
 
-const updateAgentMode = async (nextMode: 'PLAN' | 'EXECUTE' | null) => {
+const loadCommits = async (itemId: string) => {
+  commitsLoading.value = true
+  commitsError.value = null
+
+  try {
+    const data: any = await $fetch(`/api/items/${itemId}/commits`)
+    commits.value = Array.isArray(data?.commits) ? data.commits : []
+  } catch (e: any) {
+    console.error('Failed to load commits:', e)
+    commits.value = []
+    commitsError.value = e?.data?.message || e?.message || 'Failed to load commits'
+  } finally {
+    commitsLoading.value = false
+  }
+}
+
+const toggleCommitExpanded = (commitId: string) => {
+  const next = new Set(expandedCommitIds.value)
+  if (next.has(commitId)) {
+    next.delete(commitId)
+  } else {
+    next.add(commitId)
+  }
+  expandedCommitIds.value = next
+}
+
+const isCommitExpanded = (commitId: string) => expandedCommitIds.value.has(commitId)
+
+const commitStatusClasses: Record<string, string> = {
+  added: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  modified: 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
+  deleted: 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  renamed: 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  copied: 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
+  type_changed: 'bg-fuchsia-100 dark:bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300',
+  unmerged: 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  unknown: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-zinc-300',
+}
+
+const updateAgentMode = async (nextMode: 'PLAN' | 'EXECUTE' | 'COMPLETED' | null) => {
   if (!currentItemId.value) return
   const previousMode = currentAgentMode.value
   const previousAcceptedVersion = itemDetail.value?.acceptedPlanVersion ?? null
@@ -373,6 +427,9 @@ watch(() => props.itemId, (id) => {
     showRequestChangesInput.value = false
     requestChangesText.value = ''
     skipPlanningOnAgentAssign.value = false
+    commits.value = []
+    commitsError.value = null
+    expandedCommitIds.value = new Set()
   }
 }, { immediate: true })
 
@@ -417,6 +474,9 @@ const editedDueDate = ref('')
 const editedStartDate = ref('')
 const editedComplexity = ref('')
 const editedPriority = ref('')
+const editedRepoPath = ref('')
+const editedDefaultBranch = ref('')
+const editedRepoUrl = ref('')
 
 // Available sub-statuses for current status
 const availableSubStatuses = computed(() => {
@@ -495,6 +555,9 @@ watch(itemDetail, (detail) => {
     editedConfidence.value = detail.confidence ?? 70
     editedDueDate.value = detail.dueDate?.split('T')[0] ?? ''
     editedStartDate.value = detail.startDate?.split('T')[0] ?? ''
+    editedRepoPath.value = detail.repoPath ?? ''
+    editedDefaultBranch.value = detail.defaultBranch ?? ''
+    editedRepoUrl.value = detail.repoUrl ?? ''
     editedOwnerId.value = detail.owner?.id ?? null
     editingDescription.value = false
     descriptionExpanded.value = false
@@ -670,6 +733,9 @@ const saveChanges = async () => {
     confidence: editedConfidence.value,
     dueDate: editedDueDate.value || null,
     startDate: editedStartDate.value || null,
+    repoPath: editedRepoPath.value || null,
+    defaultBranch: editedDefaultBranch.value || null,
+    repoUrl: editedRepoUrl.value || null,
     ownerId: editedOwnerId.value,
   }
 
@@ -752,7 +818,7 @@ watch(editedSubStatus, () => {
 })
 
 // Watch all fields for auto-save (debounced)
-watch([editedTitle, editedDescription, editedCategory, editedComplexity, editedPriority, editedDueDate, editedStartDate], () => {
+watch([editedTitle, editedDescription, editedCategory, editedComplexity, editedPriority, editedDueDate, editedStartDate, editedRepoPath, editedDefaultBranch, editedRepoUrl], () => {
   if (itemDetail.value && !isInitializing.value) {
     debouncedSave()
   }
@@ -1356,11 +1422,12 @@ defineExpose({ handleClose })
                         :class="{
                           'bg-amber-500': currentAgentMode === 'PLAN',
                           'bg-blue-500': currentAgentMode === 'EXECUTE',
+                          'bg-emerald-500': currentAgentMode === 'COMPLETED',
                           'bg-slate-400': !currentAgentMode,
                         }"
                       />
                       <span class="text-xs font-normal text-slate-600 dark:text-zinc-400">
-                        {{ currentAgentMode === 'PLAN' ? 'Planning' : currentAgentMode === 'EXECUTE' ? 'Executing' : 'None' }}
+                        {{ currentAgentMode === 'PLAN' ? 'Planning' : currentAgentMode === 'EXECUTE' ? 'Executing' : currentAgentMode === 'COMPLETED' ? 'Completed' : 'None' }}
                       </span>
                       <Icon name="heroicons:chevron-down" class="w-3 h-3 text-slate-400 transition-transform duration-150 group-hover/agentmode:rotate-180" />
                     </div>
@@ -1370,6 +1437,7 @@ defineExpose({ handleClose })
                           v-for="opt in [
                             { value: 'PLAN', label: 'Planning', color: 'bg-amber-500', icon: 'heroicons:clipboard-document-list' },
                             { value: 'EXECUTE', label: 'Executing', color: 'bg-blue-500', icon: 'heroicons:bolt' },
+                            { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-500', icon: 'heroicons:check-circle' },
                             { value: 'NONE', label: 'None', color: 'bg-slate-400', icon: 'heroicons:minus-circle' },
                           ]"
                           :key="opt.value"
@@ -1377,7 +1445,7 @@ defineExpose({ handleClose })
                           :class="(currentAgentMode ?? 'NONE') === opt.value
                             ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium'
                             : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06]'"
-                          @click="updateAgentMode(opt.value === 'NONE' ? null : (opt.value as 'PLAN' | 'EXECUTE'))"
+                          @click="updateAgentMode(opt.value === 'NONE' ? null : (opt.value as 'PLAN' | 'EXECUTE' | 'COMPLETED'))"
                         >
                           <div class="w-1.5 h-1.5 rounded-full" :class="opt.color" />
                           <Icon :name="opt.icon" class="w-3 h-3 text-slate-500 dark:text-zinc-500" />
@@ -1405,6 +1473,15 @@ defineExpose({ handleClose })
                 >
                   View plan
                 </button>
+              </div>
+
+              <!-- Completed state -->
+              <div
+                v-else-if="currentAgentMode === 'COMPLETED'"
+                class="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2"
+              >
+                <Icon name="heroicons:check-circle" class="w-4 h-4 text-emerald-500" />
+                <span class="text-sm text-emerald-700 dark:text-emerald-300">Completed - awaiting review</span>
               </div>
 
               <!-- Waiting for plan -->
@@ -1512,6 +1589,75 @@ defineExpose({ handleClose })
               >
                 <Icon name="heroicons:minus-circle" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
                 <span>No agent mode set.</span>
+              </div>
+
+              <div v-if="commitsLoading || commitsError || commits.length > 0" class="pt-1 space-y-2">
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-zinc-400">
+                  <Icon name="heroicons:code-bracket-square" class="w-3.5 h-3.5" />
+                  Commits
+                </div>
+
+                <div v-if="commitsLoading" class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] px-3 py-2 text-xs text-slate-500 dark:text-zinc-500">
+                  <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5 animate-spin" />
+                  Loading commits...
+                </div>
+
+                <div v-else-if="commitsError" class="rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
+                  {{ commitsError }}
+                </div>
+
+                <div v-else class="space-y-2">
+                  <div
+                    v-for="commit in commits"
+                    :key="commit.id"
+                    class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.02] overflow-hidden"
+                  >
+                    <button
+                      class="w-full flex items-start justify-between gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors text-left"
+                      @click="toggleCommitExpanded(commit.id)"
+                    >
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span class="font-mono text-xs text-slate-500 dark:text-zinc-400">{{ commit.shortSha }}</span>
+                          <span class="text-sm text-slate-700 dark:text-zinc-200 truncate">{{ commit.message }}</span>
+                        </div>
+                        <div class="mt-0.5 text-[11px] text-slate-400 dark:text-zinc-500">
+                          {{ formatRelativeTime(commit.createdAt) }}
+                          <span v-if="commit.author?.name">· {{ commit.author.name }}</span>
+                        </div>
+                      </div>
+                      <div class="flex flex-col items-end gap-0.5 text-[11px] whitespace-nowrap">
+                        <div>
+                          <span class="text-emerald-600 dark:text-emerald-400">+{{ commit.insertions }}</span>
+                          <span class="mx-1 text-slate-300 dark:text-zinc-700">/</span>
+                          <span class="text-rose-600 dark:text-rose-400">-{{ commit.deletions }}</span>
+                        </div>
+                        <div class="text-slate-400 dark:text-zinc-500">{{ commit.filesChanged }} file{{ commit.filesChanged === 1 ? '' : 's' }}</div>
+                      </div>
+                    </button>
+
+                    <div
+                      v-if="isCommitExpanded(commit.id) && (commit.diffSummary || []).length > 0"
+                      class="border-t border-slate-100 dark:border-white/[0.06] px-3 py-2 space-y-1 bg-slate-50/70 dark:bg-white/[0.03]"
+                    >
+                      <div
+                        v-for="file in (commit.diffSummary || [])"
+                        :key="`${commit.id}-${file.file}`"
+                        class="flex items-center gap-2 text-xs"
+                      >
+                        <span class="font-mono text-slate-600 dark:text-zinc-300 truncate flex-1 min-w-0">{{ file.file }}</span>
+                        <span class="text-emerald-600 dark:text-emerald-400">+{{ file.insertions }}</span>
+                        <span class="text-rose-600 dark:text-rose-400">-{{ file.deletions }}</span>
+                        <span
+                          class="px-1.5 py-0.5 rounded-full text-[10px] font-medium capitalize"
+                          :class="commitStatusClasses[file.status] || commitStatusClasses.unknown"
+                        >
+                          {{ String(file.status || 'unknown').replace('_', ' ') }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1718,6 +1864,37 @@ defineExpose({ handleClose })
                       </div>
                     </Transition>
                   </div>
+                </div>
+              </div>
+
+              <!-- Repository -->
+              <div v-if="showRepositoryConfig" class="py-2.5">
+                <div class="flex items-center">
+                  <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Repository</span>
+                  <span class="text-xs text-slate-400 dark:text-zinc-500">Inherited by subtasks</span>
+                </div>
+                <div class="pl-28 pt-2 space-y-2">
+                  <input
+                    v-model="editedRepoPath"
+                    type="text"
+                    :disabled="!canEditItem"
+                    placeholder="/Users/recursion/Projects/relai"
+                    class="w-full text-xs rounded-md px-2.5 py-1.5 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
+                  />
+                  <input
+                    v-model="editedDefaultBranch"
+                    type="text"
+                    :disabled="!canEditItem"
+                    placeholder="main"
+                    class="w-full text-xs rounded-md px-2.5 py-1.5 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
+                  />
+                  <input
+                    v-model="editedRepoUrl"
+                    type="url"
+                    :disabled="!canEditItem"
+                    placeholder="https://github.com/org/repo"
+                    class="w-full text-xs rounded-md px-2.5 py-1.5 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
+                  />
                 </div>
               </div>
 

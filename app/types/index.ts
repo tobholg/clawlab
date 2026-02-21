@@ -18,7 +18,10 @@ export interface Item {
   category?: string
   complexity?: string | null
   priority?: string | null
-  agentMode?: 'PLAN' | 'EXECUTE' | null
+  agentMode?: 'PLAN' | 'EXECUTE' | 'COMPLETED' | null
+  repoUrl?: string | null
+  repoPath?: string | null
+  defaultBranch?: string | null
   planDocId?: string | null
   acceptedPlanVersion?: number | null
   createdAt: string

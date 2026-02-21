@@ -62,6 +62,9 @@ export default defineEventHandler(async (event) => {
     progress,
     complexity,
     priority,
+    repoUrl,
+    repoPath,
+    defaultBranch,
     ownerId,
     parentId,
     agentMode,
@@ -96,6 +99,9 @@ export default defineEventHandler(async (event) => {
   if (category !== undefined) updateData.category = category
   if (complexity !== undefined) updateData.complexity = complexity
   if (priority !== undefined) updateData.priority = priority || null
+  if (repoUrl !== undefined) updateData.repoUrl = typeof repoUrl === 'string' && repoUrl.trim() ? repoUrl.trim() : null
+  if (repoPath !== undefined) updateData.repoPath = typeof repoPath === 'string' && repoPath.trim() ? repoPath.trim() : null
+  if (defaultBranch !== undefined) updateData.defaultBranch = typeof defaultBranch === 'string' && defaultBranch.trim() ? defaultBranch.trim() : null
   
   const oldStatus = currentItem.status as ItemStatusValue
   const requestedStatus = status !== undefined ? normalizeItemStatus(status, oldStatus) : oldStatus
@@ -172,8 +178,8 @@ export default defineEventHandler(async (event) => {
       updateData.agentMode = null
     } else {
       const normalized = String(agentMode).toUpperCase()
-      if (!['PLAN', 'EXECUTE'].includes(normalized)) {
-        throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, or null' })
+      if (!['PLAN', 'EXECUTE', 'COMPLETED'].includes(normalized)) {
+        throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, COMPLETED, or null' })
       }
       updateData.agentMode = normalized
     }
@@ -284,6 +290,9 @@ export default defineEventHandler(async (event) => {
     parentId: item.parentId ?? null,
     projectId: item.projectId ?? null,
     agentMode: item.agentMode ?? null,
+    repoUrl: item.repoUrl ?? null,
+    repoPath: item.repoPath ?? null,
+    defaultBranch: item.defaultBranch ?? null,
     planDocId: item.planDocId ?? null,
     acceptedPlanVersion: item.acceptedPlanVersion ?? null,
     startDate: item.startDate?.toISOString() ?? null,

@@ -3,9 +3,10 @@
 // Context CLI — thin wrapper around the Context Agent API
 // Auth: CTX_TOKEN + CTX_URL env vars, or ~/.config/context/config.json
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'node:fs'
+import { basename, isAbsolute, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
+import { execSync } from 'node:child_process'
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ function saveConfig(config) {
 }
 
 const config = loadConfig()
-const TOKEN = process.env.CTX_TOKEN || config.token
+const TOKEN = process.env.CTX_TOKEN || process.env.CTX_API_TOKEN || config.token
 const BASE = (process.env.CTX_URL || config.url || 'http://localhost:3001').replace(/\/+$/, '')
 
 // ── HTTP ────────────────────────────────────────────────────────────────────
@@ -481,6 +482,46 @@ function readStdinOrFile(arg) {
   return arg
 }
 
+function resolveHookPath(rawPath) {
+  if (!rawPath) throw new Error('Unable to resolve git hook path')
+  return isAbsolute(rawPath) ? rawPath : resolve(process.cwd(), rawPath)
+}
+
+function installPostCommitHook() {
+  let hookPath
+  try {
+    const rawHookPath = execSync('git rev-parse --git-path hooks/post-commit', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim()
+    hookPath = resolveHookPath(rawHookPath)
+  } catch {
+    throw new Error('Not inside a git repository')
+  }
+
+  const marker = '# ctxlabs commit hook'
+  const command = 'ctx commit --sha "$SHA" 2>/dev/null || true'
+  const hookBlock = `${marker}\nSHA=$(git rev-parse HEAD)\n${command}`
+
+  if (existsSync(hookPath)) {
+    const existing = readFileSync(hookPath, 'utf-8')
+    if (existing.includes(command)) {
+      chmodSync(hookPath, 0o755)
+      return { hookPath, appended: false, alreadyInstalled: true }
+    }
+
+    const next = `${existing.replace(/\s*$/, '\n')}\n${hookBlock}\n`
+    writeFileSync(hookPath, next)
+    chmodSync(hookPath, 0o755)
+    return { hookPath, appended: true, alreadyInstalled: false }
+  }
+
+  const content = `#!/bin/sh\n${hookBlock}\n`
+  writeFileSync(hookPath, content)
+  chmodSync(hookPath, 0o755)
+  return { hookPath, appended: false, alreadyInstalled: false }
+}
+
 // ── Commands ────────────────────────────────────────────────────────────────
 
 const commands = {}
@@ -880,6 +921,66 @@ commands.submit = {
     print(`✓ Submitted for review: ${task.title}`)
     print(`  Duration:  ${formatDurationMs(durationMs)}`)
     print(`  Progress:  ${task.progress}% (set automatically — human approval required for 100%)`)
+  },
+}
+
+// ── commit ─────────────────────────────────────────────────────────────────
+
+commands.commit = {
+  usage: 'ctx commit --sha <sha> [--task <task-id>]',
+  desc: 'Link a git commit to your active task (or a specific task)',
+  help: [
+    'Examples:',
+    '  ctx commit --sha abc1234',
+    '  ctx commit --sha abc1234 --task 7f3a',
+  ].join('\n'),
+  async run(args, flags) {
+    requireToken()
+
+    const shaFlag = flags.get('--sha')
+    if (typeof shaFlag !== 'string' || !shaFlag.trim()) {
+      return die('Usage: ctx commit --sha <sha> [--task <task-id>]')
+    }
+
+    const taskFlag = flags.get('--task')
+    const payload = { sha: shaFlag.trim() }
+    if (typeof taskFlag === 'string' && taskFlag.trim()) {
+      payload.taskId = await resolveId(taskFlag.trim())
+    }
+
+    const data = await post('/api/agents/commits', payload)
+    if (JSON_OUT) return json(data)
+
+    const shortSha = data.shortSha || String(data.sha || '').slice(0, 7)
+    const title = data.item?.title || 'task'
+    const insertions = Number(data.insertions || 0)
+    const deletions = Number(data.deletions || 0)
+    const files = Number(data.filesChanged || 0)
+    const fileLabel = files === 1 ? 'file' : 'files'
+    print(`Linked ${shortSha} to "${title}" (+${insertions} -${deletions}, ${files} ${fileLabel})`)
+  },
+}
+
+// ── init-hooks ─────────────────────────────────────────────────────────────
+
+commands['init-hooks'] = {
+  usage: 'ctx init-hooks',
+  desc: 'Install a git post-commit hook to auto-link commits',
+  async run() {
+    const result = installPostCommitHook()
+    if (JSON_OUT) return json(result)
+
+    if (result.alreadyInstalled) {
+      print(`✓ Hook already installed: ${result.hookPath}`)
+      return
+    }
+
+    if (result.appended) {
+      print(`⚠ Existing post-commit hook found. Appended ctx hook block: ${result.hookPath}`)
+      return
+    }
+
+    print(`✓ Installed post-commit hook: ${result.hookPath}`)
   },
 }
 

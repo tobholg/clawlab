@@ -214,6 +214,7 @@ model User {
   generatedSpaceUpdates SpaceUpdate[]        @relation("SpaceUpdateGeneratedBy")
   uploads               Attachment[]
   agentSessions         AgentSession[]       @relation("AgentSessions")
+  commits               Commit[]
 
   @@map("users")
 }
@@ -348,6 +349,7 @@ model Item {
   aiContextDocs          AIContextDoc[]
   attachments            Attachment[]
   agentSessions          AgentSession[]
+  commits                Commit[]
 
   @@index([workspaceId])
   @@index([parentId])
@@ -503,6 +505,7 @@ enum ItemPriority {
 enum AgentMode {
   PLAN
   EXECUTE
+  COMPLETED
 }
 
 enum AgentSessionStatus {
@@ -526,11 +529,35 @@ model AgentSession {
 
   agent User  @relation("AgentSessions", fields: [agentId], references: [id])
   item  Item? @relation(fields: [itemId], references: [id])
+  commits Commit[]
 
   @@index([agentId])
   @@index([itemId])
   @@index([terminalId])
   @@map("agent_sessions")
+}
+
+model Commit {
+  id           String        @id @default(cuid())
+  sha          String
+  message      String
+  branch       String?
+  filesChanged Int           @default(0)
+  insertions   Int           @default(0)
+  deletions    Int           @default(0)
+  diffSummary  Json?
+  itemId       String
+  item         Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  sessionId    String?
+  session      AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  authorId     String
+  author       User          @relation(fields: [authorId], references: [id])
+  createdAt    DateTime      @default(now())
+
+  @@index([itemId])
+  @@index([authorId])
+  @@unique([sha, itemId])
+  @@map("commits")
 }
 
 // ============================================

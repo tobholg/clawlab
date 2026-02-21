@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
         status: 'IN_PROGRESS',
         subStatus: 'review',
         progress: 90,
+        agentMode: 'COMPLETED',
         lastActivityAt: now,
       },
       select: {
