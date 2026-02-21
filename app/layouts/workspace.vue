@@ -274,35 +274,47 @@ const statusDotClass = (status: string) => {
       >
 
       <!-- Search button -->
-      <div v-if="!sidebarCollapsed" class="px-4">
+      <div class="px-4">
         <button
           @click="openSearch"
-          class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200"
+          :class="[
+            'w-full flex items-center px-2 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200',
+            sidebarCollapsed ? 'justify-center py-2' : 'gap-2.5 py-1'
+          ]"
         >
-          <Icon name="heroicons:magnifying-glass" class="w-4 h-4" />
-          <span class="flex-1 text-left">Search</span>
-          <kbd class="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+          <Icon name="heroicons:magnifying-glass" class="w-4 h-4 flex-shrink-0" />
+          <span v-if="!sidebarCollapsed" class="flex-1 text-left">Search</span>
+          <kbd v-if="!sidebarCollapsed" class="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
         </button>
       </div>
 
       <!-- Terminals button -->
-      <div v-if="!sidebarCollapsed" class="px-4 mb-3">
+      <div class="px-4 mb-3">
         <button
           @click="toggleAgentTerminalOverlay"
-          class="w-full flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200"
-          :class="hasTerminals || terminalOpen
-            ? 'text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300'
-            : 'text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white'"
+          :class="[
+            'relative w-full flex items-center px-2 rounded-lg text-sm hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200',
+            sidebarCollapsed ? 'justify-center py-2' : 'gap-2.5 py-1',
+            hasTerminals || terminalOpen
+              ? 'text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300'
+              : 'text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white'
+          ]"
         >
           <Icon name="heroicons:command-line" class="w-4 h-4 flex-shrink-0" />
-          <span class="flex-1 text-left">Terminals</span>
+          <span v-if="!sidebarCollapsed" class="flex-1 text-left">Terminals</span>
           <span
-            v-if="terminalActiveCount > 0"
+            v-if="sidebarCollapsed && terminalActiveCount > 0"
+            class="absolute -top-0.5 right-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 bg-emerald-500 text-white text-[8px] font-bold rounded-full"
+          >
+            {{ terminalActiveCount }}
+          </span>
+          <span
+            v-else-if="terminalActiveCount > 0"
             class="inline-flex items-center justify-center w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full"
           >
             {{ terminalActiveCount }}
           </span>
-          <kbd v-else class="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded font-mono">⌘J</kbd>
+          <kbd v-else-if="!sidebarCollapsed" class="text-[10px] text-slate-400 bg-slate-100 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded font-mono">⌘J</kbd>
         </button>
       </div>
 
