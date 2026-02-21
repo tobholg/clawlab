@@ -185,6 +185,76 @@ async function initRealPostgres(connectionString: string) {
   return adapter
 }
 
+// ---------------------------------------------------------------------------
+// SQLite JSON middleware — auto-stringify objects on write, auto-parse on read
+// Maps model.field pairs that are Json in Postgres but String in SQLite
+// ---------------------------------------------------------------------------
+
+const JSON_FIELDS: Record<string, Set<string>> = {
+  Activity: new Set(['metadata']),
+  Attachment: new Set(['metadata']),
+  FocusSession: new Set(['metadata']),
+  ChannelMessage: new Set(['embeds']),
+  ExternalTask: new Set(['votes']),
+  SpaceUpdate: new Set(['risks', 'wins', 'projectSnapshot']),
+  Commit: new Set(['diffSummary']),
+}
+
+function stringifyJsonFields(model: string | undefined, data: any): void {
+  if (!model || !data || typeof data !== 'object') return
+  const fields = JSON_FIELDS[model]
+  if (!fields) return
+  for (const field of fields) {
+    if (field in data && data[field] !== null && data[field] !== undefined && typeof data[field] !== 'string') {
+      data[field] = JSON.stringify(data[field])
+    }
+  }
+}
+
+function parseJsonFields(model: string | undefined, result: any): any {
+  if (!model || !result) return result
+  const fields = JSON_FIELDS[model]
+  if (!fields) return result
+
+  if (Array.isArray(result)) {
+    for (const item of result) parseJsonFields(model, item)
+    return result
+  }
+
+  if (typeof result === 'object') {
+    for (const field of fields) {
+      if (field in result && typeof result[field] === 'string') {
+        try { result[field] = JSON.parse(result[field]) } catch { /* leave as string */ }
+      }
+    }
+  }
+  return result
+}
+
+function wrapWithJsonHandling(client: PrismaClient): PrismaClient {
+  // Build $allOperations extension for each model with JSON fields
+  const queryExtension: Record<string, any> = {}
+
+  for (const model of Object.keys(JSON_FIELDS)) {
+    const lcModel = model.charAt(0).toLowerCase() + model.slice(1)
+    queryExtension[lcModel] = {
+      async $allOperations({ model: m, operation, args, query }: any) {
+        // Stringify on writes
+        if (args?.data) stringifyJsonFields(model, args.data)
+        if (args?.create) stringifyJsonFields(model, args.create)
+        if (args?.update) stringifyJsonFields(model, args.update)
+
+        const result = await query(args)
+
+        // Parse on reads
+        return parseJsonFields(model, result)
+      }
+    }
+  }
+
+  return client.$extends({ query: queryExtension }) as unknown as PrismaClient
+}
+
 export async function initPrisma(): Promise<PrismaClient> {
   if (globalForPrisma.prisma) return globalForPrisma.prisma
 
@@ -198,7 +268,8 @@ export async function initPrisma(): Promise<PrismaClient> {
 
   console.log('[context] No DATABASE_URL - using embedded SQLite')
   const adapter = await initSqlite()
-  const client = new SqlitePrismaClient({ adapter }) as unknown as PrismaClient
+  const rawClient = new SqlitePrismaClient({ adapter }) as unknown as PrismaClient
+  const client = wrapWithJsonHandling(rawClient)
   globalForPrisma.prisma = client
   return client
 }
