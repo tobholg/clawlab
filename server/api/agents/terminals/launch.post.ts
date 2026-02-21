@@ -1,6 +1,7 @@
 import { requireUser, requireWorkspaceMember } from '../../../utils/auth'
 import { createPtySession, destroyPtySession, generateTerminalId, getPtySession, writeToPty } from '../../../utils/ptyManager'
 import { prisma } from '../../../utils/prisma'
+import { resolveRunnerCommand } from '../../../utils/agentRunner'
 
 function toStringEnv(env: NodeJS.ProcessEnv) {
   const normalized: Record<string, string> = {}
@@ -84,6 +85,7 @@ export default defineEventHandler(async (event) => {
     id: string
     name: string | null
     apiToken: string | null
+    agentProvider: string | null
     runnerCommand: string | null
     runnerArgs: string | null
     workspaceId: string | null
@@ -97,6 +99,7 @@ export default defineEventHandler(async (event) => {
         name: true,
         isAgent: true,
         apiToken: true,
+        agentProvider: true,
         runnerCommand: true,
         runnerArgs: true,
         workspaceMembers: {
@@ -114,6 +117,7 @@ export default defineEventHandler(async (event) => {
       id: agentUser.id,
       name: agentUser.name,
       apiToken: agentUser.apiToken,
+      agentProvider: agentUser.agentProvider,
       runnerCommand: agentUser.runnerCommand,
       runnerArgs: agentUser.runnerArgs,
       workspaceId: agentUser.workspaceMembers[0]?.workspaceId ?? null,
@@ -203,12 +207,14 @@ export default defineEventHandler(async (event) => {
 
   const env: Record<string, string> = {
     ...toStringEnv(process.env),
+    PATH: `${cwd}/cli/bin:${process.env.PATH ?? ''}`,
     TERM: 'xterm-256color',
   }
 
   // Add agent-specific env vars
   if (agent) {
     if (agent.apiToken) env.CTX_TOKEN = agent.apiToken
+    env.CTX_URL = origin
     env.CTX_BASE_URL = origin
     env.CTX_AGENT_SESSION = session?.id ?? ''
     env.CTX_AGENT_NAME = agentName
@@ -239,12 +245,15 @@ export default defineEventHandler(async (event) => {
 
       // Launch agent CLI if runner configured
       const systemPrompt = buildSystemPrompt(agentName)
-      const launchCmd = buildLaunchCommand(agent.runnerCommand, agent.runnerArgs, systemPrompt)
+      const runner = resolveRunnerCommand(agent.runnerCommand, agent.agentProvider)
+      const launchCmd = buildLaunchCommand(runner, agent.runnerArgs, systemPrompt)
       if (launchCmd) {
         // Small delay to let the banner print
         setTimeout(() => {
           writeToPty(terminalId, `${launchCmd}\n`)
         }, 500)
+      } else {
+        writeToPty(terminalId, `echo "No runner configured for provider '${agent.agentProvider ?? 'unknown'}'"\n`)
       }
     } else {
       // Plain terminal: add ctx CLI to PATH, nice prompt

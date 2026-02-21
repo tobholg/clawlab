@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import { requireMinRole, requireWorkspaceMember } from '../../../../utils/auth'
 import { prisma } from '../../../../utils/prisma'
+import { defaultRunnerCommandForProvider } from '../../../../utils/agentRunner'
 
 const VALID_PROVIDERS = new Set(['openclaw', 'cursor', 'codex', 'custom'])
 
@@ -67,6 +68,7 @@ export default defineEventHandler(async (event) => {
             email,
             isAgent: true,
             agentProvider: provider,
+            runnerCommand: defaultRunnerCommandForProvider(provider),
           },
           select: {
             id: true,

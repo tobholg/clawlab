@@ -5,6 +5,7 @@ import { createDefaultChannels } from '../../utils/channelUtils'
 import { createSession } from '../../utils/auth'
 import { provisionDefaultSeats } from '../../utils/seats'
 import { hashPassword } from '../../utils/password'
+import { defaultRunnerCommandForProvider } from '../../utils/agentRunner'
 // Agent tokens stored as plain text (self-hosted, no hashing needed)
 
 interface SetupRequest {
@@ -185,6 +186,7 @@ export default defineEventHandler(async (event) => {
           isAgent: true,
           apiToken: apiKey,
           agentProvider: agent.provider,
+          runnerCommand: defaultRunnerCommandForProvider(agent.provider),
         },
       })
 

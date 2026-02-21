@@ -1,5 +1,6 @@
 import { requireMinRole, requireWorkspaceMember } from '../../../../utils/auth'
 import { prisma } from '../../../../utils/prisma'
+import { defaultRunnerCommandForProvider } from '../../../../utils/agentRunner'
 
 const VALID_PROVIDERS = new Set(['openclaw', 'cursor', 'codex', 'custom'])
 
@@ -54,6 +55,7 @@ export default defineEventHandler(async (event) => {
         select: {
           id: true,
           isAgent: true,
+          runnerCommand: true,
         },
       },
     },
@@ -67,13 +69,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Target user is not an agent' })
   }
 
+  let resolvedRunner = hasRunner ? nextRunner : undefined
+  if (!hasRunner && hasProvider && nextProvider && !membership.user.runnerCommand) {
+    resolvedRunner = defaultRunnerCommandForProvider(nextProvider)
+  }
+
   const updated = await prisma.user.update({
     where: { id: userId },
     data: {
       ...(hasName ? { name: nextName } : {}),
       ...(hasProvider ? { agentProvider: nextProvider } : {}),
-      ...(hasRunner !== undefined ? { runnerCommand: nextRunner } : {}),
-      ...(hasRunnerArgs !== undefined ? { runnerArgs: nextRunnerArgs } : {}),
+      ...(resolvedRunner !== undefined ? { runnerCommand: resolvedRunner } : {}),
+      ...(hasRunnerArgs ? { runnerArgs: nextRunnerArgs } : {}),
     },
     select: {
       id: true,

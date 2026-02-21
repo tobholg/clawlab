@@ -94,7 +94,9 @@ export default defineEventHandler(async (event) => {
   const origin = getRequestURL(event).origin || 'http://localhost:3001'
   const env: Record<string, string> = {
     ...toStringEnv(process.env),
+    PATH: `${cwd}/cli/bin:${process.env.PATH ?? ''}`,
     CTX_TOKEN: agentToken,
+    CTX_URL: origin,
     CTX_BASE_URL: origin,
     CTX_AGENT_SESSION: session.id,
     CTX_AGENT_NAME: agentName || 'agent',

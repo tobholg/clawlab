@@ -247,7 +247,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
 
 <template>
   <!-- Header -->
-  <header class="relative z-10 px-6 py-5 flex flex-col gap-4">
+  <header class="relative z-10 p-5 flex flex-col gap-4">
     <!-- Title row -->
     <div class="flex items-start justify-between gap-6">
       <div class="flex items-start gap-4 flex-1 min-w-0">
@@ -316,7 +316,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
     </div>
 
     <!-- Tabs -->
-    <div class="flex items-center gap-1 border-b border-slate-200 dark:border-white/[0.06] -mx-6 px-6">
+    <div class="flex items-center gap-1 border-b border-slate-200 dark:border-white/[0.06] -mx-5 px-5">
       <button
         v-for="tab in [
           { key: 'in_progress', label: 'In Progress', count: tabCounts.in_progress },
@@ -344,7 +344,7 @@ const handleTemplateCreated = (project: { id: string; title: string } | { error:
   </header>
 
   <!-- Content -->
-  <div class="flex-1 overflow-auto px-6 pb-6">
+  <div class="flex-1 overflow-auto px-5 pb-5">
     <!-- Empty tab state -->
     <div v-if="!itemsLoading && !filteredProjects?.length" class="flex items-center justify-center min-h-full pb-24">
       <!-- Completed tab: simple empty state -->

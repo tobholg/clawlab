@@ -394,7 +394,7 @@ onMounted(() => {
 
 <template>
   <!-- Header -->
-  <header class="relative z-30 px-6 py-5 flex flex-col gap-4">
+  <header class="relative z-30 p-5 flex flex-col gap-4">
     <!-- Breadcrumbs -->
     <nav class="flex items-center gap-1.5 text-sm">
       <button
@@ -705,7 +705,7 @@ onMounted(() => {
   </header>
 
   <!-- Content -->
-  <div class="flex-1 overflow-auto px-6 pb-6">
+  <div class="flex-1 overflow-auto p-5">
     <!-- Documents View -->
     <DocumentsSection
       v-if="activeView === 'documents'"

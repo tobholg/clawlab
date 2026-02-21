@@ -183,7 +183,7 @@ const handleCardClick = () => {
     @click="handleCardClick"
   >
     <!-- Title row with category dot + owner -->
-    <div class="flex items-start gap-2 mb-1">
+    <div class="flex items-start gap-2 mb-1 min-h-5">
       <!-- Category color dot -->
       <div
         class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
@@ -210,11 +210,12 @@ const handleCardClick = () => {
           </span>
           <span
             v-else-if="agentLifecycleBadge"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+            class="inline-flex items-center justify-center rounded text-[10px] font-medium leading-none flex-shrink-0 w-5 h-5 2xl:w-auto 2xl:h-auto 2xl:gap-1 2xl:px-1.5 2xl:py-0.5"
             :class="agentLifecycleBadge.classes"
+            :title="agentLifecycleBadge.label"
           >
             <Icon :name="agentLifecycleBadge.icon" class="w-3 h-3" />
-            {{ agentLifecycleBadge.label }}
+            <span class="sr-only 2xl:not-sr-only">{{ agentLifecycleBadge.label }}</span>
           </span>
           <!-- Focus indicator (compact) -->
           <span v-else-if="isCurrentlyFocused" class="relative flex h-2 w-2 flex-shrink-0">
@@ -233,23 +234,23 @@ const handleCardClick = () => {
       </div>
 
       <!-- Hover actions -->
-      <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      <div class="hidden items-center gap-0.5 flex-shrink-0 group-hover:flex">
         <!-- View full button -->
         <button
           @click.stop="emit('drillDown', item)"
-          class="w-6 h-6 rounded flex items-center justify-center text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+          class="w-5 h-5 rounded flex items-center justify-center text-slate-300 dark:text-zinc-600 hover:text-slate-500 dark:hover:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
           title="View full board"
         >
-          <Icon name="heroicons:arrows-pointing-out" class="w-3.5 h-3.5" />
+          <Icon name="heroicons:arrows-pointing-out" class="w-3 h-3" />
         </button>
         <!-- Focus button -->
         <button
           v-if="!isCurrentlyFocused"
           @click="handleFocusClick"
-          class="w-6 h-6 rounded flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 text-slate-300 dark:text-zinc-600 hover:text-amber-500 transition-colors"
+          class="w-5 h-5 rounded flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 text-slate-300 dark:text-zinc-600 hover:text-amber-500 transition-colors"
           title="Focus on this"
         >
-          <Icon name="heroicons:bolt" class="w-4 h-4" />
+          <Icon name="heroicons:bolt" class="w-3.5 h-3.5" />
         </button>
       </div>
 
