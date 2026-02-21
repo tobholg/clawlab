@@ -145,6 +145,8 @@ export default defineEventHandler(async (event) => {
       subStatus: updatedTask.subStatus,
       progress: updatedTask.progress,
       agentMode: updatedTask.agentMode,
+      parentId: updatedTask.parentId,
+      projectId: updatedTask.projectId,
       planDoc: updatedTask.planDoc
         ? {
             id: updatedTask.planDoc.id,

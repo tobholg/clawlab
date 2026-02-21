@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { status, subStatus, progress, title, description, category, priority } = body
+  const { status, subStatus, progress, title, description, category, priority, repoPath, defaultBranch, repoUrl } = body
 
   if ('agentMode' in body) {
     throw createError({ statusCode: 403, message: 'Only humans can change agentMode' })
@@ -23,12 +23,15 @@ export default defineEventHandler(async (event) => {
 
   const includesSubtaskOnlyFields =
     title !== undefined || description !== undefined || category !== undefined || priority !== undefined
+  const includesRepoFields =
+    repoPath !== undefined || defaultBranch !== undefined || repoUrl !== undefined
 
   if (
     status === undefined &&
     subStatus === undefined &&
     progress === undefined &&
-    !includesSubtaskOnlyFields
+    !includesSubtaskOnlyFields &&
+    !includesRepoFields
   ) {
     throw createError({ statusCode: 400, message: 'No updatable fields provided' })
   }
@@ -238,6 +241,9 @@ export default defineEventHandler(async (event) => {
         ...(nextDescription !== undefined ? { description: nextDescription } : {}),
         ...(nextCategory !== undefined ? { category: nextCategory } : {}),
         ...(nextPriority !== undefined ? { priority: nextPriority } : {}),
+        ...(repoPath !== undefined ? { repoPath: repoPath || null } : {}),
+        ...(defaultBranch !== undefined ? { defaultBranch: defaultBranch || null } : {}),
+        ...(repoUrl !== undefined ? { repoUrl: repoUrl || null } : {}),
         ...(
           nextStatus === 'IN_PROGRESS' &&
           currentTask.status !== 'IN_PROGRESS' &&
