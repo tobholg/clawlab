@@ -11,21 +11,50 @@ function toStringEnv(env: NodeJS.ProcessEnv) {
   return normalized
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are {{agentName}}, an AI agent working in OpenContext. You have a CLI tool called 'ctx' on your PATH.
+const SYSTEM_PROMPT_BASE = `You are {{agentName}}, an AI agent working in OpenContext. You have a CLI tool called 'ctx' on your PATH.
 
-Workflow:
-1. Run: ctx catchup -- to see YOUR assignments and action items
-2. Run: ctx checkout <task-id> -- to start working on a task
-3. Do the work (edit files, run tests, etc.)
-4. Run: ctx comment "description of what you did" -- to log progress (task inferred from active session)
-5. Run: ctx submit -- to submit for human review (task inferred from active session)
-
-Key commands: ctx help, ctx tasks, ctx task <id>, ctx checkout <id>, ctx comment [id] <text>, ctx submit [id], ctx status
+Key commands: ctx help, ctx tasks, ctx task <id>, ctx checkout <id>, ctx comment [id] <text>, ctx submit [id], ctx status, ctx catchup
 Note: submit and comment infer the task from your active session if you omit the task ID.
 Only work on tasks assigned to you. If ctx task <id> returns 'not found', the task belongs to another agent.`
 
-function buildSystemPrompt(agentName: string): string {
-  return DEFAULT_SYSTEM_PROMPT.replace(/\{\{agentName\}\}/g, agentName)
+const PROMPT_GENERAL = `
+
+You were launched from the terminals view with no specific task assigned.
+
+Workflow:
+1. Run: ctx catchup -- to orient yourself, see what's going on and what needs attention
+2. Present the user with a summary of what you found and suggest 2-3 tasks you could work on. Ask what they'd like you to start with.
+3. Once the user picks a task: run ctx checkout <task-id> to begin
+4. Do the work (edit files, run tests, etc.)
+5. Run: ctx comment "description of what you did" -- to log progress
+6. Run: ctx submit -- to submit for human review
+
+Wait for the user to tell you what to work on before checking out a task.`
+
+const PROMPT_WITH_TASK = `
+
+You were launched to work on a specific task: "{{taskTitle}}" (ID: {{taskId}}).
+
+Workflow:
+1. Run: ctx catchup -- to orient yourself with the big picture first
+2. Then run: ctx checkout {{taskId}} -- to start working on your assigned task
+3. Read the task details and any comments for context
+4. Do the work (edit files, run tests, etc.)
+5. Run: ctx comment "description of what you did" -- to log progress
+6. Run: ctx submit -- to submit for human review
+
+Start by orienting with catchup, then focus on your assigned task.`
+
+function buildSystemPrompt(agentName: string, task?: { id: string; title: string } | null): string {
+  let prompt = SYSTEM_PROMPT_BASE
+  if (task) {
+    prompt += PROMPT_WITH_TASK
+      .replace(/\{\{taskTitle\}\}/g, task.title)
+      .replace(/\{\{taskId\}\}/g, task.id)
+  } else {
+    prompt += PROMPT_GENERAL
+  }
+  return prompt.replace(/\{\{agentName\}\}/g, agentName)
 }
 
 function buildLaunchCommand(runner: string | null, args: string | null, systemPrompt: string): string | null {
@@ -45,13 +74,17 @@ function buildLaunchCommand(runner: string | null, args: string | null, systemPr
   const singleLinePrompt = systemPrompt.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
 
   if (runner === 'codex') {
+    // Codex: workspace-write sandbox with network access for ctx CLI API calls
+    parts.push('--sandbox', 'workspace-write', '-c', 'sandbox_permissions=["network"]')
     // Codex takes prompt as positional arg, wrap in single quotes
-    // Escape any single quotes in the prompt
     const escaped = singleLinePrompt.replace(/'/g, "'\\''")
     parts.push(`'${escaped}'`)
   } else if (runner === 'claude') {
+    // Claude Code: --dangerously-skip-permissions for non-interactive agent use
+    // System prompt via --append-system-prompt (appends to Claude Code's default)
+    parts.push('--dangerously-skip-permissions')
     const escaped = singleLinePrompt.replace(/'/g, "'\\''")
-    parts.push('--system-prompt', `'${escaped}'`)
+    parts.push('--append-system-prompt', `'${escaped}'`)
   } else if (runner === 'aider') {
     const escaped = singleLinePrompt.replace(/'/g, "'\\''")
     parts.push('--message', `'${escaped}'`)
@@ -239,12 +272,14 @@ export default defineEventHandler(async (event) => {
       writeToPty(terminalId, `echo $'\\e[35m═══ OpenContext Agent Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, `echo "Agent: ${agentName}"\n`)
       if (task) {
-        writeToPty(terminalId, `echo "Task: ${task.title}"\n`)
+        writeToPty(terminalId, `echo "Task: ${task.title} (${task.id})"\n`)
+      } else {
+        writeToPty(terminalId, `echo "Mode: General — run catchup to orient"\n`)
       }
       writeToPty(terminalId, 'echo ""\n')
 
       // Launch agent CLI if runner configured
-      const systemPrompt = buildSystemPrompt(agentName)
+      const systemPrompt = buildSystemPrompt(agentName, task ? { id: task.id, title: task.title } : null)
       const runner = resolveRunnerCommand(agent.runnerCommand, agent.agentProvider)
       const launchCmd = buildLaunchCommand(runner, agent.runnerArgs, systemPrompt)
       if (launchCmd) {

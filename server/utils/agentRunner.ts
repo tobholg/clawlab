@@ -1,5 +1,6 @@
 const DEFAULT_RUNNER_BY_PROVIDER: Record<string, string> = {
   codex: 'codex',
+  claude: 'claude',
 }
 
 function normalize(value: string | null | undefined): string | null {

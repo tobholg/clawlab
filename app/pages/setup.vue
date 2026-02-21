@@ -29,7 +29,7 @@ const teamEmails = ref<string[]>([''])
 
 const agentProviders = [
   { value: 'openclaw', label: 'OpenClaw' },
-  { value: 'cursor', label: 'Cursor' },
+  { value: 'claude', label: 'Claude Code' },
   { value: 'codex', label: 'Codex' },
   { value: 'custom', label: 'Custom' },
 ]
