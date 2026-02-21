@@ -325,6 +325,14 @@ function renderCheckoutSummary(data) {
   const planText = task.planDoc ? `${task.planDoc.title} (${task.planDoc.id.slice(-8)})` : 'None'
 
   print(`✓ Checked out: ${task.title}`)
+  if (!task.parentId) {
+    print('')
+    print('  ⚠  This is a top-level project, not a task.')
+    print('     Agents should create and work on tasks beneath projects.')
+    print(`     Use: ctx task create --parent ${task.id} --title "Your task title"`)
+    print('     Then check out that task instead.')
+    print('')
+  }
   print(`  Mode:     ${task.agentMode || 'N/A'}`)
   print(`  Plan:     ${planText}`)
   print(`  Subtasks: ${subtasks.length} (${done} done, ${inProgress} in progress, ${todo} todo)`)
@@ -693,9 +701,13 @@ commands.catchup = {
         const modeLabel = mode.toUpperCase()
         const hint = modeHints[mode] || `Mode: ${modeLabel}`
         const isCurrentTask = currentTaskId === t.id
+        const isProject = !t.parentId
         print(``)
-        print(`     ⚡ ${modeLabel}  ${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
-        if (isCurrentTask) {
+        print(`     ⚡ ${modeLabel}  ${isProject ? '📁 ' : ''}${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
+        if (isProject) {
+          print(`       ⚠  This is a project, not a task. Create tasks under it:`)
+          print(`       $ ctx task create --parent ${t.id.slice(-8)} --title "Task title"`)
+        } else if (isCurrentTask) {
           const elapsedMs = currentCheckedOutAt ? Date.now() - new Date(currentCheckedOutAt).getTime() : 0
           print(`       → Currently checked out (${formatDurationMs(elapsedMs)})`)
         } else {
@@ -741,7 +753,11 @@ commands.catchup = {
     if (newTasks.length > 0) {
       print(`\n  📋 New tasks (${newTasks.length})`)
       for (const t of newTasks) {
-        print(`     ${t.status.padEnd(12)} ${t.title}  (${t.id.slice(-8)})`)
+        const isProject = !t.parentId
+        print(`     ${t.status.padEnd(12)} ${isProject ? '📁 ' : ''}${t.title}  (${t.id.slice(-8)})`)
+        if (isProject) {
+          print(`       ⚠  Project — create tasks under it, don't work on it directly`)
+        }
       }
     }
 
