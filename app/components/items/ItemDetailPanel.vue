@@ -495,6 +495,71 @@ const descriptionContentRef = ref<HTMLElement | null>(null)
 const activeTab = ref<'subtasks' | 'comments' | 'attachments'>('subtasks')
 const taskAttachmentsRef = ref<InstanceType<typeof TaskAttachments> | null>(null)
 
+// Repository modal
+const showRepoModal = ref(false)
+const repoModalPath = ref('')
+const repoModalBranch = ref('')
+const repoModalUrl = ref('')
+const repoDetecting = ref(false)
+const repoDetectError = ref('')
+const repoDetectSuccess = ref(false)
+
+const repoDisplayName = computed(() => {
+  if (!editedRepoPath.value) return ''
+  // Extract name from path or URL
+  if (editedRepoUrl.value) {
+    const match = editedRepoUrl.value.match(/\/([^/]+?)(?:\.git)?$/)
+    if (match) return match[1]
+  }
+  return editedRepoPath.value.split('/').filter(Boolean).pop() || ''
+})
+
+watch(showRepoModal, (open) => {
+  if (open) {
+    repoModalPath.value = editedRepoPath.value
+    repoModalBranch.value = editedDefaultBranch.value
+    repoModalUrl.value = editedRepoUrl.value
+    repoDetectError.value = ''
+    repoDetectSuccess.value = false
+  }
+})
+
+async function detectRepo() {
+  const path = repoModalPath.value.trim()
+  if (!path) return
+  repoDetecting.value = true
+  repoDetectError.value = ''
+  repoDetectSuccess.value = false
+  try {
+    const res = await $fetch<any>('/api/git/detect', { method: 'POST', body: { path } })
+    if (res.valid) {
+      repoModalBranch.value = res.branch || repoModalBranch.value
+      repoModalUrl.value = res.remoteUrl || repoModalUrl.value
+      repoDetectSuccess.value = true
+    } else {
+      repoDetectError.value = res.error || 'Not a git repository'
+    }
+  } catch {
+    repoDetectError.value = 'Could not reach server'
+  } finally {
+    repoDetecting.value = false
+  }
+}
+
+function saveRepo() {
+  editedRepoPath.value = repoModalPath.value.trim()
+  editedDefaultBranch.value = repoModalBranch.value.trim()
+  editedRepoUrl.value = repoModalUrl.value.trim()
+  showRepoModal.value = false
+}
+
+function clearRepo() {
+  editedRepoPath.value = ''
+  editedDefaultBranch.value = ''
+  editedRepoUrl.value = ''
+  showRepoModal.value = false
+}
+
 // Auto-resize description textarea
 const autoResizeDescription = () => {
   if (descriptionRef.value) {
@@ -1868,35 +1933,123 @@ defineExpose({ handleClose })
               </div>
 
               <!-- Repository -->
-              <div v-if="showRepositoryConfig" class="py-2.5">
-                <div class="flex items-center">
-                  <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Repository</span>
-                  <span class="text-xs text-slate-400 dark:text-zinc-500">Inherited by subtasks</span>
-                </div>
-                <div class="pl-28 pt-2 space-y-2">
-                  <input
-                    v-model="editedRepoPath"
-                    type="text"
+              <div v-if="showRepositoryConfig" class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Repository</span>
+                <div class="flex-1 min-w-0">
+                  <button
+                    v-if="editedRepoPath"
                     :disabled="!canEditItem"
-                    placeholder="/Users/recursion/Projects/relai"
-                    class="w-full text-xs rounded-md px-2.5 py-1.5 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
-                  />
-                  <input
-                    v-model="editedDefaultBranch"
-                    type="text"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer disabled:opacity-60"
+                    @click="showRepoModal = true"
+                  >
+                    <Icon name="heroicons:code-bracket" class="w-3 h-3 text-slate-400 dark:text-zinc-500" />
+                    <span class="truncate max-w-[160px]">{{ repoDisplayName }}</span>
+                    <span v-if="editedDefaultBranch" class="text-slate-400 dark:text-zinc-500">:{{ editedDefaultBranch }}</span>
+                  </button>
+                  <button
+                    v-else
                     :disabled="!canEditItem"
-                    placeholder="main"
-                    class="w-full text-xs rounded-md px-2.5 py-1.5 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
-                  />
-                  <input
-                    v-model="editedRepoUrl"
-                    type="url"
-                    :disabled="!canEditItem"
-                    placeholder="https://github.com/org/repo"
-                    class="w-full text-xs rounded-md px-2.5 py-1.5 border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-zinc-600 disabled:opacity-60"
-                  />
+                    class="text-xs text-slate-400 dark:text-zinc-600 hover:text-slate-600 dark:hover:text-zinc-400 transition-colors cursor-pointer disabled:opacity-60"
+                    @click="showRepoModal = true"
+                  >
+                    + Add repository
+                  </button>
                 </div>
               </div>
+
+              <!-- Repository Modal -->
+              <Teleport to="body">
+                <div
+                  v-if="showRepoModal"
+                  class="fixed inset-0 z-[100] flex items-center justify-center"
+                  @click.self="showRepoModal = false"
+                >
+                  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showRepoModal = false" />
+                  <div class="relative w-full max-w-md bg-white dark:bg-[#1a1a1f] rounded-xl border border-slate-200 dark:border-white/[0.08] shadow-2xl p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                      <h3 class="text-sm font-semibold text-slate-800 dark:text-zinc-200">Repository</h3>
+                      <button class="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors" @click="showRepoModal = false">
+                        <Icon name="heroicons:x-mark" class="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <!-- Path input with detect -->
+                    <div>
+                      <label class="block text-xs text-slate-500 dark:text-zinc-500 mb-1.5">Local path</label>
+                      <div class="flex gap-2">
+                        <input
+                          v-model="repoModalPath"
+                          type="text"
+                          placeholder="/Users/you/Projects/my-app"
+                          class="flex-1 text-xs rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-400 dark:focus:ring-violet-500/50 font-mono"
+                          @keydown.enter="detectRepo"
+                        />
+                        <button
+                          class="px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
+                          :disabled="repoDetecting || !repoModalPath.trim()"
+                          @click="detectRepo"
+                        >
+                          <Icon v-if="repoDetecting" name="heroicons:arrow-path" class="w-3.5 h-3.5 animate-spin" />
+                          <span v-else>Detect</span>
+                        </button>
+                      </div>
+                      <p v-if="repoDetectError" class="mt-1.5 text-xs text-rose-500">{{ repoDetectError }}</p>
+                      <p v-if="repoDetectSuccess" class="mt-1.5 text-xs text-emerald-500 flex items-center gap-1">
+                        <Icon name="heroicons:check-circle" class="w-3.5 h-3.5" />
+                        Git repository detected
+                      </p>
+                    </div>
+
+                    <!-- Branch -->
+                    <div>
+                      <label class="block text-xs text-slate-500 dark:text-zinc-500 mb-1.5">Branch</label>
+                      <input
+                        v-model="repoModalBranch"
+                        type="text"
+                        placeholder="main"
+                        class="w-full text-xs rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-400 dark:focus:ring-violet-500/50"
+                      />
+                    </div>
+
+                    <!-- Remote URL (auto-detected, editable) -->
+                    <div>
+                      <label class="block text-xs text-slate-500 dark:text-zinc-500 mb-1.5">Remote URL <span class="text-slate-400 dark:text-zinc-600">(optional)</span></label>
+                      <input
+                        v-model="repoModalUrl"
+                        type="url"
+                        placeholder="https://github.com/org/repo"
+                        class="w-full text-xs rounded-lg px-3 py-2 border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-white/[0.03] text-slate-700 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-400 dark:focus:ring-violet-500/50"
+                      />
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center justify-between pt-1">
+                      <button
+                        v-if="editedRepoPath"
+                        class="text-xs text-rose-500 hover:text-rose-600 transition-colors"
+                        @click="clearRepo"
+                      >
+                        Remove
+                      </button>
+                      <div v-else />
+                      <div class="flex gap-2">
+                        <button
+                          class="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                          @click="showRepoModal = false"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                          @click="saveRepo"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Teleport>
 
               <!-- Start Date -->
               <div class="flex items-center py-2.5">
