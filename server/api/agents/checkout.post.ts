@@ -84,6 +84,8 @@ export default defineEventHandler(async (event) => {
       subStatus: true,
       progress: true,
       agentMode: true,
+      parentId: true,
+      projectId: true,
       planDoc: {
         select: {
           id: true,

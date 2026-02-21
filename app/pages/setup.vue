@@ -24,7 +24,7 @@ const userName = ref('')
 const userEmail = ref('')
 const userPassword = ref('')
 const userPasswordConfirm = ref('')
-const loadDemoData = ref(true)
+const loadDemoData = ref(false)
 const teamEmails = ref<string[]>([''])
 
 const agentProviders = [
@@ -111,6 +111,7 @@ const selectMode = (m: 'personal' | 'team') => {
   mode.value = m
   nextTick(() => {
     currentStep.value = 1
+    focusStepInput()
   })
 }
 
@@ -252,6 +253,20 @@ const iconColors: Record<string, string> = {
   blue: 'text-blue-600 dark:text-blue-400',
   cyan: 'text-cyan-600 dark:text-cyan-400',
 }
+
+// Focus first input on step change
+function focusStepInput() {
+  nextTick(() => {
+    setTimeout(() => {
+      const card = document.querySelector('.setup-card')
+      if (!card) return
+      const input = card.querySelector('input:not([type="checkbox"]):not([type="hidden"])') as HTMLInputElement | null
+      input?.focus()
+    }, 350) // after step transition
+  })
+}
+
+watch(currentStep, () => focusStepInput())
 
 onMounted(() => {
   requestAnimationFrame(() => {
@@ -473,6 +488,7 @@ onMounted(() => {
                       type="text"
                       placeholder="Jane Smith"
                       class="setup-input"
+                      @keyup.enter="nextStep"
                     />
                   </div>
                   <div v-if="mode === 'team'">
@@ -482,6 +498,7 @@ onMounted(() => {
                       type="email"
                       placeholder="jane@example.com"
                       class="setup-input"
+                      @keyup.enter="nextStep"
                     />
                   </div>
                   <div>
@@ -491,6 +508,7 @@ onMounted(() => {
                       type="password"
                       placeholder="At least 8 characters"
                       class="setup-input"
+                      @keyup.enter="nextStep"
                     />
                   </div>
                   <div>
