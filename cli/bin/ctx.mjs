@@ -703,7 +703,8 @@ commands.catchup = {
         const isCurrentTask = currentTaskId === t.id
         const isProject = !t.parentId
         print(``)
-        print(`     ⚡ ${modeLabel}  ${isProject ? '📁 ' : ''}${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
+        const breadcrumb = (t.breadcrumb || []).length > 0 ? t.breadcrumb.join(' › ') + ' › ' : ''
+        print(`     ⚡ ${modeLabel}  ${isProject ? '📁 ' : ''}${breadcrumb}${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
         if (isProject) {
           print(`       ⚠  This is a project, not a task. Create tasks under it:`)
           print(`       $ ctx task create --parent ${t.id.slice(-8)} --title "Task title"`)
@@ -754,7 +755,8 @@ commands.catchup = {
       print(`\n  📋 New tasks (${newTasks.length})`)
       for (const t of newTasks) {
         const isProject = !t.parentId
-        print(`     ${t.status.padEnd(12)} ${isProject ? '📁 ' : ''}${t.title}  (${t.id.slice(-8)})`)
+        const breadcrumb = (t.breadcrumb || []).length > 0 ? t.breadcrumb.join(' › ') + ' › ' : ''
+        print(`     ${t.status.padEnd(12)} ${isProject ? '📁 ' : ''}${breadcrumb}${t.title}  (${t.id.slice(-8)})`)
         if (isProject) {
           print(`       ⚠  Project — create tasks under it, don't work on it directly`)
         }

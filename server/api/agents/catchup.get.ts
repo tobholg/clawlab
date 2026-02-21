@@ -199,6 +199,56 @@ export default defineEventHandler(async (event) => {
     createdAt: m.message.createdAt.toISOString(),
   }))
 
+  // Build breadcrumbs for all tasks (project > parent > task)
+  const allTaskItems = [...assignedTasks, ...updatedTasks]
+  const parentIds = new Set<string>()
+  for (const t of allTaskItems) {
+    if (t.parentId) parentIds.add(t.parentId)
+    if (t.projectId) parentIds.add(t.projectId)
+  }
+  // Remove ids we already have
+  for (const t of allTaskItems) parentIds.delete(t.id)
+
+  const ancestorMap = new Map<string, { id: string; title: string; parentId: string | null }>()
+  if (parentIds.size > 0) {
+    const ancestors = await prisma.item.findMany({
+      where: { id: { in: [...parentIds] } },
+      select: { id: true, title: true, parentId: true },
+    })
+    for (const a of ancestors) ancestorMap.set(a.id, a)
+    // Fetch one more level up for grandparents
+    const grandparentIds = new Set<string>()
+    for (const a of ancestors) {
+      if (a.parentId && !ancestorMap.has(a.parentId) && !allTaskItems.some(t => t.id === a.parentId)) {
+        grandparentIds.add(a.parentId)
+      }
+    }
+    if (grandparentIds.size > 0) {
+      const grandparents = await prisma.item.findMany({
+        where: { id: { in: [...grandparentIds] } },
+        select: { id: true, title: true, parentId: true },
+      })
+      for (const g of grandparents) ancestorMap.set(g.id, g)
+    }
+  }
+
+  function getBreadcrumb(task: { id: string; parentId: string | null; projectId: string | null }): string[] {
+    const crumbs: string[] = []
+    let currentId = task.parentId
+    const visited = new Set<string>()
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId)
+      const ancestor = ancestorMap.get(currentId)
+      if (ancestor) {
+        crumbs.unshift(ancestor.title)
+        currentId = ancestor.parentId
+      } else {
+        break
+      }
+    }
+    return crumbs
+  }
+
   const isActionableTask = (task: { status: string; subStatus: string | null; agentMode: string | null }) => {
     if (!task.agentMode) return false
     if (String(task.status || '').toUpperCase() === 'DONE') return false
@@ -214,10 +264,12 @@ export default defineEventHandler(async (event) => {
     tasks: {
       assigned: assignedTasks.map((t) => ({
         ...t,
+        breadcrumb: getBreadcrumb(t),
         createdAt: t.createdAt.toISOString(),
       })),
       updated: updatedTasks.map((t) => ({
         ...t,
+        breadcrumb: getBreadcrumb(t),
         updatedAt: t.updatedAt.toISOString(),
       })),
       commented: commentedTasks.map((c) => ({
