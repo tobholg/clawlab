@@ -1,5 +1,5 @@
 import { extension as mimeExtension } from 'mime-types'
-import { requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { requireTokenUser, requireAssignedTask } from '../../../../../utils/agentApi'
 import { toAttachmentResponse } from '../../../../../utils/attachments'
 import { prisma } from '../../../../../utils/prisma'
 import { deleteFile, saveFile, UPLOAD_MAX_SIZE } from '../../../../../utils/storage'
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Task ID is required' })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   await requireAssignedTask(agent.id, taskId)
 
   const parts = await readMultipartFormData(event)

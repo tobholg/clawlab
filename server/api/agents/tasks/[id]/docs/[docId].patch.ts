@@ -1,5 +1,5 @@
 import { prisma } from '../../../../../utils/prisma'
-import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { getDisplayName, requireTokenUser, requireAssignedTask } from '../../../../../utils/agentApi'
 import { emitDocUpdated } from '../../../../../utils/agentNotify'
 
 const MAX_TITLE_LENGTH = 255
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const normalizedVersionType =
     typeof versionType === 'string' && versionType.toUpperCase() === 'MAJOR' ? 'MAJOR' : 'MINOR'
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const task = await requireAssignedTask(agent.id, taskId)
 
   const existingDoc = await prisma.document.findFirst({

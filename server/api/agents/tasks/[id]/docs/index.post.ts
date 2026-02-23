@@ -1,5 +1,5 @@
 import { prisma } from '../../../../../utils/prisma'
-import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { getDisplayName, requireTokenUser, requireAssignedTask } from '../../../../../utils/agentApi'
 import { emitDocCreated } from '../../../../../utils/agentNotify'
 
 const MAX_TITLE_LENGTH = 255
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: `Title must be ${MAX_TITLE_LENGTH} characters or fewer` })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const task = await requireAssignedTask(agent.id, taskId)
 
   if (setAsPlan && task.agentMode !== 'PLAN') {

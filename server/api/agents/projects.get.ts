@@ -1,8 +1,8 @@
 import { prisma } from '../../utils/prisma'
-import { requireAgentUser } from '../../utils/agentApi'
+import { requireTokenUser } from '../../utils/agentApi'
 
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
 
   const projects = await prisma.item.findMany({
     where: {

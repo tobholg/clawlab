@@ -1,5 +1,5 @@
 import { prisma } from '../../../../utils/prisma'
-import { requireAgentUser, requireAssignedTask } from '../../../../utils/agentApi'
+import { requireTokenUser, requireAssignedTask } from '../../../../utils/agentApi'
 import { getDefaultSubStatus } from '../../../../utils/itemStage'
 import { emitSubtaskCreated } from '../../../../utils/agentNotify'
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid priority value' })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const parentTask = await requireAssignedTask(agent.id, parentTaskId)
 
   const created = await prisma.item.create({

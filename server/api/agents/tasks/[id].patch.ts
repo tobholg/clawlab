@@ -1,5 +1,5 @@
 import { prisma } from '../../../utils/prisma'
-import { requireAgentUser, requireAssignedTask } from '../../../utils/agentApi'
+import { requireTokenUser, requireAssignedTask } from '../../../utils/agentApi'
 import { getDefaultSubStatus } from '../../../utils/itemStage'
 import { emitStatusChange, emitProgressUpdate, emitSubStatusChange, emitFieldUpdate } from '../../../utils/agentNotify'
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'No updatable fields provided' })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const currentTask = await requireAssignedTask(agent.id, taskId)
   const isAgentOwnedSubtask =
     currentTask.ownerId === agent.id &&

@@ -1,5 +1,5 @@
 import { prisma } from '../../../../../utils/prisma'
-import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { getDisplayName, requireTokenUser, requireAssignedTask } from '../../../../../utils/agentApi'
 import { emitCommentAdded } from '../../../../../utils/agentNotify'
 
 const MAX_COMMENT_LENGTH = 5000
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: `Comment must be ${MAX_COMMENT_LENGTH} characters or fewer` })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const task = await requireAssignedTask(agent.id, taskId)
 
   const comment = await prisma.$transaction(async (tx) => {

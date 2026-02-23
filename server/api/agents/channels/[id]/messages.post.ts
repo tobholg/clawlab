@@ -1,5 +1,5 @@
 import { prisma } from '../../../../utils/prisma'
-import { requireAgentUser } from '../../../../utils/agentApi'
+import { requireTokenUser } from '../../../../utils/agentApi'
 import { messageAttachmentSelect, toMessageAttachmentResponse } from '../../../../utils/attachments'
 import { broadcast, broadcastNewMessage } from '../../../../utils/websocket'
 import { createMentions, extractMentionIds } from '../../../../utils/mentions'
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const body = await readBody<AgentCreateMessageBody>(event)
   const content = typeof body.content === 'string' ? body.content.trim() : ''
   const attachmentIds = Array.isArray(body.attachmentIds)

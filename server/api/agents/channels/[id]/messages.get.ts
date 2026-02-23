@@ -1,5 +1,5 @@
 import { prisma } from '../../../../utils/prisma'
-import { requireAgentUser } from '../../../../utils/agentApi'
+import { requireTokenUser } from '../../../../utils/agentApi'
 import { messageAttachmentSelect, toMessageAttachmentResponse } from '../../../../utils/attachments'
 
 const DEFAULT_LIMIT = 50
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Channel ID is required' })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const query = getQuery(event)
 
   const parsedLimit = Number(query.limit)
