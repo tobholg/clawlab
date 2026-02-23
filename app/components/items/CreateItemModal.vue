@@ -310,7 +310,7 @@ onUnmounted(() => {
                   mode === 'ai' ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
                 ]"
               >
-                Context AI
+                ClawLab AI
               </button>
               <button
                 type="button"
@@ -673,7 +673,7 @@ onUnmounted(() => {
                 autofocus
               />
               <p class="text-xs text-slate-500 dark:text-zinc-500 mt-2">
-                Context AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
+                ClawLab AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
               </p>
 
               <div
@@ -681,7 +681,7 @@ onUnmounted(() => {
                 class="mt-3 flex items-center gap-2 text-violet-700 dark:text-violet-400"
               >
                 <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-                <span class="text-xs font-medium animate-pulse">Context AI is shaping your task plan...</span>
+                <span class="text-xs font-medium animate-pulse">ClawLab AI is shaping your task plan...</span>
               </div>
             </div>
 
