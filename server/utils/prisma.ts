@@ -193,9 +193,8 @@ async function initRealPostgres(connectionString: string) {
 const JSON_FIELDS: Record<string, Set<string>> = {
   Activity: new Set(['metadata']),
   Attachment: new Set(['metadata']),
-  FocusSession: new Set(['metadata']),
-  ChannelMessage: new Set(['embeds']),
-  ExternalTask: new Set(['votes']),
+  Message: new Set(['embeds']),
+  InformationRequest: new Set(['votes']),
   SpaceUpdate: new Set(['risks', 'wins', 'projectSnapshot']),
   Commit: new Set(['diffSummary']),
 }
