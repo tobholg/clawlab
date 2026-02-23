@@ -1,5 +1,5 @@
 import { prisma } from '../../../utils/prisma'
-import { requireAgentUser, requireAssignedTask } from '../../../utils/agentApi'
+import { requireTokenUser, requireAssignedTask } from '../../../utils/agentApi'
 import { emitSubtaskDeleted } from '../../../utils/agentNotify'
 
 export default defineEventHandler(async (event) => {
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Task ID is required' })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const task = await requireAssignedTask(agent.id, taskId)
 
   if (task.ownerId !== agent.id) {

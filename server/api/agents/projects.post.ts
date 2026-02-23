@@ -1,11 +1,11 @@
 import { prisma } from '../../utils/prisma'
-import { requireAgentUser } from '../../utils/agentApi'
+import { requireTokenUser } from '../../utils/agentApi'
 
 const MAX_TITLE_LENGTH = 200
 const MAX_DESCRIPTION_LENGTH = 5000
 
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const body = await readBody(event)
 
   const title = typeof body.title === 'string' ? body.title.trim() : ''
