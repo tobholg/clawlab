@@ -1,6 +1,7 @@
 import { prisma } from '../../../utils/prisma'
 import { requireWorkspaceMemberForItem } from '../../../utils/auth'
 import { calculateTemperature } from '../../../utils/temperature'
+import { iContains } from '../../../utils/db-compat'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
 
   // Search filter
   if (search.trim()) {
-    where.title = { contains: search.trim(), mode: 'insensitive' }
+    where.title = iContains(search.trim())
   }
 
   // Order by (prefer completedAt, fall back to updatedAt)

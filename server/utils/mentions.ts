@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { iEquals, iStartsWith } from './db-compat'
 
 // Matches explicit <@userId> tokens (from autocomplete)
 const TOKEN_MENTION_PATTERN = /<@([a-zA-Z0-9_-]+)>/g
@@ -56,7 +57,7 @@ export async function createMentions(messageId: string, content: string): Promis
       // Try exact match first (case-insensitive)
       const user = await prisma.user.findFirst({
         where: {
-          name: { equals: name, mode: 'insensitive' },
+          name: iEquals(name),
         },
         select: { id: true },
       })
@@ -69,7 +70,7 @@ export async function createMentions(messageId: string, content: string): Promis
       if (!name.includes(' ')) {
         const firstNameMatch = await prisma.user.findFirst({
           where: {
-            name: { startsWith: name, mode: 'insensitive' },
+            name: iStartsWith(name),
           },
           select: { id: true },
         })

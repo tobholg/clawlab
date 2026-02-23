@@ -1,6 +1,7 @@
 import { defineEventHandler, getRouterParam, getQuery, createError } from 'h3'
 import { prisma } from '../../../../../utils/prisma'
 import { requireUser } from '../../../../../utils/auth'
+import { iContains } from '../../../../../utils/db-compat'
 
 // Get all IRs in a space (Q&A view)
 export default defineEventHandler(async (event) => {
@@ -51,10 +52,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (search) {
-    where.content = {
-      contains: search,
-      mode: 'insensitive'
-    }
+    where.content = iContains(search)
   }
 
   // Get IRs with comments

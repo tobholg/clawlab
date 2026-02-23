@@ -1,5 +1,6 @@
 import { prisma } from '../utils/prisma'
 import { requireUser } from '../utils/auth'
+import { iContains } from '../utils/db-compat'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -31,8 +32,8 @@ export default defineEventHandler(async (event) => {
     where: {
       workspaceId,
       OR: [
-        { title: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
+        { title: iContains(q) },
+        { description: iContains(q) },
       ]
     },
     select: {
@@ -51,7 +52,7 @@ export default defineEventHandler(async (event) => {
   const channels = await prisma.channel.findMany({
     where: {
       workspaceId,
-      displayName: { contains: q, mode: 'insensitive' },
+      displayName: iContains(q),
     },
     select: {
       id: true,
@@ -69,8 +70,8 @@ export default defineEventHandler(async (event) => {
       status: 'ACTIVE',
       user: {
         OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { email: { contains: q, mode: 'insensitive' } },
+          { name: iContains(q) },
+          { email: iContains(q) },
         ]
       }
     },
