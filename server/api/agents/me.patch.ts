@@ -1,11 +1,11 @@
-import { requireAgentUser } from '../../utils/agentApi'
+import { requireTokenUser } from '../../utils/agentApi'
 import { prisma } from '../../utils/prisma'
 
 /**
  * Allow an agent to update its own runner config
  */
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const body = await readBody(event)
 
   const data: Record<string, any> = {}

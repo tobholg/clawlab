@@ -1,5 +1,5 @@
 import { prisma } from '../../utils/prisma'
-import { requireAgentUser } from '../../utils/agentApi'
+import { requireTokenUser } from '../../utils/agentApi'
 
 const VALID_STATUS = new Set(['IDLE', 'ACTIVE', 'AWAITING_REVIEW', 'TERMINATED'])
 
@@ -14,7 +14,7 @@ function toDurationMs(start: Date | null, end: Date | null, now: Date) {
 }
 
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const query = getQuery(event)
   const currentOnly = String(query.current ?? '').toLowerCase() === 'true'
 
