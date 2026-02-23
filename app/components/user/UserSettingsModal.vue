@@ -355,7 +355,7 @@ const handleCopyInstructions = async () => {
             <h3 class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Connect Your Coding Agent</h3>
             <div class="rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.02] p-4 space-y-4">
               <p class="text-sm text-slate-600 dark:text-zinc-400">
-                Connect any AI coding agent (Claude Code, Cursor, Codex, etc.) to your ClawLab workspace.
+                Give your coding agent superpowers. Generate a token, copy the instructions below, and paste them into Claude Code, Cursor, Codex, or whatever AI you vibe with. It'll handle the rest — install the CLI, authenticate, and write its own memory file so it remembers everything next time. One paste, permanently connected. 🪄
               </p>
 
               <div class="space-y-2">
