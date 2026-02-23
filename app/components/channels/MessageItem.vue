@@ -153,8 +153,13 @@ const mentionPill = (userId: string) => {
   return `<span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ${colorClasses}">@${escapeHtml(member.name)}</span>`
 }
 
+const systemAiMentionPill = () => {
+  return '<span class="inline-flex items-center rounded-md bg-violet-100 dark:bg-violet-500/15 px-1.5 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">✨ @ai</span>'
+}
+
 const renderedMessageContent = computed(() => {
   let html = escapeHtml(props.message.content || '')
+  html = html.replace(/\B@ai\b/gi, () => systemAiMentionPill())
   html = html.replace(/&lt;@([a-zA-Z0-9_-]+)&gt;/g, (_match, userId: string) => mentionPill(userId))
   return html.replace(/\n/g, '<br />')
 })

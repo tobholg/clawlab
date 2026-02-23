@@ -28,7 +28,9 @@ export function extractPlainMentionNames(content: string): string[] {
 
   const pattern = new RegExp(PLAIN_MENTION_PATTERN.source, 'g')
   while ((match = pattern.exec(cleaned)) !== null) {
-    names.push(match[1])
+    const name = match[1]
+    if (name.toLowerCase() === 'ai') continue
+    names.push(name)
   }
 
   return [...new Set(names)]
@@ -80,13 +82,20 @@ export async function createMentions(messageId: string, content: string): Promis
 
   if (resolvedUserIds.size === 0) return
 
-  await prisma.messageMention.createMany({
-    data: [...resolvedUserIds].map((userId) => ({
-      messageId,
-      userId,
-    })),
-    skipDuplicates: true,
-  })
+  for (const userId of resolvedUserIds) {
+    try {
+      await prisma.messageMention.create({
+        data: {
+          messageId,
+          userId,
+        },
+      })
+    } catch (error: any) {
+      // SQLite adapters may not support createMany(skipDuplicates). Keep duplicates non-fatal.
+      if (error?.code === 'P2002') continue
+      throw error
+    }
+  }
 }
 
 export function renderMentionsForDisplay(content: string, userMap: Map<string, string>): string {

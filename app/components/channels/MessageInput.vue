@@ -4,6 +4,7 @@ interface MentionMember {
   name: string
   isAgent: boolean
   avatar?: string | null
+  isSystemAi?: boolean
 }
 
 interface ActiveMention {
@@ -65,17 +66,24 @@ const pendingAttachments = ref<PendingAttachment[]>([])
 const activeMentions = ref<ActiveMention[]>([])
 
 const TYPING_THROTTLE = 1000
+const SYSTEM_AI_MENTION: MentionMember = {
+  id: '__ai__',
+  name: 'ClawLab AI',
+  isAgent: false,
+  isSystemAi: true,
+}
 
 const filteredMentions = computed(() => {
   if (mentionStart.value === null) return []
 
   const query = mentionQuery.value.trim().toLowerCase()
   const allMembers = props.members || []
+  const shouldShowSystemAi = query.length > 0 && 'ai'.startsWith(query)
   const matches = query.length === 0
     ? allMembers
     : allMembers.filter((member) => member.name.toLowerCase().includes(query))
 
-  return matches
+  const sortedMatches = matches
     .sort((a, b) => {
       const aStarts = a.name.toLowerCase().startsWith(query)
       const bStarts = b.name.toLowerCase().startsWith(query)
@@ -84,6 +92,10 @@ const filteredMentions = computed(() => {
       return a.name.localeCompare(b.name)
     })
     .slice(0, 6)
+
+  if (!shouldShowSystemAi) return sortedMatches
+
+  return [SYSTEM_AI_MENTION, ...sortedMatches.filter((member) => member.id !== SYSTEM_AI_MENTION.id)].slice(0, 6)
 })
 
 const showMentions = computed(() => filteredMentions.value.length > 0 && mentionStart.value !== null)
@@ -253,7 +265,8 @@ const serializeContent = (raw: string): string => {
     (a, b) => b.displayName.length - a.displayName.length
   )
   for (const mention of sorted) {
-    result = result.replaceAll(`@${mention.displayName}`, `<@${mention.userId}>`)
+    const replacement = mention.userId === '__ai__' ? '@ai' : `<@${mention.userId}>`
+    result = result.replaceAll(`@${mention.displayName}`, replacement)
   }
   return result
 }
@@ -643,18 +656,39 @@ defineExpose({ focus })
                 @mousedown.prevent
                 @click="applyMention(member)"
               >
-                <div class="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-medium text-slate-700 dark:bg-white/[0.08] dark:text-zinc-200">
+                <div
+                  v-if="member.isSystemAi"
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-sm leading-none text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"
+                >
+                  ✨
+                </div>
+                <div
+                  v-else
+                  class="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-medium text-slate-700 dark:bg-white/[0.08] dark:text-zinc-200"
+                >
                   <img v-if="member.avatar" :src="member.avatar" :alt="member.name" class="h-full w-full object-cover" />
                   <span v-else>{{ member.name.charAt(0).toUpperCase() }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-slate-800 dark:text-zinc-100">{{ member.name }}</p>
+                  <p
+                    v-if="member.isSystemAi"
+                    class="truncate text-[11px] text-violet-600 dark:text-violet-300"
+                  >
+                    Built-in assistant
+                  </p>
                 </div>
                 <span
                   v-if="member.isAgent"
                   class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
                 >
                   Agent
+                </span>
+                <span
+                  v-else-if="member.isSystemAi"
+                  class="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"
+                >
+                  AI
                 </span>
               </button>
             </div>
