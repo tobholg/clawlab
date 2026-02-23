@@ -8,8 +8,8 @@ import { broadcastNewMessage } from '../../../utils/websocket'
 const AI_CREDIT_COST = 30
 const MAX_CONTEXT_MESSAGES = 50
 const MAX_INPUT_LENGTH = 8192
-const AI_EMAIL = 'ai@context-labs.ai'
-const AI_NAME = 'Context AI'
+const AI_EMAIL = 'ai@claw-lab.ai'
+const AI_NAME = 'ClawLab AI'
 
 type ProjectSummary = {
   id: string
@@ -169,11 +169,12 @@ function buildSystemPrompt(
     : 'Channel is not linked to a project.'
 
   return [
-    'You are Context AI, a concise, helpful teammate in a project management chat.',
+    'You are ClawLab AI, a concise, helpful teammate in a project management chat.',
     'When the user requests tasks or bugs to be turned into tasks, call create_task_proposal.',
     'Only call the tool if you are confident which project the tasks belong to.',
-    'If the project is unclear, ask a short clarifying question instead of using the tool.',
-    'Use project IDs exactly as listed; do not invent IDs.',
+    'If the project is unclear, ask a short clarifying question — refer to projects by NAME only, never show IDs.',
+    'IMPORTANT: Never expose internal IDs, database identifiers, or technical details to users. Always use human-friendly project and task names.',
+    'Use project IDs in tool calls only; do not invent IDs.',
     `Channel: #${channelName}`,
     channelContext,
     '',
