@@ -260,7 +260,17 @@ watch([channelId, currentChannel], ([id, channel], [oldId]) => {
     subscribe(id, {
       channelName: channel.displayName,
       onMessage: (message) => {
-        if (message.userId !== currentUser.value?.id && !message.parentId) {
+        if (message.parentId) {
+          // Thread reply — update reply count on parent
+          const parentMessage = messages.value.find(m => m.id === message.parentId)
+          if (parentMessage) {
+            parentMessage.replyCount = (parentMessage.replyCount || 0) + 1
+          }
+          if (activeThread.value?.id === message.parentId) {
+            activeThread.value.replyCount = (activeThread.value.replyCount || 0) + 1
+          }
+        } else if (message.userId !== currentUser.value?.id) {
+          // Top-level message from someone else
           messages.value = [...messages.value, message]
           nextTick(() => messageListRef.value?.scrollToBottom())
           queueSeenAt(message.createdAt)
