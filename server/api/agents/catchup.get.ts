@@ -1,5 +1,5 @@
 import { prisma } from '../../utils/prisma'
-import { requireAgentUser } from '../../utils/agentApi'
+import { requireTokenUser } from '../../utils/agentApi'
 
 const DEFAULT_SINCE = '4h'
 const MAX_RESULTS_PER_SECTION = 50
@@ -29,7 +29,7 @@ function parseSince(value: string): Date {
 }
 
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const query = getQuery(event)
   const sinceParam = typeof query.since === 'string' ? query.since : DEFAULT_SINCE
   const refreshRequested = query.refresh === 'true' || query.refresh === '1'

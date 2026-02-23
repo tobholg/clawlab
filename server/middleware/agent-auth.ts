@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  if (!agent || !agent.isAgent) {
+  if (!agent) {
     throw createError({ statusCode: 401, message: 'Invalid API key' })
   }
 

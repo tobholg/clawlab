@@ -1,5 +1,5 @@
 import { prisma } from '../../../../../utils/prisma'
-import { getDisplayName, requireAgentUser, requireAssignedTask } from '../../../../../utils/agentApi'
+import { getDisplayName, requireAssignedTask, requireTokenUser } from '../../../../../utils/agentApi'
 
 export default defineEventHandler(async (event) => {
   const taskId = getRouterParam(event, 'id')
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Task ID and doc ID are required' })
   }
 
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   await requireAssignedTask(agent.id, taskId)
 
   const doc = await prisma.document.findFirst({

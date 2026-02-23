@@ -1,11 +1,11 @@
 import { prisma } from '../../utils/prisma'
-import { requireAgentUser, requireAssignedProject } from '../../utils/agentApi'
+import { requireAssignedProject, requireTokenUser } from '../../utils/agentApi'
 
 const VALID_ITEM_STATUSES = new Set(['TODO', 'IN_PROGRESS', 'BLOCKED', 'PAUSED', 'DONE'])
 const VALID_AGENT_MODES = new Set(['PLAN', 'EXECUTE'])
 
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const query = getQuery(event)
 
   const projectId = typeof query.projectId === 'string' ? query.projectId : undefined

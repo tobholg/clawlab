@@ -1,7 +1,7 @@
 {
-  "name": "@context-pm/cli",
+  "name": "clawlab",
   "version": "0.1.0",
-  "description": "CLI for Context — project management for humans and agents",
+  "description": "ClawLab CLI — project management for human-agent teams",
   "type": "module",
   "bin": {
     "ctx": "bin/ctx.mjs"
@@ -10,7 +10,11 @@
     "bin/"
   ],
   "keywords": ["context", "project-management", "cli", "agents"],
-  "license": "BSL-1.1",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clawlab/clawlab"
+  },
   "engines": {
     "node": ">=18"
   }

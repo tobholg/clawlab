@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 
 // Context CLI — thin wrapper around the Context Agent API
-// Auth: CTX_TOKEN + CTX_URL env vars, or ~/.config/context/config.json
+// Auth: CTX_TOKEN + CTX_URL env vars, or ~/.config/clawlab/config.json
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync, rmSync } from 'node:fs'
 import { basename, isAbsolute, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { execSync } from 'node:child_process'
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
-const CONFIG_DIR = join(homedir(), '.config', 'context')
+const CONFIG_DIR = join(homedir(), '.config', 'clawlab')
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json')
+const CLI_VERSION = '0.1.0'
 
 function loadConfig() {
   try {
@@ -26,27 +27,35 @@ function saveConfig(config) {
   writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2) + '\n')
 }
 
-const config = loadConfig()
-const TOKEN = process.env.CTX_TOKEN || process.env.CTX_API_TOKEN || config.token
-const BASE = (process.env.CTX_URL || config.url || 'http://localhost:3001').replace(/\/+$/, '')
+function getToken() {
+  const config = loadConfig()
+  return process.env.CTX_TOKEN || process.env.CTX_API_TOKEN || config.token
+}
+
+function getBaseUrl() {
+  const config = loadConfig()
+  return (process.env.CTX_URL || config.url || 'http://localhost:3001').replace(/\/+$/, '')
+}
 
 // ── HTTP ────────────────────────────────────────────────────────────────────
 
 async function api(method, path, body) {
+  const token = getToken()
+  const base = getBaseUrl()
   const headers = { 'Content-Type': 'application/json' }
-  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`
+  if (token) headers['Authorization'] = `Bearer ${token}`
 
   const opts = { method, headers, signal: AbortSignal.timeout(15000) }
   if (body) opts.body = JSON.stringify(body)
 
   let res
   try {
-    res = await fetch(`${BASE}${path}`, opts)
+    res = await fetch(`${base}${path}`, opts)
   } catch (e) {
     const cause = e?.cause?.code || e?.code || ''
-    if (cause === 'ECONNREFUSED') throw new Error(`Cannot connect to ${BASE} - is the server running?`)
+    if (cause === 'ECONNREFUSED') throw new Error(`Cannot connect to ${base} - is the server running?`)
     if (e.name === 'TimeoutError') throw new Error(`Request timed out: ${method} ${path}`)
-    throw new Error(`Network error: ${e.message}${cause ? ` (${cause})` : ''}`)
+    throw new Error(`Network error contacting ${base}: ${e.message}${cause ? ` (${cause})` : ''}`)
   }
   const text = await res.text()
 
@@ -61,10 +70,12 @@ async function api(method, path, body) {
 }
 
 async function postMultipart(path, formData) {
+  const token = getToken()
+  const base = getBaseUrl()
   const headers = {}
-  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`
+  if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${base}${path}`, {
     method: 'POST',
     headers,
     body: formData,
@@ -158,7 +169,7 @@ function formatAgeMs(durationMs) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function requireToken() {
-  if (!TOKEN) {
+  if (!getToken()) {
     console.error('Error: No API token. Set CTX_TOKEN or run: ctx login')
     process.exit(1)
   }
@@ -540,7 +551,7 @@ commands.login = {
   usage: 'ctx login [--url URL] [--token TOKEN]',
   desc: 'Configure authentication',
   async run(args, flags) {
-    const url = flags.get('--url') || BASE
+    const url = String(flags.get('--url') || getBaseUrl()).replace(/\/+$/, '')
     const token = flags.get('--token')
 
     if (!token) {
@@ -577,11 +588,29 @@ commands.login = {
     }
 
     print(`✓ Config saved to ${CONFIG_FILE}`)
+    print('Run `ctx me` to verify this machine is connected.')
     if (verified && agent) {
-      print(`✓ Authenticated as ${agent.name} (${agent.agentProvider})`)
+      const providerSuffix = agent.agentProvider ? ` (${agent.agentProvider})` : ''
+      print(`✓ Authenticated as ${agent.name}${providerSuffix}`)
     } else {
       print(`⚠ Token saved but verification failed — check your token and URL (${url})`)
     }
+  },
+}
+
+// ── logout ──────────────────────────────────────────────────────────────────
+
+commands.logout = {
+  usage: 'ctx logout',
+  desc: 'Remove saved authentication config',
+  async run() {
+    rmSync(CONFIG_FILE, { force: true })
+
+    if (JSON_OUT) {
+      return json({ revoked: true, configFile: CONFIG_FILE })
+    }
+
+    print(`✓ Removed ${CONFIG_FILE}`)
   },
 }
 
@@ -1685,6 +1714,11 @@ function printCommandHelp(commandName) {
 // ── Main ────────────────────────────────────────────────────────────────────
 
 const [cmd, ...rawArgs] = process.argv.slice(2)
+if (cmd === '--version' || cmd === '-v') {
+  print(CLI_VERSION)
+  process.exit(0)
+}
+
 const { positional: cleanArgs, flags: globalFlags } = parseArgs(rawArgs)
 const JSON_OUT_FLAG = globalFlags.has('--json')
 
