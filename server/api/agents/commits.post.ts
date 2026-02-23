@@ -1,10 +1,10 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '../../utils/prisma'
 import { getCommitInfo, resolveRepoPath } from '../../utils/gitOps'
-import { requireAgentUser, requireAssignedTask } from '../../utils/agentApi'
+import { requireTokenUser, requireAssignedTask } from '../../utils/agentApi'
 
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const body = await readBody(event)
 
   const sha = typeof body.sha === 'string' ? body.sha.trim() : ''

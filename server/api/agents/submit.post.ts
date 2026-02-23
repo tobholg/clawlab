@@ -1,12 +1,12 @@
 import { prisma } from '../../utils/prisma'
-import { requireAgentUser, requireAssignedTask } from '../../utils/agentApi'
+import { requireTokenUser, requireAssignedTask } from '../../utils/agentApi'
 
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null
 }
 
 export default defineEventHandler(async (event) => {
-  const agent = requireAgentUser(event)
+  const agent = await requireTokenUser(event)
   const body = await readBody(event)
   const taskId = typeof body.taskId === 'string' ? body.taskId.trim() : ''
 
