@@ -195,6 +195,7 @@ export default defineEventHandler(async (event) => {
     channelName: m.message.channel.displayName || m.message.channel.name,
     content: m.message.content,
     threadId: m.message.parentId,
+    replyTo: m.message.parentId || m.message.id,
     author: m.message.user,
     createdAt: m.message.createdAt.toISOString(),
   }))

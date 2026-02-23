@@ -813,6 +813,9 @@ commands.catchup = {
       for (const m of data.channels.mentions) {
         const preview = m.content.replace(/<@[^>]+>/g, '@someone').replace(/\s+/g, ' ').slice(0, 80)
         print(`     #${m.channelName} — ${m.author.name}: ${preview}`)
+        if (m.replyTo) {
+          print(`       ↳ ctx channels ${m.channelName} --reply "..." --thread ${m.replyTo}`)
+        }
       }
     }
 
