@@ -75,7 +75,7 @@ function buildLaunchCommand(runner: string | null, args: string | null, systemPr
 
   if (runner === 'codex') {
     // Codex: workspace-write sandbox with network access for ctx CLI API calls
-    parts.push('--sandbox', 'workspace-write', '-c', 'sandbox_permissions=["network"]')
+    parts.push('--sandbox', 'workspace-write', '-c', "'sandbox_permissions=[\"network\"]'")
     // Codex takes prompt as positional arg, wrap in single quotes
     const escaped = singleLinePrompt.replace(/'/g, "'\\''")
     parts.push(`'${escaped}'`)
