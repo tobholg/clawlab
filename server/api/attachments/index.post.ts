@@ -3,6 +3,7 @@ import { requireUser, requireWorkspaceMemberForItem } from '../../utils/auth'
 import { toAttachmentResponse } from '../../utils/attachments'
 import { prisma } from '../../utils/prisma'
 import { deleteFile, saveFile, UPLOAD_MAX_SIZE } from '../../utils/storage'
+import { checkCanUploadFile } from '../../utils/uploadLimits'
 
 function parseTextPart(part: { data?: Uint8Array } | undefined) {
   if (!part?.data) return ''
@@ -77,6 +78,14 @@ export default defineEventHandler(async (event) => {
     if (!membership) {
       throw createError({ statusCode: 403, statusMessage: 'Channel access required' })
     }
+  }
+
+  const uploadCheck = await checkCanUploadFile(uploadedById, filePart.data.byteLength)
+  if (!uploadCheck.allowed) {
+    throw createError({
+      statusCode: 429,
+      statusMessage: `Upload quota exceeded in the last 24h (${uploadCheck.current}/${uploadCheck.limit} bytes).`,
+    })
   }
 
   // Allow pending uploads with no parent; message creation links these later.

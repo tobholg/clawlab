@@ -3,6 +3,12 @@ import { prisma } from '../../../../utils/prisma'
 import { requireUser } from '../../../../utils/auth'
 import { checkCanCreateExternalSpace } from '../../../../utils/planLimits'
 
+function getDefaultMaxIrsPer24h() {
+  const parsed = Number(process.env.RELAI_DEFAULT_MAX_IRS_PER_24H)
+  if (!Number.isFinite(parsed) || parsed < 0) return 10
+  return Math.floor(parsed)
+}
+
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const projectId = getRouterParam(event, 'projectId')
@@ -44,7 +50,7 @@ export default defineEventHandler(async (event) => {
   if (!spaceCheck.allowed) {
     throw createError({
       statusCode: 403,
-      statusMessage: `External space limit reached (${spaceCheck.current}/${spaceCheck.limit}). Upgrade your plan to create more spaces.`,
+      statusMessage: `External space limit reached (${spaceCheck.current}/${spaceCheck.limit}). Adjust your configured limits to create more spaces.`,
     })
   }
 
@@ -70,7 +76,7 @@ export default defineEventHandler(async (event) => {
       name: body.name.trim(),
       slug,
       description: body.description?.trim() || null,
-      maxIRsPer24h: body.maxIRsPer24h ?? 10,
+      maxIRsPer24h: body.maxIRsPer24h ?? getDefaultMaxIrsPer24h(),
       allowTaskSubmission: body.allowTaskSubmission ?? false
     }
   })

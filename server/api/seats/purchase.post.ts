@@ -1,6 +1,6 @@
 import { prisma } from '../../utils/prisma'
 import { requireUser } from '../../utils/auth'
-import { PLAN_LIMITS } from '../../utils/planLimits'
+import { PLAN_LIMITS, isPlanLimitsEnabled } from '../../utils/planLimits'
 import { MAX_PRO_SEATS, calculateMarginalCost, getMarginalBreakdown } from '../../utils/pricing'
 
 export default defineEventHandler(async (event) => {
@@ -33,20 +33,21 @@ export default defineEventHandler(async (event) => {
     select: { organizationId: true, organization: { select: { planTier: true } } },
   })
 
+  const limitsEnabled = isPlanLimitsEnabled()
   const tier = workspace.organization.planTier as keyof typeof PLAN_LIMITS
-  if (!PLAN_LIMITS[tier]?.canPurchaseSeats) {
-    throw createError({ statusCode: 403, message: 'Upgrade to Pro to purchase additional seats' })
+  if (limitsEnabled && !PLAN_LIMITS[tier]?.canPurchaseSeats) {
+    throw createError({ statusCode: 403, message: 'Seat purchases are disabled by the current limits configuration' })
   }
 
-  // Cap enforcement for PRO
-  if (tier === 'PRO') {
+  // Cap enforcement when plan limits are enabled for PRO
+  if (limitsEnabled && tier === 'PRO') {
     const existing = await prisma.seat.count({
       where: { organizationId: workspace.organizationId, type: type as 'INTERNAL' | 'EXTERNAL' },
     })
     if (existing + count > MAX_PRO_SEATS) {
       throw createError({
         statusCode: 400,
-        message: `Cannot exceed ${MAX_PRO_SEATS} ${type.toLowerCase()} seats on Pro. Currently ${existing}, requesting ${count}. Contact sales for Enterprise.`,
+        message: `Cannot exceed ${MAX_PRO_SEATS} ${type.toLowerCase()} seats with current configured limits. Currently ${existing}, requesting ${count}.`,
       })
     }
 

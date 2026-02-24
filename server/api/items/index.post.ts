@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     if (!check.allowed) {
       throw createError({
         statusCode: 403,
-        message: `Project limit reached (${check.current}/${check.limit}). Upgrade your plan to create more projects.`,
+        message: `Project limit reached (${check.current}/${check.limit}). Adjust your configured limits to create more projects.`,
       })
     }
   }

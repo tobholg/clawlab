@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
   })
   const creditCheck = await checkCanUseAICredit(workspace.organizationId, user.id)
   if (!creditCheck.allowed) {
-    throw createError({ statusCode: 403, message: 'AI credit limit reached for this month. Upgrade to Pro for 10,000 credits/user/month.' })
+    throw createError({ statusCode: 403, message: 'AI usage limit reached for this month. Adjust configured limits to continue.' })
   }
 
   const parent = await prisma.item.findFirst({

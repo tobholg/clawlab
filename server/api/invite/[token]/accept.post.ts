@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
   if (!stakeholderCheck.allowed) {
     throw createError({
       statusCode: 403,
-      statusMessage: `External seat limit reached (${stakeholderCheck.current}/${stakeholderCheck.limit}). The workspace owner needs to upgrade their plan.`,
+      statusMessage: `External seat limit reached (${stakeholderCheck.current}/${stakeholderCheck.limit}). Ask the workspace owner to adjust configured limits.`,
     })
   }
 

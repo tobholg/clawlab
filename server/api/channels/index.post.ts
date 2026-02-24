@@ -1,6 +1,7 @@
 import { prisma } from '../../utils/prisma'
 import { requireWorkspaceMember, requireMinRole } from '../../utils/auth'
 import { slugify } from '../../utils/channelUtils'
+import { isPlanLimitsEnabled } from '../../utils/planLimits'
 
 const MAX_NAME_LENGTH = 80
 const MAX_DESCRIPTION_LENGTH = 500
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   // FREE tier: only WORKSPACE and PROJECT channels allowed (no CUSTOM)
   const effectiveType = type || 'CUSTOM'
-  if (effectiveType === 'CUSTOM') {
+  if (effectiveType === 'CUSTOM' && isPlanLimitsEnabled()) {
     const workspace = await prisma.workspace.findUniqueOrThrow({
       where: { id: workspaceId },
       select: { organization: { select: { planTier: true } } },
@@ -56,7 +57,7 @@ export default defineEventHandler(async (event) => {
     if (workspace.organization.planTier === 'FREE') {
       throw createError({
         statusCode: 403,
-        message: 'Custom channels are not available on the Free plan. Upgrade to Pro to create custom channels.',
+        message: 'Custom channels are disabled by the current deployment limits.',
       })
     }
   }

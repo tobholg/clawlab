@@ -3,6 +3,7 @@ import { requireTokenUser, requireAssignedTask } from '../../../../../utils/agen
 import { toAttachmentResponse } from '../../../../../utils/attachments'
 import { prisma } from '../../../../../utils/prisma'
 import { deleteFile, saveFile, UPLOAD_MAX_SIZE } from '../../../../../utils/storage'
+import { checkCanUploadFile } from '../../../../../utils/uploadLimits'
 
 function normalizeFilename(filename: string | undefined, mimeType: string | undefined) {
   const safeName = (filename || '')
@@ -39,6 +40,14 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 413,
       message: `File exceeds maximum size of ${UPLOAD_MAX_SIZE} bytes`,
+    })
+  }
+
+  const uploadCheck = await checkCanUploadFile(agent.id, filePart.data.byteLength)
+  if (!uploadCheck.allowed) {
+    throw createError({
+      statusCode: 429,
+      message: `Upload quota exceeded in the last 24h (${uploadCheck.current}/${uploadCheck.limit} bytes).`,
     })
   }
 

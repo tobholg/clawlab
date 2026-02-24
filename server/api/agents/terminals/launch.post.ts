@@ -60,7 +60,7 @@ function buildSystemPrompt(agentName: string, task?: { id: string; title: string
   return prompt.replace(/\{\{agentName\}\}/g, agentName)
 }
 
-function buildLaunchCommand(runner: string | null, args: string | null, systemPrompt: string): string | null {
+function buildLaunchCommand(runner: string | null, args: string | null): string | null {
   if (!runner) return null // plain terminal, no agent CLI
 
   const parts = [runner]
@@ -70,27 +70,21 @@ function buildLaunchCommand(runner: string | null, args: string | null, systemPr
     parts.push(args.trim())
   }
 
-  // Add system prompt as initial prompt/instruction based on runner
-  // Codex: pass as the prompt argument (no --system-prompt flag)
-  // Claude: has --system-prompt
-  // Aider: pass as --message
-  const singleLinePrompt = systemPrompt.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+  // Pass prompt via env var to avoid fragile shell escaping for long prompts.
+  const promptVar = '"$CTX_AGENT_SYSTEM_PROMPT"'
 
   if (runner === 'codex') {
     // Codex: workspace-write sandbox with network access for ctx CLI API calls
     parts.push('--sandbox', 'workspace-write', '-c', "'sandbox_permissions=[\"network\"]'")
-    // Codex takes prompt as positional arg, wrap in single quotes
-    const escaped = singleLinePrompt.replace(/'/g, "'\\''")
-    parts.push(`'${escaped}'`)
+    // Codex takes prompt as positional arg
+    parts.push(promptVar)
   } else if (runner === 'claude') {
     // Claude Code: --dangerously-skip-permissions for non-interactive agent use
     // System prompt via --append-system-prompt (appends to Claude Code's default)
     parts.push('--dangerously-skip-permissions')
-    const escaped = singleLinePrompt.replace(/'/g, "'\\''")
-    parts.push('--append-system-prompt', `'${escaped}'`)
+    parts.push('--append-system-prompt', promptVar)
   } else if (runner === 'aider') {
-    const escaped = singleLinePrompt.replace(/'/g, "'\\''")
-    parts.push('--message', `'${escaped}'`)
+    parts.push('--message', promptVar)
   }
 
   return parts.join(' ')
@@ -240,6 +234,7 @@ export default defineEventHandler(async (event) => {
   const cwd = cwdOverride || projectRepoPath || process.cwd()
   const origin = getRequestURL(event).origin || 'http://localhost:3001'
   const agentName = agent?.name || 'Terminal'
+  const systemPrompt = agent ? buildSystemPrompt(agentName, task ? { id: task.id, title: task.title } : null) : ''
 
   const env: Record<string, string> = {
     ...toStringEnv(process.env),
@@ -254,6 +249,7 @@ export default defineEventHandler(async (event) => {
     env.CTX_BASE_URL = origin
     env.CTX_AGENT_SESSION = session?.id ?? ''
     env.CTX_AGENT_NAME = agentName
+    env.CTX_AGENT_SYSTEM_PROMPT = systemPrompt
   }
 
   await createPtySession({
@@ -272,7 +268,7 @@ export default defineEventHandler(async (event) => {
       writeToPty(terminalId, `export PATH="${cwd}/cli/bin:$PATH"\n`)
       writeToPty(terminalId, `alias ctx="node ${cwd}/cli/bin/ctx.mjs"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[35m${agentName}\\e[0m \\e[34m%~\\e[0m $ '\n`)
-      writeToPty(terminalId, `echo $'\\e[35m═══ OpenContext Agent Terminal ═══\\e[0m'\n`)
+      writeToPty(terminalId, `echo $'\\e[35m═══ ClawLab Agent Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, `echo "Agent: ${agentName}"\n`)
       if (task) {
         writeToPty(terminalId, `echo "Task: ${task.title} (${task.id})"\n`)
@@ -282,9 +278,8 @@ export default defineEventHandler(async (event) => {
       writeToPty(terminalId, 'echo ""\n')
 
       // Launch agent CLI if runner configured
-      const systemPrompt = buildSystemPrompt(agentName, task ? { id: task.id, title: task.title } : null)
       const runner = resolveRunnerCommand(agent.runnerCommand, agent.agentProvider)
-      const launchCmd = buildLaunchCommand(runner, agent.runnerArgs, systemPrompt)
+      const launchCmd = buildLaunchCommand(runner, agent.runnerArgs)
       if (launchCmd) {
         // Small delay to let the banner print
         setTimeout(() => {
@@ -297,7 +292,7 @@ export default defineEventHandler(async (event) => {
       // Plain terminal: add ctx CLI to PATH, nice prompt
       writeToPty(terminalId, `export PATH="${cwd}/cli/bin:$PATH"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[36mctx\\e[0m \\e[34m%~\\e[0m $ '\n`)
-      writeToPty(terminalId, `echo $'\\e[36m═══ OpenContext Terminal ═══\\e[0m'\n`)
+      writeToPty(terminalId, `echo $'\\e[36m═══ ClawLab Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, 'echo ""\n')
     }
   }, 300)

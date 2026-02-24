@@ -14,9 +14,9 @@ const router = useRouter()
 const handleViewPlans = () => {
   emit('close')
   router.push('/workspace/settings')
-  // Wait for navigation, then switch to plan tab
+  // Wait for navigation, then switch to a relevant settings tab.
   nextTick(() => {
-    window.dispatchEvent(new CustomEvent('switch-settings-tab', { detail: 'plan' }))
+    window.dispatchEvent(new CustomEvent('switch-settings-tab', { detail: 'general' }))
   })
 }
 </script>
@@ -35,9 +35,9 @@ const handleViewPlans = () => {
             <Icon name="heroicons:arrow-up-circle" class="w-6 h-6 text-amber-600" />
           </div>
 
-          <h2 class="text-lg font-medium text-slate-900 text-center mb-2">Plan limit reached</h2>
+          <h2 class="text-lg font-medium text-slate-900 text-center mb-2">Usage limit reached</h2>
           <p class="text-sm text-slate-500 text-center mb-6 leading-relaxed">
-            {{ message || 'You\'ve reached the limit for your current plan. Upgrade to unlock more capacity.' }}
+            {{ message || 'This action hit a configured workspace or organization limit.' }}
           </p>
 
           <div class="flex items-center gap-3">
@@ -51,7 +51,7 @@ const handleViewPlans = () => {
               @click="handleViewPlans"
               class="flex-1 px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
             >
-              View plans
+              Open settings
             </button>
           </div>
         </div>

@@ -115,16 +115,10 @@ const roleLabel = (role: string | null) => {
 }
 
 const planLabel = computed(() => {
-  const tier = profile.value?.organization?.planTier
-  if (tier === 'PRO') return 'Pro'
-  if (tier === 'ENTERPRISE') return 'Enterprise'
-  return 'Free'
+  return 'Self-hosted'
 })
 
 const planClass = computed(() => {
-  const tier = profile.value?.organization?.planTier
-  if (tier === 'PRO') return 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
-  if (tier === 'ENTERPRISE') return 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400'
   return 'bg-slate-100 text-slate-600 dark:bg-white/[0.06] dark:text-zinc-400'
 })
 
@@ -329,7 +323,7 @@ const handleCopyInstructions = async () => {
               </div>
 
               <div class="flex items-center justify-between">
-                <span class="text-sm text-slate-600 dark:text-zinc-400">Plan</span>
+                <span class="text-sm text-slate-600 dark:text-zinc-400">Deployment</span>
                 <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full', planClass]">
                   {{ planLabel }}
                 </span>

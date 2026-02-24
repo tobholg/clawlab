@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   if (!check.allowed) {
     throw createError({
       statusCode: 403,
-      message: `Workspace limit reached (${check.current}/${check.limit}). Upgrade your plan to create more workspaces.`,
+      message: `Workspace limit reached (${check.current}/${check.limit}). Adjust your configured limits to create more workspaces.`,
     })
   }
 

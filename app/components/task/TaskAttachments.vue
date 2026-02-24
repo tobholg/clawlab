@@ -214,13 +214,6 @@ watch(() => props.itemId, loadAttachments, { immediate: true })
         <Icon name="heroicons:paper-clip" class="w-3.5 h-3.5" />
         Upload
       </button>
-      <input
-        ref="fileInput"
-        type="file"
-        class="hidden"
-        multiple
-        @change="onFileInput"
-      >
     </div>
     <div v-if="hideHeader" class="flex justify-end">
       <button
@@ -232,6 +225,13 @@ watch(() => props.itemId, loadAttachments, { immediate: true })
         Upload
       </button>
     </div>
+    <input
+      ref="fileInput"
+      type="file"
+      class="hidden"
+      multiple
+      @change="onFileInput"
+    >
 
     <div
       class="rounded-lg border border-dashed p-3 transition-colors"

@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
   if (!creditCheck.allowed) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'AI credit limit reached for this month. Upgrade to Pro for 10,000 credits/user/month.',
+      statusMessage: 'AI usage limit reached for this month. Adjust configured limits to continue.',
     })
   }
 

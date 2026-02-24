@@ -10,11 +10,15 @@ process.on('message', (msg) => {
 
   if (type === 'spawn') {
     try {
-      const shells = ['zsh', 'bash', 'sh']
+      const shells = [
+        { cmd: 'zsh', args: ['-f'] },
+        { cmd: 'bash', args: ['--noprofile', '--norc'] },
+        { cmd: 'sh', args: [] },
+      ]
       let pty = null
       for (const shell of shells) {
         try {
-          pty = nodePty.spawn(shell, [], {
+          pty = nodePty.spawn(shell.cmd, shell.args, {
             name: 'xterm-256color',
             cwd: msg.cwd || process.cwd(),
             env: msg.env || process.env,

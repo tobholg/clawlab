@@ -5,7 +5,7 @@
       class="fixed inset-0 z-40 flex flex-col"
     >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/75 dark:bg-black/50 backdrop-blur-md" @click="close" />
+        <div class="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-md" @click="close" />
 
         <!-- Chrome -->
         <div class="relative z-10 flex flex-col h-full px-5 pt-5 pb-5 gap-3">
@@ -13,23 +13,23 @@
           <!-- Toolbar -->
           <div class="flex items-center gap-3 shrink-0">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 bg-white/[0.06] rounded-xl flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="w-9 h-9 bg-white/85 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-slate-700 dark:text-zinc-100" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <span class="text-[21px] tracking-tight leading-none"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">ctx</span></span>
+              <span class="text-[21px] tracking-tight leading-none"><span class="font-semibold text-slate-900 dark:text-zinc-100">claw</span><span class="font-medium text-slate-500 dark:text-zinc-400">lab</span></span>
               <span
                 v-if="tabs.length"
-                class="text-[10px] font-medium text-zinc-500 bg-white/[0.06] px-1.5 py-0.5 rounded-md tabular-nums"
+                class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 bg-white/85 dark:bg-white/[0.06] border border-slate-200 dark:border-transparent px-1.5 py-0.5 rounded-md tabular-nums"
               >{{ tabs.length }}/6</span>
             </div>
 
             <div class="flex-1" />
 
             <!-- Layout toggle -->
-            <div class="flex items-center gap-0.5 bg-white/[0.04] rounded-lg p-0.5 shrink-0">
+            <div class="flex items-center gap-0.5 bg-white/85 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] rounded-lg p-0.5 shrink-0">
               <button
                 @click="layoutMode = 'tiled'"
-                :class="layoutMode === 'tiled' ? 'bg-white/[0.08] text-zinc-200' : 'text-zinc-600 hover:text-zinc-400'"
+                :class="layoutMode === 'tiled' ? 'bg-slate-900 text-white dark:bg-white/[0.1] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'"
                 class="w-7 h-7 flex items-center justify-center rounded-md transition-all"
                 title="Tiled layout"
               >
@@ -37,7 +37,7 @@
               </button>
               <button
                 @click="layoutMode = 'columns'"
-                :class="layoutMode === 'columns' ? 'bg-white/[0.08] text-zinc-200' : 'text-zinc-600 hover:text-zinc-400'"
+                :class="layoutMode === 'columns' ? 'bg-slate-900 text-white dark:bg-white/[0.1] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'"
                 class="w-7 h-7 flex items-center justify-center rounded-md transition-all"
                 title="Columns layout"
               >
@@ -49,18 +49,18 @@
               <!-- + Shell -->
               <button
                 @click="launchShell"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-500/30 transition-all shrink-0"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-cyan-700 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-500/10 hover:bg-cyan-100 dark:hover:bg-cyan-500/20 border border-cyan-300/60 dark:border-cyan-500/20 hover:border-cyan-400 dark:hover:border-cyan-500/30 transition-all shrink-0"
               >
                 <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
                 Shell
-                <kbd class="ml-0.5 text-[10px] text-cyan-400/50 bg-cyan-500/10 px-1 py-0.5 rounded font-mono leading-none">⌥T</kbd>
+                <kbd class="ml-0.5 text-[10px] text-cyan-700/60 dark:text-cyan-400/50 bg-cyan-100 dark:bg-cyan-500/10 px-1 py-0.5 rounded font-mono leading-none">⌥T</kbd>
               </button>
 
               <!-- Agent hover dropdown -->
               <div class="relative group/agent shrink-0">
                 <button
                   @mouseenter="fetchWorkspaceAgents"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 hover:border-violet-500/30 transition-all"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100/80 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20 border border-violet-300/60 dark:border-violet-500/20 hover:border-violet-400 dark:hover:border-violet-500/30 transition-all"
                 >
                   <Icon name="heroicons:cpu-chip" class="w-3.5 h-3.5" />
                   Agent
@@ -68,33 +68,33 @@
                 </button>
                 <!-- Dropdown — pt-1.5 bridges the gap so mouse stays inside group -->
                 <div class="absolute top-full right-0 w-64 pt-1.5 opacity-0 group-hover/agent:opacity-100 pointer-events-none group-hover/agent:pointer-events-auto transition-opacity duration-150 z-50">
-                  <div class="bg-[#1c1c22] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden -translate-y-1 group-hover/agent:translate-y-0 transition-transform duration-150">
-                    <div v-if="loadingAgents" class="px-4 py-4 text-sm text-zinc-500 text-center">Loading…</div>
-                    <div v-else-if="!workspaceAgents.length" class="px-4 py-4 text-sm text-zinc-500 text-center">No agents configured.<br><span class="text-zinc-600 text-xs">Add one in Settings → Agents.</span></div>
+                  <div class="bg-white/95 dark:bg-[#1c1c22] border border-slate-200 dark:border-white/[0.08] rounded-xl shadow-2xl overflow-hidden -translate-y-1 group-hover/agent:translate-y-0 transition-transform duration-150 backdrop-blur-sm">
+                    <div v-if="loadingAgents" class="px-4 py-4 text-sm text-slate-500 dark:text-zinc-500 text-center">Loading…</div>
+                    <div v-else-if="!workspaceAgents.length" class="px-4 py-4 text-sm text-slate-500 dark:text-zinc-500 text-center">No agents configured.<br><span class="text-slate-400 dark:text-zinc-600 text-xs">Add one in Settings → Agents.</span></div>
                     <button
                       v-for="agent in workspaceAgents"
                       :key="agent.id"
                       @click="launchAgentTerminal(agent)"
-                      class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.04] transition-colors text-left"
+                      class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-colors text-left"
                     >
-                      <div class="w-7 h-7 rounded-lg bg-violet-500/15 flex items-center justify-center shrink-0">
-                        <Icon name="heroicons:cpu-chip" class="w-3.5 h-3.5 text-violet-400" />
+                      <div class="w-7 h-7 rounded-lg bg-violet-500/15 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
+                        <Icon name="heroicons:cpu-chip" class="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                       </div>
                       <div class="flex-1 min-w-0">
-                        <div class="text-sm font-medium text-zinc-200">{{ agent.name }}</div>
-                        <div class="text-xs text-zinc-500 truncate">{{ agent.runnerCommand || agent.agentProvider || 'No runner configured' }}</div>
+                        <div class="text-sm font-medium text-slate-800 dark:text-zinc-200">{{ agent.name }}</div>
+                        <div class="text-xs text-slate-500 dark:text-zinc-500 truncate">{{ agent.runnerCommand || agent.agentProvider || 'No runner configured' }}</div>
                       </div>
                     </button>
                   </div>
                 </div>
               </div>
             </template>
-            <span v-else class="text-xs text-zinc-600 px-1">Max 6 open</span>
+            <span v-else class="text-xs text-slate-500 dark:text-zinc-600 px-1">Max 6 open</span>
 
             <!-- Close overlay -->
             <button
               @click="close"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/[0.06] border border-transparent hover:border-slate-200 dark:hover:border-transparent transition-colors shrink-0"
             >
               <Icon name="heroicons:x-mark" class="w-5 h-5" />
             </button>
@@ -111,12 +111,12 @@
               class="flex items-center justify-center"
             >
               <div class="text-center">
-                <Icon name="heroicons:command-line" class="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-                <p class="text-zinc-400 font-medium mb-1">No active terminals</p>
-                <p class="text-zinc-600 text-sm mb-4">Launch a terminal to start an agent session</p>
+                <Icon name="heroicons:command-line" class="w-10 h-10 text-slate-400 dark:text-zinc-700 mx-auto mb-3" />
+                <p class="text-slate-600 dark:text-zinc-400 font-medium mb-1">No active terminals</p>
+                <p class="text-slate-500 dark:text-zinc-600 text-sm mb-4">Launch a terminal to start an agent session</p>
                 <button
                   @click="showLauncher = true"
-                  class="px-4 py-2 rounded-lg text-sm font-medium text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 transition-colors"
+                  class="px-4 py-2 rounded-lg text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/10 hover:bg-violet-200 dark:hover:bg-violet-500/20 transition-colors"
                 >
                   <Icon name="heroicons:plus" class="w-4 h-4 inline mr-1" />
                   Launch Terminal
@@ -130,14 +130,14 @@
               :key="tab.terminalId"
               class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150"
               :class="[tileClass(index), activeTabId === tab.terminalId
-                ? 'border-violet-500/40 shadow-[0_0_0_1px_rgba(139,92,246,0.15)]'
-                : 'border-white/[0.06] hover:border-white/[0.12]']"
+                ? 'border-violet-400/70 dark:border-violet-500/40 shadow-[0_0_0_1px_rgba(139,92,246,0.15)]'
+                : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]']"
               @click="switchTab(tab.terminalId); focusTerminal(tab.terminalId)"
             >
               <!-- Tile header -->
               <div
-                class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-white/[0.06] select-none"
-                :class="activeTabId === tab.terminalId ? 'bg-violet-950/40' : 'bg-[#111115]'"
+                class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none"
+                :class="activeTabId === tab.terminalId ? 'bg-violet-100/90 dark:bg-violet-950/40' : 'bg-white/90 dark:bg-[#111115]'"
               >
                 <!-- Status dot -->
                 <span :class="[
@@ -149,36 +149,36 @@
                 ]" />
 
                 <!-- Agent name -->
-                <span class="text-xs font-semibold text-zinc-300 shrink-0 tracking-tight">{{ tab.agentName }}</span>
+                <span class="text-[13px] font-semibold text-slate-700 dark:text-zinc-300 shrink-0 tracking-tight">{{ tab.agentName }}</span>
 
                 <!-- Separator -->
-                <span class="text-zinc-700 shrink-0">·</span>
+                <span class="text-slate-300 dark:text-zinc-700 shrink-0">·</span>
 
                 <!-- Task title -->
                 <span
                   v-if="tab.taskTitle"
-                  class="text-xs text-zinc-500 truncate flex-1 hover:text-violet-400 transition-colors cursor-pointer"
+                  class="text-[13px] text-slate-500 dark:text-zinc-500 truncate flex-1 hover:text-violet-600 dark:hover:text-violet-400 transition-colors cursor-pointer"
                   @click.stop="openTaskFromTab(tab)"
                 >{{ tab.taskTitle }}</span>
-                <span v-else class="text-xs text-zinc-700 flex-1 italic">No task checked out</span>
+                <span v-else class="text-[13px] text-slate-400 dark:text-zinc-700 flex-1">No task checked out</span>
 
                 <!-- Duration -->
-                <span class="text-[11px] text-zinc-600 shrink-0 tabular-nums">{{ formatDuration(tab.startedAt) }}</span>
+                <span class="text-xs text-slate-500 dark:text-zinc-600 shrink-0 tabular-nums">{{ formatDuration(tab.startedAt) }}</span>
 
                 <!-- Close -->
                 <button
                   @click.stop="closeTerminal(tab.terminalId)"
                   title="Close terminal (⌥W)"
-                  class="w-4 h-4 flex items-center justify-center rounded text-zinc-700 hover:text-red-400 transition-colors shrink-0 ml-0.5"
+                  class="w-5 h-5 flex items-center justify-center rounded text-slate-400 dark:text-zinc-700 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-0.5"
                 >
-                  <Icon name="heroicons:x-mark" class="w-3 h-3" />
+                  <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <!-- xterm container -->
               <div
                 :ref="(el) => setTerminalRef(tab.terminalId, el as HTMLElement)"
-                class="flex-1 min-h-0 bg-[#0e0e11] overflow-hidden"
+                class="flex-1 min-h-0 bg-slate-50 dark:bg-[#0e0e11] overflow-hidden"
               />
             </div>
           </div>
@@ -191,29 +191,29 @@
             class="absolute inset-0 z-20 flex items-center justify-center"
           >
             <div class="absolute inset-0" @click="showLauncher = false" />
-            <div class="relative w-[440px] bg-[#161619] border border-white/[0.08] rounded-2xl shadow-2xl p-6">
-              <h3 class="text-white font-semibold mb-4 text-sm">Launch Terminal</h3>
+            <div class="relative w-[440px] bg-white dark:bg-[#161619] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-2xl p-6">
+              <h3 class="text-slate-900 dark:text-white font-semibold mb-4 text-sm">Launch Terminal</h3>
 
               <div v-if="!launching" class="space-y-2">
                 <!-- Plain terminal -->
                 <button
                   @click="launchPlainTerminal"
-                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-cyan-500/30 transition-all text-left"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-cyan-400 dark:hover:border-cyan-500/30 transition-all text-left"
                 >
                   <div class="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center shrink-0">
-                    <Icon name="heroicons:command-line" class="w-4 h-4 text-cyan-400" />
+                    <Icon name="heroicons:command-line" class="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-white">Plain Terminal</div>
-                    <div class="text-xs text-zinc-500">Shell session in project directory</div>
+                    <div class="text-sm font-medium text-slate-900 dark:text-white">Plain Terminal</div>
+                    <div class="text-xs text-slate-500 dark:text-zinc-500">Shell session in project directory</div>
                   </div>
                 </button>
 
                 <!-- Divider -->
                 <div v-if="workspaceAgents.length" class="flex items-center gap-2 py-1">
-                  <div class="flex-1 h-px bg-white/[0.06]" />
-                  <span class="text-[10px] text-zinc-600 uppercase tracking-wider">Agents</span>
-                  <div class="flex-1 h-px bg-white/[0.06]" />
+                  <div class="flex-1 h-px bg-slate-200 dark:bg-white/[0.06]" />
+                  <span class="text-[10px] text-slate-400 dark:text-zinc-600 uppercase tracking-wider">Agents</span>
+                  <div class="flex-1 h-px bg-slate-200 dark:bg-white/[0.06]" />
                 </div>
 
                 <!-- Agent options -->
@@ -221,22 +221,22 @@
                   v-for="agent in workspaceAgents"
                   :key="agent.id"
                   @click="launchAgentTerminal(agent)"
-                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-violet-500/30 transition-all text-left"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-violet-400 dark:hover:border-violet-500/30 transition-all text-left"
                 >
                   <div class="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center shrink-0">
-                    <Icon name="heroicons:cpu-chip" class="w-4 h-4 text-violet-400" />
+                    <Icon name="heroicons:cpu-chip" class="w-4 h-4 text-violet-600 dark:text-violet-400" />
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-white">{{ agent.name }}</div>
-                    <div class="text-xs text-zinc-500">
+                    <div class="text-sm font-medium text-slate-900 dark:text-white">{{ agent.name }}</div>
+                    <div class="text-xs text-slate-500 dark:text-zinc-500">
                       {{ agent.runnerCommand || agent.agentProvider || 'No runner configured' }}
-                      <span v-if="agent.runnerArgs" class="text-zinc-600"> {{ agent.runnerArgs }}</span>
+                      <span v-if="agent.runnerArgs" class="text-slate-400 dark:text-zinc-600"> {{ agent.runnerArgs }}</span>
                     </div>
                   </div>
                 </button>
 
-                <div v-if="loadingAgents" class="text-sm text-zinc-500 py-4 text-center">Loading agents…</div>
-                <p v-if="!loadingAgents && !workspaceAgents.length" class="text-sm text-zinc-500 py-2 text-center">
+                <div v-if="loadingAgents" class="text-sm text-slate-500 dark:text-zinc-500 py-4 text-center">Loading agents…</div>
+                <p v-if="!loadingAgents && !workspaceAgents.length" class="text-sm text-slate-500 dark:text-zinc-500 py-2 text-center">
                   No agents configured. Add one in Settings → Agents.
                 </p>
               </div>
@@ -244,7 +244,7 @@
               <!-- Launching state -->
               <div v-else class="text-center py-6">
                 <Icon name="heroicons:arrow-path" class="w-6 h-6 animate-spin text-violet-400 mx-auto mb-2" />
-                <span class="text-sm text-zinc-300">Launching…</span>
+                <span class="text-sm text-slate-600 dark:text-zinc-300">Launching…</span>
               </div>
 
               <!-- Error -->
@@ -303,6 +303,65 @@ const gridClass = computed(() => {
 const tileClass = (index: number) => {
   if (layoutMode.value === 'tiled' && tabs.value.length === 3 && index === 0) return 'row-span-2'
   return ''
+}
+
+const isDarkMode = ref(false)
+let darkModeObserver: MutationObserver | null = null
+
+const terminalDarkTheme = {
+  background: '#0e0e11',
+  foreground: '#d4d4d8',
+  cursor: '#a78bfa',
+  cursorAccent: '#0e0e11',
+  selectionBackground: '#a78bfa33',
+  black: '#18181b',
+  red: '#f87171',
+  green: '#4ade80',
+  yellow: '#facc15',
+  blue: '#60a5fa',
+  magenta: '#c084fc',
+  cyan: '#22d3ee',
+  white: '#e4e4e7',
+  brightBlack: '#3f3f46',
+  brightRed: '#fca5a5',
+  brightGreen: '#86efac',
+  brightYellow: '#fde68a',
+  brightBlue: '#93bbfd',
+  brightMagenta: '#d8b4fe',
+  brightCyan: '#67e8f9',
+  brightWhite: '#fafafa',
+}
+
+const terminalLightTheme = {
+  background: '#f8fafc',
+  foreground: '#1f2937',
+  cursor: '#7c3aed',
+  cursorAccent: '#f8fafc',
+  selectionBackground: '#7c3aed33',
+  black: '#111827',
+  red: '#dc2626',
+  green: '#15803d',
+  yellow: '#ca8a04',
+  blue: '#1d4ed8',
+  magenta: '#9333ea',
+  cyan: '#0891b2',
+  white: '#e5e7eb',
+  brightBlack: '#4b5563',
+  brightRed: '#ef4444',
+  brightGreen: '#22c55e',
+  brightYellow: '#eab308',
+  brightBlue: '#3b82f6',
+  brightMagenta: '#a855f7',
+  brightCyan: '#06b6d4',
+  brightWhite: '#f9fafb',
+}
+
+const currentTerminalTheme = computed(() => (
+  isDarkMode.value ? terminalDarkTheme : terminalLightTheme
+))
+
+const updateDarkMode = () => {
+  isDarkMode.value = document.documentElement.classList.contains('dark')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -388,29 +447,7 @@ function initTerminal(terminalId: string) {
     fontSize: 13,
     fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
     lineHeight: 1.4,
-    theme: {
-      background: '#0e0e11',
-      foreground: '#d4d4d8',
-      cursor: '#a78bfa',
-      cursorAccent: '#0e0e11',
-      selectionBackground: '#a78bfa33',
-      black: '#18181b',
-      red: '#f87171',
-      green: '#4ade80',
-      yellow: '#facc15',
-      blue: '#60a5fa',
-      magenta: '#c084fc',
-      cyan: '#22d3ee',
-      white: '#e4e4e7',
-      brightBlack: '#3f3f46',
-      brightRed: '#fca5a5',
-      brightGreen: '#86efac',
-      brightYellow: '#fde68a',
-      brightBlue: '#93bbfd',
-      brightMagenta: '#d8b4fe',
-      brightCyan: '#67e8f9',
-      brightWhite: '#fafafa',
-    },
+    theme: currentTerminalTheme.value,
   })
 
   const fit = new FitAddon()
@@ -507,6 +544,13 @@ watch(
     }
   }
 )
+
+watch(isDarkMode, () => {
+  for (const [, inst] of terminals) {
+    inst.term.options.theme = currentTerminalTheme.value
+    inst.fit.fit()
+  }
+})
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Launch flow
@@ -641,8 +685,18 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', handleKeydown))
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+  updateDarkMode()
+  darkModeObserver = new MutationObserver(updateDarkMode)
+  darkModeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  darkModeObserver?.disconnect()
+  darkModeObserver = null
+})
 </script>
 
 <style scoped>

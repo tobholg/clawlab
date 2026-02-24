@@ -7,6 +7,12 @@ interface RequestBody {
   content: string
 }
 
+function getGlobalStakeholderRequestLimit() {
+  const parsed = Number(process.env.RELAI_LIMIT_STAKEHOLDER_REQUESTS_PER_24H)
+  if (!Number.isFinite(parsed) || parsed < 0) return null
+  return Math.floor(parsed)
+}
+
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const spaceId = getRouterParam(event, 'spaceId')
@@ -60,7 +66,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check rate limit (IRs in last 24 hours)
-  const maxIRsPer24h = access.maxIRsPer24h ?? space.maxIRsPer24h
+  const baseLimit = access.maxIRsPer24h ?? space.maxIRsPer24h
+  const globalLimit = getGlobalStakeholderRequestLimit()
+  const maxIRsPer24h = globalLimit === null ? baseLimit : Math.min(baseLimit, globalLimit)
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
   
   const recentIRCount = await prisma.informationRequest.count({

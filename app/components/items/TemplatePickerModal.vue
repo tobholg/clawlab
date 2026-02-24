@@ -66,7 +66,7 @@ const createFromTemplate = async () => {
     emit('created', result)
   } catch (e: any) {
     if (e?.statusCode === 403 || e?.data?.statusCode === 403) {
-      emit('created', { error: true, message: e?.data?.message || e?.message || 'Plan limit reached.' } as any)
+      emit('created', { error: true, message: e?.data?.message || e?.message || 'Usage limit reached.' } as any)
     } else {
       console.error('Failed to create from template:', e)
     }

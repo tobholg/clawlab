@@ -37,7 +37,7 @@ const removingStakeholder = ref<string | null>(null)
 const confirmRemoveStakeholder = ref<string | null>(null)
 const collapsedSpaces = ref<Set<string>>(new Set())
 
-// Plan & usage data
+// Usage data
 const usageData = ref<any>(null)
 const usageLoading = ref(false)
 const showUpgradeModal = ref(false)

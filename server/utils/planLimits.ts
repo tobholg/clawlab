@@ -32,6 +32,7 @@ export const PLAN_LIMITS = {
 } as const
 
 type PlanTier = keyof typeof PLAN_LIMITS
+type LimitKey = 'internalSeats' | 'externalSeats' | 'projects' | 'externalSpaces' | 'workspaces' | 'aiCreditsPerUserPerMonth'
 
 type LimitCheck = {
   allowed: boolean
@@ -39,8 +40,54 @@ type LimitCheck = {
   limit: number
 }
 
+const UNLIMITED = Number.POSITIVE_INFINITY
+
+function parseBooleanFlag(value: string | undefined, fallback: boolean) {
+  if (typeof value !== 'string') return fallback
+  const normalized = value.trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false
+  return fallback
+}
+
+function parsePositiveInt(value: string | undefined) {
+  if (typeof value !== 'string') return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) return null
+  return Math.floor(parsed)
+}
+
+// Self-host default: no hard plan gating unless explicitly enabled.
+const PLAN_LIMITS_ENABLED = parseBooleanFlag(process.env.RELAI_ENABLE_PLAN_LIMITS, false)
+
+const LIMIT_OVERRIDES: Partial<Record<LimitKey, number>> = {
+  projects: parsePositiveInt(process.env.RELAI_LIMIT_PROJECTS_PER_WORKSPACE) ?? undefined,
+  externalSpaces: parsePositiveInt(process.env.RELAI_LIMIT_EXTERNAL_SPACES_PER_WORKSPACE) ?? undefined,
+  workspaces: parsePositiveInt(process.env.RELAI_LIMIT_WORKSPACES_PER_ORG) ?? undefined,
+  aiCreditsPerUserPerMonth: parsePositiveInt(process.env.RELAI_LIMIT_AI_CREDITS_PER_USER_PER_MONTH) ?? undefined,
+}
+
+function resolveLimit(key: LimitKey, defaultLimit: number) {
+  const override = LIMIT_OVERRIDES[key]
+  if (typeof override === 'number') return override
+  return PLAN_LIMITS_ENABLED ? defaultLimit : UNLIMITED
+}
+
 function getLimits(tier: PlanTier) {
-  return PLAN_LIMITS[tier] ?? PLAN_LIMITS.FREE
+  const base = PLAN_LIMITS[tier] ?? PLAN_LIMITS.FREE
+  return {
+    internalSeats: resolveLimit('internalSeats', base.internalSeats),
+    externalSeats: resolveLimit('externalSeats', base.externalSeats),
+    projects: resolveLimit('projects', base.projects),
+    externalSpaces: resolveLimit('externalSpaces', base.externalSpaces),
+    workspaces: resolveLimit('workspaces', base.workspaces),
+    aiCreditsPerUserPerMonth: resolveLimit('aiCreditsPerUserPerMonth', base.aiCreditsPerUserPerMonth),
+    canPurchaseSeats: PLAN_LIMITS_ENABLED ? base.canPurchaseSeats : true,
+  }
+}
+
+export function isPlanLimitsEnabled() {
+  return PLAN_LIMITS_ENABLED
 }
 
 // ─── Projects (root-level items) ───
@@ -97,7 +144,10 @@ export async function checkCanCreateExternalSpace(workspaceId: string): Promise<
 
   // Count external spaces across all projects in the workspace
   const current = await prisma.externalSpace.count({
-    where: { project: { workspaceId } },
+    where: {
+      archived: false,
+      project: { workspaceId },
+    },
   })
 
   return {
@@ -110,6 +160,24 @@ export async function checkCanCreateExternalSpace(workspaceId: string): Promise<
 // ─── External seats (stakeholder access — now based on Seat table) ───
 
 export async function checkCanAddStakeholder(organizationId: string): Promise<LimitCheck> {
+  if (!PLAN_LIMITS_ENABLED) {
+    const current = await prisma.stakeholderAccess.count({
+      where: {
+        externalSpace: {
+          project: {
+            workspace: { organizationId },
+          },
+        },
+      },
+    })
+
+    return {
+      allowed: true,
+      current,
+      limit: UNLIMITED,
+    }
+  }
+
   const counts = await prisma.seat.groupBy({
     by: ['status'],
     where: { organizationId, type: 'EXTERNAL' },
@@ -213,7 +281,10 @@ export async function getOrganizationUsage(organizationId: string) {
       where: { workspaceId: { in: workspaceIds }, parentId: null },
     }),
     prisma.externalSpace.count({
-      where: { project: { workspaceId: { in: workspaceIds } } },
+      where: {
+        archived: false,
+        project: { workspaceId: { in: workspaceIds } },
+      },
     }),
     prisma.workspace.count({
       where: { organizationId },

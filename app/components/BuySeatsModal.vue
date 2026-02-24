@@ -27,8 +27,6 @@ const existing = computed(() => {
 const maxAdd = computed(() => Math.max(0, MAX_PRO_SEATS - existing.value))
 const isAtCap = computed(() => existing.value >= MAX_PRO_SEATS)
 
-const isFree = computed(() => props.planTier === 'FREE')
-
 const marginalBreakdown = computed(() => {
   if (count.value < 1) return []
   return getMarginalBreakdown(existing.value, count.value, type.value)
@@ -84,13 +82,7 @@ watch(() => props.open, (val) => {
           <h2 class="text-lg font-medium text-slate-900 mb-1">Purchase seats</h2>
           <p class="text-sm text-slate-500 mb-5">Add more capacity to your organization</p>
 
-          <div v-if="isFree" class="p-4 bg-amber-50 rounded-lg border border-amber-100 mb-5">
-            <p class="text-sm text-amber-800">
-              Upgrade to <strong>Pro</strong> first to purchase additional seats.
-            </p>
-          </div>
-
-          <div v-else class="space-y-4">
+          <div class="space-y-4">
             <!-- Seat type -->
             <div>
               <label class="block text-xs font-medium text-slate-500 mb-1.5">Seat type</label>
@@ -129,8 +121,8 @@ watch(() => props.open, (val) => {
             <!-- At cap — enterprise CTA -->
             <div v-if="isAtCap" class="p-4 bg-violet-50 rounded-lg border border-violet-100">
               <p class="text-sm text-violet-800">
-                You've reached the maximum of <strong>{{ MAX_PRO_SEATS }}</strong> {{ type.toLowerCase() }} seats on Pro.
-                <a href="#" class="font-medium underline underline-offset-2">Contact sales</a> for Enterprise.
+                You've reached the current cap of <strong>{{ MAX_PRO_SEATS }}</strong> {{ type.toLowerCase() }} seats.
+                Adjust limits in your deployment config to allow more.
               </p>
             </div>
 
@@ -185,7 +177,7 @@ watch(() => props.open, (val) => {
               Cancel
             </button>
             <button
-              v-if="!isFree && !isAtCap"
+              v-if="!isAtCap"
               @click="handlePurchase"
               :disabled="purchasing"
               class="flex-1 px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"

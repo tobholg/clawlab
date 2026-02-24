@@ -7,7 +7,6 @@ definePageMeta({
 const router = useRouter()
 const { user } = useAuth()
 const { isOrgAdmin, currentWorkspace, switchWorkspace } = useWorkspaces()
-const { calculateSeatCost } = usePricing()
 const {
   organizationId,
   orgDetails,
@@ -29,7 +28,7 @@ watch(isOrgAdmin, (val) => {
   if (val === false) router.replace('/workspace')
 }, { immediate: true })
 
-const activeTab = ref<'overview' | 'workspaces' | 'members' | 'plan'>('overview')
+const activeTab = ref<'overview' | 'workspaces' | 'members' | 'limits'>('overview')
 
 // Editing state
 const editingName = ref(false)
@@ -41,10 +40,6 @@ const saveSuccess = ref(false)
 
 // Members state
 const showDeactivated = ref(false)
-
-// Plan modals
-const showUpgradeToProModal = ref(false)
-const showBuySeats = ref(false)
 
 const activeOrgMembers = computed(() => orgMembers.value.filter(m => m.status === 'ACTIVE'))
 const deactivatedOrgMembers = computed(() => orgMembers.value.filter(m => m.status === 'DEACTIVATED'))
@@ -68,16 +63,10 @@ const usageBarColor = (current: number, limit: number) => {
 }
 
 const tierLabel = computed(() => {
-  const tier = orgDetails.value?.planTier
-  if (tier === 'PRO') return 'Pro'
-  if (tier === 'ENTERPRISE') return 'Enterprise'
-  return 'Free'
+  return 'Self-hosted'
 })
 
 const tierColor = computed(() => {
-  const tier = orgDetails.value?.planTier
-  if (tier === 'PRO') return 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
-  if (tier === 'ENTERPRISE') return 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400'
   return 'bg-slate-100 text-slate-600 dark:bg-white/[0.08] dark:text-zinc-400'
 })
 
@@ -89,14 +78,6 @@ const getRoleColor = (role: string) => {
     default: return 'bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-zinc-300'
   }
 }
-
-const totalInternalSeats = computed(() => orgDetails.value?.usage?.internalSeats?.total ?? 0)
-const totalExternalSeats = computed(() => orgDetails.value?.usage?.externalSeats?.total ?? 0)
-const proCostInternal = computed(() => calculateSeatCost(totalInternalSeats.value, 'INTERNAL'))
-const proCostExternal = computed(() => calculateSeatCost(totalExternalSeats.value, 'EXTERNAL'))
-const proCostTotal = computed(() => proCostInternal.value + proCostExternal.value)
-const occupiedInternal = computed(() => orgDetails.value?.usage?.internalSeats?.occupied ?? 0)
-const occupiedExternal = computed(() => orgDetails.value?.usage?.externalSeats?.occupied ?? 0)
 
 const seatBreakdown = (seatData: any) => {
   if (!seatData) return null
@@ -208,7 +189,7 @@ const tabs = [
   { key: 'overview', label: 'Overview', icon: 'heroicons:building-office-2' },
   { key: 'workspaces', label: 'Workspaces', icon: 'heroicons:squares-2x2' },
   { key: 'members', label: 'Members', icon: 'heroicons:users' },
-  { key: 'plan', label: 'Plan & Billing', icon: 'heroicons:credit-card' },
+  { key: 'limits', label: 'Usage & Limits', icon: 'heroicons:adjustments-horizontal' },
 ]
 
 // Fetch data
@@ -226,7 +207,7 @@ watch(organizationId, (id) => {
   <div v-if="isOrgAdmin">
     <header class="relative z-10 px-6 py-5">
       <h1 class="text-xl font-medium text-slate-900 dark:text-zinc-100">Organization</h1>
-      <p class="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">Manage your organization settings, members, and billing</p>
+      <p class="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">Manage your organization settings, members, and limits</p>
     </header>
 
     <div class="flex-1 overflow-auto px-6 pb-6">
@@ -310,9 +291,9 @@ watch(organizationId, (id) => {
                 <span class="text-sm text-slate-700 dark:text-zinc-300">{{ orgDetails.slug }}</span>
               </div>
 
-              <!-- Billing email -->
+              <!-- Contact email -->
               <div>
-                <label class="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Billing email</label>
+                <label class="block text-xs text-slate-500 dark:text-zinc-400 mb-1">Contact email</label>
                 <div v-if="!editingEmail" class="flex items-center gap-2">
                   <span class="text-sm text-slate-700 dark:text-zinc-300">{{ orgDetails.billingEmail || 'Not set' }}</span>
                   <button
@@ -326,7 +307,7 @@ watch(organizationId, (id) => {
                   <input
                     v-model="editEmail"
                     type="email"
-                    placeholder="billing@company.com"
+                    placeholder="ops@company.com"
                     class="flex-1 px-3 py-1.5 border border-slate-200 dark:border-white/[0.06] dark:bg-dm-card dark:text-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-zinc-600 focus:border-slate-300"
                     @keydown.enter="saveEmail"
                     @keydown.escape="editingEmail = false"
@@ -570,51 +551,29 @@ watch(organizationId, (id) => {
         </div>
       </div>
 
-      <!-- ==================== PLAN & BILLING TAB ==================== -->
-      <div v-if="activeTab === 'plan'" class="max-w-3xl">
+      <!-- ==================== USAGE & LIMITS TAB ==================== -->
+      <div v-if="activeTab === 'limits'" class="max-w-3xl">
         <div v-if="loading" class="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400 py-8">
           <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-          Loading plan details...
+          Loading usage and limits...
         </div>
 
         <div v-else-if="orgDetails" class="space-y-6">
-          <!-- Current plan -->
+          <!-- Deployment -->
           <div class="p-5 bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06]">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Current plan</h3>
-                <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Manage your organization's plan and resource usage</p>
+                <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Deployment</h3>
+                <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Self-hosted runtime with configurable limits</p>
               </div>
               <span :class="['text-xs font-semibold px-2.5 py-1 rounded-full', tierColor]">
                 {{ tierLabel }}
               </span>
             </div>
 
-            <div v-if="orgDetails.planTier === 'FREE'" class="p-3 bg-slate-50 dark:bg-white/[0.04] rounded-lg border border-slate-100 dark:border-white/[0.06]">
+            <div class="p-3 bg-slate-50 dark:bg-white/[0.04] rounded-lg border border-slate-100 dark:border-white/[0.06]">
               <p class="text-sm text-slate-700 dark:text-zinc-300">
-                You're on the <strong>Free</strong> plan. Upgrade to <strong>Pro</strong> for more seats, projects, and 10,000 AI credits/user/mo.
-              </p>
-              <button
-                v-if="isOrgOwner"
-                @click="showUpgradeToProModal = true"
-                class="mt-2 text-sm font-medium text-slate-900 dark:text-zinc-100 underline underline-offset-2 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors"
-              >
-                Upgrade to Pro — from $5/seat/mo
-              </button>
-            </div>
-
-            <div v-else-if="orgDetails.planTier === 'PRO'" class="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-100 dark:border-blue-500/20">
-              <p class="text-sm text-blue-800 dark:text-blue-300">
-                You're on the <strong>Pro</strong> plan.
-              </p>
-              <p class="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                {{ totalInternalSeats }} internal (${{ proCostInternal }}/mo) &middot; {{ totalExternalSeats }} external (${{ proCostExternal }}/mo) &middot; <strong>Total: ${{ proCostTotal }}/mo</strong>
-              </p>
-            </div>
-
-            <div v-else class="p-3 bg-violet-50 dark:bg-violet-500/10 rounded-lg border border-violet-100 dark:border-violet-500/20">
-              <p class="text-sm text-violet-800 dark:text-violet-300">
-                You're on the <strong>Enterprise</strong> plan with custom limits.
+                This deployment defaults to unlimited plan-style caps. If your admins set environment limits, those values are enforced here.
               </p>
             </div>
           </div>
@@ -623,13 +582,6 @@ watch(organizationId, (id) => {
           <div class="p-5 bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06]">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100">Seats</h3>
-              <button
-                v-if="isOrgOwner && orgDetails.planTier !== 'FREE'"
-                @click="showBuySeats = true"
-                class="text-xs font-medium text-slate-900 dark:text-zinc-100 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/[0.06] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
-              >
-                Purchase more
-              </button>
             </div>
 
             <!-- Internal seats -->
@@ -766,15 +718,15 @@ watch(organizationId, (id) => {
             </div>
           </div>
 
-          <!-- AI Credits -->
+          <!-- AI Usage -->
           <div class="p-5 bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06]">
-            <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100 mb-1">Your AI credits this month</h3>
-            <p class="text-xs text-slate-500 dark:text-zinc-400 mb-4">AI credits are tracked per user per month and reset on the 1st</p>
+            <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100 mb-1">Your AI usage this month</h3>
+            <p class="text-xs text-slate-500 dark:text-zinc-400 mb-4">Per-user monthly counters reset on the 1st</p>
 
             <div class="flex items-center justify-between mb-1.5">
               <div class="flex items-center gap-2">
                 <Icon name="heroicons:sparkles" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
-                <span class="text-sm text-slate-700 dark:text-zinc-300">AI credits used</span>
+                <span class="text-sm text-slate-700 dark:text-zinc-300">AI queries used</span>
               </div>
               <span class="text-sm text-slate-900 dark:text-zinc-100 font-medium tabular-nums">
                 {{ orgDetails.aiCredits.current.toLocaleString() }} / {{ formatLimit(orgDetails.aiCredits.limit) }}
@@ -787,91 +739,8 @@ watch(organizationId, (id) => {
               />
             </div>
           </div>
-
-          <!-- Plan comparison -->
-          <div v-if="orgDetails.planTier !== 'ENTERPRISE'" class="p-5 bg-white dark:bg-dm-card rounded-xl border border-slate-200 dark:border-white/[0.06]">
-            <h3 class="text-sm font-medium text-slate-900 dark:text-zinc-100 mb-4">Compare plans</h3>
-
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-slate-100 dark:border-white/[0.06]">
-                  <th class="text-left py-2 text-slate-500 dark:text-zinc-400 font-normal">Feature</th>
-                  <th class="text-center py-2 text-slate-500 dark:text-zinc-400 font-normal">Free</th>
-                  <th class="text-center py-2 text-slate-900 dark:text-zinc-100 font-medium">Pro</th>
-                  <th class="text-center py-2 text-slate-500 dark:text-zinc-400 font-normal">Enterprise</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-50 dark:divide-white/[0.04]">
-                <tr>
-                  <td class="py-2 text-slate-700 dark:text-zinc-300">Internal seats</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">5</td>
-                  <td class="py-2 text-center text-slate-900 dark:text-zinc-100 font-medium">Up to 100</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">Unlimited</td>
-                </tr>
-                <tr>
-                  <td class="py-2 text-slate-700 dark:text-zinc-300">External seats</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">3</td>
-                  <td class="py-2 text-center text-slate-900 dark:text-zinc-100 font-medium">Up to 100</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">Unlimited</td>
-                </tr>
-                <tr>
-                  <td class="py-2 text-slate-700 dark:text-zinc-300">Pricing</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">Free</td>
-                  <td class="py-2 text-center text-slate-900 dark:text-zinc-100 font-medium">From $5/seat</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">Custom</td>
-                </tr>
-                <tr>
-                  <td class="py-2 text-slate-700 dark:text-zinc-300">Projects</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">1</td>
-                  <td class="py-2 text-center text-slate-900 dark:text-zinc-100 font-medium">25</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">Unlimited</td>
-                </tr>
-                <tr>
-                  <td class="py-2 text-slate-700 dark:text-zinc-300">External spaces</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">1</td>
-                  <td class="py-2 text-center text-slate-900 dark:text-zinc-100 font-medium">25</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">Unlimited</td>
-                </tr>
-                <tr>
-                  <td class="py-2 text-slate-700 dark:text-zinc-300">AI credits / user / mo</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">100</td>
-                  <td class="py-2 text-center text-slate-900 dark:text-zinc-100 font-medium">10,000</td>
-                  <td class="py-2 text-center text-slate-500 dark:text-zinc-400">Custom</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div v-if="orgDetails.planTier === 'FREE' && isOrgOwner" class="mt-4 pt-4 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
-              <p class="text-sm text-slate-500 dark:text-zinc-400">Need more room to grow?</p>
-              <button
-                @click="showUpgradeToProModal = true"
-                class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
-              >
-                Upgrade to Pro
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
-
-    <UpgradeToProModal
-      :open="showUpgradeToProModal"
-      :occupied-internal="occupiedInternal"
-      :occupied-external="occupiedExternal"
-      :organization-id="organizationId"
-      @close="showUpgradeToProModal = false"
-      @upgraded="fetchOrgDetails()"
-    />
-
-    <BuySeatsModal
-      :open="showBuySeats"
-      :plan-tier="orgDetails?.planTier"
-      :current-internal="totalInternalSeats"
-      :current-external="totalExternalSeats"
-      :organization-id="organizationId"
-      @close="showBuySeats = false"
-      @purchased="fetchOrgDetails()"
-    />
   </div>
 </template>

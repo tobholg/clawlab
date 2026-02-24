@@ -201,16 +201,10 @@ const { data: planData } = useFetch(() => workspaceId.value ? `/api/workspaces/$
   watch: [workspaceId],
 })
 const planTierLabel = computed(() => {
-  const tier = (planData.value as any)?.planTier
-  if (tier === 'PRO') return 'Pro'
-  if (tier === 'ENTERPRISE') return 'Enterprise'
-  return 'Free'
+  return 'Self-hosted'
 })
 const planTierClass = computed(() => {
-  const tier = (planData.value as any)?.planTier
-  if (tier === 'PRO') return 'text-blue-500'
-  if (tier === 'ENTERPRISE') return 'text-violet-500'
-  return 'text-slate-400'
+  return 'text-slate-400 dark:text-zinc-500'
 })
 
 // FocusSidebar ref for timeline

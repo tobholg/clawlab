@@ -8,7 +8,7 @@
         ? 'bg-violet-600 text-white scale-90'
         : hasTerminals
           ? 'bg-violet-600 text-white hover:scale-105 hover:shadow-xl hover:shadow-violet-500/20'
-          : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:scale-105 hover:shadow-xl border border-white/[0.06]'
+          : 'bg-white dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:scale-105 hover:shadow-xl border border-slate-200 dark:border-white/[0.06]'
     ]"
   >
     <!-- Terminal icon -->
@@ -20,7 +20,7 @@
     <!-- Active count badge -->
     <span
       v-if="!isOpen && activeCount > 0"
-      class="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-dm-surface"
+      class="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-dm-surface"
     >
       {{ activeCount }}
     </span>

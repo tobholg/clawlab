@@ -6,6 +6,7 @@ import { createSession } from '../../utils/auth'
 import { provisionDefaultSeats } from '../../utils/seats'
 import { hashPassword } from '../../utils/password'
 import { defaultRunnerCommandForProvider } from '../../utils/agentRunner'
+import { isPlanLimitsEnabled } from '../../utils/planLimits'
 // Agent tokens stored as plain text (self-hosted, no hashing needed)
 
 interface SetupRequest {
@@ -82,8 +83,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Team mode: validate invites
-  if (body.mode === 'team' && body.teamEmails && body.teamEmails.length > 4) {
-    throw createError({ statusCode: 400, message: 'Free plan allows up to 4 team invites' })
+  if (isPlanLimitsEnabled() && body.mode === 'team' && body.teamEmails && body.teamEmails.length > 4) {
+    throw createError({ statusCode: 400, message: 'Current limits allow up to 4 team invites' })
   }
 
   const normalizedAgents = Array.isArray(body.agents) ? body.agents : []

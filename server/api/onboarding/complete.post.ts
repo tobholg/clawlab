@@ -3,6 +3,7 @@ import { seedDemoData } from '../../utils/seedDemoData'
 import { createDefaultChannels } from '../../utils/channelUtils'
 import { createSession } from '../../utils/auth'
 import { provisionDefaultSeats } from '../../utils/seats'
+import { isPlanLimitsEnabled } from '../../utils/planLimits'
 
 interface OnboardingRequest {
   organization: {
@@ -42,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   if (tier === 'PRO') {
     if (!body.seatSelection || body.seatSelection.internal < 1 || body.seatSelection.internal > 100) {
-      throw createError({ statusCode: 400, message: 'Pro requires 1-100 internal seats' })
+      throw createError({ statusCode: 400, message: 'Configured tier requires 1-100 internal seats' })
     }
     if (body.seatSelection.external < 0 || body.seatSelection.external > 100) {
       throw createError({ statusCode: 400, message: 'External seats must be 0-100' })
@@ -50,9 +51,9 @@ export default defineEventHandler(async (event) => {
     if (body.teamEmails && body.teamEmails.length > body.seatSelection.internal - 1) {
       throw createError({ statusCode: 400, message: 'Too many invites for selected seat count' })
     }
-  } else {
+  } else if (isPlanLimitsEnabled()) {
     if (body.teamEmails && body.teamEmails.length > 4) {
-      throw createError({ statusCode: 400, message: 'Free plan allows up to 4 team invites' })
+      throw createError({ statusCode: 400, message: 'Current limits allow up to 4 team invites' })
     }
   }
 

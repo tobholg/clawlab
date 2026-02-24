@@ -56,7 +56,7 @@ const handleUpgrade = async () => {
     emit('upgraded')
     emit('close')
   } catch (e: any) {
-    error.value = e?.data?.message || 'Failed to upgrade'
+    error.value = e?.data?.message || 'Failed to apply configuration'
   } finally {
     upgrading.value = false
   }
@@ -88,7 +88,7 @@ watch(() => props.open, (val) => {
               <Icon name="heroicons:rocket-launch" class="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 class="text-lg font-medium text-slate-900">Upgrade to Pro</h2>
+              <h2 class="text-lg font-medium text-slate-900">Configure seats</h2>
               <p class="text-xs text-slate-500">Choose how many seats you need</p>
             </div>
           </div>
@@ -97,8 +97,7 @@ watch(() => props.open, (val) => {
           <div class="p-3 bg-violet-50 rounded-lg border border-violet-100 mb-5">
             <div class="flex items-center gap-2 text-sm text-violet-800">
               <Icon name="heroicons:sparkles" class="w-4 h-4 text-violet-600" />
-              <strong>10,000 AI credits/user/mo</strong>
-              <span class="text-violet-600">(100x more than Free)</span>
+              <strong>Higher AI usage limits</strong>
             </div>
           </div>
 
@@ -189,7 +188,7 @@ watch(() => props.open, (val) => {
               :disabled="upgrading"
               class="flex-1 px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
-              {{ upgrading ? 'Upgrading...' : 'Upgrade to Pro' }}
+              {{ upgrading ? 'Applying...' : 'Apply configuration' }}
             </button>
           </div>
         </div>

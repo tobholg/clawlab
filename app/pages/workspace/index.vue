@@ -187,7 +187,7 @@ const handleCreateItem = async (data: { title: string; description?: string; cat
   } catch (e: any) {
     if (e?.statusCode === 403 || e?.data?.statusCode === 403) {
       showCreateModal.value = false
-      upgradeMessage.value = e?.data?.message || e?.message || 'Plan limit reached.'
+      upgradeMessage.value = e?.data?.message || e?.message || 'Usage limit reached.'
       showUpgradeModal.value = true
     }
   }
