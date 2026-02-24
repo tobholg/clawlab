@@ -276,7 +276,7 @@ onUnmounted(() => {
     <Transition name="modal">
       <div 
         v-if="open" 
-        class="fixed inset-0 z-50 flex items-center justify-center"
+        class="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto px-4 py-4 sm:py-6"
       >
         <!-- Backdrop -->
         <div 
@@ -285,9 +285,9 @@ onUnmounted(() => {
         />
         
         <!-- Modal -->
-        <div class="relative bg-white dark:bg-dm-panel rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-visible">
+        <div class="relative bg-white dark:bg-dm-panel rounded-2xl shadow-xl w-full max-w-lg max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] overflow-hidden my-auto flex flex-col">
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-white/[0.06] shrink-0">
             <h2 class="text-base font-medium text-slate-900 dark:text-zinc-100">
               {{ isProject ? 'New Project' : 'New Item' }}
             </h2>
@@ -300,7 +300,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Mode Toggle -->
-          <div v-if="!isProject" class="px-6 pt-4">
+          <div v-if="!isProject" class="px-6 pt-4 pb-3 shrink-0">
             <div class="inline-flex p-1 rounded-lg bg-slate-100 border border-slate-200 dark:bg-white/[0.06] dark:border-white/[0.06]">
               <button
                 type="button"
@@ -326,7 +326,8 @@ onUnmounted(() => {
           </div>
 
           <!-- Manual Form -->
-          <form v-if="isProject || mode === 'manual'" @submit.prevent="handleSubmit" class="p-6 space-y-4">
+          <form v-if="isProject || mode === 'manual'" @submit.prevent="handleSubmit" class="flex-1 min-h-0 flex flex-col">
+            <div class="px-6 py-4 space-y-4 overflow-y-auto">
             <!-- Title -->
             <div>
               <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-1.5">
@@ -632,8 +633,10 @@ onUnmounted(() => {
               />
             </div>
             
+            </div>
+
             <!-- Actions -->
-            <div class="flex justify-end gap-2 pt-2">
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-panel flex justify-end gap-2 shrink-0">
               <button
                 type="button"
                 @click="handleClose"
@@ -652,56 +655,58 @@ onUnmounted(() => {
           </form>
 
           <!-- AI Form -->
-          <form v-else @submit.prevent="handleAiSubmit" class="p-6 space-y-4">
-            <div
-              :class="[
-                'rounded-xl border bg-gradient-to-br p-4 transition-all duration-300',
-                aiCreating
-                  ? 'border-violet-300 from-violet-100 via-white to-sky-100 shadow-[0_0_0_2px_rgba(139,92,246,0.08)] dark:border-violet-500/30 dark:from-violet-500/10 dark:via-dm-card dark:to-sky-500/10'
-                  : 'border-violet-200/70 from-violet-50 via-white to-blue-50 dark:border-violet-500/20 dark:from-violet-500/5 dark:via-dm-card dark:to-blue-500/5'
-              ]"
-            >
-              <label class="block text-xs font-medium text-slate-600 dark:text-zinc-300 mb-2">
-                Describe what should be created
-              </label>
-              <textarea
-                v-model="aiInput"
-                rows="7"
-                placeholder="Paste an email, spec, bug report, or task description..."
-                :disabled="aiCreating || aiSuccess"
-                class="w-full px-3 py-2 text-sm border border-violet-200/80 rounded-lg bg-white/90 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-300 transition-all resize-none disabled:opacity-70 dark:bg-white/[0.06] dark:border-violet-500/20 dark:text-zinc-100 dark:placeholder-zinc-500"
-                autofocus
-              />
-              <p class="text-xs text-slate-500 dark:text-zinc-500 mt-2">
-                ClawLab AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
-              </p>
+          <form v-else @submit.prevent="handleAiSubmit" class="flex-1 min-h-0 flex flex-col">
+            <div class="px-6 py-4 space-y-4 overflow-y-auto">
+              <div
+                :class="[
+                  'rounded-xl border bg-gradient-to-br p-4 transition-all duration-300',
+                  aiCreating
+                    ? 'border-violet-300 from-violet-100 via-white to-sky-100 shadow-[0_0_0_2px_rgba(139,92,246,0.08)] dark:border-violet-500/30 dark:from-violet-500/10 dark:via-dm-card dark:to-sky-500/10'
+                    : 'border-violet-200/70 from-violet-50 via-white to-blue-50 dark:border-violet-500/20 dark:from-violet-500/5 dark:via-dm-card dark:to-blue-500/5'
+                ]"
+              >
+                <label class="block text-xs font-medium text-slate-600 dark:text-zinc-300 mb-2">
+                  Describe what should be created
+                </label>
+                <textarea
+                  v-model="aiInput"
+                  rows="7"
+                  placeholder="Paste an email, spec, bug report, or task description..."
+                  :disabled="aiCreating || aiSuccess"
+                  class="w-full px-3 py-2 text-sm border border-violet-200/80 rounded-lg bg-white/90 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-300 transition-all resize-none disabled:opacity-70 dark:bg-white/[0.06] dark:border-violet-500/20 dark:text-zinc-100 dark:placeholder-zinc-500"
+                  autofocus
+                />
+                <p class="text-xs text-slate-500 dark:text-zinc-500 mt-2">
+                  ClawLab AI will generate one task, or a parent task with up to 5 subtasks if a hierarchy is clear.
+                </p>
+
+                <div
+                  v-if="aiCreating"
+                  class="mt-3 flex items-center gap-2 text-violet-700 dark:text-violet-400"
+                >
+                  <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
+                  <span class="text-xs font-medium animate-pulse">ClawLab AI is shaping your task plan...</span>
+                </div>
+              </div>
 
               <div
-                v-if="aiCreating"
-                class="mt-3 flex items-center gap-2 text-violet-700 dark:text-violet-400"
+                v-if="aiError"
+                class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
               >
-                <Icon name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
-                <span class="text-xs font-medium animate-pulse">ClawLab AI is shaping your task plan...</span>
+                {{ aiError }}
+              </div>
+
+              <div
+                v-if="aiSuccess"
+                class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+              >
+                Created {{ aiCreatedCount }} task{{ aiCreatedCount === 1 ? '' : 's' }}
+                <span v-if="aiCreatedSubtasks > 0"> ({{ aiCreatedSubtasks }} subtasks)</span>.
+                Opening item...
               </div>
             </div>
 
-            <div
-              v-if="aiError"
-              class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
-            >
-              {{ aiError }}
-            </div>
-
-            <div
-              v-if="aiSuccess"
-              class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
-            >
-              Created {{ aiCreatedCount }} task{{ aiCreatedCount === 1 ? '' : 's' }}
-              <span v-if="aiCreatedSubtasks > 0"> ({{ aiCreatedSubtasks }} subtasks)</span>.
-              Opening item...
-            </div>
-
-            <div class="flex justify-end gap-2 pt-1">
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-panel flex justify-end gap-2 shrink-0">
               <button
                 type="button"
                 @click="handleClose"

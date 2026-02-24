@@ -80,6 +80,7 @@ export default defineEventHandler(async (event) => {
         select: {
           id: true,
           title: true,
+          parentId: true,
           workspaceId: true,
           projectId: true,
         },
@@ -97,7 +98,12 @@ export default defineEventHandler(async (event) => {
   })
 
   const projectIds = [...new Set(sessions
-    .map((session) => session.projectId ?? session.item?.projectId ?? session.itemId ?? null)
+    .map((session) => {
+      if (session.projectId) return session.projectId
+      if (session.item?.projectId) return session.item.projectId
+      if (session.item && !session.item.parentId) return session.item.id
+      return null
+    })
     .filter((id): id is string => !!id))]
 
   const projects = projectIds.length
@@ -119,7 +125,9 @@ export default defineEventHandler(async (event) => {
       const session = sessionById.get(ptySession.agentSessionId)
       if (!session) return null
 
-      const resolvedProjectId = session.projectId ?? session.item?.projectId ?? session.itemId ?? null
+      const resolvedProjectId = session.projectId
+        ?? session.item?.projectId
+        ?? (session.item && !session.item.parentId ? session.item.id : null)
       const project = resolvedProjectId ? projectById.get(resolvedProjectId) : null
       const workspaceId = session.item?.workspaceId ?? project?.workspaceId ?? null
 

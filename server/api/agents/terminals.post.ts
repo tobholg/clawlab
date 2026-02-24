@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const resolvedProjectId = session.projectId ?? session.item?.projectId ?? session.itemId ?? null
+  const scopeKey = resolvedProjectId ? `project:${resolvedProjectId}` : 'global'
   const project = resolvedProjectId
     ? await prisma.item.findUnique({
         where: { id: resolvedProjectId },
@@ -106,6 +107,7 @@ export default defineEventHandler(async (event) => {
   await createPtySession({
     terminalId,
     agentSessionId: session.id,
+    scopeKey,
     cwd,
     env,
     cols: typeof body.cols === 'number' ? body.cols : undefined,

@@ -12,6 +12,7 @@ export interface PtySession {
   pid: number
   buffer: string[]
   agentSessionId: string
+  scopeKey: string
   pendingLine: string
   exited: boolean
   dataListeners: Set<(data: string) => void>
@@ -157,6 +158,7 @@ function markSessionTerminated(agentSessionId: string) {
 export async function createPtySession(opts: {
   terminalId: string
   agentSessionId: string
+  scopeKey?: string
   cwd: string
   env: Record<string, string>
   cols?: number
@@ -171,6 +173,7 @@ export async function createPtySession(opts: {
     pid: 0,
     buffer: [],
     agentSessionId: opts.agentSessionId,
+    scopeKey: opts.scopeKey ?? 'global',
     pendingLine: '',
     exited: false,
     dataListeners: new Set(),
@@ -239,9 +242,10 @@ export function resizePty(terminalId: string, cols: number, rows: number): void 
   }
 }
 
-export function listPtySessions(): Array<{ terminalId: string; agentSessionId: string }> {
+export function listPtySessions(): Array<{ terminalId: string; agentSessionId: string; scopeKey: string }> {
   return [...sessions.values()].map((s) => ({
     terminalId: s.id,
     agentSessionId: s.agentSessionId,
+    scopeKey: s.scopeKey,
   }))
 }

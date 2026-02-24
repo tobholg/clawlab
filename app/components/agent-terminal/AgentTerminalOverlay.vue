@@ -17,10 +17,17 @@
                 <svg class="w-5 h-5 text-slate-700 dark:text-zinc-100" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
               <span class="text-[21px] tracking-tight leading-none"><span class="font-semibold text-slate-900 dark:text-zinc-100">claw</span><span class="font-medium text-slate-500 dark:text-zinc-400">lab</span></span>
+              <button
+                @click="showScopePane = !showScopePane"
+                class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] transition-colors shrink-0"
+                :title="showScopePane ? 'Hide scopes' : 'Show scopes'"
+              >
+                <Icon :name="showScopePane ? 'heroicons:chevron-left' : 'heroicons:chevron-right'" class="w-4 h-4" />
+              </button>
               <span
-                v-if="tabs.length"
+                v-if="totalOpenCount"
                 class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 bg-white/85 dark:bg-white/[0.06] border border-slate-200 dark:border-transparent px-1.5 py-0.5 rounded-md tabular-nums"
-              >{{ tabs.length }}/6</span>
+              >{{ scopeOpenCount }}/{{ MAX_TERMINALS_PER_SCOPE }} · {{ totalOpenCount }}/{{ MAX_TERMINALS_TOTAL }}</span>
             </div>
 
             <div class="flex-1" />
@@ -45,7 +52,7 @@
               </button>
             </div>
 
-            <template v-if="tabs.length < 6">
+            <template v-if="canLaunchInScope">
               <!-- + Shell -->
               <button
                 @click="launchShell"
@@ -89,7 +96,7 @@
                 </div>
               </div>
             </template>
-            <span v-else class="text-xs text-slate-500 dark:text-zinc-600 px-1">Max 6 open</span>
+            <span v-else class="text-xs text-slate-500 dark:text-zinc-600 px-1">{{ scopeLimitText }}</span>
 
             <!-- Close overlay -->
             <button
@@ -100,86 +107,113 @@
             </button>
           </div>
 
-          <!-- Terminal grid -->
-          <div
-            class="flex-1 min-h-0 grid gap-2"
-            :class="gridClass"
-          >
-            <!-- Empty state -->
-            <div
-              v-if="!tabs.length"
-              class="flex items-center justify-center"
+          <!-- Scoped terminal workspace -->
+          <div class="flex-1 min-h-0 flex gap-2">
+            <aside
+              v-if="showScopePane"
+              class="w-56 shrink-0 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white/85 dark:bg-white/[0.04] p-2 overflow-y-auto"
             >
-              <div class="text-center">
-                <Icon name="heroicons:command-line" class="w-10 h-10 text-slate-400 dark:text-zinc-700 mx-auto mb-3" />
-                <p class="text-slate-600 dark:text-zinc-400 font-medium mb-1">No active terminals</p>
-                <p class="text-slate-500 dark:text-zinc-600 text-sm mb-4">Launch a terminal to start an agent session</p>
+              <div class="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
+                Scopes
+              </div>
+              <div class="space-y-1">
                 <button
-                  @click="showLauncher = true"
-                  class="px-4 py-2 rounded-lg text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/10 hover:bg-violet-200 dark:hover:bg-violet-500/20 transition-colors"
+                  v-for="scope in scopeEntries"
+                  :key="scope.id"
+                  @click="setSelectedScope(scope.id)"
+                  class="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors"
+                  :class="scope.id === selectedScopeId
+                    ? 'bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-200'
+                    : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]'"
                 >
-                  <Icon name="heroicons:plus" class="w-4 h-4 inline mr-1" />
-                  Launch Terminal
+                  <Icon :name="scope.type === 'global' ? 'heroicons:globe-alt' : 'heroicons:folder'" class="w-4 h-4 shrink-0" />
+                  <span class="text-sm truncate flex-1">{{ scope.label }}</span>
+                  <span class="text-[10px] tabular-nums rounded px-1.5 py-0.5 bg-white/80 dark:bg-white/[0.08] border border-slate-200 dark:border-transparent">
+                    {{ scope.count }}/{{ MAX_TERMINALS_PER_SCOPE }}
+                  </span>
                 </button>
               </div>
-            </div>
+              <p v-if="loadingProjects" class="text-[11px] text-slate-400 dark:text-zinc-600 px-2 pt-2">Loading projects…</p>
+            </aside>
 
-            <!-- Terminal tiles -->
-            <div
-              v-for="(tab, index) in tabs"
-              :key="tab.terminalId"
-              class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150"
-              :class="[tileClass(index), activeTabId === tab.terminalId
-                ? 'border-violet-400/70 dark:border-violet-500/40 shadow-[0_0_0_1px_rgba(139,92,246,0.15)]'
-                : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]']"
-              @click="switchTab(tab.terminalId); focusTerminal(tab.terminalId)"
-            >
-              <!-- Tile header -->
+            <div class="flex-1 min-h-0 grid gap-2" :class="gridClass">
+              <!-- Empty state -->
               <div
-                class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none"
-                :class="activeTabId === tab.terminalId ? 'bg-violet-100/90 dark:bg-violet-950/40' : 'bg-white/90 dark:bg-[#111115]'"
+                v-if="!scopeTabs.length"
+                class="flex items-center justify-center"
               >
-                <!-- Status dot -->
-                <span :class="[
-                  'w-1.5 h-1.5 rounded-full shrink-0',
-                  tab.status === 'active' ? 'bg-emerald-400 animate-pulse' :
-                  tab.status === 'awaiting_review' ? 'bg-emerald-400' :
-                  tab.status === 'idle' ? 'bg-amber-400' :
-                  'bg-zinc-600'
-                ]" />
-
-                <!-- Agent name -->
-                <span class="text-[13px] font-semibold text-slate-700 dark:text-zinc-300 shrink-0 tracking-tight">{{ tab.agentName }}</span>
-
-                <!-- Separator -->
-                <span class="text-slate-300 dark:text-zinc-700 shrink-0">·</span>
-
-                <!-- Task title -->
-                <span
-                  v-if="tab.taskTitle"
-                  class="text-[13px] text-slate-500 dark:text-zinc-500 truncate flex-1 hover:text-violet-600 dark:hover:text-violet-400 transition-colors cursor-pointer"
-                  @click.stop="openTaskFromTab(tab)"
-                >{{ tab.taskTitle }}</span>
-                <span v-else class="text-[13px] text-slate-400 dark:text-zinc-700 flex-1">No task checked out</span>
-
-                <!-- Duration -->
-                <span class="text-xs text-slate-500 dark:text-zinc-600 shrink-0 tabular-nums">{{ formatDuration(tab.startedAt) }}</span>
-
-                <!-- Close -->
-                <button
-                  @click.stop="closeTerminal(tab.terminalId)"
-                  title="Close terminal (⌥W)"
-                  class="w-5 h-5 flex items-center justify-center rounded text-slate-400 dark:text-zinc-700 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-0.5"
-                >
-                  <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
-                </button>
+                <div class="text-center">
+                  <Icon name="heroicons:command-line" class="w-10 h-10 text-slate-400 dark:text-zinc-700 mx-auto mb-3" />
+                  <p class="text-slate-600 dark:text-zinc-400 font-medium mb-1">No active terminals in {{ selectedScopeLabel }}</p>
+                  <p class="text-slate-500 dark:text-zinc-600 text-sm mb-4">Launch a terminal to start an agent session</p>
+                  <button
+                    @click="showLauncher = true"
+                    class="px-4 py-2 rounded-lg text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/10 hover:bg-violet-200 dark:hover:bg-violet-500/20 transition-colors"
+                  >
+                    <Icon name="heroicons:plus" class="w-4 h-4 inline mr-1" />
+                    Launch Terminal
+                  </button>
+                </div>
               </div>
 
-              <!-- xterm container -->
+              <!-- Terminal tiles -->
               <div
-                :ref="(el) => setTerminalRef(tab.terminalId, el as HTMLElement)"
-                class="flex-1 min-h-0 bg-slate-50 dark:bg-[#0e0e11] overflow-hidden"
-              />
+                v-for="(tab, index) in scopeTabs"
+                :key="tab.terminalId"
+                class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150"
+                :class="[tileClass(index), activeTabId === tab.terminalId
+                  ? 'border-violet-400/70 dark:border-violet-500/40 shadow-[0_0_0_1px_rgba(139,92,246,0.15)]'
+                  : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]']"
+                @click="switchTab(tab.terminalId); focusTerminal(tab.terminalId)"
+              >
+                <!-- Tile header -->
+                <div
+                  class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none"
+                  :class="activeTabId === tab.terminalId ? 'bg-violet-100/90 dark:bg-violet-950/40' : 'bg-white/90 dark:bg-[#111115]'"
+                >
+                  <!-- Status dot -->
+                  <span :class="[
+                    'w-1.5 h-1.5 rounded-full shrink-0',
+                    tab.status === 'active' ? 'bg-emerald-400 animate-pulse' :
+                    tab.status === 'awaiting_review' ? 'bg-emerald-400' :
+                    tab.status === 'idle' ? 'bg-amber-400' :
+                    'bg-zinc-600'
+                  ]" />
+
+                  <!-- Agent name -->
+                  <span class="text-[13px] font-semibold text-slate-700 dark:text-zinc-300 shrink-0 tracking-tight">{{ tab.agentName }}</span>
+
+                  <span class="text-[10px] rounded px-1.5 py-0.5 shrink-0 bg-slate-100 text-slate-600 border border-slate-200 dark:bg-white/[0.08] dark:text-zinc-400 dark:border-transparent">
+                    {{ tab.projectTitle || 'Root' }}
+                  </span>
+
+                  <!-- Task title -->
+                  <span
+                    v-if="tab.taskTitle"
+                    class="text-[13px] text-slate-500 dark:text-zinc-500 truncate flex-1 hover:text-violet-600 dark:hover:text-violet-400 transition-colors cursor-pointer"
+                    @click.stop="openTaskFromTab(tab)"
+                  >{{ tab.taskTitle }}</span>
+                  <span v-else class="text-[13px] text-slate-400 dark:text-zinc-700 flex-1">No task checked out</span>
+
+                  <!-- Duration -->
+                  <span class="text-xs text-slate-500 dark:text-zinc-600 shrink-0 tabular-nums">{{ formatDuration(tab.startedAt) }}</span>
+
+                  <!-- Close -->
+                  <button
+                    @click.stop="closeTerminal(tab.terminalId)"
+                    title="Close terminal (⌥W)"
+                    class="w-5 h-5 flex items-center justify-center rounded text-slate-400 dark:text-zinc-700 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0 ml-0.5"
+                  >
+                    <Icon name="heroicons:x-mark" class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <!-- xterm container -->
+                <div
+                  :ref="(el) => setTerminalRef(tab.terminalId, el as HTMLElement)"
+                  class="flex-1 min-h-0 bg-slate-50 dark:bg-[#0e0e11] overflow-hidden"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -193,6 +227,7 @@
             <div class="absolute inset-0" @click="showLauncher = false" />
             <div class="relative w-[440px] bg-white dark:bg-[#161619] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-2xl p-6">
               <h3 class="text-slate-900 dark:text-white font-semibold mb-4 text-sm">Launch Terminal</h3>
+              <p class="text-[11px] text-slate-500 dark:text-zinc-500 -mt-2 mb-3">Scope: {{ selectedScopeLabel }} · {{ scopeOpenCount }}/{{ MAX_TERMINALS_PER_SCOPE }}</p>
 
               <div v-if="!launching" class="space-y-2">
                 <!-- Plain terminal -->
@@ -205,7 +240,7 @@
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="text-sm font-medium text-slate-900 dark:text-white">Plain Terminal</div>
-                    <div class="text-xs text-slate-500 dark:text-zinc-500">Shell session in project directory</div>
+                    <div class="text-xs text-slate-500 dark:text-zinc-500">Shell session in selected scope directory</div>
                   </div>
                 </button>
 
@@ -265,14 +300,19 @@ import { useAgentTerminals } from '~/composables/useAgentTerminals'
 const {
   isOpen,
   tabs,
+  selectedScopeId,
   activeTabId,
   launching,
   launcherDefaults,
+  setSelectedScope,
+  getTabsForScope,
   close,
   switchTab,
   closeTerminal,
   quickLaunch,
   connectTerminal,
+  MAX_TERMINALS_PER_SCOPE,
+  MAX_TERMINALS_TOTAL,
 } = useAgentTerminals()
 
 const { openTask } = useTaskDetail()
@@ -285,10 +325,38 @@ function openTaskFromTab(tab: any) {
 // Grid layout — Hyprland-style tiling or equal columns
 // ─────────────────────────────────────────────────────────────────────────────
 
-const layoutMode = ref<'tiled' | 'columns'>('tiled')
+const showScopePane = ref(true)
+const layoutByScope = ref<Record<string, 'tiled' | 'columns'>>({ global: 'tiled' })
+
+const scopeTabs = computed(() => getTabsForScope(selectedScopeId.value))
+const selectedProjectId = computed(() => (
+  selectedScopeId.value.startsWith('project:') ? selectedScopeId.value.slice('project:'.length) : null
+))
+const scopeOpenCount = computed(() => scopeTabs.value.length)
+const totalOpenCount = computed(() => tabs.value.length)
+const canLaunchInScope = computed(() => (
+  scopeOpenCount.value < MAX_TERMINALS_PER_SCOPE && totalOpenCount.value < MAX_TERMINALS_TOTAL
+))
+const scopeLimitText = computed(() => {
+  if (totalOpenCount.value >= MAX_TERMINALS_TOTAL) return `Max ${MAX_TERMINALS_TOTAL} total open`
+  if (scopeOpenCount.value >= MAX_TERMINALS_PER_SCOPE) return `Max ${MAX_TERMINALS_PER_SCOPE} open in this scope`
+  return ''
+})
+
+const layoutMode = computed<'tiled' | 'columns'>({
+  get() {
+    return layoutByScope.value[selectedScopeId.value] ?? 'tiled'
+  },
+  set(value) {
+    layoutByScope.value = {
+      ...layoutByScope.value,
+      [selectedScopeId.value]: value,
+    }
+  },
+})
 
 const gridClass = computed(() => {
-  const n = tabs.value.length
+  const n = scopeTabs.value.length
   if (layoutMode.value === 'columns') {
     return ['grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-5', 'grid-cols-6'][Math.min(n, 6) - 1] ?? 'grid-cols-1'
   }
@@ -301,12 +369,61 @@ const gridClass = computed(() => {
 })
 
 const tileClass = (index: number) => {
-  if (layoutMode.value === 'tiled' && tabs.value.length === 3 && index === 0) return 'row-span-2'
+  if (layoutMode.value === 'tiled' && scopeTabs.value.length === 3 && index === 0) return 'row-span-2'
   return ''
 }
 
+type ScopeEntry = {
+  id: string
+  label: string
+  type: 'global' | 'project'
+  count: number
+}
+
+const workspaceProjects = ref<Array<{ id: string; title: string }>>([])
+const loadingProjects = ref(false)
+const projectById = computed(() => {
+  const map = new Map<string, string>()
+  for (const project of workspaceProjects.value) map.set(project.id, project.title)
+  for (const tab of tabs.value) {
+    if (tab.projectId && tab.projectTitle && !map.has(tab.projectId)) {
+      map.set(tab.projectId, tab.projectTitle)
+    }
+  }
+  return map
+})
+const scopeEntries = computed<ScopeEntry[]>(() => {
+  const countByScope = new Map<string, number>()
+  for (const tab of tabs.value) {
+    countByScope.set(tab.scopeId, (countByScope.get(tab.scopeId) ?? 0) + 1)
+  }
+
+  const entries: ScopeEntry[] = [{
+    id: 'global',
+    label: 'Global',
+    type: 'global',
+    count: countByScope.get('global') ?? 0,
+  }]
+
+  for (const [projectId, title] of projectById.value.entries()) {
+    const id = `project:${projectId}`
+    entries.push({
+      id,
+      label: title,
+      type: 'project',
+      count: countByScope.get(id) ?? 0,
+    })
+  }
+
+  return entries
+})
+const selectedScopeLabel = computed(() => (
+  scopeEntries.value.find(entry => entry.id === selectedScopeId.value)?.label ?? 'Global'
+))
+
 const isDarkMode = ref(false)
 let darkModeObserver: MutationObserver | null = null
+let darkSchemeMedia: MediaQueryList | null = null
 
 const terminalDarkTheme = {
   background: '#0e0e11',
@@ -361,7 +478,10 @@ const currentTerminalTheme = computed(() => (
 ))
 
 const updateDarkMode = () => {
-  isDarkMode.value = document.documentElement.classList.contains('dark')
+  const mediaDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const classDark = document.documentElement.classList.contains('dark')
+    || document.body.classList.contains('dark')
+  isDarkMode.value = mediaDark || classDark
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -376,44 +496,58 @@ const setTerminalRef = (terminalId: string, el: HTMLElement | null) => {
   else terminalRefs.delete(terminalId)
 }
 
+async function attachVisibleScopeTerminals() {
+  if (!isOpen.value) return
+  await nextTick()
+  for (const tab of scopeTabs.value) {
+    const inst = terminals.get(tab.terminalId)
+    const container = terminalRefs.get(tab.terminalId)
+    if (inst && container) {
+      // Move xterm element into this scope's mounted container.
+      if (inst.term.element && inst.term.element.parentElement !== container) {
+        container.appendChild(inst.term.element)
+      }
+      inst.ro.disconnect()
+      inst.ro.observe(container)
+    } else if (!inst && container) {
+      initTerminal(tab.terminalId)
+    }
+  }
+  for (const delay of [50, 200, 500]) {
+    setTimeout(() => fitAllTerminals(), delay)
+  }
+}
+
 // Initialize terminal when a new tab appears
 watch(
   () => tabs.value.length,
   async () => {
+    if (!isOpen.value) return
     await nextTick()
-    for (const tab of tabs.value) {
+    for (const tab of scopeTabs.value) {
       if (!terminals.has(tab.terminalId) && terminalRefs.has(tab.terminalId)) {
         initTerminal(tab.terminalId)
       }
     }
     // Re-fit all after grid reflow
-    setTimeout(() => fitAllTerminals(), 100)
+    attachVisibleScopeTerminals()
   }
 )
 
 // Re-attach and re-fit terminals when overlay opens (v-if recreates DOM)
 watch(isOpen, async (open) => {
-  if (open) {
-    await nextTick()
-    for (const tab of tabs.value) {
-      const inst = terminals.get(tab.terminalId)
-      const container = terminalRefs.get(tab.terminalId)
-      if (inst && container) {
-        // Move xterm's own element into the fresh container (open() can't be called twice)
-        if (inst.term.element && inst.term.element.parentElement !== container) {
-          container.appendChild(inst.term.element)
-        }
-        // Reconnect ResizeObserver to the new container element
-        inst.ro.disconnect()
-        inst.ro.observe(container)
-      } else if (!inst && container) {
-        initTerminal(tab.terminalId)
-      }
-    }
-    for (const delay of [50, 200, 500]) {
-      setTimeout(() => fitAllTerminals(), delay)
-    }
+  if (open) attachVisibleScopeTerminals()
+})
+
+watch(
+  () => scopeTabs.value.map(tab => tab.terminalId).join(','),
+  () => {
+    attachVisibleScopeTerminals()
   }
+)
+
+watch(selectedScopeId, () => {
+  attachVisibleScopeTerminals()
 })
 
 function focusTerminal(terminalId: string) {
@@ -442,6 +576,7 @@ function initTerminal(terminalId: string) {
   const container = terminalRefs.get(terminalId)
   if (!container) return
 
+  updateDarkMode()
   const term = new Terminal({
     cursorBlink: true,
     fontSize: 13,
@@ -545,6 +680,12 @@ watch(
   }
 )
 
+watch([selectedScopeId, scopeTabs], () => {
+  if (!scopeTabs.value.length) return
+  if (activeTabId.value && scopeTabs.value.some(t => t.terminalId === activeTabId.value)) return
+  switchTab(scopeTabs.value[0].terminalId)
+})
+
 watch(isDarkMode, () => {
   for (const [, inst] of terminals) {
     inst.term.options.theme = currentTerminalTheme.value
@@ -558,12 +699,29 @@ watch(isDarkMode, () => {
 
 const showLauncher = ref(false)
 const launchError = ref('')
-const launchContext = ref<{ taskId?: string }>({})
+const launchContext = ref<{ taskId?: string; projectId?: string }>({})
 
 const workspaceAgents = ref<any[]>([])
 const loadingAgents = ref(false)
 
 const { workspaceId } = useItems()
+
+const fetchWorkspaceProjects = async () => {
+  if (!workspaceId.value) return
+  loadingProjects.value = true
+  try {
+    const res = await $fetch<any[]>('/api/items', {
+      query: { workspaceId: workspaceId.value, parentId: 'root' },
+    })
+    workspaceProjects.value = Array.isArray(res)
+      ? res.map((project: any) => ({ id: project.id, title: project.title }))
+      : []
+  } catch (e) {
+    console.warn('Failed to fetch projects:', e)
+  } finally {
+    loadingProjects.value = false
+  }
+}
 
 const fetchWorkspaceAgents = async () => {
   if (!workspaceId.value) return
@@ -577,14 +735,38 @@ const fetchWorkspaceAgents = async () => {
   }
 }
 
+watch(workspaceId, () => {
+  workspaceProjects.value = []
+  setSelectedScope('global')
+})
+
+const getLaunchProjectId = () => launchContext.value.projectId ?? selectedProjectId.value ?? undefined
+
+const ensureLaunchCapacity = () => {
+  if (canLaunchInScope.value) return true
+  launchError.value = scopeLimitText.value || 'Terminal limit reached'
+  return false
+}
+
 const launchShell = async () => {
-  try { await quickLaunch({ agentName: 'Terminal' }) } catch {}
+  launchError.value = ''
+  if (!ensureLaunchCapacity()) return
+  try {
+    await quickLaunch({ agentName: 'Terminal', projectId: getLaunchProjectId() })
+  } catch (e: any) {
+    launchError.value = e?.data?.message || e?.message || 'Launch failed'
+  }
 }
 
 const launchPlainTerminal = async () => {
   launchError.value = ''
+  if (!ensureLaunchCapacity()) return
   try {
-    await quickLaunch({ agentName: 'Terminal', taskId: launchContext.value.taskId })
+    await quickLaunch({
+      agentName: 'Terminal',
+      taskId: launchContext.value.taskId,
+      projectId: getLaunchProjectId(),
+    })
     showLauncher.value = false
     launchContext.value = {}
   } catch (e: any) {
@@ -594,8 +776,14 @@ const launchPlainTerminal = async () => {
 
 const launchAgentTerminal = async (agent: any) => {
   launchError.value = ''
+  if (!ensureLaunchCapacity()) return
   try {
-    await quickLaunch({ agentId: agent.id, agentName: agent.name, taskId: launchContext.value.taskId })
+    await quickLaunch({
+      agentId: agent.id,
+      agentName: agent.name,
+      taskId: launchContext.value.taskId,
+      projectId: getLaunchProjectId(),
+    })
     showLauncher.value = false
     launchContext.value = {}
   } catch (e: any) {
@@ -607,7 +795,7 @@ watch(
   () => launcherDefaults.value,
   (defaults) => {
     if (!defaults.agentId && !defaults.agentName) return
-    launchContext.value = { taskId: defaults.taskId }
+    launchContext.value = { taskId: defaults.taskId, projectId: defaults.projectId }
     if (defaults.agentId) {
       launchAgentTerminal({ id: defaults.agentId, name: defaults.agentName || 'Agent' })
       return
@@ -617,7 +805,10 @@ watch(
 )
 
 watch(showLauncher, (open) => {
-  if (open) fetchWorkspaceAgents()
+  if (open) {
+    fetchWorkspaceAgents()
+    fetchWorkspaceProjects()
+  }
   else { launchError.value = ''; launchContext.value = {} }
 })
 
@@ -633,6 +824,7 @@ watch(isOpen, (open) => {
     now.value = Date.now()
     timer = setInterval(() => { now.value = Date.now() }, 10_000)
     fetchWorkspaceAgents()
+    fetchWorkspaceProjects()
   } else if (timer) {
     clearInterval(timer)
     timer = null
@@ -668,18 +860,18 @@ const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && showLauncher.value) { showLauncher.value = false; return }
   if (!e.altKey) return
 
-  if (e.code === 'KeyT' && tabs.value.length < 6) {
+  if (e.code === 'KeyT' && canLaunchInScope.value) {
     e.preventDefault()
     launchShell()
   } else if (e.code === 'KeyW' && activeTabId.value) {
     e.preventDefault()
     closeTerminal(activeTabId.value)
-  } else if (e.code === 'Tab' && tabs.value.length > 1) {
+  } else if (e.code === 'Tab' && scopeTabs.value.length > 1) {
     e.preventDefault()
-    const idx = tabs.value.findIndex(t => t.terminalId === activeTabId.value)
+    const idx = scopeTabs.value.findIndex(t => t.terminalId === activeTabId.value)
     const next = e.shiftKey
-      ? tabs.value[(idx - 1 + tabs.value.length) % tabs.value.length].terminalId
-      : tabs.value[(idx + 1) % tabs.value.length].terminalId
+      ? scopeTabs.value[(idx - 1 + scopeTabs.value.length) % scopeTabs.value.length].terminalId
+      : scopeTabs.value[(idx + 1) % scopeTabs.value.length].terminalId
     switchTab(next)
     focusTerminal(next)
   }
@@ -688,12 +880,16 @@ const handleKeydown = (e: KeyboardEvent) => {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   updateDarkMode()
+  darkSchemeMedia = window.matchMedia('(prefers-color-scheme: dark)')
+  darkSchemeMedia.addEventListener('change', updateDarkMode)
   darkModeObserver = new MutationObserver(updateDarkMode)
   darkModeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  darkSchemeMedia?.removeEventListener('change', updateDarkMode)
+  darkSchemeMedia = null
   darkModeObserver?.disconnect()
   darkModeObserver = null
 })

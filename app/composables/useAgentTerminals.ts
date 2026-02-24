@@ -1,4 +1,24 @@
-import { ref, computed, shallowRef } from 'vue'
+import { computed, ref } from 'vue'
+
+export const GLOBAL_SCOPE_ID = 'global'
+export const MAX_TERMINALS_PER_SCOPE = 6
+export const MAX_TERMINALS_TOTAL = 24
+
+function scopeIdForProject(projectId?: string | null) {
+  return projectId ? `project:${projectId}` : GLOBAL_SCOPE_ID
+}
+
+function projectIdFromScope(scopeId: string): string | null {
+  if (!scopeId.startsWith('project:')) return null
+  return scopeId.slice('project:'.length) || null
+}
+
+function mapSessionStatus(status: string): TerminalTab['status'] {
+  if (status === 'ACTIVE') return 'active'
+  if (status === 'AWAITING_REVIEW') return 'awaiting_review'
+  if (status === 'TERMINATED') return 'terminated'
+  return 'idle'
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -11,6 +31,9 @@ export interface TerminalTab {
   agentName: string
   taskTitle: string | null
   taskId: string | null
+  projectId: string | null
+  projectTitle: string | null
+  scopeId: string
   status: 'active' | 'awaiting_review' | 'idle' | 'terminated'
   startedAt: number // timestamp ms
   ws: WebSocket | null
@@ -23,20 +46,48 @@ export interface TerminalTab {
 
 const isOpen = ref(false)
 const tabs = ref<TerminalTab[]>([])
-const activeTabId = ref<string | null>(null)
+const selectedScopeId = ref<string>(GLOBAL_SCOPE_ID)
+const scopedActiveTabIds = ref<Record<string, string | null>>({ [GLOBAL_SCOPE_ID]: null })
 const launching = ref(false)
 const launcherDefaults = ref<{
   agentName?: string
   agentId?: string
   taskTitle?: string
   taskId?: string
+  projectId?: string
 }>({})
+
+function ensureScope(scopeId: string) {
+  if (scopeId in scopedActiveTabIds.value) return
+  scopedActiveTabIds.value = {
+    ...scopedActiveTabIds.value,
+    [scopeId]: null,
+  }
+}
+
+function setScopeActiveTab(scopeId: string, terminalId: string | null) {
+  ensureScope(scopeId)
+  scopedActiveTabIds.value = {
+    ...scopedActiveTabIds.value,
+    [scopeId]: terminalId,
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Composable
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const useAgentTerminals = () => {
+  const activeTabId = computed<string | null>({
+    get() {
+      ensureScope(selectedScopeId.value)
+      return scopedActiveTabIds.value[selectedScopeId.value] ?? null
+    },
+    set(value) {
+      setScopeActiveTab(selectedScopeId.value, value)
+    },
+  })
+
   const activeTab = computed(() =>
     tabs.value.find(t => t.terminalId === activeTabId.value) ?? null
   )
@@ -46,6 +97,18 @@ export const useAgentTerminals = () => {
   )
 
   const hasTerminals = computed(() => tabs.value.length > 0)
+  const totalOpenCount = computed(() => tabs.value.length)
+  const scopeOpenCount = computed(() => tabs.value.filter(t => t.scopeId === selectedScopeId.value).length)
+  const canLaunchInSelectedScope = computed(() => (
+    scopeOpenCount.value < MAX_TERMINALS_PER_SCOPE && totalOpenCount.value < MAX_TERMINALS_TOTAL
+  ))
+
+  const getTabsForScope = (scopeId: string) => tabs.value.filter(t => t.scopeId === scopeId)
+
+  const setSelectedScope = (scopeId: string) => {
+    ensureScope(scopeId)
+    selectedScopeId.value = scopeId
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Actions
@@ -65,13 +128,14 @@ export const useAgentTerminals = () => {
 
   const openLauncherForAgent = (
     agent: { name: string; id: string },
-    context?: { taskTitle?: string; taskId?: string }
+    context?: { taskTitle?: string; taskId?: string; projectId?: string }
   ) => {
     launcherDefaults.value = {
       agentName: agent.name,
       agentId: agent.id,
       taskTitle: context?.taskTitle,
       taskId: context?.taskId,
+      projectId: context?.projectId,
     }
     isOpen.value = true
   }
@@ -96,6 +160,8 @@ export const useAgentTerminals = () => {
         agentName: string
         taskTitle: string | null
         taskId: string | null
+        projectId: string | null
+        projectTitle: string | null
         isPlainTerminal: boolean
         reused: boolean
       }>('/api/agents/terminals/launch', {
@@ -111,11 +177,14 @@ export const useAgentTerminals = () => {
       // Don't add duplicate tab if reused
       const existing = tabs.value.find(t => t.terminalId === res.terminalId)
       if (existing) {
-        activeTabId.value = res.terminalId
+        setSelectedScope(existing.scopeId)
+        setScopeActiveTab(existing.scopeId, existing.terminalId)
         isOpen.value = true
         return existing
       }
 
+      const projectId = res.projectId ?? null
+      const scopeId = scopeIdForProject(projectId)
       const tab: TerminalTab = {
         terminalId: res.terminalId,
         agentSessionId: res.agentSessionId ?? res.terminalId,
@@ -123,13 +192,17 @@ export const useAgentTerminals = () => {
         agentName: res.agentName || opts.agentName || 'Terminal',
         taskTitle: res.taskTitle,
         taskId: res.taskId,
+        projectId,
+        projectTitle: res.projectTitle ?? null,
+        scopeId,
         status: 'active',
         startedAt: Date.now(),
         ws: null,
       }
 
       tabs.value.push(tab)
-      activeTabId.value = tab.terminalId
+      setSelectedScope(scopeId)
+      setScopeActiveTab(scopeId, tab.terminalId)
       isOpen.value = true
 
       return tab
@@ -193,9 +266,10 @@ export const useAgentTerminals = () => {
     // Remove tab
     tabs.value.splice(idx, 1)
 
-    // Switch to another tab if the active one was closed
-    if (activeTabId.value === terminalId) {
-      activeTabId.value = tabs.value[0]?.terminalId ?? null
+    // Maintain active tab per scope
+    if (scopedActiveTabIds.value[tab.scopeId] === terminalId) {
+      const nextInScope = tabs.value.find(t => t.scopeId === tab.scopeId)?.terminalId ?? null
+      setScopeActiveTab(tab.scopeId, nextInScope)
     }
   }
 
@@ -203,7 +277,10 @@ export const useAgentTerminals = () => {
    * Switch active tab
    */
   const switchTab = (terminalId: string) => {
-    activeTabId.value = terminalId
+    const tab = tabs.value.find(t => t.terminalId === terminalId)
+    if (!tab) return
+    setSelectedScope(tab.scopeId)
+    setScopeActiveTab(tab.scopeId, terminalId)
   }
 
   /**
@@ -223,23 +300,39 @@ export const useAgentTerminals = () => {
       for (const session of res) {
         const existing = tabs.value.find(t => t.terminalId === session.terminalId)
         if (!existing && session.terminalId) {
+          const projectId = session.project?.id ?? null
+          const scopeId = scopeIdForProject(projectId)
           tabs.value.push({
             terminalId: session.terminalId,
-            agentSessionId: session.id,
-            agentId: session.agentId ?? '',
+            agentSessionId: session.agentSessionId ?? session.terminalId,
+            agentId: session.agent?.id ?? '',
             agentName: session.agent?.name ?? 'Agent',
-            taskTitle: session.item?.title ?? null,
-            taskId: session.itemId ?? null,
-            status: session.status === 'ACTIVE' ? 'active'
-              : session.status === 'AWAITING_REVIEW' ? 'awaiting_review'
-              : 'idle',
-            startedAt: session.checkedOutAt ? new Date(session.checkedOutAt).getTime() : Date.now(),
+            taskTitle: session.task?.title ?? null,
+            taskId: session.task?.id ?? null,
+            projectId,
+            projectTitle: session.project?.title ?? null,
+            scopeId,
+            status: mapSessionStatus(session.status),
+            startedAt: session.checkedOutAt
+              ? new Date(session.checkedOutAt).getTime()
+              : session.createdAt
+                ? new Date(session.createdAt).getTime()
+                : Date.now(),
             ws: null,
           })
+
+          if (!scopedActiveTabIds.value[scopeId]) {
+            setScopeActiveTab(scopeId, session.terminalId)
+          }
         }
       }
-      if (tabs.value.length && !activeTabId.value) {
-        activeTabId.value = tabs.value[0].terminalId
+
+      const selectedActiveTab = scopedActiveTabIds.value[selectedScopeId.value]
+      if (!selectedActiveTab) {
+        const firstInSelected = tabs.value.find(t => t.scopeId === selectedScopeId.value)
+        if (firstInSelected) {
+          setScopeActiveTab(selectedScopeId.value, firstInSelected.terminalId)
+        }
       }
     } catch (e) {
       console.warn('Failed to fetch existing terminals:', e)
@@ -250,7 +343,7 @@ export const useAgentTerminals = () => {
     for (const tab of tabs.value) {
       const match = (data.terminalId && tab.terminalId === data.terminalId)
         || (data.sessionId && tab.agentSessionId === data.sessionId)
-        || (data.agentId && tab.agentId === data.agentId)  // fallback: match by agent
+        || (data.agentId && tab.agentId === data.agentId) // fallback: match by agent
       if (!match) continue
 
       if (data.taskId) tab.taskId = data.taskId
@@ -265,9 +358,18 @@ export const useAgentTerminals = () => {
   }
 
   return {
+    // Limits
+    MAX_TERMINALS_PER_SCOPE,
+    MAX_TERMINALS_TOTAL,
+
+    // Scope helpers
+    GLOBAL_SCOPE_ID,
+    projectIdFromScope,
+
     // State
     isOpen,
     tabs,
+    selectedScopeId,
     activeTabId,
     launching,
     launcherDefaults,
@@ -276,11 +378,16 @@ export const useAgentTerminals = () => {
     activeTab,
     activeCount,
     hasTerminals,
+    totalOpenCount,
+    scopeOpenCount,
+    canLaunchInSelectedScope,
 
     // Actions
     open,
     close,
     toggle,
+    setSelectedScope,
+    getTabsForScope,
     openLauncherForAgent,
     quickLaunch,
     connectTerminal,

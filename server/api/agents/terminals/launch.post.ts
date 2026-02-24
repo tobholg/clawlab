@@ -1,7 +1,10 @@
 import { requireUser, requireWorkspaceMember } from '../../../utils/auth'
-import { createPtySession, destroyPtySession, generateTerminalId, getPtySession, writeToPty } from '../../../utils/ptyManager'
+import { createPtySession, destroyPtySession, generateTerminalId, getPtySession, listPtySessions, writeToPty } from '../../../utils/ptyManager'
 import { prisma } from '../../../utils/prisma'
 import { resolveRunnerCommand } from '../../../utils/agentRunner'
+
+const MAX_TERMINALS_PER_SCOPE = 6
+const MAX_TERMINALS_TOTAL = 24
 
 function toStringEnv(env: NodeJS.ProcessEnv) {
   const normalized: Record<string, string> = {}
@@ -165,20 +168,23 @@ export default defineEventHandler(async (event) => {
   if (taskId) {
     task = await prisma.item.findUnique({
       where: { id: taskId },
-      select: { id: true, title: true, projectId: true, workspaceId: true },
+      select: { id: true, title: true, projectId: true, parentId: true, workspaceId: true },
     })
     if (task?.projectId) resolvedProjectId = task.projectId
+    else if (task && !task.parentId) resolvedProjectId = task.id
   }
 
   let projectRepoPath: string | null = null
+  let projectTitle: string | null = null
   let workspaceId: string | null = agent?.workspaceId ?? task?.workspaceId ?? null
 
   if (resolvedProjectId) {
     const project = await prisma.item.findUnique({
       where: { id: resolvedProjectId },
-      select: { repoPath: true, workspaceId: true },
+      select: { repoPath: true, workspaceId: true, title: true },
     })
     projectRepoPath = project?.repoPath ?? null
+    projectTitle = project?.title ?? null
     if (!workspaceId) workspaceId = project?.workspaceId ?? null
   }
 
@@ -193,8 +199,10 @@ export default defineEventHandler(async (event) => {
     session = await prisma.agentSession.findFirst({
       where: {
         agentId: agent.id,
-        ...(taskId ? { itemId: taskId } : {}),
         status: 'ACTIVE',
+        ...(taskId
+          ? { itemId: taskId }
+          : { itemId: null, projectId: resolvedProjectId ?? null }),
       },
       orderBy: { updatedAt: 'desc' },
     })
@@ -209,6 +217,8 @@ export default defineEventHandler(async (event) => {
           agentName: agent.name,
           taskTitle: task?.title ?? null,
           taskId: task?.id ?? null,
+          projectId: resolvedProjectId,
+          projectTitle,
           isPlainTerminal: false,
           reused: true,
         }
@@ -228,6 +238,16 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const scopeKey = resolvedProjectId ? `project:${resolvedProjectId}` : 'global'
+  const activeSessions = listPtySessions()
+  if (activeSessions.length >= MAX_TERMINALS_TOTAL) {
+    throw createError({ statusCode: 429, message: `Terminal limit reached (${MAX_TERMINALS_TOTAL}/${MAX_TERMINALS_TOTAL})` })
+  }
+  const openInScope = activeSessions.filter(s => s.scopeKey === scopeKey).length
+  if (openInScope >= MAX_TERMINALS_PER_SCOPE) {
+    throw createError({ statusCode: 429, message: `Scope limit reached (${MAX_TERMINALS_PER_SCOPE}/${MAX_TERMINALS_PER_SCOPE})` })
+  }
+
   // Spawn terminal
   const terminalId = generateTerminalId()
   const cwdOverride = typeof body.cwd === 'string' ? body.cwd.trim() : ''
@@ -240,6 +260,9 @@ export default defineEventHandler(async (event) => {
     ...toStringEnv(process.env),
     PATH: `${cwd}/cli/bin:${process.env.PATH ?? ''}`,
     TERM: 'xterm-256color',
+    // Prevent inherited zsh right-prompt noise from host environment.
+    RPROMPT: '',
+    RPS1: '',
   }
 
   // Add agent-specific env vars
@@ -250,11 +273,16 @@ export default defineEventHandler(async (event) => {
     env.CTX_AGENT_SESSION = session?.id ?? ''
     env.CTX_AGENT_NAME = agentName
     env.CTX_AGENT_SYSTEM_PROMPT = systemPrompt
+  } else {
+    // Configure plain-shell prompt up-front so no bootstrap command is echoed.
+    env.PROMPT = '%F{cyan}ctx%f %F{blue}%~%f $ '
+    env.PS1 = '%F{cyan}ctx%f %F{blue}%~%f $ '
   }
 
   await createPtySession({
     terminalId,
     agentSessionId: session?.id ?? `plain-${terminalId}`,
+    scopeKey,
     cwd,
     env,
     cols: typeof body.cols === 'number' ? body.cols : undefined,
@@ -288,12 +316,6 @@ export default defineEventHandler(async (event) => {
       } else {
         writeToPty(terminalId, `echo "No runner configured for provider '${agent.agentProvider ?? 'unknown'}'"\n`)
       }
-    } else {
-      // Plain terminal: add ctx CLI to PATH, nice prompt
-      writeToPty(terminalId, `export PATH="${cwd}/cli/bin:$PATH"\n`)
-      writeToPty(terminalId, `export PS1=$'\\e[36mctx\\e[0m \\e[34m%~\\e[0m $ '\n`)
-      writeToPty(terminalId, `echo $'\\e[36m═══ ClawLab Terminal ═══\\e[0m'\n`)
-      writeToPty(terminalId, 'echo ""\n')
     }
   }, 300)
 
@@ -316,6 +338,8 @@ export default defineEventHandler(async (event) => {
     agentName,
     taskTitle: task?.title ?? null,
     taskId: task?.id ?? null,
+    projectId: resolvedProjectId,
+    projectTitle,
     isPlainTerminal: !agent,
     reused: false,
   }
