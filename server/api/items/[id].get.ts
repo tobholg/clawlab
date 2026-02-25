@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
     description: item.description,
     parentId: item.parentId,
     workspaceId: item.workspaceId,
+    itemType: item.itemType.toLowerCase(),
     status: item.status.toLowerCase(),
     subStatus: item.subStatus ?? null,
     category: item.category,
@@ -112,6 +113,7 @@ export default defineEventHandler(async (event) => {
     children: item.children.map(child => ({
       id: child.id,
       title: child.title,
+      itemType: child.itemType.toLowerCase(),
       status: child.status.toLowerCase(),
       progress: child.progress,
       confidence: child.confidence,
@@ -133,6 +135,7 @@ export default defineEventHandler(async (event) => {
     parent: item.parent ? {
       id: item.parent.id,
       title: item.parent.title,
+      itemType: item.parent.itemType.toLowerCase(),
       parentId: item.parent.parentId,
       status: item.parent.status.toLowerCase(),
       progress: item.parent.progress,

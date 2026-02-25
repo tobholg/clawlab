@@ -317,6 +317,30 @@ const renderInline = (text: string): string => {
   return html
 }
 
+const getNumberedListValue = (index: number) => {
+  const block = blocks.value[index]
+  if (!block || block.type !== 'list-item' || block.listStyle !== 'number' || block.checked !== undefined) {
+    return 1
+  }
+
+  const targetIndent = block.indent ?? 0
+  let value = 1
+
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const previous = blocks.value[i]
+    if (!previous || previous.type !== 'list-item') break
+
+    const previousIndent = previous.indent ?? 0
+    if (previousIndent < targetIndent) break
+    if (previousIndent > targetIndent) continue
+    if (previous.checked !== undefined || previous.listStyle !== 'number') break
+
+    value += 1
+  }
+
+  return value
+}
+
 const serializeBlocksToMarkdown = (value: Block[]) => {
   const lines: string[] = []
 
@@ -1227,7 +1251,7 @@ onMounted(() => {
               <!-- Read Mode -->
               <div v-else-if="isReadMode" class="max-w-4xl mx-auto">
                 <div class="space-y-4">
-                  <template v-for="block in blocks" :key="block.id">
+                  <template v-for="(block, index) in blocks" :key="block.id">
                     <!-- Heading -->
                     <h1
                       v-if="block.type === 'heading'"
@@ -1251,7 +1275,7 @@ onMounted(() => {
                         <Icon v-else name="heroicons:stop" class="w-4 h-4 text-slate-300 dark:text-zinc-600" />
                       </span>
                       <span v-else class="text-slate-400 dark:text-zinc-600 select-none w-4 text-center flex-shrink-0">
-                        {{ block.listStyle === 'number' ? '1.' : '•' }}
+                        {{ block.listStyle === 'number' ? `${getNumberedListValue(index)}.` : '•' }}
                       </span>
                       <span v-html="renderInline(block.text)" />
                     </div>
@@ -1402,7 +1426,7 @@ onMounted(() => {
                       <!-- List item -->
                       <div v-else-if="block.type === 'list-item'" class="flex items-start gap-2 py-0.5" :style="{ paddingLeft: `${(block.indent ?? 0) * 24}px` }">
                         <span class="mt-1 text-slate-400 dark:text-zinc-600 select-none w-4 text-center flex-shrink-0">
-                          {{ block.listStyle === 'number' ? '1.' : '•' }}
+                          {{ block.listStyle === 'number' ? `${getNumberedListValue(index)}.` : '•' }}
                         </span>
                         <textarea
                           v-model="block.text"

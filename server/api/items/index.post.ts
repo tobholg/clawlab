@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
     confidence,
     complexity,
     priority,
+    itemType,
     agentMode,
     assigneeIds,
     stakeholderIds,
@@ -57,6 +58,9 @@ export default defineEventHandler(async (event) => {
   
   // Determine final status and auto-set startDate
   const finalStatus = normalizeItemStatus(status)
+  const normalizedItemTypeRaw = typeof itemType === 'string' ? itemType.trim().toUpperCase() : 'TASK'
+  const normalizedItemType = normalizedItemTypeRaw === 'WORKSTREAM' ? 'WORKSTREAM' : 'TASK'
+  const finalItemType = parentId ? normalizedItemType : 'WORKSTREAM'
   const now = new Date()
   const requestedSubStatus = normalizeIncomingSubStatus(subStatus)
   const finalSubStatus = requestedSubStatus !== undefined && isValidSubStatusForStatus(finalStatus, requestedSubStatus)
@@ -72,7 +76,9 @@ export default defineEventHandler(async (event) => {
   // Set first assignee as owner by default, fall back to authenticated user
   const ownerId = body.ownerId ?? assigneeIds?.[0] ?? user.id
   let normalizedAgentMode: 'PLAN' | 'EXECUTE' | 'COMPLETED' | null | undefined = undefined
-  if (agentMode === null) {
+  if (finalItemType === 'WORKSTREAM') {
+    normalizedAgentMode = null
+  } else if (agentMode === null) {
     normalizedAgentMode = null
   } else if (agentMode !== undefined) {
     const normalized = String(agentMode).toUpperCase()
@@ -101,6 +107,7 @@ export default defineEventHandler(async (event) => {
       title,
       description,
       category,
+      itemType: finalItemType,
       status: finalStatus,
       subStatus: finalSubStatus,
       dueDate: dueDate ? new Date(dueDate) : null,
@@ -151,6 +158,7 @@ export default defineEventHandler(async (event) => {
     description: item.description,
     parentId: item.parentId,
     status: item.status.toLowerCase(),
+    itemType: item.itemType.toLowerCase(),
     category: item.category,
     dueDate: item.dueDate?.toISOString() ?? null,
     confidence: item.confidence,

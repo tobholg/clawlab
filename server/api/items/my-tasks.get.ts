@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
     where: {
       workspaceId,
       parentId: { not: null }, // Exclude root projects
+      itemType: 'TASK',
       ...statusCondition,
       OR: [
         { ownerId: user.id },

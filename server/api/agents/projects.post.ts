@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
         description,
         workspaceId: resolvedWorkspaceId,
         parentId: null,
+        itemType: 'WORKSTREAM',
         status: 'TODO',
         progress: 0,
       },

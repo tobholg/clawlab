@@ -100,6 +100,7 @@ export async function requireAssignedTask(agentUserId: string, taskId: string) {
       parentId: true,
       projectId: true,
       ownerId: true,
+      itemType: true,
       status: true,
       subStatus: true,
       progress: true,

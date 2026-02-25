@@ -4,6 +4,7 @@ export interface Item {
   title: string
   description?: string | null
   parentId: string | null  // null = root project
+  itemType?: 'task' | 'workstream'
   status: 'todo' | 'in_progress' | 'blocked' | 'paused' | 'done'
   subStatus?: string | null  // Sub-state within the status (e.g., 'scoping', 'review')
   temperature: 'cold' | 'warm' | 'hot' | 'critical'
@@ -127,6 +128,11 @@ export const STATUS_CONFIG = {
   blocked: { label: 'Blocked', color: 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400' },
   paused: { label: 'Paused', color: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' },
   done: { label: 'Done', color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' },
+} as const
+
+export const ITEM_TYPE_CONFIG = {
+  task: { label: 'Task', icon: 'heroicons:check-circle' },
+  workstream: { label: 'Workstream', icon: 'heroicons:folder' },
 } as const
 
 // Sub-states for each status (with colors for badges)

@@ -16,6 +16,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const task = await requireAssignedTask(agent.id, taskId)
+  if (task.itemType === 'WORKSTREAM') {
+    throw createError({
+      statusCode: 400,
+      message: 'Cannot check out a workstream. Choose or create a child task instead.',
+    })
+  }
   const now = new Date()
   const projectId = task.projectId ?? task.parentId ?? task.id
 

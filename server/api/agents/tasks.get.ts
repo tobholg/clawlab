@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
   const tasks = await prisma.item.findMany({
     where: {
       parentId: { not: null },
+      itemType: 'TASK',
       assignees: { some: { userId: agent.id } },
       ...(projectId ? { projectId } : {}),
       ...(status ? { status: status as any } : {}),
@@ -38,6 +39,7 @@ export default defineEventHandler(async (event) => {
       id: true,
       title: true,
       description: true,
+      itemType: true,
       status: true,
       subStatus: true,
       agentMode: true,
@@ -56,6 +58,7 @@ export default defineEventHandler(async (event) => {
     id: task.id,
     title: task.title,
     description: task.description,
+    itemType: task.itemType,
     status: task.status,
     subStatus: task.subStatus,
     agentMode: task.agentMode,

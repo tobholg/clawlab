@@ -100,30 +100,30 @@ const estimatedCompletion = computed(() => {
   const progress = props.item.progress ?? 0
   const confidence = props.item.confidence ?? 70
   const startDate = props.item.startDate
-  
+
   if (!startDate || progress === 0) return null
-  
+
   const start = new Date(startDate)
   const now = new Date()
   const daysSpent = Math.max(1, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-  
+
   if (progress >= 100) return { complete: true }
-  
+
   const totalEstimate = Math.round(daysSpent / (progress / 100))
   const remainingDays = Math.max(1, totalEstimate - daysSpent)
-  
+
   const baseDate = new Date()
   baseDate.setDate(baseDate.getDate() + remainingDays)
-  
+
   const bandDays = Math.ceil(remainingDays * (1 - confidence / 100) * 2)
-  
+
   const earliest = new Date(baseDate)
   earliest.setDate(earliest.getDate() - Math.floor(bandDays / 2))
   const latest = new Date(baseDate)
   latest.setDate(latest.getDate() + Math.ceil(bandDays / 2))
-  
+
   const formatDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  
+
   return {
     complete: false,
     earliest: formatDate(earliest),
@@ -148,19 +148,18 @@ const progressColor = computed(() => {
   return 'text-slate-300'
 })
 
-// Category dot color
-const categoryDotColor = computed(() => {
-  const colors: Record<string, string> = {
-    'Engineering': 'bg-blue-500',
-    'Bug': 'bg-rose-500',
-    'Design': 'bg-violet-500',
-    'Product': 'bg-indigo-500',
-    'QA': 'bg-amber-500',
-    'Research': 'bg-cyan-500',
-    'Operations': 'bg-orange-500',
-    'Marketing': 'bg-pink-500',
+const categoryIcon = computed(() => {
+  const icons: Record<string, string> = {
+    Engineering: 'heroicons:wrench-screwdriver',
+    Bug: 'heroicons:bug-ant',
+    Design: 'heroicons:paint-brush',
+    Product: 'heroicons:squares-plus',
+    QA: 'heroicons:check-badge',
+    Research: 'heroicons:beaker',
+    Operations: 'heroicons:cog-6-tooth',
+    Marketing: 'heroicons:megaphone',
   }
-  return colors[props.item.category ?? ''] ?? 'bg-slate-300'
+  return icons[props.item.category ?? ''] ?? 'heroicons:tag'
 })
 
 // Clicking the card opens the detail modal
@@ -182,20 +181,19 @@ const handleCardClick = () => {
     ]"
     @click="handleCardClick"
   >
-    <!-- Title row with category dot + owner -->
+    <!-- Title row with category label + owner -->
     <div class="flex items-start gap-2 mb-1 min-h-5">
-      <!-- Category color dot -->
-      <div
-        class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
-        :class="categoryDotColor"
-        :title="item.category || 'No category'"
-      />
-
       <!-- Title + Focus indicator -->
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <Icon
+            v-if="item.category"
+            :name="categoryIcon"
+            class="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 flex-shrink-0"
+            :title="item.category"
+          />
           <h3
-            class="text-sm font-medium leading-snug truncate"
+            class="text-sm font-medium leading-snug truncate min-w-0"
             :class="isPaused ? 'text-slate-500 dark:text-zinc-500' : 'text-slate-800 dark:text-zinc-200'"
           >
             {{ item.title }}
@@ -292,17 +290,21 @@ const handleCardClick = () => {
             </button>
             <button
               v-if="(item.atRiskChildrenCount ?? 0) > 0"
-              class="text-amber-600 hover:text-amber-700 transition-colors"
+              class="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700 transition-colors"
               @click.stop="emit('openAttention', item, 'at-risk')"
+              :title="`${item.atRiskChildrenCount} at risk`"
             >
-              {{ item.atRiskChildrenCount }} at risk
+              <Icon name="heroicons:exclamation-triangle" class="w-3 h-3" />
+              <span>{{ item.atRiskChildrenCount }}</span>
             </button>
             <button
               v-if="(item.blockedChildrenCount ?? 0) > 0"
-              class="text-rose-500 hover:text-rose-600 transition-colors"
+              class="inline-flex items-center gap-1 text-rose-500 hover:text-rose-600 transition-colors"
               @click.stop="emit('openAttention', item, 'blocked')"
+              :title="`${item.blockedChildrenCount} blocked`"
             >
-              {{ item.blockedChildrenCount }} blocked
+              <Icon name="heroicons:lock-closed" class="w-3 h-3" />
+              <span>{{ item.blockedChildrenCount }}</span>
             </button>
             <button
               v-if="item.documentCount"
@@ -384,8 +386,8 @@ const handleCardClick = () => {
         </span>
 
         <!-- Progress Ring -->
-        <div class="relative flex items-center justify-center w-6 h-6" title="Progress: how much of this task is complete">
-          <svg height="20" width="20" class="rotate-[-90deg]">
+        <div class="relative flex items-center justify-center w-5 h-5" title="Progress: how much of this task is complete">
+          <svg height="20" width="20" class="absolute inset-0 rotate-[-90deg]">
             <circle
               stroke="currentColor"
               fill="transparent"
@@ -408,13 +410,10 @@ const handleCardClick = () => {
               cy="10"
             />
           </svg>
-          <span class="absolute text-[8px] font-normal text-slate-400">
+          <span class="absolute text-[7px] font-normal text-slate-400 leading-none">
             {{ displayProgress }}
           </span>
         </div>
-
-        <!-- Confidence Ring -->
-        <UiConfidenceRing :percent="item.confidence" />
       </div>
     </div>
   </div>

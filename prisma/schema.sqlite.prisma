@@ -254,6 +254,7 @@ model Item {
   title       String
   description String?
   category    String? // Engineering, Design, Marketing, etc.
+  itemType    String @default("TASK") // ItemType: TASK, WORKSTREAM
 
   // Status & Progress
   status    String @default("TODO") // ItemStatus: TODO, IN_PROGRESS, BLOCKED, PAUSED, DONE

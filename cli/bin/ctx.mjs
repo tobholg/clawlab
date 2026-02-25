@@ -294,6 +294,8 @@ function modeRank(mode, preferredMode) {
 
 function isStartableTask(task) {
   if (!task) return false
+  const itemType = String(task.itemType || 'TASK').toUpperCase()
+  if (itemType !== 'TASK') return false
   const status = String(task.status || '').toUpperCase()
   if (status === 'DONE') return false
   const subStatus = String(task.subStatus || '').toLowerCase()
@@ -441,6 +443,8 @@ function buildPlanTemplate(task) {
 
 function isActionableCatchupTask(task) {
   if (!task?.agentMode) return false
+  const itemType = String(task.itemType || 'TASK').toUpperCase()
+  if (itemType !== 'TASK') return false
   const status = String(task.status || '').toUpperCase()
   if (status === 'DONE') return false
   const subStatus = String(task.subStatus || '').toLowerCase()
@@ -449,6 +453,8 @@ function isActionableCatchupTask(task) {
 
 function isWaitingReviewCatchupTask(task) {
   if (!task?.agentMode) return false
+  const itemType = String(task.itemType || 'TASK').toUpperCase()
+  if (itemType !== 'TASK') return false
   const status = String(task.status || '').toUpperCase()
   if (status === 'DONE') return false
   const subStatus = String(task.subStatus || '').toLowerCase()

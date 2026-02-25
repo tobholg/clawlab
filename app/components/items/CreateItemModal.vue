@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  create: [item: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string; agentMode?: 'PLAN' | 'EXECUTE' | 'COMPLETED' | null }]
+  create: [item: { title: string; description?: string; category?: string; dueDate?: string; ownerId?: string | null; assigneeIds?: string[]; priority?: string; status?: string; itemType?: 'TASK' | 'WORKSTREAM'; agentMode?: 'PLAN' | 'EXECUTE' | 'COMPLETED' | null }]
   aiCreated: [item: any]
 }>()
 
@@ -31,7 +31,8 @@ const description = ref('')
 const category = ref('')
 const dueDate = ref('')
 const priority = ref('MEDIUM')
-const status = ref<'TODO' | 'IN_PROGRESS'>('IN_PROGRESS')
+const status = ref<'TODO' | 'IN_PROGRESS'>('TODO')
+const itemType = ref<'TASK' | 'WORKSTREAM'>('TASK')
 const ownerId = ref<string | null>(null)
 const assigneeIds = ref<string[]>([])
 
@@ -64,9 +65,7 @@ watch(() => props.open, (open) => {
     }
     mode.value = props.isProject ? 'manual' : 'ai'
     resetAiState()
-    if (!props.isProject) {
-      resetManualForm()
-    }
+    resetManualForm()
   } else {
     clearAiTimer()
   }
@@ -123,7 +122,8 @@ const resetManualForm = () => {
   assigneeIds.value = []
   ownerId.value = currentUserId.value ?? null
   priority.value = 'MEDIUM'
-  status.value = 'IN_PROGRESS'
+  status.value = 'TODO'
+  itemType.value = props.isProject ? 'WORKSTREAM' : 'TASK'
   agentAssignmentMode.value = 'PLAN'
 }
 
@@ -149,7 +149,8 @@ const handleSubmit = () => {
     assigneeIds: assigneeIds.value.length ? assigneeIds.value : undefined,
     priority: priority.value || undefined,
     status: status.value,
-    agentMode: hasAssignedAgent.value ? agentAssignmentMode.value : null,
+    itemType: props.isProject ? 'WORKSTREAM' : itemType.value,
+    agentMode: itemType.value === 'TASK' && hasAssignedAgent.value ? agentAssignmentMode.value : null,
   })
   
   resetManualForm()
@@ -385,8 +386,8 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- Owner & Assignees Row -->
-            <div class="grid grid-cols-2 gap-4">
+            <!-- Owner & Type Row -->
+            <div class="grid gap-4" :class="isProject ? 'grid-cols-1' : 'grid-cols-2'">
               <!-- Owner -->
               <div>
                 <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Owner</label>
@@ -446,89 +447,121 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Assignees -->
-              <div>
-                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Assignees</label>
-                <div class="flex flex-wrap gap-2">
-                  <div class="max-h-24 overflow-y-auto pr-1 flex flex-wrap gap-2">
-                    <template v-if="assignedUsers.length">
-                      <div
-                        v-for="assignee in assignedUsers"
-                        :key="assignee.id"
-                        class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-white/[0.08] rounded-full text-xs"
-                      >
-                        <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                          <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
-                        </div>
-                        <span>{{ assignee.name }}</span>
-                        <span
-                          v-if="assignee.isAgent"
-                          class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-medium"
-                        >
-                          AI
-                        </span>
-                        <button
-                          type="button"
-                          @click="removeAssignee(assignee.id)"
-                          class="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center leading-none hover:bg-slate-200 dark:hover:bg-white/[0.12] rounded transition-all"
-                        >
-                          <Icon name="heroicons:x-mark" class="w-3.5 h-3.5 text-slate-400" />
-                        </button>
-                      </div>
-                    </template>
-                  </div>
+              <!-- Type -->
+              <div v-if="!isProject">
+                <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Type</label>
+                <div class="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200 dark:bg-white/[0.06] dark:border-white/[0.06]">
+                  <button
+                    type="button"
+                    @click="itemType = 'TASK'"
+                    :class="[
+                      'px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5',
+                      itemType === 'TASK' ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
+                    ]"
+                  >
+                    <Icon name="heroicons:check-circle" class="w-3.5 h-3.5" />
+                    Task
+                  </button>
+                  <button
+                    type="button"
+                    @click="itemType = 'WORKSTREAM'"
+                    :class="[
+                      'px-3 py-1.5 text-xs rounded-md transition-all flex items-center gap-1.5',
+                      itemType === 'WORKSTREAM' ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'
+                    ]"
+                  >
+                    <Icon name="heroicons:folder" class="w-3.5 h-3.5" />
+                    Workstream
+                  </button>
+                </div>
+                <p class="mt-1 text-[11px] text-slate-400 dark:text-zinc-500">
+                  {{ itemType === 'WORKSTREAM' ? 'Structural container for grouping child tasks.' : 'Actionable work item.' }}
+                </p>
+              </div>
+            </div>
 
-                  <div class="relative" ref="assigneeDropdownRef">
-                    <button
-                      type="button"
-                      @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
-                      class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-400"
+            <!-- Assignees -->
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-zinc-400 mb-2">Assignees</label>
+              <div class="flex flex-wrap gap-2">
+                <div class="max-h-24 overflow-y-auto pr-1 flex flex-wrap gap-2">
+                  <template v-if="assignedUsers.length">
+                    <div
+                      v-for="assignee in assignedUsers"
+                      :key="assignee.id"
+                      class="group flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-white/[0.08] rounded-full text-xs"
                     >
-                      <Icon name="heroicons:plus" class="w-3 h-3" />
-                      Add
-                    </button>
-
-                    <Transition name="dropdown">
-                      <div
-                        v-if="showAssigneeDropdown"
-                        class="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
-                      >
-                        <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400 dark:text-zinc-500">
-                          No more users to add
-                        </div>
-                        <button
-                          v-for="userOption in unassignedUsers"
-                          :key="userOption.id"
-                          type="button"
-                          @click="assignUser(userOption.id)"
-                          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors dark:text-zinc-300 dark:hover:bg-white/[0.04]"
-                        >
-                          <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                            <span class="text-[10px] text-white font-medium">{{ userOption.name?.[0] ?? 'U' }}</span>
-                          </div>
-                          <span>{{ userOption.name }}</span>
-                        </button>
+                      <div class="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                        <span class="text-[8px] text-white font-medium">{{ assignee.name?.[0] ?? 'U' }}</span>
                       </div>
-                    </Transition>
-                  </div>
+                      <span>{{ assignee.name }}</span>
+                      <span
+                        v-if="assignee.isAgent"
+                        class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-medium"
+                      >
+                        AI
+                      </span>
+                      <button
+                        type="button"
+                        @click="removeAssignee(assignee.id)"
+                        class="opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center leading-none hover:bg-slate-200 dark:hover:bg-white/[0.12] rounded transition-all"
+                      >
+                        <Icon name="heroicons:x-mark" class="w-3.5 h-3.5 text-slate-400" />
+                      </button>
+                    </div>
+                  </template>
                 </div>
-                <div
-                  v-if="hasAssignedAgent"
-                  class="mt-2 w-full flex items-center justify-between rounded-lg border border-blue-100 dark:border-blue-500/20 bg-blue-50/70 dark:bg-blue-500/10 px-2.5 py-1.5"
-                >
-                  <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-zinc-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      :checked="agentAssignmentMode === 'EXECUTE'"
-                      class="h-3.5 w-3.5 rounded border-slate-300 dark:border-zinc-600 text-blue-500 focus:ring-blue-200 dark:focus:ring-blue-500/30"
-                      @change="agentAssignmentMode = ($event.target as HTMLInputElement).checked ? 'EXECUTE' : 'PLAN'"
-                    />
-                    Skip planning -> Execute directly
-                  </label>
-                  <span class="text-[10px] font-medium text-blue-700 dark:text-blue-300">
-                    {{ agentAssignmentMode === 'EXECUTE' ? 'EXECUTE' : 'PLAN' }}
-                  </span>
+
+                <div class="relative" ref="assigneeDropdownRef">
+                  <button
+                    type="button"
+                    @click.stop="showAssigneeDropdown = !showAssigneeDropdown"
+                    class="flex items-center gap-1 px-2 py-1 border border-dashed border-slate-300 rounded-full text-xs text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-400"
+                  >
+                    <Icon name="heroicons:plus" class="w-3 h-3" />
+                    Add
+                  </button>
+
+                  <Transition name="dropdown">
+                    <div
+                      v-if="showAssigneeDropdown"
+                      class="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
+                    >
+                      <div v-if="unassignedUsers.length === 0" class="px-3 py-2 text-xs text-slate-400 dark:text-zinc-500">
+                        No more users to add
+                      </div>
+                      <button
+                        v-for="userOption in unassignedUsers"
+                        :key="userOption.id"
+                        type="button"
+                        @click="assignUser(userOption.id)"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors dark:text-zinc-300 dark:hover:bg-white/[0.04]"
+                      >
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                          <span class="text-[10px] text-white font-medium">{{ userOption.name?.[0] ?? 'U' }}</span>
+                        </div>
+                        <span>{{ userOption.name }}</span>
+                      </button>
+                    </div>
+                  </Transition>
                 </div>
+              </div>
+              <div
+                v-if="itemType === 'TASK' && hasAssignedAgent"
+                class="mt-2 w-full flex items-center justify-between rounded-lg border border-blue-100 dark:border-blue-500/20 bg-blue-50/70 dark:bg-blue-500/10 px-2.5 py-1.5"
+              >
+                <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-zinc-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    :checked="agentAssignmentMode === 'EXECUTE'"
+                    class="h-3.5 w-3.5 rounded border-slate-300 dark:border-zinc-600 text-blue-500 focus:ring-blue-200 dark:focus:ring-blue-500/30"
+                    @change="agentAssignmentMode = ($event.target as HTMLInputElement).checked ? 'EXECUTE' : 'PLAN'"
+                  />
+                  Skip planning -> Execute directly
+                </label>
+                <span class="text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                  {{ agentAssignmentMode === 'EXECUTE' ? 'EXECUTE' : 'PLAN' }}
+                </span>
               </div>
             </div>
             
@@ -649,7 +682,7 @@ onUnmounted(() => {
                 :disabled="!title.trim()"
                 class="px-4 py-2 text-sm font-normal text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all dark:bg-white/[0.1] dark:text-zinc-200 dark:hover:bg-white/[0.15]"
               >
-                {{ isProject ? 'Create Project' : 'Create Item' }}
+                {{ isProject ? 'Create Project' : (itemType === 'WORKSTREAM' ? 'Create Workstream' : 'Create Task') }}
               </button>
             </div>
           </form>

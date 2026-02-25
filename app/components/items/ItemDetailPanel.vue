@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ItemNode } from '~/types'
-import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, SUB_STATUS_BY_STATUS, getSubStatusesForStatus, COMPLEXITY_OPTIONS, PRIORITY_OPTIONS } from '~/types'
+import { STATUS_CONFIG, CATEGORY_COLORS, SUB_STATUS_CONFIG, SUB_STATUS_BY_STATUS, getSubStatusesForStatus, COMPLEXITY_OPTIONS, PRIORITY_OPTIONS, ITEM_TYPE_CONFIG } from '~/types'
 import TaskAttachments from '~/components/task/TaskAttachments.vue'
 import { useAgentTerminals } from '~/composables/useAgentTerminals'
 
@@ -38,6 +38,7 @@ const canEditItem = computed(() => {
   if (currentRole.value === 'VIEWER') return false
   return true
 })
+const canEditItemType = computed(() => canEditItem.value && !!itemDetail.value?.parentId)
 
 // Current item ID (allows in-modal navigation)
 const currentItemId = ref<string | null>(null)
@@ -464,6 +465,7 @@ watch(() => props.itemId, async (itemId) => {
 // Editable fields
 const editedTitle = ref('')
 const editedDescription = ref('')
+const editedItemType = ref<'task' | 'workstream'>('task')
 const editedStatus = ref('')
 const editedSubStatus = ref<string | null>(null)
 const editedCategory = ref('')
@@ -477,6 +479,7 @@ const editedPriority = ref('')
 const editedRepoPath = ref('')
 const editedDefaultBranch = ref('')
 const editedRepoUrl = ref('')
+const isTaskItem = computed(() => editedItemType.value === 'task')
 
 // Available sub-statuses for current status
 const availableSubStatuses = computed(() => {
@@ -486,6 +489,7 @@ const availableSubStatuses = computed(() => {
 // UI state
 const showOwnerDropdown = ref(false)
 const showAssigneeDropdown = ref(false)
+const showTypeDropdown = ref(false)
 const showComplexityDropdown = ref(false)
 const showPriorityDropdown = ref(false)
 const descriptionRef = ref<HTMLTextAreaElement | null>(null)
@@ -622,6 +626,7 @@ watch(itemDetail, (detail) => {
     isInitializing.value = true
     editedTitle.value = detail.title ?? ''
     editedDescription.value = detail.description ?? ''
+    editedItemType.value = detail.itemType === 'workstream' ? 'workstream' : 'task'
     editedStatus.value = detail.status ?? 'todo'
     editedSubStatus.value = detail.subStatus ?? null
     editedCategory.value = detail.category ?? ''
@@ -800,6 +805,7 @@ const saveChanges = async () => {
   const payload = {
     title: editedTitle.value,
     description: editedDescription.value,
+    itemType: editedItemType.value.toUpperCase(),
     status: editedStatus.value,
     subStatus: editedSubStatus.value,
     category: editedCategory.value,
@@ -894,7 +900,7 @@ watch(editedSubStatus, () => {
 })
 
 // Watch all fields for auto-save (debounced)
-watch([editedTitle, editedDescription, editedCategory, editedComplexity, editedPriority, editedDueDate, editedStartDate, editedRepoPath, editedDefaultBranch, editedRepoUrl], () => {
+watch([editedTitle, editedDescription, editedItemType, editedCategory, editedComplexity, editedPriority, editedDueDate, editedStartDate, editedRepoPath, editedDefaultBranch, editedRepoUrl], () => {
   if (itemDetail.value && !isInitializing.value) {
     debouncedSave()
   }
@@ -963,7 +969,7 @@ const assignUser = async (userId: string) => {
     })
     await refreshItem()
 
-    if (selectedUser?.isAgent && currentAgentMode.value === null) {
+    if (isTaskItem.value && selectedUser?.isAgent && currentAgentMode.value === null) {
       const targetMode = skipPlanningOnAgentAssign.value ? 'EXECUTE' : 'PLAN'
       await updateAgentMode(targetMode)
     } else if (!hasAgentAssignee.value && currentAgentMode.value !== null) {
@@ -1144,6 +1150,11 @@ const priorityLabel = computed(() => {
   return priorityOptions.find(opt => opt.value === editedPriority.value)?.label ?? 'Medium'
 })
 
+const itemTypeLabel = computed(() => {
+  const config = ITEM_TYPE_CONFIG[editedItemType.value]
+  return config?.label ?? 'Task'
+})
+
 // Close on escape
 onMounted(() => {
   const handleKeydown = (e: KeyboardEvent) => {
@@ -1160,6 +1171,7 @@ const ownerDropdownRef = ref<HTMLElement | null>(null)
 const assigneeDropdownRef = ref<HTMLElement | null>(null)
 const complexityDropdownRef = ref<HTMLElement | null>(null)
 const priorityDropdownRef = ref<HTMLElement | null>(null)
+const typeDropdownRef = ref<HTMLElement | null>(null)
 onMounted(() => {
   const handleClickOutside = (e: MouseEvent) => {
     if (ownerDropdownRef.value && !ownerDropdownRef.value.contains(e.target as Node)) {
@@ -1167,6 +1179,9 @@ onMounted(() => {
     }
     if (assigneeDropdownRef.value && !assigneeDropdownRef.value.contains(e.target as Node)) {
       showAssigneeDropdown.value = false
+    }
+    if (typeDropdownRef.value && !typeDropdownRef.value.contains(e.target as Node)) {
+      showTypeDropdown.value = false
     }
     if (complexityDropdownRef.value && !complexityDropdownRef.value.contains(e.target as Node)) {
       showComplexityDropdown.value = false
@@ -1475,7 +1490,7 @@ defineExpose({ handleClose })
 
             <!-- Agent Workflow -->
             <div
-              v-if="hasAgentAssignee"
+              v-if="isTaskItem && hasAgentAssignee"
               class="rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.03] p-4 space-y-3"
             >
               <div class="flex items-center justify-between gap-3">
@@ -1739,6 +1754,41 @@ defineExpose({ handleClose })
 
             <!-- Property Table -->
             <div class="divide-y divide-slate-100 dark:divide-white/[0.04]">
+              <!-- Type -->
+              <div class="flex items-center py-2.5">
+                <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Type</span>
+                <div class="flex-1 min-w-0 relative" ref="typeDropdownRef">
+                  <button
+                    @click.stop="canEditItemType && (showTypeDropdown = !showTypeDropdown)"
+                    :class="[
+                      'flex items-center gap-2 py-0.5 text-sm transition-colors',
+                      canEditItemType ? 'cursor-pointer hover:text-slate-900 dark:hover:text-zinc-100' : 'cursor-default'
+                    ]"
+                  >
+                    <Icon :name="ITEM_TYPE_CONFIG[editedItemType].icon" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                    <span class="text-slate-700 dark:text-zinc-300">{{ itemTypeLabel }}</span>
+                    <Icon v-if="canEditItemType" name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                  <Transition name="dropdown">
+                    <div
+                      v-if="showTypeDropdown"
+                      class="absolute top-full left-0 mt-1 w-44 bg-white dark:bg-dm-card rounded-lg shadow-lg border border-slate-200 dark:border-white/[0.06] py-1 z-10"
+                    >
+                      <button
+                        v-for="(config, key) in ITEM_TYPE_CONFIG"
+                        :key="key"
+                        @click="editedItemType = key as 'task' | 'workstream'; showTypeDropdown = false"
+                        class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                        :class="editedItemType === key ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
+                      >
+                        <Icon :name="config.icon" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                        <span>{{ config.label }}</span>
+                      </button>
+                    </div>
+                  </Transition>
+                </div>
+              </div>
+
               <!-- Priority -->
               <div class="flex items-center py-2.5">
                 <span class="w-28 text-xs text-slate-500 dark:text-zinc-500 flex-shrink-0">Priority</span>

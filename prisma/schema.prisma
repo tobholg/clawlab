@@ -295,6 +295,7 @@ model Item {
   title       String
   description String?
   category    String? // Engineering, Design, Marketing, etc.
+  itemType    ItemType @default(TASK)
 
   // Status & Progress
   status    ItemStatus @default(TODO)
@@ -485,6 +486,11 @@ enum ItemStatus {
   BLOCKED
   PAUSED
   DONE
+}
+
+enum ItemType {
+  TASK
+  WORKSTREAM
 }
 
 enum ItemComplexity {

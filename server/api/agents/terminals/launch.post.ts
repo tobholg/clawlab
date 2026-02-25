@@ -2,6 +2,7 @@ import { requireUser, requireWorkspaceMember } from '../../../utils/auth'
 import { createPtySession, destroyPtySession, generateTerminalId, getPtySession, listPtySessions, writeToPty } from '../../../utils/ptyManager'
 import { prisma } from '../../../utils/prisma'
 import { resolveRunnerCommand } from '../../../utils/agentRunner'
+import { resolve } from 'node:path'
 
 const MAX_TERMINALS_PER_SCOPE = 6
 const MAX_TERMINALS_TOTAL = 24
@@ -12,6 +13,10 @@ function toStringEnv(env: NodeJS.ProcessEnv) {
     if (typeof value === 'string') normalized[key] = value
   }
   return normalized
+}
+
+function quoteForDouble(value: string) {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
 const SYSTEM_PROMPT_BASE = `You are {{agentName}}, an AI agent working in ClawLab. You have a CLI tool called 'ctx' on your PATH.
@@ -252,13 +257,18 @@ export default defineEventHandler(async (event) => {
   const terminalId = generateTerminalId()
   const cwdOverride = typeof body.cwd === 'string' ? body.cwd.trim() : ''
   const cwd = cwdOverride || projectRepoPath || process.cwd()
+  const appRoot = process.cwd()
+  const ctxBinDir = resolve(appRoot, 'cli/bin')
+  const ctxCliPath = resolve(appRoot, 'cli/bin/ctx.mjs')
+  const quotedCtxBinDir = quoteForDouble(ctxBinDir)
+  const quotedCtxCliPath = quoteForDouble(ctxCliPath)
   const origin = getRequestURL(event).origin || 'http://localhost:3001'
   const agentName = agent?.name || 'Terminal'
   const systemPrompt = agent ? buildSystemPrompt(agentName, task ? { id: task.id, title: task.title } : null) : ''
 
   const env: Record<string, string> = {
     ...toStringEnv(process.env),
-    PATH: `${cwd}/cli/bin:${process.env.PATH ?? ''}`,
+    PATH: `${ctxBinDir}:${process.env.PATH ?? ''}`,
     TERM: 'xterm-256color',
     // Prevent inherited zsh right-prompt noise from host environment.
     RPROMPT: '',
@@ -293,8 +303,8 @@ export default defineEventHandler(async (event) => {
   setTimeout(() => {
     if (agent) {
       // Agent terminal: make ctx available, set prompt, show banner, launch agent CLI
-      writeToPty(terminalId, `export PATH="${cwd}/cli/bin:$PATH"\n`)
-      writeToPty(terminalId, `alias ctx="node ${cwd}/cli/bin/ctx.mjs"\n`)
+      writeToPty(terminalId, `export PATH="${quotedCtxBinDir}:$PATH"\n`)
+      writeToPty(terminalId, `alias ctx="node ${quotedCtxCliPath}"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[35m${agentName}\\e[0m \\e[34m%~\\e[0m $ '\n`)
       writeToPty(terminalId, `echo $'\\e[35m═══ ClawLab Agent Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, `echo "Agent: ${agentName}"\n`)

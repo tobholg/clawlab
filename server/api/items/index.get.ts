@@ -98,6 +98,7 @@ export default defineEventHandler(async (event) => {
       title: item.title,
       description: item.description,
       parentId: item.parentId,
+      itemType: item.itemType.toLowerCase(),
       status: item.status.toLowerCase(),
       subStatus: item.subStatus ?? null,
       category: item.category,

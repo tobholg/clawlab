@@ -67,6 +67,7 @@ export default defineEventHandler(async (event) => {
     defaultBranch,
     ownerId,
     parentId,
+    itemType,
     agentMode,
     acceptedPlanVersion,
   } = body
@@ -82,7 +83,7 @@ export default defineEventHandler(async (event) => {
   // Get current item with hierarchy info
   const currentItem = await prisma.item.findUnique({
     where: { id },
-    select: { status: true, subStatus: true, startDate: true, parentId: true, projectId: true, workspaceId: true, agentMode: true }
+    select: { status: true, subStatus: true, startDate: true, parentId: true, projectId: true, workspaceId: true, agentMode: true, itemType: true }
   })
 
   if (!currentItem) {
@@ -92,6 +93,20 @@ export default defineEventHandler(async (event) => {
   const now = new Date()
   const updateData: any = {
     lastActivityAt: now,
+  }
+
+  let normalizedItemType: 'TASK' | 'WORKSTREAM' | undefined
+  if (itemType !== undefined) {
+    const rawType = typeof itemType === 'string' ? itemType.trim().toUpperCase() : ''
+    if (!['TASK', 'WORKSTREAM'].includes(rawType)) {
+      throw createError({ statusCode: 400, message: 'itemType must be TASK or WORKSTREAM' })
+    }
+    normalizedItemType = rawType as 'TASK' | 'WORKSTREAM'
+    updateData.itemType = normalizedItemType
+    if (normalizedItemType === 'WORKSTREAM') {
+      // Workstreams are structural containers and should not run agent workflows directly.
+      updateData.agentMode = null
+    }
   }
   
   if (title !== undefined) updateData.title = title
@@ -172,19 +187,6 @@ export default defineEventHandler(async (event) => {
   if (progress !== undefined) updateData.progress = progress
   if (ownerId !== undefined) updateData.ownerId = ownerId || null
 
-  // Agent mode management (human-only)
-  if (agentMode !== undefined) {
-    if (agentMode === null) {
-      updateData.agentMode = null
-    } else {
-      const normalized = String(agentMode).toUpperCase()
-      if (!['PLAN', 'EXECUTE', 'COMPLETED'].includes(normalized)) {
-        throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, COMPLETED, or null' })
-      }
-      updateData.agentMode = normalized
-    }
-  }
-
   if (acceptedPlanVersion !== undefined) {
     if (acceptedPlanVersion === null) {
       updateData.acceptedPlanVersion = null
@@ -239,6 +241,30 @@ export default defineEventHandler(async (event) => {
     needsDescendantUpdate = true
   }
 
+  // Root-level items are structural containers in this model.
+  const effectiveParentId = parentId !== undefined ? parentId : currentItem.parentId
+  if (effectiveParentId === null) {
+    updateData.itemType = 'WORKSTREAM'
+    normalizedItemType = 'WORKSTREAM'
+  }
+
+  // Agent mode management (human-only)
+  if (agentMode !== undefined) {
+    const effectiveItemType = (updateData.itemType ?? currentItem.itemType) as 'TASK' | 'WORKSTREAM'
+    if (effectiveItemType === 'WORKSTREAM' && agentMode !== null) {
+      throw createError({ statusCode: 400, message: 'Workstream items cannot have agentMode set' })
+    }
+    if (agentMode === null) {
+      updateData.agentMode = null
+    } else {
+      const normalized = String(agentMode).toUpperCase()
+      if (!['PLAN', 'EXECUTE', 'COMPLETED'].includes(normalized)) {
+        throw createError({ statusCode: 400, message: 'agentMode must be PLAN, EXECUTE, COMPLETED, or null' })
+      }
+      updateData.agentMode = normalized
+    }
+  }
+
   const item = await prisma.item.update({
     where: { id },
     data: updateData,
@@ -287,6 +313,7 @@ export default defineEventHandler(async (event) => {
     title: item.title,
     status: item.status.toLowerCase(),
     subStatus: item.subStatus ?? null,
+    itemType: item.itemType.toLowerCase(),
     parentId: item.parentId ?? null,
     projectId: item.projectId ?? null,
     agentMode: item.agentMode ?? null,

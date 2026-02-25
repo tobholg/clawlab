@@ -384,6 +384,7 @@ export default defineEventHandler(async (event) => {
       workspaceId,
       title: projectTitle,
       description: template.description,
+      itemType: 'WORKSTREAM',
       ownerId: user.id,
       status: 'IN_PROGRESS',
       startDate: new Date(),

@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
     select: {
       id: true,
       title: true,
+      itemType: true,
       status: true,
       subStatus: true,
       agentMode: true,
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
     select: {
       id: true,
       title: true,
+      itemType: true,
       status: true,
       subStatus: true,
       agentMode: true,
@@ -250,8 +252,9 @@ export default defineEventHandler(async (event) => {
     return crumbs
   }
 
-  const isActionableTask = (task: { status: string; subStatus: string | null; agentMode: string | null }) => {
+  const isActionableTask = (task: { itemType: string; status: string; subStatus: string | null; agentMode: string | null }) => {
     if (!task.agentMode) return false
+    if (String(task.itemType || '').toUpperCase() !== 'TASK') return false
     if (String(task.status || '').toUpperCase() === 'DONE') return false
     return String(task.subStatus || '').toLowerCase() !== 'review'
   }
