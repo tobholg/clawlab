@@ -499,6 +499,219 @@ const downloadAsMarkdown = () => {
   URL.revokeObjectURL(url)
 }
 
+const stripInlineMarkdownForPdf = (value: string) => {
+  let text = value ?? ''
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
+  text = text.replace(/`([^`]+)`/g, '$1')
+  text = text.replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+  text = text.replace(/\*\*(.+?)\*\*/g, '$1')
+  text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '$1')
+  text = text.replace(/~~(.+?)~~/g, '$1')
+  return text
+}
+
+const createDownloadFilename = (title: string) => {
+  const slug = title
+    .replace(/[^a-zA-Z0-9\s-_]/g, '')
+    .replace(/\s+/g, '-')
+    .toLowerCase()
+    .trim()
+  return slug || 'untitled-document'
+}
+
+const exportToPdf = async () => {
+  const title = (editedTitle.value || 'Untitled document').trim() || 'Untitled document'
+  const generatedAt = new Date().toLocaleString()
+
+  try {
+    const [pdfMakeModule, pdfFontsModule] = await Promise.all([
+      import('pdfmake/build/pdfmake'),
+      import('pdfmake/build/vfs_fonts'),
+    ])
+
+    const pdfMake = (pdfMakeModule as any).default ?? pdfMakeModule
+    const pdfFontsModuleAny = pdfFontsModule as any
+    const rawDefault = pdfFontsModuleAny?.default
+    const vfs = (
+      rawDefault?.pdfMake?.vfs
+      ?? rawDefault?.vfs
+      ?? pdfFontsModuleAny?.pdfMake?.vfs
+      ?? pdfFontsModuleAny?.vfs
+      ?? rawDefault
+      ?? pdfFontsModuleAny
+    )
+
+    if (vfs && typeof pdfMake.addVirtualFileSystem === 'function') {
+      pdfMake.addVirtualFileSystem(vfs)
+    } else if (vfs) {
+      pdfMake.vfs = vfs
+    }
+
+    const robotoFonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf',
+      },
+    }
+    if (typeof pdfMake.addFonts === 'function') {
+      pdfMake.addFonts(robotoFonts)
+    } else {
+      pdfMake.fonts = { ...(pdfMake.fonts ?? {}), ...robotoFonts }
+    }
+
+    const content: any[] = [
+      { text: title, style: 'docTitle' },
+      { text: `Exported ${generatedAt}`, style: 'docMeta' },
+      {
+        canvas: [
+          { type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' },
+        ],
+        margin: [0, 8, 0, 14],
+      },
+    ]
+
+    blocks.value.forEach((block, index) => {
+      if (block.type === 'heading') {
+        const level = Math.min(3, Math.max(1, block.level ?? 1))
+        content.push({
+          text: stripInlineMarkdownForPdf(block.text),
+          style: level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3',
+        })
+        return
+      }
+
+      if (block.type === 'list-item') {
+        const indent = Math.max(0, block.indent ?? 0) * 14
+        const marker = block.checked !== undefined
+          ? (block.checked ? '☑' : '☐')
+          : (block.listStyle === 'number' ? `${getNumberedListValue(index)}.` : '•')
+
+        content.push({
+          columns: [
+            { width: 18, text: marker, style: 'listMarker', alignment: 'right' },
+            { width: '*', text: stripInlineMarkdownForPdf(block.text), style: 'paragraph' },
+          ],
+          columnGap: 8,
+          margin: [indent, 2, 0, 2],
+        })
+        return
+      }
+
+      if (block.type === 'table' && block.table?.length) {
+        const rows = block.table.map(row => [...row])
+        const columnCount = Math.max(1, rows[0]?.length ?? 1)
+        const body = rows.map((row, rowIndex) => {
+          const normalized = [...row]
+          while (normalized.length < columnCount) normalized.push('')
+          return normalized.map((cell) => ({
+            text: stripInlineMarkdownForPdf(cell),
+            style: rowIndex === 0 ? 'tableHeader' : 'tableCell',
+          }))
+        })
+
+        content.push({
+          table: {
+            headerRows: 1,
+            widths: new Array(columnCount).fill('*'),
+            body,
+          },
+          layout: {
+            hLineColor: () => '#dbe4ee',
+            vLineColor: () => '#dbe4ee',
+            hLineWidth: () => 1,
+            vLineWidth: () => 1,
+            paddingTop: () => 6,
+            paddingBottom: () => 6,
+            paddingLeft: () => 8,
+            paddingRight: () => 8,
+          },
+          margin: [0, 8, 0, 8],
+        })
+        return
+      }
+
+      if (block.type === 'divider') {
+        content.push({
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' },
+          ],
+          margin: [0, 10, 0, 10],
+        })
+        return
+      }
+
+      content.push({
+        text: stripInlineMarkdownForPdf(block.text),
+        style: 'paragraph',
+      })
+    })
+
+    const docDefinition = {
+      info: { title },
+      pageSize: 'A4',
+      pageMargins: [44, 40, 44, 48],
+      defaultStyle: {
+        font: 'Roboto',
+        fontSize: 10.5,
+        lineHeight: 1.42,
+        color: '#0f172a',
+      },
+      content,
+      styles: {
+        docTitle: {
+          fontSize: 18,
+          bold: true,
+          margin: [0, 0, 0, 2],
+          color: '#0f172a',
+        },
+        docMeta: {
+          fontSize: 8.5,
+          color: '#64748b',
+        },
+        h1: {
+          fontSize: 15,
+          bold: true,
+          margin: [0, 12, 0, 4],
+        },
+        h2: {
+          fontSize: 13.5,
+          bold: true,
+          margin: [0, 10, 0, 4],
+        },
+        h3: {
+          fontSize: 12,
+          bold: true,
+          margin: [0, 8, 0, 4],
+        },
+        paragraph: {
+          margin: [0, 3, 0, 3],
+        },
+        listMarker: {
+          fontSize: 10,
+          color: '#334155',
+          margin: [0, 1, 0, 0],
+        },
+        tableHeader: {
+          fillColor: '#f8fafc',
+          bold: true,
+          color: '#1e293b',
+        },
+        tableCell: {
+          color: '#0f172a',
+        },
+      },
+    }
+
+    const filename = `${createDownloadFilename(title)}.pdf`
+    pdfMake.createPdf(docDefinition).download(filename)
+  } catch (error) {
+    console.error('Failed to export PDF:', error)
+    window.alert('Unable to export PDF right now. Please try again.')
+  }
+}
+
 // Import markdown
 const showImportModal = ref(false)
 const importTab = ref<'file' | 'paste'>('file')
@@ -1192,6 +1405,14 @@ onMounted(() => {
                     >
                       <Icon name="heroicons:arrow-down-tray" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
                       <span>Download as Markdown</span>
+                    </button>
+                    <button
+                      v-if="documentData"
+                      @click="exportToPdf"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      <Icon name="heroicons:printer" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                      <span>Export to PDF</span>
                     </button>
                     <button
                       v-if="canEdit && !isReadMode"
