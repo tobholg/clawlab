@@ -19,6 +19,27 @@ const emit = defineEmits<{
   navigated: [id: string]
 }>()
 
+type ActivityUser = {
+  id: string
+  name: string
+  avatar: string | null
+}
+
+type ItemActivityEntry = {
+  id: string
+  type: string
+  oldValue: string | null
+  newValue: string | null
+  createdAt: string
+  user: ActivityUser
+  comment?: {
+    id: string
+    content: string
+    parentCommentId: string | null
+  } | null
+  targetUser?: ActivityUser | null
+}
+
 const router = useRouter()
 const { openLauncherForAgent } = useAgentTerminals()
 
@@ -64,6 +85,10 @@ const commits = ref<any[]>([])
 const commitsLoading = ref(false)
 const commitsError = ref<string | null>(null)
 const expandedCommitIds = ref<Set<string>>(new Set())
+const showActivityPane = ref(false)
+const activityEntries = ref<ItemActivityEntry[]>([])
+const activityLoading = ref(false)
+const activityError = ref<string | null>(null)
 
 const hasAgentAssignee = computed(() => {
   return !!itemDetail.value?.assignees?.some((assignee: any) => !!assignee.isAgent)
@@ -139,11 +164,16 @@ const loadItem = async (itemId: string, addToHistory = true) => {
     
     // Use parent from API response
     parentDetail.value = itemDetail.value?.parent ?? null
-    await loadCommits(itemId)
+    await Promise.all([
+      loadCommits(itemId),
+      loadActivityLog(itemId),
+    ])
   } catch (e) {
     console.error('Failed to fetch item details:', e)
     commits.value = []
     commitsError.value = null
+    activityEntries.value = []
+    activityError.value = null
   }
 }
 
@@ -187,6 +217,22 @@ const loadCommits = async (itemId: string) => {
     commitsError.value = e?.data?.message || e?.message || 'Failed to load commits'
   } finally {
     commitsLoading.value = false
+  }
+}
+
+const loadActivityLog = async (itemId: string) => {
+  activityLoading.value = true
+  activityError.value = null
+
+  try {
+    const data: any = await $fetch(`/api/items/${itemId}/activity-log`)
+    activityEntries.value = Array.isArray(data?.entries) ? data.entries : []
+  } catch (e: any) {
+    console.error('Failed to load activity log:', e)
+    activityEntries.value = []
+    activityError.value = e?.data?.message || e?.message || 'Failed to load activity'
+  } finally {
+    activityLoading.value = false
   }
 }
 
@@ -431,6 +477,9 @@ watch(() => props.itemId, (id) => {
     commits.value = []
     commitsError.value = null
     expandedCommitIds.value = new Set()
+    activityEntries.value = []
+    activityError.value = null
+    showActivityPane.value = false
   }
 }, { immediate: true })
 
@@ -1218,6 +1267,96 @@ const formatRelativeTime = (dateStr: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+const statusLabel = (status: string | null | undefined) => {
+  if (!status) return 'none'
+  const key = String(status).toLowerCase()
+  return STATUS_CONFIG[key as keyof typeof STATUS_CONFIG]?.label ?? key.replaceAll('_', ' ')
+}
+
+const agentModeLabel = (mode: string | null | undefined) => {
+  if (!mode) return 'none'
+  const normalized = String(mode).toUpperCase()
+  if (normalized === 'PLAN') return 'planning'
+  if (normalized === 'EXECUTE') return 'executing'
+  if (normalized === 'COMPLETED') return 'completed'
+  return normalized.toLowerCase()
+}
+
+const truncateForActivity = (text: string | null | undefined, max = 140) => {
+  if (!text) return ''
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text
+}
+
+const formatActivityMessage = (entry: ItemActivityEntry) => {
+  if (entry.type === 'COMMENT') {
+    return entry.comment?.parentCommentId ? 'replied in comments' : 'commented'
+  }
+
+  if (entry.type === 'ASSIGNMENT') {
+    return entry.targetUser?.name ? `assigned ${entry.targetUser.name}` : 'updated assignees'
+  }
+
+  if (entry.type === 'STATUS_CHANGE') {
+    return `changed status to ${statusLabel(entry.newValue)}`
+  }
+
+  if (entry.type === 'PROGRESS_UPDATE') {
+    return `updated progress to ${entry.newValue ?? '0'}%`
+  }
+
+  if (entry.type === 'UPDATED') {
+    const oldMode = agentModeLabel(entry.oldValue)
+    const newMode = agentModeLabel(entry.newValue)
+    const modeValues = new Set(['none', 'planning', 'executing', 'completed'])
+    if (modeValues.has(oldMode) && modeValues.has(newMode)) {
+      return `changed agent mode to ${newMode}`
+    }
+    return 'updated details'
+  }
+
+  return 'updated task'
+}
+
+const formatActivityDetail = (entry: ItemActivityEntry) => {
+  if (entry.type === 'COMMENT') {
+    return truncateForActivity(entry.comment?.content, 220)
+  }
+
+  if (entry.type === 'STATUS_CHANGE' && entry.oldValue) {
+    return `From ${statusLabel(entry.oldValue)}`
+  }
+
+  if (entry.type === 'PROGRESS_UPDATE' && entry.oldValue !== null && entry.newValue !== null) {
+    return `${entry.oldValue}% → ${entry.newValue}%`
+  }
+
+  if (entry.type === 'UPDATED') {
+    if (entry.oldValue && entry.newValue && entry.oldValue.length <= 60 && entry.newValue.length <= 60) {
+      return `${truncateForActivity(entry.oldValue, 60)} → ${truncateForActivity(entry.newValue, 60)}`
+    }
+  }
+
+  return ''
+}
+
+const activityIcon = (type: string) => {
+  if (type === 'COMMENT') return 'heroicons:chat-bubble-left-ellipsis'
+  if (type === 'ASSIGNMENT') return 'heroicons:user-plus'
+  if (type === 'STATUS_CHANGE') return 'heroicons:signal'
+  if (type === 'PROGRESS_UPDATE') return 'heroicons:chart-pie'
+  if (type === 'UPDATED') return 'heroicons:pencil-square'
+  return 'heroicons:clock'
+}
+
+const activityIconClasses = (type: string) => {
+  if (type === 'COMMENT') return 'text-sky-500'
+  if (type === 'ASSIGNMENT') return 'text-violet-500'
+  if (type === 'STATUS_CHANGE') return 'text-amber-500'
+  if (type === 'PROGRESS_UPDATE') return 'text-emerald-500'
+  if (type === 'UPDATED') return 'text-slate-500 dark:text-zinc-400'
+  return 'text-slate-400 dark:text-zinc-500'
+}
+
 defineExpose({ handleClose })
 </script>
 
@@ -1393,6 +1532,18 @@ defineExpose({ handleClose })
               </span>
               <span v-else-if="hasUnsavedChanges" class="text-[10px] text-amber-500">unsaved</span>
 
+              <!-- Activity Pane Toggle -->
+              <button
+                @click="showActivityPane = !showActivityPane"
+                class="w-8 h-8 flex items-center justify-center rounded-md transition-colors"
+                :class="showActivityPane
+                  ? 'text-violet-600 bg-violet-50 dark:text-violet-300 dark:bg-violet-500/10'
+                  : 'text-slate-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:text-violet-300 dark:hover:bg-violet-500/10'"
+                :title="showActivityPane ? 'Hide activity' : 'Show activity'"
+              >
+                <Icon name="heroicons:clock" class="w-4 h-4" />
+              </button>
+
               <!-- View Full Board -->
               <button
                 @click="handleViewFull"
@@ -1413,17 +1564,19 @@ defineExpose({ handleClose })
           </div>
           
           <!-- Content -->
-          <div class="p-6 space-y-6 flex-1 overflow-y-auto overflow-x-hidden">
-            <div v-if="statusError" class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-400">
-              {{ statusError }}
-            </div>
-            <!-- Title -->
-            <input
-              v-model="editedTitle"
-              type="text"
-              class="w-full text-xl font-medium text-slate-900 dark:text-zinc-100 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 dark:placeholder-zinc-600"
-              placeholder="Task title..."
-            />
+          <div class="flex-1 min-h-0 overflow-hidden">
+            <div class="h-full flex min-w-0">
+              <div class="p-6 space-y-6 flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+                <div v-if="statusError" class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-400">
+                  {{ statusError }}
+                </div>
+                <!-- Title -->
+                <input
+                  v-model="editedTitle"
+                  type="text"
+                  class="w-full text-xl font-medium text-slate-900 dark:text-zinc-100 bg-transparent border-0 focus:outline-none focus:ring-0 placeholder-slate-300 dark:placeholder-zinc-600"
+                  placeholder="Task title..."
+                />
             
             <!-- Description -->
             <div v-if="!editingDescription">
@@ -2741,55 +2894,134 @@ defineExpose({ handleClose })
             </div>
 
 
-            <!-- Delete Item -->
-            <div v-if="canDeleteItem" class="pt-6 mt-6 border-t border-slate-100 dark:border-white/[0.06]">
-              <div v-if="!showDeleteConfirm" class="flex items-center justify-between gap-3">
-                <div class="text-xs text-slate-400">
-                  Deleting removes this item permanently.
-                </div>
-                <button
-                  @click="showDeleteConfirm = true; deleteError = null"
-                  class="flex items-center gap-2 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                >
-                  <Icon name="heroicons:trash" class="w-4 h-4" />
-                  Delete
-                </button>
-              </div>
-
-              <div v-else class="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/60 dark:bg-rose-900/20 p-4">
-                <div class="flex items-start gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                    <Icon name="heroicons:trash" class="w-4 h-4" />
+                <!-- Delete Item -->
+                <div v-if="canDeleteItem" class="pt-6 mt-6 border-t border-slate-100 dark:border-white/[0.06]">
+                  <div v-if="!showDeleteConfirm" class="flex items-center justify-between gap-3">
+                    <div class="text-xs text-slate-400">
+                      Deleting removes this item permanently.
+                    </div>
+                    <button
+                      @click="showDeleteConfirm = true; deleteError = null"
+                      class="flex items-center gap-2 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                    >
+                      <Icon name="heroicons:trash" class="w-4 h-4" />
+                      Delete
+                    </button>
                   </div>
-                  <div class="flex-1">
-                    <div class="text-sm font-medium text-rose-700 dark:text-rose-400">Delete this item?</div>
-                    <p class="text-xs text-rose-600 dark:text-rose-400 mt-1">
-                      This action cannot be undone.
-                    </p>
-                    <p v-if="itemDetail?.childrenCount > 0" class="text-xs text-rose-600 dark:text-rose-400 mt-2">
-                      This will also delete all {{ itemDetail.childrenCount }} child items and their data.
-                    </p>
-                    <p v-if="deleteError" class="text-xs text-rose-700 dark:text-rose-400 mt-2">
-                      {{ deleteError }}
-                    </p>
-                    <div class="mt-3 flex items-center gap-2">
-                      <button
-                        @click="showDeleteConfirm = false; deleteError = null"
-                        class="px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100/70 dark:hover:bg-rose-900/30 rounded-md transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        @click="deleteItem"
-                        :disabled="isDeleting"
-                        class="px-3 py-1.5 text-xs text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {{ isDeleting ? 'Deleting...' : 'Confirm delete' }}
-                      </button>
+
+                  <div v-else class="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/60 dark:bg-rose-900/20 p-4">
+                    <div class="flex items-start gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                        <Icon name="heroicons:trash" class="w-4 h-4" />
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-rose-700 dark:text-rose-400">Delete this item?</div>
+                        <p class="text-xs text-rose-600 dark:text-rose-400 mt-1">
+                          This action cannot be undone.
+                        </p>
+                        <p v-if="itemDetail?.childrenCount > 0" class="text-xs text-rose-600 dark:text-rose-400 mt-2">
+                          This will also delete all {{ itemDetail.childrenCount }} child items and their data.
+                        </p>
+                        <p v-if="deleteError" class="text-xs text-rose-700 dark:text-rose-400 mt-2">
+                          {{ deleteError }}
+                        </p>
+                        <div class="mt-3 flex items-center gap-2">
+                          <button
+                            @click="showDeleteConfirm = false; deleteError = null"
+                            class="px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100/70 dark:hover:bg-rose-900/30 rounded-md transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            @click="deleteItem"
+                            :disabled="isDeleting"
+                            class="px-3 py-1.5 text-xs text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {{ isDeleting ? 'Deleting...' : 'Confirm delete' }}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+              <aside
+                v-if="showActivityPane"
+                class="w-[320px] max-w-[42%] border-l border-slate-100 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.02] flex flex-col"
+              >
+                <div class="px-4 py-3 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+                  <div class="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300 uppercase tracking-wide">
+                    <Icon name="heroicons:clock" class="w-3.5 h-3.5" />
+                    Activity
+                  </div>
+                  <button
+                    class="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200/70 dark:hover:text-zinc-300 dark:hover:bg-white/[0.08] transition-colors"
+                    :disabled="activityLoading || !currentItemId"
+                    @click="currentItemId && loadActivityLog(currentItemId)"
+                    title="Refresh activity"
+                  >
+                    <Icon
+                      name="heroicons:arrow-path"
+                      class="w-3.5 h-3.5"
+                      :class="{ 'animate-spin': activityLoading }"
+                    />
+                  </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-3">
+                  <div
+                    v-if="activityLoading && activityEntries.length === 0"
+                    class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white/90 dark:bg-white/[0.03] px-3 py-2 text-xs text-slate-500 dark:text-zinc-500 flex items-center gap-2"
+                  >
+                    <Icon name="heroicons:arrow-path" class="w-3.5 h-3.5 animate-spin" />
+                    Loading activity...
+                  </div>
+
+                  <div
+                    v-else-if="activityError"
+                    class="rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-300"
+                  >
+                    {{ activityError }}
+                  </div>
+
+                  <div
+                    v-else-if="activityEntries.length === 0"
+                    class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white/90 dark:bg-white/[0.03] px-3 py-4 text-center"
+                  >
+                    <Icon name="heroicons:clock" class="w-5 h-5 mx-auto mb-1 text-slate-300 dark:text-zinc-600" />
+                    <p class="text-xs text-slate-500 dark:text-zinc-500">No activity yet.</p>
+                  </div>
+
+                  <div v-else class="space-y-2">
+                    <article
+                      v-for="entry in activityEntries"
+                      :key="entry.id"
+                      class="rounded-lg border border-slate-200 dark:border-white/[0.08] bg-white/90 dark:bg-white/[0.03] px-3 py-2.5"
+                    >
+                      <div class="flex items-start gap-2.5">
+                        <div class="w-6 h-6 rounded-md bg-slate-100 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                          <Icon :name="activityIcon(entry.type)" class="w-3.5 h-3.5" :class="activityIconClasses(entry.type)" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">
+                            <span class="font-medium text-slate-700 dark:text-zinc-200">{{ entry.user?.name || 'User' }}</span>
+                            <span class="ml-1">{{ formatActivityMessage(entry) }}</span>
+                          </div>
+                          <p
+                            v-if="formatActivityDetail(entry)"
+                            class="mt-1 text-[11px] text-slate-500 dark:text-zinc-400 break-words"
+                          >
+                            {{ formatActivityDetail(entry) }}
+                          </p>
+                          <div class="mt-1 text-[10px] text-slate-400 dark:text-zinc-500">
+                            {{ formatRelativeTime(entry.createdAt) }}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </aside>
             </div>
           </div>
 

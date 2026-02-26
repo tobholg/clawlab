@@ -501,7 +501,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       <!-- Column header -->
       <div class="flex items-center justify-between mb-4 px-1 shrink-0">
         <div class="flex items-center gap-2">
-          <h2 :class="['text-xs font-medium uppercase tracking-wider', columnStyles[status].headerColor]">
+          <h2 :class="['text-xs font-medium tracking-wide', columnStyles[status].headerColor]">
             {{ STATUS_CONFIG[status].label }}
           </h2>
           <span class="text-[10px] font-normal text-slate-400 bg-white/80 dark:bg-white/[0.06] dark:text-zinc-500 px-1.5 py-0.5 rounded">
