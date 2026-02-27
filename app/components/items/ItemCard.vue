@@ -148,19 +148,15 @@ const progressColor = computed(() => {
   return 'text-slate-300'
 })
 
-const categoryIcon = computed(() => {
-  const icons: Record<string, string> = {
-    Engineering: 'heroicons:wrench-screwdriver',
-    Bug: 'heroicons:bug-ant',
-    Design: 'heroicons:paint-brush',
-    Product: 'heroicons:squares-plus',
-    QA: 'heroicons:check-badge',
-    Research: 'heroicons:beaker',
-    Operations: 'heroicons:cog-6-tooth',
-    Marketing: 'heroicons:megaphone',
-  }
-  return icons[props.item.category ?? ''] ?? 'heroicons:tag'
-})
+const normalizedItemType = computed(() => (props.item.itemType || 'task').toLowerCase())
+const itemTypeIcon = computed(() => (
+  normalizedItemType.value === 'workstream'
+    ? 'heroicons:folder'
+    : 'heroicons:beaker'
+))
+const itemTypeLabel = computed(() => (
+  normalizedItemType.value === 'workstream' ? 'Workstream' : 'Task'
+))
 
 // Clicking the card opens the detail modal
 const handleCardClick = () => {
@@ -187,10 +183,9 @@ const handleCardClick = () => {
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5 min-w-0">
           <Icon
-            v-if="item.category"
-            :name="categoryIcon"
+            :name="itemTypeIcon"
             class="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 flex-shrink-0"
-            :title="item.category"
+            :title="itemTypeLabel"
           />
           <h3
             class="text-sm font-medium leading-snug truncate min-w-0"

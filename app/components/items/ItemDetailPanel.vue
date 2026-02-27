@@ -1204,6 +1204,12 @@ const itemTypeLabel = computed(() => {
   return config?.label ?? 'Task'
 })
 
+const itemTypeIcon = computed(() => (
+  editedItemType.value === 'workstream'
+    ? 'heroicons:folder'
+    : 'heroicons:beaker'
+))
+
 // Close on escape
 onMounted(() => {
   const handleKeydown = (e: KeyboardEvent) => {
@@ -1914,11 +1920,11 @@ defineExpose({ handleClose })
                   <button
                     @click.stop="canEditItemType && (showTypeDropdown = !showTypeDropdown)"
                     :class="[
-                      'flex items-center gap-2 py-0.5 text-sm transition-colors',
+                      'flex items-center gap-2 py-0.5 pl-0 pr-0 text-sm text-slate-700 dark:text-zinc-300 transition-colors',
                       canEditItemType ? 'cursor-pointer hover:text-slate-900 dark:hover:text-zinc-100' : 'cursor-default'
                     ]"
                   >
-                    <Icon :name="ITEM_TYPE_CONFIG[editedItemType].icon" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                    <Icon :name="itemTypeIcon" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                     <span class="text-slate-700 dark:text-zinc-300">{{ itemTypeLabel }}</span>
                     <Icon v-if="canEditItemType" name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
                   </button>
@@ -1934,7 +1940,7 @@ defineExpose({ handleClose })
                         class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors"
                         :class="editedItemType === key ? 'bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-zinc-100 font-medium' : ''"
                       >
-                        <Icon :name="config.icon" class="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                        <Icon :name="key === 'workstream' ? 'heroicons:folder' : 'heroicons:beaker'" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                         <span>{{ config.label }}</span>
                       </button>
                     </div>

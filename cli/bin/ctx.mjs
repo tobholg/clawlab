@@ -166,6 +166,21 @@ function formatAgeMs(durationMs) {
   return formatDurationMs(safeDuration)
 }
 
+function shortId(id) {
+  return String(id || '').slice(-8)
+}
+
+function formatTaskPath(task) {
+  const breadcrumb = Array.isArray(task?.breadcrumb) && task.breadcrumb.length
+    ? `${task.breadcrumb.join(' › ')} › `
+    : ''
+  return `${breadcrumb}${task?.title || 'Untitled task'}`
+}
+
+function formatTaskRef(task) {
+  return `${formatTaskPath(task)} (id: ${shortId(task?.id)})`
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function requireToken() {
@@ -738,8 +753,7 @@ commands.catchup = {
         const isCurrentTask = currentTaskId === t.id
         const isProject = !t.parentId
         print(``)
-        const breadcrumb = (t.breadcrumb || []).length > 0 ? t.breadcrumb.join(' › ') + ' › ' : ''
-        print(`     ⚡ ${modeLabel}  ${isProject ? '📁 ' : ''}${breadcrumb}${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
+        print(`     ⚡ ${modeLabel}  ${isProject ? '📁 ' : ''}${formatTaskRef(t)}  ${t.progress ?? 0}%`)
         if (isProject) {
           print(`       ⚠  This is a project, not a task. Create tasks under it:`)
           print(`       $ ctx task create --parent ${t.id.slice(-8)} --title "Task title"`)
@@ -768,9 +782,9 @@ commands.catchup = {
           }
         } catch { /* skip if fetch fails */ }
 
-        print(`       $ ctx task ${t.id.slice(-8)}          # view details`)
+        print(`       $ ctx task ${shortId(t.id)}          # view details`)
         if (mode === 'plan') {
-          print(`       $ ctx doc ${t.id.slice(-8)} create "Plan title"  # start your plan`)
+          print(`       $ ctx doc ${shortId(t.id)} create "Plan title"  # start your plan`)
         }
       }
     }
@@ -778,7 +792,7 @@ commands.catchup = {
     if (waitingReviewTasks.length > 0) {
       print(`\n  ⏳ Awaiting human review (${waitingReviewTasks.length})`)
       for (const t of waitingReviewTasks) {
-        print(`     ${t.title}  (${t.id.slice(-8)})  ${t.progress ?? 0}%`)
+        print(`     ${formatTaskRef(t)}  ${t.progress ?? 0}%`)
       }
     }
 
@@ -790,8 +804,7 @@ commands.catchup = {
       print(`\n  📋 New tasks (${newTasks.length})`)
       for (const t of newTasks) {
         const isProject = !t.parentId
-        const breadcrumb = (t.breadcrumb || []).length > 0 ? t.breadcrumb.join(' › ') + ' › ' : ''
-        print(`     ${t.status.padEnd(12)} ${isProject ? '📁 ' : ''}${breadcrumb}${t.title}  (${t.id.slice(-8)})`)
+        print(`     ${t.status.padEnd(12)} ${isProject ? '📁 ' : ''}${formatTaskRef(t)}`)
         if (isProject) {
           print(`       ⚠  Project — create tasks under it, don't work on it directly`)
         }
@@ -802,7 +815,7 @@ commands.catchup = {
     if (updatedTasks.length > 0) {
       print(`\n  🔄 Updated tasks (${updatedTasks.length})`)
       for (const t of updatedTasks) {
-        print(`     ${t.status.padEnd(12)} ${t.title}  (${t.id.slice(-8)})`)
+        print(`     ${t.status.padEnd(12)} ${formatTaskRef(t)}`)
       }
     }
 
@@ -1058,12 +1071,14 @@ commands.status = {
     const checkedOutAt = session.checkedOutAt ? new Date(session.checkedOutAt).getTime() : Date.now()
     const elapsed = formatDurationMs(Date.now() - checkedOutAt)
     const taskId = session.task?.id || session.itemId || ''
-    const taskIdSuffix = taskId ? taskId.slice(-8) : 'unknown'
+    const taskIdSuffix = taskId ? shortId(taskId) : 'unknown'
 
     print('')
     print(`  Agent:    ${session.agent?.name || 'Unknown'}`)
     print(`  Session:  active since ${elapsed} ago`)
-    print(`  Task:     ${session.task?.title || 'Unknown task'} (${taskIdSuffix})`)
+    print(`  Task:     ${session.task?.title || 'Unknown task'}`)
+    if (session.project?.title) print(`  Project:  ${session.project.title}`)
+    print(`  Task key: ${taskIdSuffix}`)
     print(`  Mode:     ${session.task?.agentMode || 'N/A'}`)
     print(`  Progress: ${session.task?.progress ?? 0}%`)
     print('')
@@ -1217,6 +1232,8 @@ commands.tasks = {
   async run(args, flags) {
     requireToken()
     const data = await get('/api/agents/tasks')
+    const projects = await get('/api/agents/projects').catch(() => [])
+    const projectTitleById = new Map((Array.isArray(projects) ? projects : []).map((p) => [p.id, p.title]))
     if (JSON_OUT && !flags.has('--tree')) return json(data)
 
     if (flags.has('--tree')) {
@@ -1240,12 +1257,14 @@ commands.tasks = {
       if (!tree.length) return print('  No tasks assigned.\n')
 
       tree.forEach(t => {
-        print(`  ${statusIcon(t.status)} ${priorityIcon(t.priority)} ${t.title}  ${t.id.slice(-8)}${t.category ? '  [' + t.category + ']' : ''}`)
+        const projectPrefix = t.project?.title ? `${t.project.title} › ` : ''
+        print(`  ${statusIcon(t.status)} ${priorityIcon(t.priority)} ${projectPrefix}${t.title}${t.category ? '  [' + t.category + ']' : ''}`)
+        print(`    key: ${shortId(t.id)}  ${t.status}  ${t.progress ?? 0}%`)
         const subs = t.subtasks || []
         subs.forEach((s, i) => {
           const isLast = i === subs.length - 1
           const prefix = isLast ? '└─' : '├─'
-          print(`    ${prefix} ${statusIcon(s.status)} ${priorityIcon(s.priority || 'MEDIUM')} ${s.title}  ${s.id.slice(-8)}`)
+          print(`    ${prefix} ${statusIcon(s.status)} ${priorityIcon(s.priority || 'MEDIUM')} ${s.title} (id: ${shortId(s.id)})`)
         })
         print('')
       })
@@ -1255,8 +1274,10 @@ commands.tasks = {
     print('')
     if (!data.length) return print('  No tasks assigned.\n')
     data.forEach(t => {
-      print(`  ${statusIcon(t.status)} ${priorityIcon(t.priority)} ${t.title}`)
-      print(`    ${t.id.slice(-8)}  ${t.status}  ${t.progress}%${t.category ? '  [' + t.category + ']' : ''}`)
+      const projectTitle = projectTitleById.get(t.projectId)
+      const contextualTitle = projectTitle ? `${t.title} — ${projectTitle}` : t.title
+      print(`  ${statusIcon(t.status)} ${priorityIcon(t.priority)} ${contextualTitle}`)
+      print(`    ${t.status}  ${t.progress}%${t.category ? '  [' + t.category + ']' : ''}  (id: ${shortId(t.id)})`)
       print('')
     })
   },

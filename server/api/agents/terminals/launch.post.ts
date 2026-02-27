@@ -3,6 +3,7 @@ import { createPtySession, destroyPtySession, generateTerminalId, getPtySession,
 import { prisma } from '../../../utils/prisma'
 import { resolveRunnerCommand } from '../../../utils/agentRunner'
 import { resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 
 const MAX_TERMINALS_PER_SCOPE = 6
 const MAX_TERMINALS_TOTAL = 24
@@ -19,6 +20,21 @@ function quoteForDouble(value: string) {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
+function quoteForShellArg(value: string) {
+  return `'${value.replace(/'/g, `'\\''`)}'`
+}
+
+function inferRunnerId(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim().toLowerCase()
+  if (!trimmed) return null
+  const base = trimmed.split('/').pop() ?? trimmed
+  if (base === 'codex') return 'codex'
+  if (base === 'claude') return 'claude'
+  if (base === 'aider') return 'aider'
+  return null
+}
+
 const SYSTEM_PROMPT_BASE = `You are {{agentName}}, an AI agent working in ClawLab. You have a CLI tool called 'ctx' on your PATH.
 
 Key commands: ctx help, ctx tasks, ctx task <id>, ctx checkout <id>, ctx comment [id] <text>, ctx submit [id], ctx status, ctx catchup
@@ -28,13 +44,20 @@ Only work on tasks assigned to you. If ctx task <id> returns 'not found', the ta
 
 You are a teammate, not just a task executor. If someone asks you something conversational in a channel (a joke, a question, casual chat), respond naturally using ctx channels <name> --reply "your message". Be helpful, have personality, and engage like a real team member.`
 
+const TASK_REFERENCE_RULES = `
+
+When communicating with humans about tasks/projects:
+- Always lead with the task title and project/workstream context.
+- IDs are optional and must be trailing only, e.g. "Task Title — Project/Path (id: ab12cd34)".
+- Never lead list items with raw IDs, and never provide ID-only task references.`
+
 const PROMPT_GENERAL = `
 
 You were launched from the terminals view with no specific task assigned.
 
 Workflow:
 1. Run: ctx catchup -- to orient yourself, see what's going on and what needs attention
-2. Present the user with a summary of what you found and suggest 2-3 tasks you could work on. Ask what they'd like you to start with.
+2. Present the user with a summary of what you found and suggest 2-3 tasks you could work on. Use human-readable references in this exact style: "Task Title — Project/Path (id: ab12cd34)". Ask what they'd like you to start with.
 3. Once the user picks a task: run ctx checkout <task-id> to begin
 4. Do the work (edit files, run tests, etc.)
 5. Run: ctx comment "description of what you did" -- to log progress
@@ -57,7 +80,7 @@ Workflow:
 Start by orienting with catchup, then focus on your assigned task.`
 
 function buildSystemPrompt(agentName: string, task?: { id: string; title: string } | null): string {
-  let prompt = SYSTEM_PROMPT_BASE
+  let prompt = SYSTEM_PROMPT_BASE + TASK_REFERENCE_RULES
   if (task) {
     prompt += PROMPT_WITH_TASK
       .replace(/\{\{taskTitle\}\}/g, task.title)
@@ -68,10 +91,18 @@ function buildSystemPrompt(agentName: string, task?: { id: string; title: string
   return prompt.replace(/\{\{agentName\}\}/g, agentName)
 }
 
-function buildLaunchCommand(runner: string | null, args: string | null): string | null {
-  if (!runner) return null // plain terminal, no agent CLI
+function buildLaunchCommand(
+  runnerExecutable: string | null,
+  args: string | null,
+  runnerKind: string | null,
+): string | null {
+  if (!runnerExecutable) return null // plain terminal, no agent CLI
 
-  const parts = [runner]
+  const commandToken = /[\s"'$`\\]/.test(runnerExecutable)
+    ? quoteForShellArg(runnerExecutable)
+    : runnerExecutable
+  const parts = [commandToken]
+  const runnerId = inferRunnerId(runnerKind) ?? inferRunnerId(runnerExecutable)
 
   // Add extra args first
   if (args?.trim()) {
@@ -81,21 +112,38 @@ function buildLaunchCommand(runner: string | null, args: string | null): string 
   // Pass prompt via env var to avoid fragile shell escaping for long prompts.
   const promptVar = '"$CTX_AGENT_SYSTEM_PROMPT"'
 
-  if (runner === 'codex') {
+  if (runnerId === 'codex') {
     // Codex: workspace-write sandbox with network access for ctx CLI API calls
     parts.push('--sandbox', 'workspace-write', '-c', "'sandbox_permissions=[\"network\"]'")
     // Codex takes prompt as positional arg
     parts.push(promptVar)
-  } else if (runner === 'claude') {
+  } else if (runnerId === 'claude') {
     // Claude Code: --dangerously-skip-permissions for non-interactive agent use
     // System prompt via --append-system-prompt (appends to Claude Code's default)
     parts.push('--dangerously-skip-permissions')
     parts.push('--append-system-prompt', promptVar)
-  } else if (runner === 'aider') {
+  } else if (runnerId === 'aider') {
     parts.push('--message', promptVar)
   }
 
   return parts.join(' ')
+}
+
+function resolveRunnerExecutable(runner: string | null): string | null {
+  if (!runner) return null
+  if (runner !== 'codex') return runner
+
+  // Prefer explicit override, then known macOS app path, then PATH lookup.
+  const candidates = [
+    process.env.CODEX_BIN,
+    '/Applications/Codex.app/Contents/Resources/codex',
+  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+
+  return runner
 }
 
 /**
@@ -317,7 +365,8 @@ export default defineEventHandler(async (event) => {
 
       // Launch agent CLI if runner configured
       const runner = resolveRunnerCommand(agent.runnerCommand, agent.agentProvider)
-      const launchCmd = buildLaunchCommand(runner, agent.runnerArgs)
+      const resolvedRunner = resolveRunnerExecutable(runner)
+      const launchCmd = buildLaunchCommand(resolvedRunner, agent.runnerArgs, runner)
       if (launchCmd) {
         // Small delay to let the banner print
         setTimeout(() => {
