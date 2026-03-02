@@ -1294,6 +1294,10 @@ const truncateForActivity = (text: string | null | undefined, max = 140) => {
 }
 
 const formatActivityMessage = (entry: ItemActivityEntry) => {
+  if (entry.type === 'CREATED') {
+    return 'created this task'
+  }
+
   if (entry.type === 'COMMENT') {
     return entry.comment?.parentCommentId ? 'replied in comments' : 'commented'
   }
@@ -1346,6 +1350,7 @@ const formatActivityDetail = (entry: ItemActivityEntry) => {
 }
 
 const activityIcon = (type: string) => {
+  if (type === 'CREATED') return 'heroicons:plus-circle'
   if (type === 'COMMENT') return 'heroicons:chat-bubble-left-ellipsis'
   if (type === 'ASSIGNMENT') return 'heroicons:user-plus'
   if (type === 'STATUS_CHANGE') return 'heroicons:signal'
@@ -1355,6 +1360,7 @@ const activityIcon = (type: string) => {
 }
 
 const activityIconClasses = (type: string) => {
+  if (type === 'CREATED') return 'text-emerald-500'
   if (type === 'COMMENT') return 'text-sky-500'
   if (type === 'ASSIGNMENT') return 'text-violet-500'
   if (type === 'STATUS_CHANGE') return 'text-amber-500'

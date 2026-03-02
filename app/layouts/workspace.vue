@@ -240,13 +240,13 @@ const statusDotClass = (status: string) => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-[#FAFAFA] dark:bg-dm-surface font-sans text-slate-900 dark:text-zinc-100 overflow-hidden">
+  <div class="flex h-screen bg-white dark:bg-dm-surface font-sans text-slate-900 dark:text-zinc-100 overflow-hidden">
 
     <!-- Sidebar -->
     <aside
       :class="[
-        'bg-white dark:bg-dm-panel/65 flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
-        sidebarCollapsed ? 'w-[3.75rem]' : 'w-60 2xl:w-72'
+        'bg-slate-50 dark:bg-dm-panel/65 flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        sidebarCollapsed ? 'w-[3.75rem]' : 'w-64 2xl:w-80'
       ]"
     >
       <!-- Workspace Switcher -->
@@ -272,7 +272,7 @@ const statusDotClass = (status: string) => {
         <button
           @click="openSearch"
           :class="[
-            'w-full flex items-center px-2 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200',
+            'w-full flex items-center px-2 rounded-lg text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200',
             sidebarCollapsed ? 'justify-center py-2' : 'gap-2.5 py-1'
           ]"
         >
@@ -291,7 +291,7 @@ const statusDotClass = (status: string) => {
             sidebarCollapsed ? 'justify-center py-2' : 'gap-2.5 py-1',
             hasTerminals || terminalOpen
               ? 'text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300'
-              : 'text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-white'
+              : 'text-slate-700 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white'
           ]"
         >
           <Icon name="heroicons:command-line" class="w-4 h-4 flex-shrink-0" />
@@ -690,7 +690,7 @@ const statusDotClass = (status: string) => {
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#F5F7FA] dark:bg-dm-surface">
+    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-white dark:bg-dm-surface">
       <Transition name="content-fade">
         <div :key="route.path" class="absolute inset-0 flex flex-col overflow-auto">
           <slot />

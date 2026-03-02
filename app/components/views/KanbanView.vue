@@ -28,11 +28,11 @@ const selectedRow = ref(-1)
 type ColumnStyleMap = Record<Item['status'], { bg: string; headerColor: string; dropBg: string }>
 
 const legacyColumnStyles: ColumnStyleMap = {
-  todo: { bg: 'bg-zinc-900/[0.0125] dark:bg-dm-panel/65', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
-  in_progress: { bg: 'bg-zinc-900/[0.0125] dark:bg-dm-panel/65', headerColor: 'text-blue-600 dark:text-blue-400', dropBg: 'bg-blue-200 dark:bg-white/[0.06]' },
-  blocked: { bg: 'bg-zinc-900/[0.0125] dark:bg-dm-panel/65', headerColor: 'text-rose-600 dark:text-rose-400', dropBg: 'bg-rose-200 dark:bg-white/[0.06]' },
-  paused: { bg: 'bg-zinc-900/[0.0125] dark:bg-dm-panel/65', headerColor: 'text-amber-600 dark:text-amber-400', dropBg: 'bg-amber-200 dark:bg-white/[0.06]' },
-  done: { bg: 'bg-zinc-900/[0.0125] dark:bg-dm-panel/65', headerColor: 'text-emerald-600 dark:text-emerald-400', dropBg: 'bg-emerald-200 dark:bg-white/[0.06]' },
+  todo: { bg: 'bg-slate-50 dark:bg-dm-panel/65', headerColor: 'text-slate-600 dark:text-zinc-400', dropBg: 'bg-slate-200 dark:bg-white/[0.06]' },
+  in_progress: { bg: 'bg-slate-50 dark:bg-dm-panel/65', headerColor: 'text-blue-600 dark:text-blue-400', dropBg: 'bg-blue-200 dark:bg-white/[0.06]' },
+  blocked: { bg: 'bg-slate-50 dark:bg-dm-panel/65', headerColor: 'text-rose-600 dark:text-rose-400', dropBg: 'bg-rose-200 dark:bg-white/[0.06]' },
+  paused: { bg: 'bg-slate-50 dark:bg-dm-panel/65', headerColor: 'text-amber-600 dark:text-amber-400', dropBg: 'bg-amber-200 dark:bg-white/[0.06]' },
+  done: { bg: 'bg-slate-50 dark:bg-dm-panel/65', headerColor: 'text-emerald-600 dark:text-emerald-400', dropBg: 'bg-emerald-200 dark:bg-white/[0.06]' },
 }
 
 const lightEquivalentDarkColumnStyles: ColumnStyleMap = {

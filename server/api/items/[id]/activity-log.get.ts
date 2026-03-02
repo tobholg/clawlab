@@ -21,10 +21,26 @@ export default defineEventHandler(async (event) => {
 
   await requireWorkspaceMemberForItem(event, itemId)
 
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    select: {
+      id: true,
+      createdAt: true,
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+        },
+      },
+    },
+  })
+
   const activities = await prisma.activity.findMany({
     where: { itemId },
     orderBy: { createdAt: 'desc' },
-    take: 200,
+    take: 199,
     include: {
       user: {
         select: {
@@ -37,7 +53,25 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  const commentIds = activities
+  const existingCreatedActivity = activities.find(activity => activity.type === 'CREATED')
+  const createdActivity = existingCreatedActivity ?? await prisma.activity.findFirst({
+    where: { itemId, type: 'CREATED' },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+        },
+      },
+    },
+  })
+
+  const timelineActivities = activities.filter(activity => activity.type !== 'CREATED')
+
+  const commentIds = timelineActivities
     .map((activity) => {
       const metadata = activity.metadata as Record<string, unknown> | null
       const commentId = metadata?.commentId
@@ -58,7 +92,7 @@ export default defineEventHandler(async (event) => {
 
   const commentMap = new Map(comments.map(comment => [comment.id, comment]))
 
-  const assignmentUserIds = activities
+  const assignmentUserIds = timelineActivities
     .map((activity) => activity.type === 'ASSIGNMENT' ? activity.newValue : null)
     .filter((id): id is string => typeof id === 'string' && id.length > 0)
 
@@ -76,30 +110,62 @@ export default defineEventHandler(async (event) => {
 
   const assignedUserMap = new Map(assignedUsers.map(user => [user.id, formatUser(user)]))
 
+  const mapActivityEntry = (activity: {
+    id: string
+    type: string
+    oldValue: string | null
+    newValue: string | null
+    metadata: unknown
+    createdAt: Date
+    user: { id: string; name: string | null; email: string; avatar: string | null }
+  }) => {
+    const metadata = activity.metadata as Record<string, unknown> | null
+    const commentId = typeof metadata?.commentId === 'string' ? metadata.commentId : null
+    const comment = commentId ? commentMap.get(commentId) : null
+    const targetUser = activity.type === 'ASSIGNMENT' && activity.newValue
+      ? assignedUserMap.get(activity.newValue)
+      : null
+
+    return {
+      id: activity.id,
+      type: activity.type,
+      oldValue: activity.oldValue,
+      newValue: activity.newValue,
+      createdAt: activity.createdAt.toISOString(),
+      user: formatUser(activity.user),
+      comment: comment ? {
+        id: comment.id,
+        content: comment.content,
+        parentCommentId: comment.parentCommentId,
+      } : null,
+      targetUser: targetUser ?? null,
+    }
+  }
+
+  const syntheticCreatedUser = item?.owner
+    ? formatUser(item.owner)
+    : timelineActivities[0]
+      ? formatUser(timelineActivities[0].user)
+      : { id: 'system', name: 'System', avatar: null }
+
+  const createdEntry = createdActivity
+    ? mapActivityEntry(createdActivity)
+    : {
+      id: `created-${itemId}`,
+      type: 'CREATED',
+      oldValue: null,
+      newValue: null,
+      createdAt: item?.createdAt?.toISOString() ?? new Date().toISOString(),
+      user: syntheticCreatedUser,
+      comment: null,
+      targetUser: null,
+    }
+
+  const entries = [createdEntry, ...timelineActivities.map(mapActivityEntry)]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
   return {
     itemId,
-    entries: activities.map((activity) => {
-      const metadata = activity.metadata as Record<string, unknown> | null
-      const commentId = typeof metadata?.commentId === 'string' ? metadata.commentId : null
-      const comment = commentId ? commentMap.get(commentId) : null
-      const targetUser = activity.type === 'ASSIGNMENT' && activity.newValue
-        ? assignedUserMap.get(activity.newValue)
-        : null
-
-      return {
-        id: activity.id,
-        type: activity.type,
-        oldValue: activity.oldValue,
-        newValue: activity.newValue,
-        createdAt: activity.createdAt.toISOString(),
-        user: formatUser(activity.user),
-        comment: comment ? {
-          id: comment.id,
-          content: comment.content,
-          parentCommentId: comment.parentCommentId,
-        } : null,
-        targetUser: targetUser ?? null,
-      }
-    }),
+    entries,
   }
 })
