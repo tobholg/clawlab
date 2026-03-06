@@ -84,8 +84,6 @@ const hasAllChildrenCompleted = (project: ItemNode) => {
   return (project.childrenCount ?? 0) > 0 && getActiveChildrenCount(project) === 0
 }
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-
 // Owner tooltip state
 const tooltipProjectId = ref<string | null>(null)
 const tooltipPos = ref({ top: 0, left: 0 })
@@ -137,60 +135,6 @@ const getInitials = (name: string) => {
   return (name || '').split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || '?'
 }
 
-const calculateHealthScore = (project: ItemNode) => {
-  if (project.status === 'done') return 100
-
-  let score = 100
-  const blocked = project.blockedChildrenCount ?? 0
-  const atRisk = project.atRiskChildrenCount ?? 0
-
-  score -= Math.min(45, blocked * 12)
-  score -= Math.min(30, atRisk * 6)
-
-  if (project.status === 'blocked') score -= 18
-  if (project.status === 'paused') score -= 10
-
-  const activitySource = project.lastActivityAt || project.updatedAt || project.createdAt
-  if (activitySource) {
-    const last = new Date(activitySource).getTime()
-    const days = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24))
-    if (days > 21) score -= 15
-    else if (days > 10) score -= 8
-    else if (days > 5) score -= 4
-  }
-
-  if ((project.childrenCount ?? 0) > 0 && getActiveChildrenCount(project) === 0) {
-    score += 5
-  }
-
-  return clamp(Math.round(score), 0, 100)
-}
-
-const healthMeta = (project: ItemNode) => {
-  const score = calculateHealthScore(project)
-
-  if (project.status === 'done') {
-    return {
-      score,
-      label: 'Complete',
-      textClass: 'text-emerald-600 dark:text-emerald-400',
-      barClass: 'from-emerald-500 via-emerald-400 to-emerald-200',
-      trackClass: 'bg-emerald-50 dark:bg-emerald-500/10',
-    }
-  }
-
-  if (score >= 85) {
-    return { score, label: 'Excellent', textClass: 'text-emerald-600 dark:text-emerald-400', barClass: 'from-emerald-500 via-emerald-400 to-emerald-200', trackClass: 'bg-emerald-50 dark:bg-emerald-500/10' }
-  }
-  if (score >= 70) {
-    return { score, label: 'Good', textClass: 'text-teal-600 dark:text-teal-400', barClass: 'from-teal-500 via-teal-400 to-teal-200', trackClass: 'bg-teal-50 dark:bg-teal-500/10' }
-  }
-  if (score >= 55) {
-    return { score, label: 'Watch', textClass: 'text-amber-600 dark:text-amber-400', barClass: 'from-amber-500 via-amber-400 to-amber-200', trackClass: 'bg-amber-50 dark:bg-amber-500/10' }
-  }
-  return { score, label: 'Risk', textClass: 'text-rose-600 dark:text-rose-400', barClass: 'from-rose-500 via-rose-400 to-rose-200', trackClass: 'bg-rose-50 dark:bg-rose-500/10' }
-}
-
 defineExpose({ sortedProjects })
 </script>
 
@@ -224,23 +168,6 @@ defineExpose({ sortedProjects })
             </button>
           </div>
 
-          <!-- Project Health -->
-          <div class="mb-4">
-            <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 mb-1.5">
-              <span>Project health</span>
-              <span class="font-semibold" :class="healthMeta(project).textClass">
-                {{ healthMeta(project).score }}% · {{ healthMeta(project).label }}
-              </span>
-            </div>
-            <div class="h-2.5 rounded-full overflow-hidden" :class="healthMeta(project).trackClass">
-              <div
-                class="h-full rounded-full bg-gradient-to-r transition-all"
-                :class="healthMeta(project).barClass"
-                :style="{ width: `${healthMeta(project).score}%` }"
-              />
-            </div>
-          </div>
-
           <!-- Heatmap (central focus) -->
           <div class="mb-4 rounded-xl border border-slate-100 dark:border-white/[0.06] bg-white dark:bg-dm-card p-3">
             <UiCompletionHeatmap :item-id="project.id" :days="14" />
@@ -264,7 +191,16 @@ defineExpose({ sortedProjects })
                 {{ project.atRiskChildrenCount }} at risk
               </button>
             </template>
-            <span v-else-if="project.status !== 'done' && project.status !== 'todo'" class="text-emerald-500">
+            <span v-else-if="project.status === 'done'" class="text-emerald-600 dark:text-emerald-400">
+              Complete
+            </span>
+            <span v-else-if="project.status === 'paused'" class="text-slate-500 dark:text-zinc-400">
+              Paused
+            </span>
+            <span v-else-if="project.status === 'todo'" class="text-slate-500 dark:text-zinc-400">
+              Not started
+            </span>
+            <span v-else class="text-emerald-500 dark:text-emerald-400">
               Healthy
             </span>
           </div>

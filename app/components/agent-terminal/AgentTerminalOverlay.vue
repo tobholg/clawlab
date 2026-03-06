@@ -111,7 +111,7 @@
           <div class="flex-1 min-h-0 flex gap-2">
             <aside
               v-if="showScopePane"
-              class="w-56 shrink-0 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white/85 dark:bg-white/[0.04] p-2 overflow-y-auto"
+              class="w-56 shrink-0 overflow-y-auto"
             >
               <div class="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
                 Scopes

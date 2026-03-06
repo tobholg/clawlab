@@ -155,7 +155,7 @@ const itemTypeIcon = computed(() => (
     : 'heroicons:beaker'
 ))
 const itemTypeLabel = computed(() => (
-  normalizedItemType.value === 'workstream' ? 'Workstream' : 'Task'
+  normalizedItemType.value === 'workstream' ? 'Group' : 'Task'
 ))
 
 // Clicking the card opens the detail modal
@@ -166,19 +166,19 @@ const handleCardClick = () => {
 
 <template>
   <div
-    class="group p-4 pb-3 rounded-xl transition-all duration-200 cursor-pointer"
+    class="group p-3.5 pb-2.5 rounded-xl border border-slate-100 dark:border-transparent transition-all duration-200 cursor-pointer"
     :class="[
       isPaused
-        ? 'bg-slate-50 dark:bg-white/[0.04] opacity-75'
-        : 'bg-white dark:bg-white/[0.06]',
+        ? 'bg-slate-50 dark:bg-white/[0.04] opacity-75 shadow-[0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-none'
+        : 'bg-white dark:bg-white/[0.06] shadow-[0_2px_5px_-3px_rgba(15,23,42,0.16)] dark:shadow-none',
       isCurrentlyFocused
-        ? 'ring-2 ring-amber-100 dark:ring-amber-500/15 shadow-sm'
-        : !isPaused && 'dark:hover:bg-white/[0.08] hover:shadow-sm'
+        ? 'ring-2 ring-amber-100 dark:ring-amber-500/15 shadow-[0_8px_18px_-10px_rgba(15,23,42,0.28)] dark:shadow-sm'
+        : !isPaused && 'dark:hover:bg-white/[0.08] hover:shadow-[0_8px_18px_-12px_rgba(15,23,42,0.24)] dark:hover:shadow-none'
     ]"
     @click="handleCardClick"
   >
     <!-- Title row with category label + owner -->
-    <div class="flex items-start gap-2 mb-1 min-h-5">
+    <div class="flex items-start gap-2 mb-0.5 min-h-5">
       <!-- Title + Focus indicator -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5 min-w-0">

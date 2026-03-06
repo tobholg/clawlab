@@ -1204,11 +1204,10 @@ const itemTypeLabel = computed(() => {
   return config?.label ?? 'Task'
 })
 
-const itemTypeIcon = computed(() => (
-  editedItemType.value === 'workstream'
-    ? 'heroicons:folder'
-    : 'heroicons:beaker'
-))
+const itemTypeIcon = computed(() => {
+  const config = ITEM_TYPE_CONFIG[editedItemType.value]
+  return config?.icon ?? 'heroicons:check-circle'
+})
 
 // Close on escape
 onMounted(() => {
@@ -1926,11 +1925,13 @@ defineExpose({ handleClose })
                   <button
                     @click.stop="canEditItemType && (showTypeDropdown = !showTypeDropdown)"
                     :class="[
-                      'flex items-center gap-2 py-0.5 pl-0 pr-0 text-sm text-slate-700 dark:text-zinc-300 transition-colors',
+                      'flex items-center gap-1 py-0.5 pl-0 pr-0 text-sm text-slate-700 dark:text-zinc-300 transition-colors',
                       canEditItemType ? 'cursor-pointer hover:text-slate-900 dark:hover:text-zinc-100' : 'cursor-default'
                     ]"
                   >
-                    <Icon :name="itemTypeIcon" class="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+                    <span class="inline-flex h-5 w-5 items-center justify-center leading-none text-slate-400 dark:text-zinc-500">
+                      <Icon :name="itemTypeIcon" class="w-3.5 h-3.5" />
+                    </span>
                     <span class="text-slate-700 dark:text-zinc-300">{{ itemTypeLabel }}</span>
                     <Icon v-if="canEditItemType" name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
                   </button>
@@ -1960,12 +1961,14 @@ defineExpose({ handleClose })
                 <div class="flex-1 min-w-0 relative" ref="priorityDropdownRef">
                   <button
                     @click.stop="showPriorityDropdown = !showPriorityDropdown"
-                    class="flex items-center gap-2 py-0.5 text-sm text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
+                    class="flex items-center gap-1 py-0.5 text-sm text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
                   >
-                    <div
-                      class="w-2 h-2 rounded-full"
-                      :class="priorityDotColors[editedPriority] || 'bg-slate-300'"
-                    />
+                    <span class="inline-flex h-5 w-5 items-center justify-center leading-none">
+                      <div
+                        class="w-2 h-2 rounded-full"
+                        :class="priorityDotColors[editedPriority] || 'bg-slate-300'"
+                      />
+                    </span>
                     <span>{{ priorityLabel }}</span>
                     <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
                   </button>
@@ -1995,12 +1998,14 @@ defineExpose({ handleClose })
                 <div class="flex-1 min-w-0 relative" ref="complexityDropdownRef">
                   <button
                     @click.stop="showComplexityDropdown = !showComplexityDropdown"
-                    class="flex items-center gap-2 py-0.5 text-sm text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
+                    class="flex items-center gap-1 py-0.5 text-sm text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
                   >
-                    <div
-                      class="w-2 h-2 rounded-full"
-                      :class="editedComplexity ? (complexityDotColors[editedComplexity] || 'bg-slate-400') : 'bg-slate-300'"
-                    />
+                    <span class="inline-flex h-5 w-5 items-center justify-center leading-none">
+                      <div
+                        class="w-2 h-2 rounded-full"
+                        :class="editedComplexity ? (complexityDotColors[editedComplexity] || 'bg-slate-400') : 'bg-slate-300'"
+                      />
+                    </span>
                     <span>{{ complexityLabel }}</span>
                     <Icon name="heroicons:chevron-down" class="w-3.5 h-3.5 text-slate-400" />
                   </button>

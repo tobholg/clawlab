@@ -132,7 +132,7 @@ export const STATUS_CONFIG = {
 
 export const ITEM_TYPE_CONFIG = {
   task: { label: 'Task', icon: 'heroicons:check-circle' },
-  workstream: { label: 'Workstream', icon: 'heroicons:folder' },
+  workstream: { label: 'Group', icon: 'heroicons:folder' },
 } as const
 
 // Sub-states for each status (with colors for badges)

@@ -471,11 +471,11 @@ onUnmounted(() => {
                     ]"
                   >
                     <Icon name="heroicons:folder" class="w-3.5 h-3.5" />
-                    Workstream
+                    Group
                   </button>
                 </div>
                 <p class="mt-1 text-[11px] text-slate-400 dark:text-zinc-500">
-                  {{ itemType === 'WORKSTREAM' ? 'Structural container for grouping child tasks.' : 'Actionable work item.' }}
+                  {{ itemType === 'WORKSTREAM' ? 'Container for grouping child tasks.' : 'Actionable work item.' }}
                 </p>
               </div>
             </div>
@@ -682,7 +682,7 @@ onUnmounted(() => {
                 :disabled="!title.trim()"
                 class="px-4 py-2 text-sm font-normal text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all dark:bg-white/[0.1] dark:text-zinc-200 dark:hover:bg-white/[0.15]"
               >
-                {{ isProject ? 'Create Project' : (itemType === 'WORKSTREAM' ? 'Create Workstream' : 'Create Task') }}
+                {{ isProject ? 'Create Project' : (itemType === 'WORKSTREAM' ? 'Create Group' : 'Create Task') }}
               </button>
             </div>
           </form>
