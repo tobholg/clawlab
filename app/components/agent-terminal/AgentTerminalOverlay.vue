@@ -117,21 +117,75 @@
                 Scopes
               </div>
               <div class="space-y-1">
-                <button
+                <div
                   v-for="scope in scopeEntries"
                   :key="scope.id"
-                  @click="setSelectedScope(scope.id)"
-                  class="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors"
-                  :class="scope.id === selectedScopeId
-                    ? 'bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-200'
-                    : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]'"
+                  class="space-y-1"
                 >
-                  <Icon :name="scope.type === 'global' ? 'heroicons:globe-alt' : 'heroicons:folder'" class="w-4 h-4 shrink-0" />
-                  <span class="text-sm truncate flex-1">{{ scope.label }}</span>
-                  <span class="text-[10px] tabular-nums rounded px-1.5 py-0.5 bg-white/80 dark:bg-white/[0.08] border border-slate-200 dark:border-transparent">
-                    {{ scope.count }}/{{ MAX_TERMINALS_PER_SCOPE }}
-                  </span>
-                </button>
+                  <div class="flex items-center gap-1">
+                    <button
+                      @click="selectScope(scope.id)"
+                      class="flex-1 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors min-w-0"
+                      :class="scope.id === selectedScopeId
+                        ? 'bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-200'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]'"
+                    >
+                      <Icon :name="scope.type === 'global' ? 'heroicons:globe-alt' : 'heroicons:folder'" class="w-4 h-4 shrink-0" />
+                      <span class="text-sm truncate flex-1">{{ scope.label }}</span>
+                      <span class="text-[10px] tabular-nums rounded px-1.5 py-0.5 bg-white/80 dark:bg-white/[0.08] border border-slate-200 dark:border-transparent shrink-0">
+                        {{ scope.count }}/{{ MAX_TERMINALS_PER_SCOPE }}
+                      </span>
+                    </button>
+                    <button
+                      v-if="scope.sessions.length"
+                      @click.stop="toggleScopeExpanded(scope.id)"
+                      class="inline-flex h-5 w-5 items-center justify-center leading-none rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-600 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-colors shrink-0"
+                      :title="isScopeExpanded(scope.id) ? 'Collapse sessions' : 'Expand sessions'"
+                    >
+                      <Icon
+                        name="heroicons:chevron-right"
+                        class="w-3.5 h-3.5 transition-transform duration-150"
+                        :class="isScopeExpanded(scope.id) ? 'rotate-90' : ''"
+                      />
+                    </button>
+                    <span
+                      v-else
+                      class="inline-flex h-5 w-5 shrink-0"
+                      aria-hidden="true"
+                    />
+                  </div>
+
+                  <div
+                    v-if="scope.sessions.length && isScopeExpanded(scope.id)"
+                    class="ml-3 pl-3 border-l border-slate-200/80 dark:border-white/[0.08] space-y-1"
+                  >
+                    <button
+                      v-for="session in scope.sessions"
+                      :key="session.terminalId"
+                      @click="openSidebarSession(session.terminalId)"
+                      class="w-full flex items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
+                      :class="session.terminalId === activeTabId
+                        ? 'bg-violet-50 text-violet-900 dark:bg-violet-500/10 dark:text-violet-100'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-white/[0.06]'"
+                    >
+                      <span class="inline-flex h-5 w-5 items-center justify-center leading-none shrink-0 mt-0.5">
+                        <span :class="[
+                          'w-1.5 h-1.5 rounded-full',
+                          session.status === 'active' ? 'bg-emerald-400 animate-pulse' :
+                          session.status === 'awaiting_review' ? 'bg-emerald-400' :
+                          session.status === 'idle' ? 'bg-amber-400' :
+                          'bg-zinc-500'
+                        ]" />
+                      </span>
+                      <span class="min-w-0 flex-1">
+                        <span class="block text-sm font-semibold truncate">{{ sessionTitle(session) }}</span>
+                        <span class="block text-xs truncate text-slate-500 dark:text-zinc-500">
+                          {{ session.taskTitle || 'No active task' }}
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
               <p v-if="loadingProjects" class="text-[11px] text-slate-400 dark:text-zinc-600 px-2 pt-2">Loading projects…</p>
             </aside>
@@ -164,7 +218,7 @@
                 :class="[tileClass(index), activeTabId === tab.terminalId
                   ? 'border-violet-400/70 dark:border-violet-500/40 shadow-[0_0_0_1px_rgba(139,92,246,0.15)]'
                   : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]']"
-                @click="switchTab(tab.terminalId); focusTerminal(tab.terminalId)"
+                @click="openSidebarSession(tab.terminalId)"
               >
                 <!-- Tile header -->
                 <div
@@ -295,7 +349,7 @@
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
-import { useAgentTerminals } from '~/composables/useAgentTerminals'
+import { useAgentTerminals, type TerminalTab } from '~/composables/useAgentTerminals'
 
 const {
   isOpen,
@@ -378,10 +432,12 @@ type ScopeEntry = {
   label: string
   type: 'global' | 'project'
   count: number
+  sessions: TerminalTab[]
 }
 
 const workspaceProjects = ref<Array<{ id: string; title: string }>>([])
 const loadingProjects = ref(false)
+const expandedScopeIds = ref<Record<string, boolean>>({})
 const projectById = computed(() => {
   const map = new Map<string, string>()
   for (const project of workspaceProjects.value) map.set(project.id, project.title)
@@ -393,16 +449,19 @@ const projectById = computed(() => {
   return map
 })
 const scopeEntries = computed<ScopeEntry[]>(() => {
-  const countByScope = new Map<string, number>()
+  const sessionsByScope = new Map<string, TerminalTab[]>()
   for (const tab of tabs.value) {
-    countByScope.set(tab.scopeId, (countByScope.get(tab.scopeId) ?? 0) + 1)
+    const current = sessionsByScope.get(tab.scopeId) ?? []
+    current.push(tab)
+    sessionsByScope.set(tab.scopeId, current)
   }
 
   const entries: ScopeEntry[] = [{
     id: 'global',
     label: 'Global',
     type: 'global',
-    count: countByScope.get('global') ?? 0,
+    count: sessionsByScope.get('global')?.length ?? 0,
+    sessions: sessionsByScope.get('global') ?? [],
   }]
 
   for (const [projectId, title] of projectById.value.entries()) {
@@ -411,7 +470,8 @@ const scopeEntries = computed<ScopeEntry[]>(() => {
       id,
       label: title,
       type: 'project',
-      count: countByScope.get(id) ?? 0,
+      count: sessionsByScope.get(id)?.length ?? 0,
+      sessions: sessionsByScope.get(id) ?? [],
     })
   }
 
@@ -554,6 +614,42 @@ function focusTerminal(terminalId: string) {
   terminals.get(terminalId)?.term.focus()
 }
 
+function sessionTitle(tab: TerminalTab) {
+  return tab.isPlainTerminal ? 'Shell' : (tab.agentName || 'Agent')
+}
+
+function selectScope(scopeId: string) {
+  setSelectedScope(scopeId)
+  if (!scopeEntries.value.find(entry => entry.id === scopeId)?.sessions.length) return
+  expandedScopeIds.value = {
+    ...expandedScopeIds.value,
+    [scopeId]: true,
+  }
+}
+
+function isScopeExpanded(scopeId: string) {
+  if (!scopeEntries.value.find(entry => entry.id === scopeId)?.sessions.length) return false
+  return expandedScopeIds.value[scopeId] ?? scopeId === selectedScopeId.value
+}
+
+function toggleScopeExpanded(scopeId: string) {
+  if (!scopeEntries.value.find(entry => entry.id === scopeId)?.sessions.length) return
+  expandedScopeIds.value = {
+    ...expandedScopeIds.value,
+    [scopeId]: !isScopeExpanded(scopeId),
+  }
+}
+
+async function openSidebarSession(terminalId: string) {
+  switchTab(terminalId)
+  await nextTick()
+  await attachVisibleScopeTerminals()
+  requestAnimationFrame(() => {
+    focusTerminal(terminalId)
+    setTimeout(() => focusTerminal(terminalId), 60)
+  })
+}
+
 function fitAllTerminals() {
   for (const [terminalId, inst] of terminals) {
     try {
@@ -601,7 +697,11 @@ function initTerminal(terminalId: string) {
   const ws = connectTerminal(terminalId)
   if (!ws) {
     term.writeln('\r\n\x1b[31mFailed to connect to terminal\x1b[0m')
-    terminals.set(terminalId, { term, fit })
+    const resizeObserver = new ResizeObserver(() => {
+      fit.fit()
+    })
+    resizeObserver.observe(container)
+    terminals.set(terminalId, { term, fit, ro: resizeObserver })
     return
   }
 
@@ -683,7 +783,9 @@ watch(
 watch([selectedScopeId, scopeTabs], () => {
   if (!scopeTabs.value.length) return
   if (activeTabId.value && scopeTabs.value.some(t => t.terminalId === activeTabId.value)) return
-  switchTab(scopeTabs.value[0].terminalId)
+  const firstTab = scopeTabs.value[0]
+  if (!firstTab) return
+  switchTab(firstTab.terminalId)
 })
 
 watch(isDarkMode, () => {
@@ -868,10 +970,13 @@ const handleKeydown = (e: KeyboardEvent) => {
     closeTerminal(activeTabId.value)
   } else if (e.code === 'Tab' && scopeTabs.value.length > 1) {
     e.preventDefault()
-    const idx = scopeTabs.value.findIndex(t => t.terminalId === activeTabId.value)
-    const next = e.shiftKey
-      ? scopeTabs.value[(idx - 1 + scopeTabs.value.length) % scopeTabs.value.length].terminalId
-      : scopeTabs.value[(idx + 1) % scopeTabs.value.length].terminalId
+    const sessions = scopeTabs.value
+    const idx = sessions.findIndex(t => t.terminalId === activeTabId.value)
+    const nextTab = e.shiftKey
+      ? sessions[(idx - 1 + sessions.length) % sessions.length]
+      : sessions[(idx + 1) % sessions.length]
+    if (!nextTab) return
+    const next = nextTab.terminalId
     switchTab(next)
     focusTerminal(next)
   }

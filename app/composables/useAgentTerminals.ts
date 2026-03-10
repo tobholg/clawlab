@@ -29,6 +29,7 @@ export interface TerminalTab {
   agentSessionId: string
   agentId: string
   agentName: string
+  isPlainTerminal: boolean
   taskTitle: string | null
   taskId: string | null
   projectId: string | null
@@ -190,6 +191,7 @@ export const useAgentTerminals = () => {
         agentSessionId: res.agentSessionId ?? res.terminalId,
         agentId: opts.agentId || '',
         agentName: res.agentName || opts.agentName || 'Terminal',
+        isPlainTerminal: res.isPlainTerminal,
         taskTitle: res.taskTitle,
         taskId: res.taskId,
         projectId,
@@ -249,6 +251,7 @@ export const useAgentTerminals = () => {
     if (idx === -1) return
 
     const tab = tabs.value[idx]
+    if (!tab) return
 
     // Close WebSocket
     if (tab.ws) {
@@ -307,6 +310,7 @@ export const useAgentTerminals = () => {
             agentSessionId: session.agentSessionId ?? session.terminalId,
             agentId: session.agent?.id ?? '',
             agentName: session.agent?.name ?? 'Agent',
+            isPlainTerminal: false,
             taskTitle: session.task?.title ?? null,
             taskId: session.task?.id ?? null,
             projectId,
