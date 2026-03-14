@@ -492,7 +492,7 @@ function getToneDot(item: ItemNode) {
           @dragover="handleColumnDragOver($event, column.key)"
           @drop="handleColumnDrop($event, column)"
         >
-          <div v-if="column.items.length" class="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+          <div v-if="column.items.length" class="flex flex-1 min-h-0 flex-col gap-1.5 overflow-y-auto pr-1">
             <section
               v-for="group in column.groups"
               :key="group.key"
@@ -500,7 +500,7 @@ function getToneDot(item: ItemNode) {
             >
               <button
                 v-if="group.label"
-                class="mb-2 flex w-full items-center gap-1.5 rounded-lg bg-white/70 px-2 py-1.5 text-left text-[11px] font-medium transition-colors hover:bg-white/90 dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
+                class="flex w-full items-center gap-1.5 rounded-lg bg-white/70 px-2 py-1.5 text-left text-[11px] font-medium transition-colors hover:bg-white/90 dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
                 :class="dragTargetGroupKey === group.key ? 'ring-1 ring-inset ring-slate-300/80 dark:ring-white/[0.12]' : ''"
                 @click="toggleSection(group.key)"
                 @dragover="handleGroupDragOver($event, column.key, group.key)"
@@ -522,7 +522,7 @@ function getToneDot(item: ItemNode) {
 
               <div
                 v-show="!group.label || !isSectionCollapsed(group.key)"
-                class="flex flex-col gap-2 rounded-xl transition-colors"
+                class="mt-1.5 flex flex-col gap-2 rounded-xl transition-colors"
                 :class="dragTargetGroupKey === group.key ? 'bg-white/45 dark:bg-white/[0.03]' : ''"
                 @dragover="handleGroupDragOver($event, column.key, group.key)"
                 @drop.stop="handleGroupDrop($event, group)"
