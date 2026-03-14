@@ -178,7 +178,7 @@ const handleCardClick = () => {
     @click="handleCardClick"
   >
     <!-- Title row with category label + owner -->
-    <div class="flex items-start gap-2 mb-0.5 min-h-5">
+    <div class="flex items-start gap-2 mb-1.5 min-h-5">
       <!-- Title + Focus indicator -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5 min-w-0">

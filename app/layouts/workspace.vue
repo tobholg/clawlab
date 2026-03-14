@@ -245,10 +245,11 @@ const statusDotClass = (status: string) => {
     <!-- Sidebar -->
     <aside
       :class="[
-        'bg-slate-100/70 dark:bg-dm-panel/65 flex flex-col pt-5 transition-all duration-300 ease-in-out flex-shrink-0',
+        'flex flex-col pt-5 bg-slate-50 dark:bg-dm-panel transition-all duration-300 ease-in-out flex-shrink-0',
         sidebarCollapsed ? 'w-[3.75rem]' : 'w-64 2xl:w-72'
       ]"
     >
+      <div class="flex h-full min-h-0 flex-col">
       <!-- Workspace Switcher -->
       <div :class="['mb-4', sidebarCollapsed ? 'flex justify-center' : 'px-4']">
         <template v-if="sidebarCollapsed">
@@ -686,6 +687,7 @@ const statusDotClass = (status: string) => {
             class="w-4 h-4 text-slate-400 flex-shrink-0"
           />
         </button>
+      </div>
       </div>
     </aside>
 

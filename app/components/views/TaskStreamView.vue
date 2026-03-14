@@ -68,7 +68,7 @@ const boardColumns: Array<{
     key: 'todo',
     label: 'To do',
     dot: 'bg-slate-400',
-    bodyTint: 'bg-slate-100/70 dark:bg-white/[0.03]',
+    bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
     groupText: 'text-slate-500 dark:text-zinc-400',
     statuses: ['todo'],
   },
@@ -76,7 +76,7 @@ const boardColumns: Array<{
     key: 'in_progress',
     label: 'In progress',
     dot: 'bg-emerald-400',
-    bodyTint: 'bg-slate-100/70 dark:bg-white/[0.03]',
+    bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
     groupText: 'text-slate-500 dark:text-zinc-400',
     statuses: ['in_progress', 'paused'],
   },
@@ -84,7 +84,7 @@ const boardColumns: Array<{
     key: 'blocked',
     label: 'Blocked',
     dot: 'bg-rose-400',
-    bodyTint: 'bg-slate-100/70 dark:bg-white/[0.03]',
+    bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
     groupText: 'text-slate-500 dark:text-zinc-400',
     statuses: ['blocked'],
   },
@@ -568,7 +568,7 @@ function getToneDot(item: ItemNode) {
                   </div>
                 </div>
 
-                  <div class="mt-2 flex items-center justify-between gap-2">
+                  <div class="mt-3.5 flex items-center justify-between gap-2">
                     <span
                       class="inline-flex items-center gap-1 text-[11px] font-medium"
                       :class="getStateBadgeClasses(item)"
