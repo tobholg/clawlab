@@ -130,9 +130,9 @@ Use your judgment here — the goal is both notification types visible without o
 
 After implementation, I can test by running CLI commands:
 ```bash
-ctx task <id> --status in_progress --progress 50
-ctx subtask <id> "New task" --category Test
-ctx comment <id> "Hello from the CLI"
+clawlab task <id> --status in_progress --progress 50
+clawlab subtask <id> "New task" --category Test
+clawlab comment <id> "Hello from the CLI"
 ```
 
 Each should trigger a real-time toast in the browser.

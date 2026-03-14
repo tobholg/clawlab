@@ -138,18 +138,18 @@
   }
 
   .activity-cell--1 {
-    @apply bg-ctx-200;
+    @apply bg-clawlab-200;
   }
 
   .activity-cell--2 {
-    @apply bg-ctx-300;
+    @apply bg-clawlab-300;
   }
 
   .activity-cell--3 {
-    @apply bg-ctx-500;
+    @apply bg-clawlab-500;
   }
 
   .activity-cell--4 {
-    @apply bg-ctx-700;
+    @apply bg-clawlab-700;
   }
 }

@@ -46,11 +46,11 @@
         :title="chatOpen ? 'Close Quick Chat' : 'Quick Chat'"
         class="relative flex items-center justify-center w-11 h-11 transition-colors duration-200"
         :class="chatOpen
-          ? 'text-ctx-600 dark:text-ctx-400'
+          ? 'text-clawlab-600 dark:text-clawlab-400'
           : 'text-slate-400 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200'"
       >
         <!-- Active tint -->
-        <div v-if="chatOpen" class="absolute inset-0 bg-ctx-50 dark:bg-ctx-500/15 pointer-events-none" />
+        <div v-if="chatOpen" class="absolute inset-0 bg-clawlab-50 dark:bg-clawlab-500/15 pointer-events-none" />
 
         <div class="relative inline-flex items-center justify-center leading-none z-10">
           <Icon

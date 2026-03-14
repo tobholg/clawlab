@@ -11,7 +11,7 @@ function parsePositiveInt(value: string | undefined) {
 }
 
 export const UPLOAD_MAX_BYTES_PER_USER_PER_24H =
-  parsePositiveInt(process.env.RELAI_LIMIT_UPLOAD_BYTES_PER_USER_PER_24H) ?? UNLIMITED
+  parsePositiveInt(process.env.CLAWLAB_LIMIT_UPLOAD_BYTES_PER_USER_PER_24H) ?? UNLIMITED
 
 export async function checkCanUploadFile(uploadedById: string, fileSizeBytes: number) {
   if (!Number.isFinite(UPLOAD_MAX_BYTES_PER_USER_PER_24H)) {

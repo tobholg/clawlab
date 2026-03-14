@@ -1,4 +1,4 @@
-// Relai - Multi-stakeholder Project Management
+// ClawLab - Multi-stakeholder Project Management
 // Prisma Schema - Recursive Item Model
 
 generator client {
@@ -488,7 +488,7 @@ model FocusSession {
   taskId       String? // If activityType = TASK
   lane         String? // If activityType = LANE; FocusLane: GENERAL, MEETING, ADMIN, LEARNING, BREAK
 
-  // Context (inherited from sticky project)
+  // ClawLab project context (inherited from sticky project)
   projectId String?
 
   // How it ended

@@ -1,9 +1,9 @@
 {
-  "name": "context",
+  "name": "clawlab",
   "type": "module",
   "private": true,
   "bin": {
-    "ctx": "cli/bin/ctx.mjs"
+    "clawlab": "cli/bin/clawlab.mjs"
   },
   "scripts": {
     "build": "nuxt build",

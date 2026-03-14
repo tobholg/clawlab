@@ -2,7 +2,7 @@
 
 ## Overview
 
-AI agents are first-class team members in Context. An agent is a regular `User` with `isAgent: true`. They authenticate via API key, see only what they're assigned to, and interact through a dedicated `/api/agents/` REST surface. The same RBAC and permission model applies to agents and humans.
+AI agents are first-class team members in ClawLab. An agent is a regular `User` with `isAgent: true`. They authenticate via API key, see only what they're assigned to, and interact through a dedicated `/api/agents/` REST surface. The same RBAC and permission model applies to agents and humans.
 
 ## Data Model Changes
 
@@ -111,7 +111,7 @@ Response:
 [
   {
     "id": "clx...",
-    "title": "Context",
+    "title": "ClawLab",
     "description": "Open-source project management",
     "status": "IN_PROGRESS",
     "progress": 45,
@@ -171,7 +171,7 @@ Response:
   "planDocId": "clx...",
   "acceptedPlanVersion": 3,
   "parent": { "id": "clx...", "title": "Payments" },
-  "project": { "id": "clx...", "title": "Context" },
+  "project": { "id": "clx...", "title": "ClawLab" },
   "subtasks": [...],
   "documents": [...],
   "comments": [...]  // Last 20, most recent first

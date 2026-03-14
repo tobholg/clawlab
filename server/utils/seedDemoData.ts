@@ -2,12 +2,12 @@ import { prisma } from './prisma'
 import type { FocusActivityType, FocusEndReason, FocusLane, ItemComplexity, ItemPriority, ItemStatus } from '@prisma/client'
 
 const DEMO_TEAM = [
-  { name: 'Sarah Chen', avatar: null, email: 'sarah.chen@demo.context-labs.ai' },
-  { name: 'Marcus Johnson', avatar: null, email: 'marcus.j@demo.context-labs.ai' },
-  { name: 'Elena Rodriguez', avatar: null, email: 'elena.r@demo.context-labs.ai' },
-  { name: 'Alex Kim', avatar: null, email: 'alex.kim@demo.context-labs.ai' },
-  { name: 'Jordan Taylor', avatar: null, email: 'jordan.t@demo.context-labs.ai' },
-  { name: 'Priya Sharma', avatar: null, email: 'priya.s@demo.context-labs.ai' },
+  { name: 'Sarah Chen', avatar: null, email: 'sarah.chen@demo.claw-lab.ai' },
+  { name: 'Marcus Johnson', avatar: null, email: 'marcus.j@demo.claw-lab.ai' },
+  { name: 'Elena Rodriguez', avatar: null, email: 'elena.r@demo.claw-lab.ai' },
+  { name: 'Alex Kim', avatar: null, email: 'alex.kim@demo.claw-lab.ai' },
+  { name: 'Jordan Taylor', avatar: null, email: 'jordan.t@demo.claw-lab.ai' },
+  { name: 'Priya Sharma', avatar: null, email: 'priya.s@demo.claw-lab.ai' },
 ]
 
 interface ProjectConfig {

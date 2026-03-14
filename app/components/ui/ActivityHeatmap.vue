@@ -17,7 +17,7 @@ const { data: activityData } = useFetch(`/api/items/${props.itemId}/activity`, {
   lazy: true,
 })
 
-// Intensity to color mapping (GitHub-style greens, but using blue for Context brand)
+// Intensity to color mapping (GitHub-style greens, but using blue for ClawLab brand)
 const intensityColors = [
   'bg-slate-100',      // 0 - no activity
   'bg-blue-200',       // 1 - light

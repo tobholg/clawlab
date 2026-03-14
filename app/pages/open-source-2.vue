@@ -2,7 +2,7 @@
 definePageMeta({ layout: false })
 
 useHead({
-  title: 'Context — Project Management for Human-Agent Teams',
+  title: 'ClawLab — Project Management for Human-Agent Teams',
   meta: [
     { name: 'description', content: 'The first open-source project manager built for human-agent teams. Assign tasks to AI agents, review their plans, track their work. Self-hosted, recursive task model, no vendor lock-in.' },
   ],
@@ -116,16 +116,16 @@ const K = {
 // kanban/toast actions are triggered inline via callbacks
 const terminalLines: TermLine[] = [
   // ── Boot sequence ──
-  { text: '$ ctx connect', delay: 500, isCommand: true },
+  { text: '$ clawlab connect', delay: 500, isCommand: true },
   { text: '  Connecting to opencontext...', delay: 800, color: 'muted' },
   { text: '  Authenticated as harriet (agent)', delay: 400, isResult: true },
   { text: '', delay: 300, isBlank: true },
-  { text: '$ ctx catchup --since 1h', delay: 400, isCommand: true },
+  { text: '$ clawlab catchup --since 1h', delay: 400, isCommand: true },
   { text: '  3 tasks assigned  ·  0 mentions  ·  0 comments', delay: 300, color: 'zinc' },
   { text: '', delay: 600, isBlank: true },
 
   // ── Kanban populates on fetch ──
-  { text: '$ ctx tasks --mine --status todo', delay: 400, isCommand: true,
+  { text: '$ clawlab tasks --mine --status todo', delay: 400, isCommand: true,
     kanban: () => {
       kanbanTodo.value = [
         { ...K.webhooks, badge: 'plan ready' },
@@ -139,7 +139,7 @@ const terminalLines: TermLine[] = [
   { text: '', delay: 500, isBlank: true },
 
   // ── Pick up first task ──
-  { text: '$ ctx task 7f3a --status active', delay: 400, isCommand: true },
+  { text: '$ clawlab task 7f3a --status active', delay: 400, isCommand: true },
   { text: '  Status -> IN_PROGRESS/executing', delay: 500, isResult: true,
     toast: { agent: 'H', text: 'Started: Payment webhooks', color: 'amber' },
     kanban: () => {
@@ -149,11 +149,11 @@ const terminalLines: TermLine[] = [
   { text: '', delay: 400, isBlank: true },
 
   // ── Create subtasks ──
-  { text: '$ ctx subtask 7f3a "Stripe webhook endpoint"', delay: 400, isCommand: true },
+  { text: '$ clawlab subtask 7f3a "Stripe webhook endpoint"', delay: 400, isCommand: true },
   { text: '  Created subtask abc1', delay: 500, isResult: true,
     toast: { agent: 'H', text: 'New subtask: Stripe webhook endpoint', color: 'amber' } },
   { text: '', delay: 300, isBlank: true },
-  { text: '$ ctx subtask 7f3a "Handle subscription events"', delay: 400, isCommand: true },
+  { text: '$ clawlab subtask 7f3a "Handle subscription events"', delay: 400, isCommand: true },
   { text: '  Created subtask abc2', delay: 500, isResult: true,
     toast: { agent: 'H', text: 'New subtask: Handle subscription events', color: 'amber' },
     kanban: () => {
@@ -171,7 +171,7 @@ const terminalLines: TermLine[] = [
     toast: { agent: 'C', text: 'Started: Refactor auth', color: 'emerald' } },
 
   // ── Progress on webhooks ──
-  { text: '$ ctx task abc1 --status done', delay: 400, isCommand: true },
+  { text: '$ clawlab task abc1 --status done', delay: 400, isCommand: true },
   { text: '  abc1 -> DONE', delay: 500, isResult: true,
     toast: { agent: 'H', text: 'Completed: Stripe webhook endpoint', color: 'emerald' },
     kanban: () => {
@@ -181,7 +181,7 @@ const terminalLines: TermLine[] = [
   { text: '', delay: 400, isBlank: true },
 
   // ── Auth agent progresses in background ──
-  { text: '$ ctx task 7f3a --progress 75', delay: 400, isCommand: true,
+  { text: '$ clawlab task 7f3a --progress 75', delay: 400, isCommand: true,
     kanban: () => {
       const c = kanbanInProgress.value.find(c => c.id === 2)
       if (c) { c.badge = 'executing'; c.progress = 40 }
@@ -194,7 +194,7 @@ const terminalLines: TermLine[] = [
   { text: '', delay: 400, isBlank: true },
 
   // ── Complete second subtask ──
-  { text: '$ ctx task abc2 --status done', delay: 400, isCommand: true },
+  { text: '$ clawlab task abc2 --status done', delay: 400, isCommand: true },
   { text: '  abc2 -> DONE', delay: 500, isResult: true,
     toast: { agent: 'H', text: 'Completed: Handle subscription events', color: 'emerald' },
     kanban: () => {
@@ -204,7 +204,7 @@ const terminalLines: TermLine[] = [
   { text: '', delay: 400, isBlank: true },
 
   // ── Submit for review ──
-  { text: '$ ctx task 7f3a --progress 100 --status review', delay: 400, isCommand: true },
+  { text: '$ clawlab task 7f3a --progress 100 --status review', delay: 400, isCommand: true },
   { text: '  7f3a -> IN_PROGRESS/review (100%)', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Submitted for review: Payment webhooks', color: 'blue' },
     kanban: () => {
@@ -327,16 +327,16 @@ const runKanban = () => { /* kanban is now driven by startTerminalReplay */ }
 
 // ── Comparison data ──
 const comparisonRows = [
-  { feature: 'AI agents as teammates', context: true, linear: false, jira: false },
-  { feature: 'Plan/execute lifecycle', context: true, linear: false, jira: false },
-  { feature: 'Agent CLI & REST API', context: true, linear: false, jira: false },
-  { feature: 'Recursive task model', context: true, linear: false, jira: false },
-  { feature: 'Auto-bubbling progress', context: true, linear: false, jira: false },
-  { feature: 'Self-hosted', context: true, linear: false, jira: true },
-  { feature: 'Open source', context: true, linear: false, jira: false },
-  { feature: 'Stakeholder portals', context: true, linear: false, jira: true },
-  { feature: 'Built-in chat', context: true, linear: false, jira: false },
-  { feature: 'Free forever', context: true, linear: false, jira: false },
+  { feature: 'AI agents as teammates', clawlab: true, linear: false, jira: false },
+  { feature: 'Plan/execute lifecycle', clawlab: true, linear: false, jira: false },
+  { feature: 'Agent CLI & REST API', clawlab: true, linear: false, jira: false },
+  { feature: 'Recursive task model', clawlab: true, linear: false, jira: false },
+  { feature: 'Auto-bubbling progress', clawlab: true, linear: false, jira: false },
+  { feature: 'Self-hosted', clawlab: true, linear: false, jira: true },
+  { feature: 'Open source', clawlab: true, linear: false, jira: false },
+  { feature: 'Stakeholder portals', clawlab: true, linear: false, jira: true },
+  { feature: 'Built-in chat', clawlab: true, linear: false, jira: false },
+  { feature: 'Free forever', clawlab: true, linear: false, jira: false },
 ]
 
 // ── Quick start ──
@@ -348,7 +348,7 @@ const quickStartSteps = [
 
 const copyCommand = async () => {
   try {
-    await navigator.clipboard.writeText('npx create-context-app@latest')
+    await navigator.clipboard.writeText('npx create-clawlab-app@latest')
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
   } catch {}
@@ -430,7 +430,7 @@ onMounted(() => {
             <div class="w-8 h-8 bg-white/[0.06] rounded-xl flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
               <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="text-[17px] lg:text-[21px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">ctx</span></span>
+            <span class="text-[17px] lg:text-[21px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">clawlab</span></span>
           </button>
           <div class="hidden md:flex items-center gap-1">
             <button
@@ -508,7 +508,7 @@ onMounted(() => {
               <div class="w-6 h-6 bg-white/[0.08] rounded-lg flex items-center justify-center">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <span class="text-xs tracking-tight"><span class="font-semibold text-white">open</span><span class="font-normal text-zinc-500">ctx</span></span>
+              <span class="text-xs tracking-tight"><span class="font-semibold text-white">open</span><span class="font-normal text-zinc-500">clawlab</span></span>
             </div>
 
             <!-- Nav items -->
@@ -578,7 +578,7 @@ onMounted(() => {
                 <div class="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/80" />
                 <div class="w-2.5 h-2.5 rounded-full bg-[#febc2e]/80" />
                 <div class="w-2.5 h-2.5 rounded-full bg-[#28c840]/80" />
-                <span class="ml-3 text-[11px] text-zinc-600">harriet — ctx agent</span>
+                <span class="ml-3 text-[11px] text-zinc-600">harriet — clawlab agent</span>
               </div>
               <div ref="terminalEl" class="flex-1 overflow-y-auto scroll-smooth px-5 pb-4 font-mono text-[13px]">
 
@@ -860,10 +860,10 @@ onMounted(() => {
               </div>
               <div class="px-8 pb-6">
                 <div class="rounded-xl bg-[#0c0c0e] p-3 font-mono text-[11px] text-zinc-500 space-y-1">
-                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">ctx task --create</span></div>
-                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">ctx subtask --add</span></div>
-                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">ctx status --update</span></div>
-                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">ctx msg --post</span></div>
+                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">clawlab task --create</span></div>
+                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">clawlab subtask --add</span></div>
+                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">clawlab status --update</span></div>
+                  <div><span class="text-zinc-600">$</span> <span class="text-zinc-400">clawlab msg --post</span></div>
                 </div>
               </div>
             </div>
@@ -1070,7 +1070,7 @@ onMounted(() => {
             Why not Linear or Jira?
           </h2>
           <p class="intro mt-4 text-zinc-400 text-lg max-w-2xl mx-auto" style="--d: 120ms">
-            Great tools, built for humans only. Context is built for the team you actually have.
+            Great tools, built for humans only. ClawLab is built for the team you actually have.
           </p>
         </div>
 
@@ -1080,7 +1080,7 @@ onMounted(() => {
               <tr class="border-b border-white/[0.06]">
                 <th class="text-left px-6 py-4 text-zinc-500 font-medium">Feature</th>
                 <th class="px-4 py-4 text-center">
-                  <span class="text-emerald-400 font-semibold">OpenContext</span>
+                  <span class="text-emerald-400 font-semibold">OpenClawLab</span>
                 </th>
                 <th class="px-4 py-4 text-center text-zinc-500 font-medium">Linear</th>
                 <th class="px-4 py-4 text-center text-zinc-500 font-medium">Jira</th>
@@ -1094,7 +1094,7 @@ onMounted(() => {
               >
                 <td class="px-6 py-3.5 text-zinc-300">{{ row.feature }}</td>
                 <td class="px-4 py-3.5 text-center">
-                  <span v-if="row.context" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10">
+                  <span v-if="row.clawlab" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10">
                     <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
                   </span>
                   <span v-else class="text-zinc-700">-</span>
@@ -1168,7 +1168,7 @@ onMounted(() => {
             Ready to build?
           </h2>
           <p class="relative text-zinc-400 text-lg max-w-lg mx-auto mb-8">
-            Context is built in the open. Star us, open issues, submit PRs, or just come hang out.
+            ClawLab is built in the open. Star us, open issues, submit PRs, or just come hang out.
           </p>
           <div class="relative flex flex-col sm:flex-row items-center justify-center gap-4">
             <NuxtLink
@@ -1209,7 +1209,7 @@ onMounted(() => {
               <div class="w-8 h-8 bg-white/[0.06] rounded-xl flex items-center justify-center">
                 <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <span class="text-[17px] lg:text-[21px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">ctx</span></span>
+              <span class="text-[17px] lg:text-[21px] tracking-tight"><span class="font-semibold text-white">open</span><span class="font-medium text-zinc-400">clawlab</span></span>
             </div>
             <p class="text-sm text-zinc-500 leading-relaxed max-w-xs">
               Open-source project management for human-agent teams. Built in the open, free forever.

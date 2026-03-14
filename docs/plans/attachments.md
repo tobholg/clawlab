@@ -2,7 +2,7 @@
 
 ## Overview
 
-Universal attachment system for Context. Files can be attached to tasks (items) and channel messages. Attachments dropped in channels can be transferred to tasks. Local disk storage for self-hosted, no cloud dependencies.
+Universal attachment system for ClawLab. Files can be attached to tasks (items) and channel messages. Attachments dropped in channels can be transferred to tasks. Local disk storage for self-hosted, no cloud dependencies.
 
 ## Data Model
 
@@ -169,8 +169,8 @@ Orphan protection: attachments without a parent after 1 hour get cleaned up by a
 
 **CLI:**
 ```bash
-ctx attach <task-id> <file-path>       # Upload file to task
-ctx attachments <task-id>              # List attachments
+clawlab attach <task-id> <file-path>       # Upload file to task
+clawlab attachments <task-id>              # List attachments
 ```
 
 ## Frontend
@@ -246,7 +246,7 @@ Both task modal and channel input support `ctrl+V` / `cmd+V`:
 - `GET /api/items/:id/attachments` (list)
 - `DELETE /api/attachments/:id`
 - Task modal: attachments section, drag-and-drop, image preview, file cards
-- Agent API: `POST /api/agents/tasks/:id/attachments`, CLI `ctx attach`
+- Agent API: `POST /api/agents/tasks/:id/attachments`, CLI `clawlab attach`
 
 ### Chunk 2: Channel attachments
 - Update message creation to accept `attachmentIds`

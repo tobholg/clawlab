@@ -39,7 +39,7 @@ const capabilities = [
   { pain: 'Deadlines slip silently until it\'s too late?', title: 'Live forecast ranges', desc: 'Confidence intervals tighten or widen in real-time as work progresses. Not a single date, a window of truth.', visual: 'forecast', features: ['AI-generated confidence ranges that update daily', 'Temperature indicators flag items going cold or critical', 'Early warnings surface before deadlines are at risk'] },
   { pain: 'Hours spent writing updates nobody reads?', title: 'Auto stakeholder reports', desc: 'AI curates weekly briefs from actual work. Risks, decisions, progress, all published to stakeholder spaces automatically.', visual: 'report', features: ['Stakeholder portals with curated, role-based views', 'AI drafts updates from actual activity, not manual input', 'Published on schedule with zero effort from your team'] },
   { pain: 'No idea what\'s actually blocking what?', title: 'Dependency tracking', desc: 'See your critical path instantly. One blocked subtask surfaces risk across every item it touches.', visual: 'dependency', features: ['Visual dependency graph across the full hierarchy', 'Blocked items propagate risk up to parent projects', 'Critical path detection highlights what to unblock first'] },
-  { pain: 'Context buried in Slack threads and email?', title: 'AI team channels', desc: 'Built-in channels tied to your projects. AI summarizes discussions, detects blockers, and connects decisions to the work.', visual: 'channels', features: ['Project-linked channels keep context next to the work', 'AI summarizes threads and extracts action items', 'Decisions and blockers auto-tagged to relevant items'] },
+  { pain: 'ClawLab buried in Slack threads and email?', title: 'AI team channels', desc: 'Built-in channels tied to your projects. AI summarizes discussions, detects blockers, and connects decisions to the work.', visual: 'channels', features: ['Project-linked channels keep context next to the work', 'AI summarizes threads and extracts action items', 'Decisions and blockers auto-tagged to relevant items'] },
   { pain: 'Where does your team\'s week actually go?', title: 'Focus time tracking', desc: 'Track deep work, meetings, admin, and learning. See who\'s in flow and who\'s drowning in syncs.', visual: 'focus', features: ['Five focus lanes: deep work, meetings, admin, learning, break', 'Team-wide heatmaps show where time is really going', 'Spot burnout patterns and protect maker schedules'] },
 ]
 
@@ -250,7 +250,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="ctx-landing min-h-screen bg-white text-slate-900 scroll-smooth" :class="{ 'is-ready': ready }">
+  <div class="clawlab-landing min-h-screen bg-white text-slate-900 scroll-smooth" :class="{ 'is-ready': ready }">
     <!-- Nav -->
     <nav
       data-landing-nav
@@ -263,7 +263,7 @@ onMounted(() => {
             <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="text-lg font-semibold tracking-tight">Context</span>
+            <span class="text-lg font-semibold tracking-tight">ClawLab</span>
           </button>
           <div class="hidden md:flex items-center gap-6 text-sm text-slate-500">
             <button
@@ -826,7 +826,7 @@ onMounted(() => {
           <div class="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center">
             <svg class="w-4 h-4" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <span class="text-sm text-slate-400">&copy; 2026 Context Labs</span>
+          <span class="text-sm text-slate-400">&copy; 2026 ClawLab Labs</span>
         </div>
         <div class="flex items-center gap-6 text-sm text-slate-400">
           <span>Built by <a href="https://recursion-endeavours.com" target="_blank" rel="noopener" class="hover:text-slate-900 transition-colors underline decoration-slate-300 hover:decoration-slate-900">Recursion Endeavours</a></span>

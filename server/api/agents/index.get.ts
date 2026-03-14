@@ -80,7 +80,7 @@ const agentSessionSchema = {
   additionalProperties: false,
 } as const
 
-export const AGENT_API_NAME = 'Context Agent API'
+export const AGENT_API_NAME = 'ClawLab Agent API'
 export const AGENT_API_VERSION = '1.0'
 export const AGENT_API_AUTH = 'Bearer token via Authorization header (prefix: ctx_)'
 

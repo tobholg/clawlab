@@ -1,6 +1,6 @@
 import { useRuntimeConfig } from '#imports'
 
-const FROM_EMAIL = 'Context <noreply@context-labs.ai>'
+const FROM_EMAIL = 'ClawLab <noreply@claw-lab.ai>'
 
 function getPostmarkToken(): string {
   const config = useRuntimeConfig()
@@ -61,7 +61,7 @@ export function generateVerificationCode(): string {
 }
 
 export async function sendMagicLinkEmail(to: string, magicLink: string, code: string) {
-  const subject = `${code} — Sign in to Context`
+  const subject = `${code} — Sign in to ClawLab`
 
   const htmlBody = `
 <!DOCTYPE html>
@@ -74,13 +74,13 @@ export async function sendMagicLinkEmail(to: string, magicLink: string, code: st
         <!-- Header -->
         <tr><td style="padding:32px 32px 0;">
           <div style="width:36px;height:36px;background:#0f172a;border-radius:8px;display:inline-block;vertical-align:middle;">
-            <img src="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" width="36" height="36" alt="Context" style="display:block;"/>
+            <img src="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" width="36" height="36" alt="ClawLab" style="display:block;"/>
           </div>
         </td></tr>
 
         <!-- Body -->
         <tr><td style="padding:24px 32px;">
-          <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">Sign in to Context</h1>
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">Sign in to ClawLab</h1>
           <p style="margin:0 0 24px;font-size:15px;color:#64748b;line-height:1.5;">
             Enter this verification code on the sign-in page:
           </p>
@@ -98,7 +98,7 @@ export async function sendMagicLinkEmail(to: string, magicLink: string, code: st
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
               <a href="${magicLink}" style="display:inline-block;padding:14px 32px;background:#0f172a;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:10px;">
-                Sign in to Context
+                Sign in to ClawLab
               </a>
             </td></tr>
           </table>
@@ -118,7 +118,7 @@ export async function sendMagicLinkEmail(to: string, magicLink: string, code: st
 </body>
 </html>`
 
-  const textBody = `Sign in to Context
+  const textBody = `Sign in to ClawLab
 
 Your verification code: ${code}
 
@@ -155,7 +155,7 @@ export async function sendInviteEmail(opts: {
         <!-- Header -->
         <tr><td style="padding:32px 32px 0;">
           <div style="width:36px;height:36px;background:#0f172a;border-radius:8px;display:inline-block;vertical-align:middle;">
-            <img src="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" width="36" height="36" alt="Context" style="display:block;"/>
+            <img src="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" width="36" height="36" alt="ClawLab" style="display:block;"/>
           </div>
         </td></tr>
 

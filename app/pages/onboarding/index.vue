@@ -197,7 +197,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="ctx-onboarding min-h-screen text-slate-900" :class="{ 'is-ready': pageReady }">
+  <div class="clawlab-onboarding min-h-screen text-slate-900" :class="{ 'is-ready': pageReady }">
     <!-- Header -->
     <nav class="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-100 intro" style="--d: 0ms">
       <div class="w-full px-6 h-16 flex items-center justify-between">
@@ -205,7 +205,7 @@ onMounted(() => {
           <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <span class="text-lg font-semibold tracking-tight">Context</span>
+          <span class="text-lg font-semibold tracking-tight">ClawLab</span>
         </NuxtLink>
         <div class="flex items-center gap-4">
           <NuxtLink
@@ -321,7 +321,7 @@ onMounted(() => {
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-1.5">URL slug</label>
                   <div class="flex items-center">
-                    <span class="px-3 py-3 bg-slate-50 border border-r-0 border-slate-200 rounded-l-xl text-slate-400 text-sm">context-labs.ai/</span>
+                    <span class="px-3 py-3 bg-slate-50 border border-r-0 border-slate-200 rounded-l-xl text-slate-400 text-sm">claw-lab.ai/</span>
                     <input
                       v-model="orgSlug"
                       type="text"
@@ -594,7 +594,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.ctx-onboarding {
+.clawlab-onboarding {
   background-image:
     radial-gradient(60% 60% at 15% 10%, rgba(129, 140, 248, 0.16), rgba(129, 140, 248, 0)),
     linear-gradient(120deg, rgba(14, 165, 233, 0.16) 0%, rgba(255, 255, 255, 0.96) 45%),

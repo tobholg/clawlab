@@ -254,15 +254,15 @@ This is needed by the MessageInput autocomplete and MessageItem mention renderin
 
 ### 9. CLI commands
 
-Add to `cli/bin/ctx.mjs`:
+Add to `cli/bin/clawlab.mjs`:
 
 ```
-ctx channels                              # List my channels
-ctx channels <id>                         # Read recent messages (default 20)
-ctx channels <id> --since 2h              # Messages from last 2 hours
-ctx channels <id> --mentions-only         # Only messages mentioning me
-ctx channels <id> --reply "message"       # Post a message
-ctx channels <id> --reply "msg" --thread <parentId>  # Reply to a thread
+clawlab channels                              # List my channels
+clawlab channels <id>                         # Read recent messages (default 20)
+clawlab channels <id> --since 2h              # Messages from last 2 hours
+clawlab channels <id> --mentions-only         # Only messages mentioning me
+clawlab channels <id> --reply "message"       # Post a message
+clawlab channels <id> --reply "msg" --thread <parentId>  # Reply to a thread
 ```
 
 ## Chunk 2: Catch-up Endpoint (implement after chunk 1)
@@ -319,7 +319,7 @@ Query is scoped to: tasks the agent is assigned to, channels the agent is a memb
 - `app/components/channels/MessageItem.vue` — render mention pills, use isAgent for markdown, use MarkdownRenderer for agent messages
 - `app/composables/useWebSocket.ts` — handle `agent_channel_message` event type
 - `app/components/ui/AgentActivityToast.vue` — handle channel message toast variant
-- `cli/bin/ctx.mjs` — add channels subcommands
+- `cli/bin/clawlab.mjs` — add channels subcommands
 
 ### Existing patterns to follow:
 - Agent auth: `server/middleware/agent-auth.ts` + `requireAgentUser()`

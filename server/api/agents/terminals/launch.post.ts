@@ -35,14 +35,14 @@ function inferRunnerId(value: string | null | undefined): string | null {
   return null
 }
 
-const SYSTEM_PROMPT_BASE = `You are {{agentName}}, an AI agent working in ClawLab. You have a CLI tool called 'ctx' on your PATH.
+const SYSTEM_PROMPT_BASE = `You are {{agentName}}, an AI agent working in ClawLab. You have a CLI tool called 'clawlab' on your PATH.
 
-Key commands: ctx help, ctx tasks, ctx task <id>, ctx checkout <id>, ctx comment [id] <text>, ctx submit [id], ctx status, ctx catchup
-Channel commands: ctx channels (list), ctx channels <name> (read), ctx channels <name> --reply "text" (post message)
+Key commands: clawlab help, clawlab tasks, clawlab task <id>, clawlab checkout <id>, clawlab comment [id] <text>, clawlab submit [id], clawlab status, clawlab catchup
+Channel commands: clawlab channels (list), clawlab channels <name> (read), clawlab channels <name> --reply "text" (post message)
 Note: submit and comment infer the task from your active session if you omit the task ID.
-Only work on tasks assigned to you. If ctx task <id> returns 'not found', the task belongs to another agent.
+Only work on tasks assigned to you. If clawlab task <id> returns 'not found', the task belongs to another agent.
 
-You are a teammate, not just a task executor. If someone asks you something conversational in a channel (a joke, a question, casual chat), respond naturally using ctx channels <name> --reply "your message". Be helpful, have personality, and engage like a real team member.`
+You are a teammate, not just a task executor. If someone asks you something conversational in a channel (a joke, a question, casual chat), respond naturally using clawlab channels <name> --reply "your message". Be helpful, have personality, and engage like a real team member.`
 
 const TASK_REFERENCE_RULES = `
 
@@ -56,12 +56,12 @@ const PROMPT_GENERAL = `
 You were launched from the terminals view with no specific task assigned.
 
 Workflow:
-1. Run: ctx catchup -- to orient yourself, see what's going on and what needs attention
+1. Run: clawlab catchup -- to orient yourself, see what's going on and what needs attention
 2. Present the user with a summary of what you found and suggest 2-3 tasks you could work on. Use human-readable references in this exact style: "Task Title — Project/Path (id: ab12cd34)". Ask what they'd like you to start with.
-3. Once the user picks a task: run ctx checkout <task-id> to begin
+3. Once the user picks a task: run clawlab checkout <task-id> to begin
 4. Do the work (edit files, run tests, etc.)
-5. Run: ctx comment "description of what you did" -- to log progress
-6. Run: ctx submit -- to submit for human review
+5. Run: clawlab comment "description of what you did" -- to log progress
+6. Run: clawlab submit -- to submit for human review
 
 Wait for the user to tell you what to work on before checking out a task.`
 
@@ -70,12 +70,12 @@ const PROMPT_WITH_TASK = `
 You were launched to work on a specific task: "{{taskTitle}}" (ID: {{taskId}}).
 
 Workflow:
-1. Run: ctx catchup -- to orient yourself with the big picture first
-2. Then run: ctx checkout {{taskId}} -- to start working on your assigned task
+1. Run: clawlab catchup -- to orient yourself with the big picture first
+2. Then run: clawlab checkout {{taskId}} -- to start working on your assigned task
 3. Read the task details and any comments for context
 4. Do the work (edit files, run tests, etc.)
-5. Run: ctx comment "description of what you did" -- to log progress
-6. Run: ctx submit -- to submit for human review
+5. Run: clawlab comment "description of what you did" -- to log progress
+6. Run: clawlab submit -- to submit for human review
 
 Start by orienting with catchup, then focus on your assigned task.`
 
@@ -113,7 +113,7 @@ function buildLaunchCommand(
   const promptVar = '"$CTX_AGENT_SYSTEM_PROMPT"'
 
   if (runnerId === 'codex') {
-    // Codex: workspace-write sandbox with network access for ctx CLI API calls
+    // Codex: workspace-write sandbox with network access for clawlab CLI API calls
     parts.push('--sandbox', 'workspace-write', '-c', "'sandbox_permissions=[\"network\"]'")
     // Codex takes prompt as positional arg
     parts.push(promptVar)
@@ -307,7 +307,7 @@ export default defineEventHandler(async (event) => {
   const cwd = cwdOverride || projectRepoPath || process.cwd()
   const appRoot = process.cwd()
   const ctxBinDir = resolve(appRoot, 'cli/bin')
-  const ctxCliPath = resolve(appRoot, 'cli/bin/ctx.mjs')
+  const ctxCliPath = resolve(appRoot, 'cli/bin/clawlab.mjs')
   const quotedCtxBinDir = quoteForDouble(ctxBinDir)
   const quotedCtxCliPath = quoteForDouble(ctxCliPath)
   const origin = getRequestURL(event).origin || 'http://localhost:3001'
@@ -333,8 +333,8 @@ export default defineEventHandler(async (event) => {
     env.CTX_AGENT_SYSTEM_PROMPT = systemPrompt
   } else {
     // Configure plain-shell prompt up-front so no bootstrap command is echoed.
-    env.PROMPT = '%F{cyan}ctx%f %F{blue}%~%f $ '
-    env.PS1 = '%F{cyan}ctx%f %F{blue}%~%f $ '
+    env.PROMPT = '%F{cyan}clawlab%f %F{blue}%~%f $ '
+    env.PS1 = '%F{cyan}clawlab%f %F{blue}%~%f $ '
   }
 
   await createPtySession({
@@ -350,9 +350,9 @@ export default defineEventHandler(async (event) => {
   // Bootstrap sequence
   setTimeout(() => {
     if (agent) {
-      // Agent terminal: make ctx available, set prompt, show banner, launch agent CLI
+      // Agent terminal: make clawlab available, set prompt, show banner, launch agent CLI
       writeToPty(terminalId, `export PATH="${quotedCtxBinDir}:$PATH"\n`)
-      writeToPty(terminalId, `alias ctx="node ${quotedCtxCliPath}"\n`)
+      writeToPty(terminalId, `alias clawlab="node ${quotedCtxCliPath}"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[35m${agentName}\\e[0m \\e[34m%~\\e[0m $ '\n`)
       writeToPty(terminalId, `echo $'\\e[35m═══ ClawLab Agent Terminal ═══\\e[0m'\n`)
       writeToPty(terminalId, `echo "Agent: ${agentName}"\n`)

@@ -191,7 +191,7 @@ const statusTextColors: Record<string, string> = {
             </div>
             <div class="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
               <div 
-                class="h-full bg-ctx-500 rounded-full transition-all"
+                class="h-full bg-clawlab-500 rounded-full transition-all"
                 :style="{ width: `${node.task.progress}%` }"
               />
             </div>

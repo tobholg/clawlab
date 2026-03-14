@@ -5,7 +5,7 @@
         'max-w-[85%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap',
         message.role === 'user'
           ? 'rounded-tr-sm bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-zinc-200'
-          : 'rounded-tl-sm bg-ctx-50 dark:bg-ctx-900/20 text-slate-700 dark:text-zinc-300 prose prose-sm prose-slate max-w-none'
+          : 'rounded-tl-sm bg-clawlab-50 dark:bg-clawlab-900/20 text-slate-700 dark:text-zinc-300 prose prose-sm prose-slate max-w-none'
       ]"
     >
       <!-- User message: plain text -->
@@ -54,7 +54,7 @@ const renderedContent = computed(() => {
   content = content.replace(/\*([^*]+)\*/g, '<em>$1</em>')
   
   // Links [text](url)
-  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-ctx-600 dark:text-ctx-400 hover:underline">$1</a>')
+  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-clawlab-600 dark:text-clawlab-400 hover:underline">$1</a>')
   
   // Line breaks
   content = content.replace(/\n/g, '<br>')

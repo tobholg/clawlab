@@ -31,7 +31,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Context',
+      title: 'ClawLab',
       meta: [
         { name: 'description', content: 'Multi-stakeholder project management with AI' }
       ],
@@ -49,7 +49,7 @@ export default defineNuxtConfig({
     openaiBaseUrl: process.env.OPENAI_BASE_URL,
     postmarkApiToken: process.env.POSTMARK_API_TOKEN,
     public: {
-      appName: 'Context',
+      appName: 'ClawLab',
       appUrl: process.env.APP_URL || 'http://localhost:3000'
     }
   }

@@ -116,7 +116,7 @@ export default defineEventHandler(async (event) => {
 
   setTimeout(() => {
     writeToPty(terminalId, 'export PS1="\\033[35m${CTX_AGENT_NAME:-agent}\\033[0m \\033[34m\\w\\033[0m $ "\n')
-    writeToPty(terminalId, 'echo "\\033[35m=== OpenContext Agent Terminal ===\\033[0m"\n')
+    writeToPty(terminalId, 'echo "\\033[35m=== ClawLab Agent Terminal ===\\033[0m"\n')
     writeToPty(terminalId, 'echo "Agent: $CTX_AGENT_NAME"\n')
     writeToPty(terminalId, 'echo "Session: $CTX_AGENT_SESSION"\n')
     writeToPty(terminalId, 'echo ""\n')

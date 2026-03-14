@@ -4,12 +4,12 @@
   "description": "ClawLab CLI — project management for human-agent teams",
   "type": "module",
   "bin": {
-    "ctx": "bin/ctx.mjs"
+    "clawlab": "bin/clawlab.mjs"
   },
   "files": [
     "bin/"
   ],
-  "keywords": ["context", "project-management", "cli", "agents"],
+  "keywords": ["clawlab", "project-management", "cli", "agents"],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

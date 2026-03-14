@@ -144,10 +144,10 @@ const setupInstructions = computed(() => {
 
   return `Set up ClawLab CLI for this repository:
 
-1. Check if already installed: ctx --version
+1. Check if already installed: clawlab --version
    If not found, install: npm install -g clawlab
-2. Authenticate: ctx login --token ${tokenForSetup} --url ${origin}
-3. Verify: ctx me && ctx catchup
+2. Authenticate: clawlab login --token ${tokenForSetup} --url ${origin}
+3. Verify: clawlab me && clawlab catchup
 
 Then write the following to your agent's memory file
 (CLAUDE.md for Claude Code, AGENTS.md for Codex, .cursorrules for Cursor):
@@ -157,13 +157,13 @@ Then write the following to your agent's memory file
 This repo is connected to ClawLab at ${origin}.
 On every new session, orient yourself:
 
-1. Run \`ctx catchup\` to see what needs attention
-2. Run \`ctx tasks --tree\` to see the full picture
+1. Run \`clawlab catchup\` to see what needs attention
+2. Run \`clawlab tasks --tree\` to see the full picture
 3. Summarize what you found and suggest what to work on next
 
-All commands: \`ctx help\`
+All commands: \`clawlab help\`
 
-After writing the file, run \`ctx catchup\` now and tell me what you find.`
+After writing the file, run \`clawlab catchup\` now and tell me what you find.`
 })
 
 const handleGenerateToken = async () => {
@@ -298,7 +298,7 @@ const handleCopyInstructions = async () => {
           <!-- Divider -->
           <div class="border-t border-slate-100 dark:border-white/[0.06]" />
 
-          <!-- Access & Context -->
+          <!-- Access & ClawLab -->
           <div>
             <h3 class="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Access</h3>
             <div class="space-y-2.5">

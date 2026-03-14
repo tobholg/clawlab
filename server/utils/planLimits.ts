@@ -58,13 +58,13 @@ function parsePositiveInt(value: string | undefined) {
 }
 
 // Self-host default: no hard plan gating unless explicitly enabled.
-const PLAN_LIMITS_ENABLED = parseBooleanFlag(process.env.RELAI_ENABLE_PLAN_LIMITS, false)
+const PLAN_LIMITS_ENABLED = parseBooleanFlag(process.env.CLAWLAB_ENABLE_PLAN_LIMITS, false)
 
 const LIMIT_OVERRIDES: Partial<Record<LimitKey, number>> = {
-  projects: parsePositiveInt(process.env.RELAI_LIMIT_PROJECTS_PER_WORKSPACE) ?? undefined,
-  externalSpaces: parsePositiveInt(process.env.RELAI_LIMIT_EXTERNAL_SPACES_PER_WORKSPACE) ?? undefined,
-  workspaces: parsePositiveInt(process.env.RELAI_LIMIT_WORKSPACES_PER_ORG) ?? undefined,
-  aiCreditsPerUserPerMonth: parsePositiveInt(process.env.RELAI_LIMIT_AI_CREDITS_PER_USER_PER_MONTH) ?? undefined,
+  projects: parsePositiveInt(process.env.CLAWLAB_LIMIT_PROJECTS_PER_WORKSPACE) ?? undefined,
+  externalSpaces: parsePositiveInt(process.env.CLAWLAB_LIMIT_EXTERNAL_SPACES_PER_WORKSPACE) ?? undefined,
+  workspaces: parsePositiveInt(process.env.CLAWLAB_LIMIT_WORKSPACES_PER_ORG) ?? undefined,
+  aiCreditsPerUserPerMonth: parsePositiveInt(process.env.CLAWLAB_LIMIT_AI_CREDITS_PER_USER_PER_MONTH) ?? undefined,
 }
 
 function resolveLimit(key: LimitKey, defaultLimit: number) {

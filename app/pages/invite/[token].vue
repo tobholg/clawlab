@@ -159,7 +159,7 @@ onMounted(async () => {
           <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <span class="text-lg font-semibold tracking-tight">Context</span>
+          <span class="text-lg font-semibold tracking-tight">ClawLab</span>
         </NuxtLink>
         
         <div v-if="isAuthenticated" class="flex items-center gap-4">
@@ -364,7 +364,7 @@ onMounted(async () => {
           <!-- Footer -->
           <p class="text-center text-sm text-slate-400">
             Powered by
-            <a href="/" class="text-slate-600 hover:text-slate-900 transition-colors">Context</a>
+            <a href="/" class="text-slate-600 hover:text-slate-900 transition-colors">ClawLab</a>
           </p>
         </div>
       </div>

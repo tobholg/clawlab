@@ -101,7 +101,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="ctx-auth min-h-screen text-slate-900 dark:text-zinc-100" :class="{ 'is-ready': pageReady }">
+  <div class="clawlab-auth min-h-screen text-slate-900 dark:text-zinc-100" :class="{ 'is-ready': pageReady }">
     <!-- Background -->
     <div class="fixed inset-0 -z-10 auth-bg" aria-hidden="true" />
 
@@ -112,7 +112,7 @@ onMounted(() => {
           <div class="w-8 h-8 bg-slate-900 dark:bg-white/[0.08] rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <span class="text-lg font-semibold tracking-tight">Context</span>
+          <span class="text-lg font-semibold tracking-tight">ClawLab</span>
         </NuxtLink>
 
         <div class="flex items-center gap-4">
@@ -175,7 +175,7 @@ onMounted(() => {
         <section class="relative lg:self-center">
           <div class="auth-card intro" style="--d: 220ms">
             <div class="text-center mb-8">
-              <h2 class="text-2xl font-semibold text-slate-900 dark:text-zinc-100 tracking-tight mb-2">Sign in to Context</h2>
+              <h2 class="text-2xl font-semibold text-slate-900 dark:text-zinc-100 tracking-tight mb-2">Sign in to ClawLab</h2>
               <p v-if="isSingleUser" class="text-slate-500 dark:text-zinc-400">Enter your password to continue.</p>
               <p v-else-if="hasMagicLink" class="text-slate-500 dark:text-zinc-400">Sign in with a magic link or password.</p>
               <p v-else class="text-slate-500 dark:text-zinc-400">Enter your credentials to continue.</p>

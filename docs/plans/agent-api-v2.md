@@ -33,7 +33,7 @@ Current behavior: dumps ALL endpoint schemas in one giant response. This is wast
 **`GET /api/agents/`** — Returns lightweight action list:
 ```json
 {
-  "name": "Context Agent API",
+  "name": "ClawLab Agent API",
   "version": "1.0",
   "baseUrl": "/api/agents",
   "endpoints": [

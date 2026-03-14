@@ -2,7 +2,7 @@
 definePageMeta({ layout: false })
 
 useHead({
-  title: 'Context — Project Management Where AI Agents Are Real Teammates',
+  title: 'ClawLab — Project Management Where AI Agents Are Real Teammates',
   meta: [
     { name: 'description', content: 'The first open-source project manager built for human-agent teams. Assign tasks to AI agents, review their plans, track their work. Self-hosted, recursive task model, no vendor lock-in.' },
   ],
@@ -21,8 +21,8 @@ const featureSlides = [
   { feature: 'Recursive everything', icon: 'heroicons:queue-list', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically.', screenshot: '/screenshots/board_1.png', label: 'Kanban board' },
   { feature: 'Recursive everything', icon: 'heroicons:queue-list', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically.', screenshot: '/screenshots/board_2.png', label: 'Task detail' },
   { feature: 'Recursive everything', icon: 'heroicons:queue-list', desc: 'Projects contain tasks contain subtasks, infinitely deep. Progress, confidence, and estimates bubble up automatically.', screenshot: '/screenshots/board_3.png', label: 'Timeline view' },
-  { feature: 'Built-in channels', icon: 'heroicons:chat-bubble-left-right', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context lives next to the work, not in a separate app.', screenshot: '/screenshots/channel_1.png', label: 'Team chat' },
-  { feature: 'Built-in channels', icon: 'heroicons:chat-bubble-left-right', desc: 'Project-linked chat. AI summarizes threads, extracts action items. Context lives next to the work, not in a separate app.', screenshot: '/screenshots/channel_2.png', label: 'AI summary' },
+  { feature: 'Built-in channels', icon: 'heroicons:chat-bubble-left-right', desc: 'Project-linked chat. AI summarizes threads, extracts action items. ClawLab lives next to the work, not in a separate app.', screenshot: '/screenshots/channel_1.png', label: 'Team chat' },
+  { feature: 'Built-in channels', icon: 'heroicons:chat-bubble-left-right', desc: 'Project-linked chat. AI summarizes threads, extracts action items. ClawLab lives next to the work, not in a separate app.', screenshot: '/screenshots/channel_2.png', label: 'AI summary' },
   { feature: 'Stakeholder spaces', icon: 'heroicons:megaphone', desc: 'External portals for clients and investors. Filtered views of your progress. AI translates status for different audiences.', screenshot: '/screenshots/stakeholder_1.png', label: 'Portal view' },
   { feature: 'Stakeholder spaces', icon: 'heroicons:megaphone', desc: 'External portals for clients and investors. Filtered views of your progress. AI translates status for different audiences.', screenshot: '/screenshots/stakeholder_2.png', label: 'Activity feed' },
   { feature: 'Focus tracking', icon: 'heroicons:clock', desc: 'Deep work, meetings, admin, learning, break. Know where time goes. Spot burnout before it happens.', screenshot: '/screenshots/focus_1.png', label: 'Focus session' },
@@ -70,16 +70,16 @@ const quickStartSteps = [
 ]
 
 const comparisonRows = [
-  { feature: 'AI agents as teammates', context: true, linear: false, jira: false },
-  { feature: 'Plan/execute lifecycle', context: true, linear: false, jira: false },
-  { feature: 'Agent CLI & REST API', context: true, linear: false, jira: false },
-  { feature: 'Recursive task model', context: true, linear: false, jira: false },
-  { feature: 'Auto-bubbling progress', context: true, linear: false, jira: false },
-  { feature: 'Self-hosted', context: true, linear: false, jira: true },
-  { feature: 'Open source', context: true, linear: false, jira: false },
-  { feature: 'Stakeholder portals', context: true, linear: false, jira: true },
-  { feature: 'Built-in chat', context: true, linear: false, jira: false },
-  { feature: 'Free forever', context: true, linear: false, jira: false },
+  { feature: 'AI agents as teammates', clawlab: true, linear: false, jira: false },
+  { feature: 'Plan/execute lifecycle', clawlab: true, linear: false, jira: false },
+  { feature: 'Agent CLI & REST API', clawlab: true, linear: false, jira: false },
+  { feature: 'Recursive task model', clawlab: true, linear: false, jira: false },
+  { feature: 'Auto-bubbling progress', clawlab: true, linear: false, jira: false },
+  { feature: 'Self-hosted', clawlab: true, linear: false, jira: true },
+  { feature: 'Open source', clawlab: true, linear: false, jira: false },
+  { feature: 'Stakeholder portals', clawlab: true, linear: false, jira: true },
+  { feature: 'Built-in chat', clawlab: true, linear: false, jira: false },
+  { feature: 'Free forever', clawlab: true, linear: false, jira: false },
 ]
 
 const sectionRefs = reactive<Record<string, HTMLElement | null>>({
@@ -113,38 +113,38 @@ interface TermLine {
 // Each line: command (typed char by char), then pauseAfter ms before next line
 // Non-commands appear instantly after the previous line's pause
 const terminalLines: TermLine[] = [
-  { text: '$ ctx task 7f3a --get', delay: 400, isCommand: true },
+  { text: '$ clawlab task 7f3a --get', delay: 400, isCommand: true },
   { text: '  Implement payment webhooks', delay: 100, color: 'zinc' },
   { text: '  Status: TODO  Mode: PLAN  Assigned: harriet', delay: 600, color: 'muted' },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx docs 7f3a --create "Implementation Plan"', delay: 400, isCommand: true },
+  { text: '$ clawlab docs 7f3a --create "Implementation Plan"', delay: 400, isCommand: true },
   { text: '✓ Created doc d1 on task 7f3a', delay: 600, isResult: true },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx task 7f3a --status active', delay: 400, isCommand: true },
+  { text: '$ clawlab task 7f3a --status active', delay: 400, isCommand: true },
   { text: '✓ Status → IN_PROGRESS/scoping', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Status changed: TODO → In Progress (scoping)', color: 'amber' } },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx subtask 7f3a "Set up Stripe webhook endpoint"', delay: 400, isCommand: true },
+  { text: '$ clawlab subtask 7f3a "Set up Stripe webhook endpoint"', delay: 400, isCommand: true },
   { text: '✓ Created subtask abc1', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Created subtask: Set up Stripe webhook endpoint', color: 'amber' } },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx subtask 7f3a "Handle subscription events"', delay: 400, isCommand: true },
+  { text: '$ clawlab subtask 7f3a "Handle subscription events"', delay: 400, isCommand: true },
   { text: '✓ Created subtask abc2', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Created subtask: Handle subscription events', color: 'amber' } },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx task abc1 --status done', delay: 400, isCommand: true },
+  { text: '$ clawlab task abc1 --status done', delay: 400, isCommand: true },
   { text: '✓ abc1 → IN_PROGRESS/review', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Subtask completed: Set up Stripe webhook endpoint', color: 'emerald' } },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx task 7f3a --progress 75', delay: 400, isCommand: true },
+  { text: '$ clawlab task 7f3a --progress 75', delay: 400, isCommand: true },
   { text: '✓ Progress updated: 0% → 75%', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Progress updated: 0% → 75%', color: 'emerald' } },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx task abc2 --status done', delay: 400, isCommand: true },
+  { text: '$ clawlab task abc2 --status done', delay: 400, isCommand: true },
   { text: '✓ abc2 → IN_PROGRESS/review', delay: 600, isResult: true,
     toast: { agent: 'H', text: 'Subtask completed: Handle subscription events', color: 'emerald' } },
   { text: '', delay: 400, isBlank: true },
-  { text: '$ ctx task 7f3a --progress 100 --status done', delay: 400, isCommand: true },
+  { text: '$ clawlab task 7f3a --progress 100 --status done', delay: 400, isCommand: true },
   { text: '✓ 7f3a → IN_PROGRESS/review (100%)', delay: 800, isResult: true,
     toast: { agent: 'H', text: 'Submitted for review — all subtasks complete ✓', color: 'blue' } },
 ]
@@ -381,7 +381,7 @@ const openCarouselLightbox = (event: Event) => {
 
 const copyCommand = async () => {
   try {
-    await navigator.clipboard.writeText('npx create-context-app@latest')
+    await navigator.clipboard.writeText('npx create-clawlab-app@latest')
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
   } catch {}
@@ -470,7 +470,7 @@ onMounted(() => {
             <div class="w-7 h-7 sm:w-8 sm:h-8 bg-white/[0.08] rounded-lg flex items-center justify-center">
               <svg class="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 32 32" fill="none"><path d="M14 5Q9 5 9 10L9 13.5Q9 16 6 16Q9 16 9 18.5L9 22Q9 27 14 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5Q23 5 23 10L23 13.5Q23 16 26 16Q23 16 23 18.5L23 22Q23 27 18 27" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-            <span class="text-base sm:text-lg font-semibold tracking-tight text-zinc-100">Context</span>
+            <span class="text-base sm:text-lg font-semibold tracking-tight text-zinc-100">ClawLab</span>
           </button>
           <div class="hidden md:flex items-center gap-6 text-sm text-zinc-500">
             <button
@@ -543,7 +543,7 @@ onMounted(() => {
         <div class="mt-6 flex justify-center intro" style="--d: 440ms">
           <div class="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 rounded-lg border border-white/[0.08] bg-[#111113] font-mono text-xs sm:text-sm">
             <span class="text-zinc-500 select-none">$</span>
-            <span class="text-zinc-300">npx create-context-app@latest</span>
+            <span class="text-zinc-300">npx create-clawlab-app@latest</span>
             <button
               type="button"
               class="ml-2 h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-white/[0.08] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
@@ -590,7 +590,7 @@ onMounted(() => {
           </div>
           <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Not a chatbot sidebar.<br class="hidden sm:inline" /> A full team member.</h2>
           <p class="mt-3 text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-            Agents in Context aren't assistants that answer questions. They're teammates with assigned tasks, plans you review, subtasks they create, and progress you track. Same board, same workflow, different species.
+            Agents in ClawLab aren't assistants that answer questions. They're teammates with assigned tasks, plans you review, subtasks they create, and progress you track. Same board, same workflow, different species.
           </p>
         </div>
 
@@ -614,7 +614,7 @@ onMounted(() => {
                 <div class="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/80" />
                 <div class="w-2.5 h-2.5 rounded-full bg-[#febc2e]/80" />
                 <div class="w-2.5 h-2.5 rounded-full bg-[#28c840]/80" />
-                <span class="ml-3 text-[11px] text-zinc-600">harriet — ctx</span>
+                <span class="ml-3 text-[11px] text-zinc-600">harriet — clawlab</span>
               </div>
 
               <template v-for="(line, i) in terminalLines" :key="i">
@@ -942,7 +942,7 @@ onMounted(() => {
           <div class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Compare</div>
           <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-zinc-100">Why not Linear or Jira?</h2>
           <p class="mt-3 text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
-            Great tools. Built for humans only. Context is built for the team you actually have: humans and agents working together.
+            Great tools. Built for humans only. ClawLab is built for the team you actually have: humans and agents working together.
           </p>
         </div>
 
@@ -951,7 +951,7 @@ onMounted(() => {
             <thead>
               <tr class="border-b border-white/[0.06]">
                 <th class="text-left px-4 py-3 text-zinc-500 font-medium">Feature</th>
-                <th class="px-4 py-3 text-center text-emerald-400 font-semibold">Context</th>
+                <th class="px-4 py-3 text-center text-emerald-400 font-semibold">ClawLab</th>
                 <th class="px-4 py-3 text-center text-zinc-500 font-medium">Linear</th>
                 <th class="px-4 py-3 text-center text-zinc-500 font-medium">Jira</th>
               </tr>
@@ -964,7 +964,7 @@ onMounted(() => {
               >
                 <td class="px-4 py-2.5 text-zinc-300">{{ row.feature }}</td>
                 <td class="px-4 py-2.5 text-center">
-                  <span v-if="row.context" class="text-emerald-400 text-base">&#10003;</span>
+                  <span v-if="row.clawlab" class="text-emerald-400 text-base">&#10003;</span>
                   <span v-else class="text-zinc-700 text-base">&#x2013;</span>
                 </td>
                 <td class="px-4 py-2.5 text-center">
@@ -1028,7 +1028,7 @@ onMounted(() => {
       <div class="max-w-2xl mx-auto text-center intro" style="--d: 1400ms">
         <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100">Join the community</h2>
         <p class="mt-3 text-sm sm:text-base text-zinc-400">
-          Context is built in the open. Star us, open issues, submit PRs, or just come hang out.
+          ClawLab is built in the open. Star us, open issues, submit PRs, or just come hang out.
         </p>
         <div class="mt-6 flex items-center justify-center gap-4">
           <a

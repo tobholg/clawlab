@@ -70,26 +70,26 @@ Add `COMPLETED` value to `AgentMode` enum. Create `commits` table with indexes.
 
 ## Git Hook: Auto-Linking Commits
 
-### `ctx init-hooks`
+### `clawlab init-hooks`
 
 New CLI command. Installs a `post-commit` git hook in the current repo:
 
 ```bash
 #!/bin/sh
-# ctxlabs commit hook
+# clawlab commit hook
 SHA=$(git rev-parse HEAD)
-ctx commit --sha "$SHA" 2>/dev/null || true
+clawlab commit --sha "$SHA" 2>/dev/null || true
 ```
 
 The hook:
 - Runs after every `git commit`
-- Calls the `ctx commit` CLI command with the new SHA
+- Calls the `clawlab commit` CLI command with the new SHA
 - Fails silently (`|| true`) so it never blocks git workflow
-- Works for both agents and humans (anyone with a `ctx` session)
+- Works for both agents and humans (anyone with a `clawlab` session)
 
-If a `.git/hooks/post-commit` already exists, append the ctx line rather than overwriting. Print a warning if appending.
+If a `.git/hooks/post-commit` already exists, append the clawlab line rather than overwriting. Print a warning if appending.
 
-### `ctx commit --sha <sha>`
+### `clawlab commit --sha <sha>`
 
 New CLI command. Links a commit to the currently checked-out task.
 
@@ -101,7 +101,7 @@ Flow:
 5. Creates the `Commit` record
 6. Returns summary: `Linked abc1234 to "Fix auth bug" (+89 -12, 3 files)`
 
-Manual mode: `ctx commit --sha <sha> --task <taskId>` to retroactively link a commit to a specific task (bypasses active session lookup).
+Manual mode: `clawlab commit --sha <sha> --task <taskId>` to retroactively link a commit to a specific task (bypasses active session lookup).
 
 ## API Endpoints
 
@@ -179,7 +179,7 @@ This means:
 
 ## Submit Flow Update
 
-When an agent runs `ctx submit`:
+When an agent runs `clawlab submit`:
 
 1. Session status -> `AWAITING_REVIEW` (unchanged)
 2. Task `agentMode` -> `COMPLETED` (NEW)
@@ -195,7 +195,7 @@ Add a "Repository" section in the sidebar metadata area of `ItemDetailPanel.vue`
 Repository
 [/Users/recursion/Projects/relai          ] <- repoPath input
 [main                                      ] <- branch input
-[https://github.com/ctxlabs/context       ] <- repoUrl input (optional)
+[https://github.com/clawlab/context       ] <- repoUrl input (optional)
 ```
 
 - Only show for items that have agent assignees OR for root project items
@@ -238,11 +238,11 @@ On `ItemCard.vue`, if a task has commits linked, show a small git icon or commit
 ## CLI Summary
 
 New commands:
-- `ctx commit --sha <sha> [--task <taskId>]` - Link a commit to a task
-- `ctx init-hooks` - Install post-commit git hook in current repo
+- `clawlab commit --sha <sha> [--task <taskId>]` - Link a commit to a task
+- `clawlab init-hooks` - Install post-commit git hook in current repo
 
 Updated commands:
-- `ctx submit` - Now sets agentMode to COMPLETED
+- `clawlab submit` - Now sets agentMode to COMPLETED
 
 ## Server Utility
 
@@ -256,7 +256,7 @@ Create `server/utils/gitOps.ts`:
 // Runs git commands to extract commit metadata and diff stats
 
 // installHook(repoPath: string): void
-// Writes post-commit hook (used by ctx init-hooks if we add a server-side version)
+// Writes post-commit hook (used by clawlab init-hooks if we add a server-side version)
 ```
 
 ## Implementation Order
@@ -264,7 +264,7 @@ Create `server/utils/gitOps.ts`:
 1. Schema: Add COMPLETED to enum, create Commit model, add relations, generate migration
 2. Server: `gitOps.ts` utility (repo resolution + git command execution)
 3. API: `POST /api/agents/commits`, `GET /api/items/:id/commits`
-4. CLI: `ctx commit`, `ctx init-hooks`, update `ctx submit` to set COMPLETED
+4. CLI: `clawlab commit`, `clawlab init-hooks`, update `clawlab submit` to set COMPLETED
 5. UI: Repository config fields in ItemDetailPanel sidebar
 6. UI: COMPLETED state in Agent Workflow (dropdown option + banner)
 7. UI: Commits subsection in Agent Workflow box

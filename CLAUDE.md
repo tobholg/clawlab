@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Context is a multi-stakeholder project management SaaS with AI-powered insights, seat-based licensing, and an external stakeholder portal. Built with Nuxt 4 (Vue 3), Nitro backend, PostgreSQL/Prisma, and Tailwind CSS v4.
+ClawLab is a multi-stakeholder project management SaaS with AI-powered insights, seat-based licensing, and an external stakeholder portal. Built with Nuxt 4 (Vue 3), Nitro backend, PostgreSQL/Prisma, and Tailwind CSS v4.
 
 ## Commands
 
@@ -141,7 +141,7 @@ See `AGENTS.md` for icon/text alignment guardrails. Key rule: use fixed square `
 
 ### Tailwind Theme
 
-Custom design tokens in `tailwind.config.ts`: `ctx-*` brand palette, `dm-*` dark mode surface/card colors, temperature colors (hot, warm, cold, stale). Fonts: Inter (sans), JetBrains Mono (mono). Dynamic color safelist for status/risk badges.
+Custom design tokens in `tailwind.config.ts`: `clawlab-*` brand palette, `dm-*` dark mode surface/card colors, temperature colors (hot, warm, cold, stale). Fonts: Inter (sans), JetBrains Mono (mono). Dynamic color safelist for status/risk badges.
 
 ## Environment Variables
 

@@ -13,7 +13,7 @@
         @mousedown="startDrag"
       >
         <div class="flex items-center gap-2">
-          <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-4 h-4 text-ctx-500" />
+          <Icon name="heroicons:chat-bubble-left-ellipsis" class="w-4 h-4 text-clawlab-500" />
           <span class="text-sm font-medium text-slate-700 dark:text-zinc-300">Quick Chat</span>
         </div>
         <div class="flex items-center gap-1">
@@ -87,11 +87,11 @@
         
         <!-- Thinking indicator -->
         <div v-if="sending && (!messages.length || !messages[messages.length - 1]?.content)" class="flex justify-start">
-          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-ctx-50 dark:bg-ctx-900/30">
+          <div class="px-3 py-2 rounded-2xl rounded-tl-sm bg-clawlab-50 dark:bg-clawlab-900/30">
             <span class="inline-flex items-center gap-1.5">
-              <span class="w-2 h-2 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
-              <span class="w-2 h-2 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
-              <span class="w-2 h-2 bg-ctx-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
+              <span class="w-2 h-2 bg-clawlab-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
+              <span class="w-2 h-2 bg-clawlab-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
+              <span class="w-2 h-2 bg-clawlab-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
             </span>
           </div>
         </div>
@@ -112,7 +112,7 @@
         <button
           @click="handleSend"
           :disabled="!inputMessage.trim() || sending"
-          class="w-8 h-8 rounded-full bg-ctx-500 text-white flex items-center justify-center hover:bg-ctx-600 transition-colors disabled:opacity-30 disabled:hover:bg-ctx-500 shrink-0"
+          class="w-8 h-8 rounded-full bg-clawlab-500 text-white flex items-center justify-center hover:bg-clawlab-600 transition-colors disabled:opacity-30 disabled:hover:bg-clawlab-500 shrink-0"
         >
           <Icon v-if="sending" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
           <Icon v-else name="heroicons:arrow-up" class="w-4 h-4" />

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Context CLI — thin wrapper around the Context Agent API
+// ClawLab CLI — thin wrapper around the ClawLab Agent API
 // Auth: CTX_TOKEN + CTX_URL env vars, or ~/.config/clawlab/config.json
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync, rmSync } from 'node:fs'
@@ -185,7 +185,7 @@ function formatTaskRef(task) {
 
 function requireToken() {
   if (!getToken()) {
-    console.error('Error: No API token. Set CTX_TOKEN or run: ctx login')
+    console.error('Error: No API token. Set CTX_TOKEN or run: clawlab login')
     process.exit(1)
   }
 }
@@ -357,7 +357,7 @@ function renderCheckoutSummary(data) {
     print('')
     print('  ⚠  This is a top-level project, not a task.')
     print('     Agents should create and work on tasks beneath projects.')
-    print(`     Use: ctx task create --parent ${task.id} --title "Your task title"`)
+    print(`     Use: clawlab task create --parent ${task.id} --title "Your task title"`)
     print('     Then check out that task instead.')
     print('')
   }
@@ -377,7 +377,7 @@ async function runSubmitPreflight(taskId, activeSession) {
     level: isTaskActive ? 'pass' : 'fail',
     message: isTaskActive
       ? 'Active session is checked out on this task'
-      : 'No active session found for this task. Run ctx checkout first.',
+      : 'No active session found for this task. Run clawlab checkout first.',
   })
 
   const inReview = String(task.subStatus || '').toLowerCase() === 'review'
@@ -539,8 +539,8 @@ function installPostCommitHook() {
     throw new Error('Not inside a git repository')
   }
 
-  const marker = '# ctxlabs commit hook'
-  const command = 'ctx commit --sha "$SHA" 2>/dev/null || true'
+  const marker = '# clawlab commit hook'
+  const command = 'clawlab commit --sha "$SHA" 2>/dev/null || true'
   const hookBlock = `${marker}\nSHA=$(git rev-parse HEAD)\n${command}`
 
   if (existsSync(hookPath)) {
@@ -569,14 +569,14 @@ const commands = {}
 // ── login ───────────────────────────────────────────────────────────────────
 
 commands.login = {
-  usage: 'ctx login [--url URL] [--token TOKEN]',
+  usage: 'clawlab login [--url URL] [--token TOKEN]',
   desc: 'Configure authentication',
   async run(args, flags) {
     const url = String(flags.get('--url') || getBaseUrl()).replace(/\/+$/, '')
     const token = flags.get('--token')
 
     if (!token) {
-      console.error('Usage: ctx login --token ctx_xxx [--url http://localhost:3001]')
+      console.error('Usage: clawlab login --token ctx_xxx [--url http://localhost:3001]')
       process.exit(1)
     }
 
@@ -609,7 +609,7 @@ commands.login = {
     }
 
     print(`✓ Config saved to ${CONFIG_FILE}`)
-    print('Run `ctx me` to verify this machine is connected.')
+    print('Run `clawlab me` to verify this machine is connected.')
     if (verified && agent) {
       const providerSuffix = agent.agentProvider ? ` (${agent.agentProvider})` : ''
       print(`✓ Authenticated as ${agent.name}${providerSuffix}`)
@@ -622,7 +622,7 @@ commands.login = {
 // ── logout ──────────────────────────────────────────────────────────────────
 
 commands.logout = {
-  usage: 'ctx logout',
+  usage: 'clawlab logout',
   desc: 'Remove saved authentication config',
   async run() {
     rmSync(CONFIG_FILE, { force: true })
@@ -638,7 +638,7 @@ commands.logout = {
 // ── api (discovery) ─────────────────────────────────────────────────────────
 
 commands.api = {
-  usage: 'ctx api [endpoint-id]',
+  usage: 'clawlab api [endpoint-id]',
   desc: 'Discover available API endpoints',
   async run(args, flags) {
     const endpointId = args[0]
@@ -671,7 +671,7 @@ commands.api = {
 // ── me ──────────────────────────────────────────────────────────────────────
 
 commands.me = {
-  usage: 'ctx me',
+  usage: 'clawlab me',
   desc: 'Show agent profile',
   async run() {
     requireToken()
@@ -686,14 +686,14 @@ commands.me = {
 // ── catchup ─────────────────────────────────────────────────────────────────
 
 commands.catchup = {
-  usage: 'ctx catchup [--since 4h] [--refresh]',
+  usage: 'clawlab catchup [--since 4h] [--refresh]',
   desc: 'Show everything you missed: tasks, mentions, comments, thread replies',
   help: [
     'Examples:',
-    '  ctx catchup',
-    '  ctx catchup --since 2h',
-    '  ctx catchup --refresh',
-    '  ctx catchup --since 2026-02-18T17:00:00Z',
+    '  clawlab catchup',
+    '  clawlab catchup --since 2h',
+    '  clawlab catchup --refresh',
+    '  clawlab catchup --since 2026-02-18T17:00:00Z',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
@@ -756,7 +756,7 @@ commands.catchup = {
         print(`     ⚡ ${modeLabel}  ${isProject ? '📁 ' : ''}${formatTaskRef(t)}  ${t.progress ?? 0}%`)
         if (isProject) {
           print(`       ⚠  This is a project, not a task. Create tasks under it:`)
-          print(`       $ ctx task create --parent ${t.id.slice(-8)} --title "Task title"`)
+          print(`       $ clawlab task create --parent ${t.id.slice(-8)} --title "Task title"`)
         } else if (isCurrentTask) {
           const elapsedMs = currentCheckedOutAt ? Date.now() - new Date(currentCheckedOutAt).getTime() : 0
           print(`       → Currently checked out (${formatDurationMs(elapsedMs)})`)
@@ -782,9 +782,9 @@ commands.catchup = {
           }
         } catch { /* skip if fetch fails */ }
 
-        print(`       $ ctx task ${shortId(t.id)}          # view details`)
+        print(`       $ clawlab task ${shortId(t.id)}          # view details`)
         if (mode === 'plan') {
-          print(`       $ ctx doc ${shortId(t.id)} create "Plan title"  # start your plan`)
+          print(`       $ clawlab doc ${shortId(t.id)} create "Plan title"  # start your plan`)
         }
       }
     }
@@ -833,7 +833,7 @@ commands.catchup = {
         const preview = m.content.replace(/<@[^>]+>/g, '@someone').replace(/\s+/g, ' ').slice(0, 80)
         print(`     #${m.channelName} — ${m.author.name}: ${preview}`)
         if (m.replyTo) {
-          print(`       ↳ ctx channels ${m.channelName} --reply "..." --thread ${m.replyTo}`)
+          print(`       ↳ clawlab channels ${m.channelName} --reply "..." --thread ${m.replyTo}`)
         }
       }
     }
@@ -853,11 +853,11 @@ commands.catchup = {
 // ── checkout ───────────────────────────────────────────────────────────────
 
 commands.checkout = {
-  usage: 'ctx checkout <task-id>',
+  usage: 'clawlab checkout <task-id>',
   desc: 'Start a tracked work session on a task',
   async run(args) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx checkout <task-id>')
+    if (!args[0]) return die('Usage: clawlab checkout <task-id>')
     const taskId = await resolveId(args[0])
 
     const data = await post('/api/agents/checkout', { taskId })
@@ -869,13 +869,13 @@ commands.checkout = {
 // ── start ──────────────────────────────────────────────────────────────────
 
 commands.start = {
-  usage: 'ctx start [--preview] [--mode PLAN|EXECUTE]',
+  usage: 'clawlab start [--preview] [--mode PLAN|EXECUTE]',
   desc: 'Pick the next actionable assigned task and optionally check it out',
   help: [
     'Examples:',
-    '  ctx start',
-    '  ctx start --preview',
-    '  ctx start --mode PLAN',
+    '  clawlab start',
+    '  clawlab start --preview',
+    '  clawlab start --mode PLAN',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
@@ -893,7 +893,7 @@ commands.start = {
     if (!candidate) {
       if (JSON_OUT) return json({ found: false, reason: 'No actionable assigned tasks' })
       print('No actionable assigned tasks found.')
-      print('Run `ctx catchup --refresh` to sync latest assignments.')
+      print('Run `clawlab catchup --refresh` to sync latest assignments.')
       return
     }
 
@@ -926,7 +926,7 @@ commands.start = {
     print(`  Startable tasks: ${totalStartable}`)
 
     if (preview) {
-      print(`  Next: ctx checkout ${candidate.id.slice(-8)}`)
+      print(`  Next: clawlab checkout ${candidate.id.slice(-8)}`)
       return
     }
 
@@ -938,19 +938,19 @@ commands.start = {
 // ── submit ─────────────────────────────────────────────────────────────────
 
 commands.submit = {
-  usage: 'ctx submit [task-id] [--dry-run]',
+  usage: 'clawlab submit [task-id] [--dry-run]',
   desc: 'Submit active work session for review. Infers task from active session if omitted.',
   help: [
     'Examples:',
-    '  ctx submit',
-    '  ctx submit --dry-run',
-    '  ctx submit 7f3a --dry-run',
+    '  clawlab submit',
+    '  clawlab submit --dry-run',
+    '  clawlab submit 7f3a --dry-run',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
 
     const dryRun = flags.has('--dry-run')
-    const taskId = await resolveTaskIdArgOrActive(args[0], 'ctx submit [task-id] [--dry-run]')
+    const taskId = await resolveTaskIdArgOrActive(args[0], 'clawlab submit [task-id] [--dry-run]')
     const activeSession = await get('/api/agents/sessions?current=true')
 
     if (dryRun) {
@@ -996,19 +996,19 @@ commands.submit = {
 // ── commit ─────────────────────────────────────────────────────────────────
 
 commands.commit = {
-  usage: 'ctx commit --sha <sha> [--task <task-id>]',
+  usage: 'clawlab commit --sha <sha> [--task <task-id>]',
   desc: 'Link a git commit to your active task (or a specific task)',
   help: [
     'Examples:',
-    '  ctx commit --sha abc1234',
-    '  ctx commit --sha abc1234 --task 7f3a',
+    '  clawlab commit --sha abc1234',
+    '  clawlab commit --sha abc1234 --task 7f3a',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
 
     const shaFlag = flags.get('--sha')
     if (typeof shaFlag !== 'string' || !shaFlag.trim()) {
-      return die('Usage: ctx commit --sha <sha> [--task <task-id>]')
+      return die('Usage: clawlab commit --sha <sha> [--task <task-id>]')
     }
 
     const taskFlag = flags.get('--task')
@@ -1033,7 +1033,7 @@ commands.commit = {
 // ── init-hooks ─────────────────────────────────────────────────────────────
 
 commands['init-hooks'] = {
-  usage: 'ctx init-hooks',
+  usage: 'clawlab init-hooks',
   desc: 'Install a git post-commit hook to auto-link commits',
   async run() {
     const result = installPostCommitHook()
@@ -1045,7 +1045,7 @@ commands['init-hooks'] = {
     }
 
     if (result.appended) {
-      print(`⚠ Existing post-commit hook found. Appended ctx hook block: ${result.hookPath}`)
+      print(`⚠ Existing post-commit hook found. Appended clawlab hook block: ${result.hookPath}`)
       return
     }
 
@@ -1056,7 +1056,7 @@ commands['init-hooks'] = {
 // ── status ─────────────────────────────────────────────────────────────────
 
 commands.status = {
-  usage: 'ctx status',
+  usage: 'clawlab status',
   desc: 'Show current active session status',
   async run() {
     requireToken()
@@ -1064,7 +1064,7 @@ commands.status = {
     if (JSON_OUT) return json(session)
 
     if (!session) {
-      print('No active session. Run `ctx checkout <task-id>` to start working.')
+      print('No active session. Run `clawlab checkout <task-id>` to start working.')
       return
     }
 
@@ -1088,7 +1088,7 @@ commands.status = {
 // ── projects ────────────────────────────────────────────────────────────────
 
 commands.projects = {
-  usage: 'ctx projects',
+  usage: 'clawlab projects',
   desc: 'List assigned projects',
   async run() {
     requireToken()
@@ -1109,12 +1109,12 @@ commands.projects = {
 // ── create-project ──────────────────────────────────────────────────────────
 
 commands['create-project'] = {
-  usage: 'ctx create-project <title> [--description "text"]',
+  usage: 'clawlab create-project <title> [--description "text"]',
   desc: 'Create a new top-level project',
   async run(args, flags) {
     requireToken()
     const title = args.join(' ')
-    if (!title) return die('Usage: ctx create-project <title>')
+    if (!title) return die('Usage: clawlab create-project <title>')
 
     const body = { title }
     const desc = flags.get('--description')
@@ -1129,14 +1129,14 @@ commands['create-project'] = {
 // ── channels ────────────────────────────────────────────────────────────────
 
 commands.channels = {
-  usage: 'ctx channels [channel-id|channel-name] [--since 2h] [--mentions-only] [--reply \"text\"] [--thread <message-id>] [--limit 20]',
+  usage: 'clawlab channels [channel-id|channel-name] [--since 2h] [--mentions-only] [--reply \"text\"] [--thread <message-id>] [--limit 20]',
   desc: 'List channels, read channel messages, or reply in a channel/thread',
   help: [
     'Examples:',
-    '  ctx channels',
-    '  ctx channels general --limit 10',
-    '  ctx channels 6mol66p4 --reply "Working on it"',
-    '  ctx channels general --reply "Ack" --thread <message-id>',
+    '  clawlab channels',
+    '  clawlab channels general --limit 10',
+    '  clawlab channels 6mol66p4 --reply "Working on it"',
+    '  clawlab channels general --reply "Ack" --thread <message-id>',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
@@ -1227,7 +1227,7 @@ commands.channels = {
 // ── tasks ───────────────────────────────────────────────────────────────────
 
 commands.tasks = {
-  usage: 'ctx tasks [--tree] [--status STATUS]',
+  usage: 'clawlab tasks [--tree] [--status STATUS]',
   desc: 'List assigned tasks (--tree for hierarchy)',
   async run(args, flags) {
     requireToken()
@@ -1286,17 +1286,17 @@ commands.tasks = {
 // ── task (detail / update) ──────────────────────────────────────────────────
 
 commands.task = {
-  usage: 'ctx task [task-id] [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]',
+  usage: 'clawlab task [task-id] [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]',
   desc: 'View or update a task. Infers active task when task-id is omitted.',
   help: [
     'Examples:',
-    '  ctx task',
-    '  ctx task 7f3a',
-    '  ctx task --progress 60',
+    '  clawlab task',
+    '  clawlab task 7f3a',
+    '  clawlab task --progress 60',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
-    const id = await resolveTaskIdArgOrActive(args[0], 'ctx task [task-id] [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]')
+    const id = await resolveTaskIdArgOrActive(args[0], 'clawlab task [task-id] [--status S] [--progress N] [--title T] [--desc T] [--category C] [--priority P] [--substatus S]')
 
     const updates = {}
     const s = flags.get('--status')
@@ -1367,11 +1367,11 @@ commands.task = {
 // ── subtask ─────────────────────────────────────────────────────────────────
 
 commands.subtask = {
-  usage: 'ctx subtask <parent-id> <title> [--desc D] [--category C] [--priority P]',
+  usage: 'clawlab subtask <parent-id> <title> [--desc D] [--category C] [--priority P]',
   desc: 'Create a subtask',
   async run(args, flags) {
     requireToken()
-    if (!args[0] || !args[1]) return die('Usage: ctx subtask <parent-id> <title>')
+    if (!args[0] || !args[1]) return die('Usage: clawlab subtask <parent-id> <title>')
     const parentId = await resolveId(args[0])
     const title = args[1]
 
@@ -1393,11 +1393,11 @@ commands.subtask = {
 // ── rm ──────────────────────────────────────────────────────────────────────
 
 commands.rm = {
-  usage: 'ctx rm <task-id>',
+  usage: 'clawlab rm <task-id>',
   desc: 'Delete an agent-owned subtask',
   async run(args, flags) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx rm <task-id>')
+    if (!args[0]) return die('Usage: clawlab rm <task-id>')
     const id = await resolveId(args[0])
     await del(`/api/agents/tasks/${id}`)
     if (JSON_OUT) return json({ deleted: true, id })
@@ -1408,30 +1408,30 @@ commands.rm = {
 // ── comment ─────────────────────────────────────────────────────────────────
 
 commands.comment = {
-  usage: 'ctx comment [task-id] <text | file | ->',
+  usage: 'clawlab comment [task-id] <text | file | ->',
   desc: 'Add a comment to a task. Infers active task when task-id is omitted.',
   help: [
     'Examples:',
-    '  ctx comment "Investigating regression"',
-    '  ctx comment 7f3a "Implemented auth fallback"',
+    '  clawlab comment "Investigating regression"',
+    '  clawlab comment 7f3a "Implemented auth fallback"',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx comment [task-id] <text>')
+    if (!args[0]) return die('Usage: clawlab comment [task-id] <text>')
 
     let id
     let text
     if (args.length === 1) {
-      id = await resolveTaskIdArgOrActive(null, 'ctx comment [task-id] <text>')
+      id = await resolveTaskIdArgOrActive(null, 'clawlab comment [task-id] <text>')
       text = args[0]
     } else if (looksLikeTaskIdToken(args[0])) {
       id = await resolveId(args[0])
       text = args.slice(1).join(' ')
     } else {
-      id = await resolveTaskIdArgOrActive(null, 'ctx comment [task-id] <text>')
+      id = await resolveTaskIdArgOrActive(null, 'clawlab comment [task-id] <text>')
       text = args.join(' ')
     }
-    if (!text) return die('Usage: ctx comment [task-id] <text>')
+    if (!text) return die('Usage: clawlab comment [task-id] <text>')
 
     const content = readStdinOrFile(text)
     const data = await post(`/api/agents/tasks/${id}/comments`, { content })
@@ -1443,16 +1443,16 @@ commands.comment = {
 // ── comments ────────────────────────────────────────────────────────────────
 
 commands.comments = {
-  usage: 'ctx comments [task-id]',
+  usage: 'clawlab comments [task-id]',
   desc: 'List comments on a task. Infers active task when task-id is omitted.',
   help: [
     'Examples:',
-    '  ctx comments',
-    '  ctx comments 7f3a',
+    '  clawlab comments',
+    '  clawlab comments 7f3a',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
-    const id = await resolveTaskIdArgOrActive(args[0], 'ctx comments [task-id]')
+    const id = await resolveTaskIdArgOrActive(args[0], 'clawlab comments [task-id]')
 
     const data = await get(`/api/agents/tasks/${id}/comments`)
     if (JSON_OUT) return json(data)
@@ -1469,24 +1469,24 @@ commands.comments = {
 // ── attach ──────────────────────────────────────────────────────────────────
 
 commands.attach = {
-  usage: 'ctx attach [task-id] <file-path>',
+  usage: 'clawlab attach [task-id] <file-path>',
   desc: 'Upload a file attachment to a task. Infers active task when task-id is omitted.',
   help: [
     'Examples:',
-    '  ctx attach ./trace.log',
-    '  ctx attach 7f3a ./trace.log',
+    '  clawlab attach ./trace.log',
+    '  clawlab attach 7f3a ./trace.log',
   ].join('\n'),
   async run(args) {
     requireToken()
-    if (!args[0]) return die('Usage: ctx attach [task-id] <file-path>')
+    if (!args[0]) return die('Usage: clawlab attach [task-id] <file-path>')
 
     let id
     let filePath
     if (args.length === 1) {
-      id = await resolveTaskIdArgOrActive(null, 'ctx attach [task-id] <file-path>')
+      id = await resolveTaskIdArgOrActive(null, 'clawlab attach [task-id] <file-path>')
       filePath = args[0]
     } else {
-      id = await resolveTaskIdArgOrActive(args[0], 'ctx attach [task-id] <file-path>')
+      id = await resolveTaskIdArgOrActive(args[0], 'clawlab attach [task-id] <file-path>')
       filePath = args[1]
     }
 
@@ -1507,16 +1507,16 @@ commands.attach = {
 // ── attachments ─────────────────────────────────────────────────────────────
 
 commands.attachments = {
-  usage: 'ctx attachments [task-id]',
+  usage: 'clawlab attachments [task-id]',
   desc: 'List attachments on a task. Infers active task when task-id is omitted.',
   help: [
     'Examples:',
-    '  ctx attachments',
-    '  ctx attachments 7f3a',
+    '  clawlab attachments',
+    '  clawlab attachments 7f3a',
   ].join('\n'),
   async run(args) {
     requireToken()
-    const id = await resolveTaskIdArgOrActive(args[0], 'ctx attachments [task-id]')
+    const id = await resolveTaskIdArgOrActive(args[0], 'clawlab attachments [task-id]')
 
     const data = await get(`/api/agents/tasks/${id}/attachments`)
     if (JSON_OUT) return json(data)
@@ -1536,16 +1536,16 @@ commands.attachments = {
 // ── docs ────────────────────────────────────────────────────────────────────
 
 commands.docs = {
-  usage: 'ctx docs [task-id]',
+  usage: 'clawlab docs [task-id]',
   desc: 'List documents on a task',
   help: [
     'Task ID is optional when you have an active checkout session.',
-    'Example: ctx docs',
-    'Example: ctx docs 7f3a',
+    'Example: clawlab docs',
+    'Example: clawlab docs 7f3a',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
-    const id = await resolveTaskIdArgOrActive(args[0], 'ctx docs [task-id]')
+    const id = await resolveTaskIdArgOrActive(args[0], 'clawlab docs [task-id]')
 
     const data = await get(`/api/agents/tasks/${id}/docs`)
     if (JSON_OUT) return json(data)
@@ -1565,7 +1565,7 @@ commands.docs = {
 // ── doc ─────────────────────────────────────────────────────────────────────
 
 commands.doc = {
-  usage: 'ctx doc [task-id] <create|get|update> [args]',
+  usage: 'clawlab doc [task-id] <create|get|update> [args]',
   desc: 'Create, view, or update a document',
   help: [
     'Task ID is optional when you have an active checkout session.',
@@ -1576,17 +1576,17 @@ commands.doc = {
     '  update <doc-id> [content | file | -] [--label L] [--major] [--title T]',
     '',
     'Examples:',
-    '  ctx doc 7f3a create "Implementation Plan" ./plan.md --plan',
-    '  ctx doc create "Implementation Plan" ./plan.md --plan',
-    '  ctx doc create "Execution Plan" --plan-template',
-    '  ctx doc 7f3a get 12ab34cd',
-    '  ctx doc get 12ab34cd',
-    '  ctx doc 7f3a update 12ab34cd ./next.md --label "v2 draft"',
+    '  clawlab doc 7f3a create "Implementation Plan" ./plan.md --plan',
+    '  clawlab doc create "Implementation Plan" ./plan.md --plan',
+    '  clawlab doc create "Execution Plan" --plan-template',
+    '  clawlab doc 7f3a get 12ab34cd',
+    '  clawlab doc get 12ab34cd',
+    '  clawlab doc 7f3a update 12ab34cd ./next.md --label "v2 draft"',
   ].join('\n'),
   async run(args, flags) {
     requireToken()
     if (!args[0] && !flags.has('--create') && !flags.has('--get') && !flags.has('--update')) {
-      return die('Usage: ctx doc [task-id] create|get|update [args]')
+      return die('Usage: clawlab doc [task-id] create|get|update [args]')
     }
 
     const normalizeAction = (value) => {
@@ -1603,35 +1603,35 @@ commands.doc = {
     let actionArgs
 
     if (actionAsFirst) {
-      // ctx doc create ...
-      taskId = await resolveTaskIdArgOrActive(null, 'ctx doc [task-id] create|get|update [args]')
+      // clawlab doc create ...
+      taskId = await resolveTaskIdArgOrActive(null, 'clawlab doc [task-id] create|get|update [args]')
       action = actionAsFirst
       actionArgs = args.slice(1)
     } else if (actionAsSecond) {
-      // ctx doc <task-id> create ...
-      taskId = await resolveTaskIdArgOrActive(args[0], 'ctx doc [task-id] create|get|update [args]')
+      // clawlab doc <task-id> create ...
+      taskId = await resolveTaskIdArgOrActive(args[0], 'clawlab doc [task-id] create|get|update [args]')
       action = actionAsSecond
       actionArgs = args.slice(2)
     } else if (flagActions.length === 1) {
       // Legacy compatibility:
-      // ctx doc <task-id> --create "Title" [content]
-      // ctx doc --get <doc-id>
+      // clawlab doc <task-id> --create "Title" [content]
+      // clawlab doc --get <doc-id>
       action = flagActions[0]
       const maybeTaskArg = args[0]
       const remaining = maybeTaskArg ? args.slice(1) : []
-      taskId = await resolveTaskIdArgOrActive(maybeTaskArg || null, 'ctx doc [task-id] create|get|update [args]')
+      taskId = await resolveTaskIdArgOrActive(maybeTaskArg || null, 'clawlab doc [task-id] create|get|update [args]')
       const flagValue = flags.get(`--${action}`)
       actionArgs = []
       if (typeof flagValue === 'string' && flagValue.trim()) actionArgs.push(flagValue)
       actionArgs.push(...remaining)
     } else {
-      return die('Usage: ctx doc [task-id] create|get|update [args]')
+      return die('Usage: clawlab doc [task-id] create|get|update [args]')
     }
 
     if (action === 'create') {
       const title = actionArgs[0]
       const contentArg = actionArgs[1]
-      if (!title) return die('Usage: ctx doc [task-id] create <title> [content | file | -] [--plan] [--plan-template]')
+      if (!title) return die('Usage: clawlab doc [task-id] create <title> [content | file | -] [--plan] [--plan-template]')
 
       const body = { title }
       let templateTask = null
@@ -1653,7 +1653,7 @@ commands.doc = {
     }
     else if (action === 'get') {
       const docIdRaw = actionArgs[0]
-      if (!docIdRaw) return die('Usage: ctx doc [task-id] get <doc-id>')
+      if (!docIdRaw) return die('Usage: clawlab doc [task-id] get <doc-id>')
       const docId = await resolveDocId(taskId, docIdRaw)
 
       const data = await get(`/api/agents/tasks/${taskId}/docs/${docId}`)
@@ -1671,7 +1671,7 @@ commands.doc = {
     else if (action === 'update') {
       const docIdRaw = actionArgs[0]
       const contentArg = actionArgs[1]
-      if (!docIdRaw) return die('Usage: ctx doc [task-id] update <doc-id> [content | file | -] [--label L] [--major]')
+      if (!docIdRaw) return die('Usage: clawlab doc [task-id] update <doc-id> [content | file | -] [--label L] [--major]')
       const docId = await resolveDocId(taskId, docIdRaw)
 
       const body = {}
@@ -1728,7 +1728,7 @@ function die(msg) {
 function printCommandHelp(commandName) {
   const command = commands[commandName]
   if (!command) {
-    console.error(`Unknown command: ${commandName}. Run 'ctx help' for usage.`)
+    console.error(`Unknown command: ${commandName}. Run 'clawlab help' for usage.`)
     process.exit(1)
   }
 
@@ -1755,27 +1755,27 @@ const JSON_OUT_FLAG = globalFlags.has('--json')
 JSON_OUT = JSON_OUT_FLAG
 
 if (!cmd || cmd === '--help' || cmd === '-h') {
-  print('\n  Context CLI — project management for humans and agents\n')
-  print('  Usage: ctx <command> [args] [--json]\n')
+  print('\n  ClawLab CLI — project management for humans and agents\n')
+  print('  Usage: clawlab <command> [args] [--json]\n')
   Object.entries(commands).forEach(([name, c]) => {
     print(`  ${name.padEnd(12)} ${c.desc}`)
   })
-  print('\n  Command help: ctx help <command>')
+  print('\n  Command help: clawlab help <command>')
   print('  All commands support: --json')
-  print(`\n  Config: CTX_TOKEN and CTX_URL env vars, or 'ctx login'\n`)
+  print(`\n  Config: CTX_TOKEN and CTX_URL env vars, or 'clawlab login'\n`)
   process.exit(0)
 }
 
 if (cmd === 'help') {
   if (!cleanArgs[0]) {
-    print('\n  Context CLI — project management for humans and agents\n')
-    print('  Usage: ctx <command> [args] [--json]\n')
+    print('\n  ClawLab CLI — project management for humans and agents\n')
+    print('  Usage: clawlab <command> [args] [--json]\n')
     Object.entries(commands).forEach(([name, c]) => {
       print(`  ${name.padEnd(12)} ${c.desc}`)
     })
-    print('\n  Command help: ctx help <command>')
+    print('\n  Command help: clawlab help <command>')
     print('  All commands support: --json')
-    print(`\n  Config: CTX_TOKEN and CTX_URL env vars, or 'ctx login'\n`)
+    print(`\n  Config: CTX_TOKEN and CTX_URL env vars, or 'clawlab login'\n`)
     process.exit(0)
   }
   printCommandHelp(cleanArgs[0])
@@ -1783,7 +1783,7 @@ if (cmd === 'help') {
 }
 
 if (!commands[cmd]) {
-  console.error(`Unknown command: ${cmd}. Run 'ctx help' for usage.`)
+  console.error(`Unknown command: ${cmd}. Run 'clawlab help' for usage.`)
   process.exit(1)
 }
 

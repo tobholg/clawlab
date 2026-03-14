@@ -2,7 +2,7 @@
 
 ## Vision
 
-Context becomes the control plane for multi-agent orchestration. Engineers launch, monitor, and interact with AI coding agents directly from the application. Each agent gets a contextualized terminal session that already knows who it is, what it should work on, and how to communicate back. The cognitive overhead of running 5+ agents simultaneously collapses to a single screen.
+ClawLab becomes the control plane for multi-agent orchestration. Engineers launch, monitor, and interact with AI coding agents directly from the application. Each agent gets a contextualized terminal session that already knows who it is, what it should work on, and how to communicate back. The cognitive overhead of running 5+ agents simultaneously collapses to a single screen.
 
 ## The Problem Today
 
@@ -18,11 +18,11 @@ The best agentic engineers run 5 Codex/Claude Code sessions in parallel. The pai
 
 ### Contextualized Agent Terminals
 
-Each terminal session is bound to an agent identity and (optionally) a task. When launched, Context handles orientation automatically:
+Each terminal session is bound to an agent identity and (optionally) a task. When launched, ClawLab handles orientation automatically:
 
 1. Sets the agent's identity (`CTX_TOKEN`, `CTX_BASE_URL`)
-2. Injects a system instruction explaining Context and the ctx CLI
-3. Runs `ctx catchup` so the agent sees its assignments
+2. Injects a system instruction explaining ClawLab and the clawlab CLI
+3. Runs `clawlab catchup` so the agent sees its assignments
 4. Agent self-orients and asks the user what to start on
 
 The user has a full interactive terminal (Codex, Claude Code, Aider, any CLI agent) but the agent already knows who it is and what it should be doing.
@@ -42,13 +42,13 @@ cd /path/to/project/repo
 4. Agent CLI starts (e.g., `codex`) with system instruction:
 
 ```
-You are Harriet, an AI agent working inside OpenContext. You have a CLI tool
-`ctx` for managing your tasks. Run `ctx catchup` to see your assignments.
+You are Harriet, an AI agent working inside OpenClawLab. You have a CLI tool
+`clawlab` for managing your tasks. Run `clawlab catchup` to see your assignments.
 
-When you start working on a task: `ctx checkout <task-id>`
-When you need to update progress: `ctx task <id> --progress N`
-When you want to communicate: `ctx comment <id> "message"`
-When you're done: `ctx submit <id>`
+When you start working on a task: `clawlab checkout <task-id>`
+When you need to update progress: `clawlab task <id> --progress N`
+When you want to communicate: `clawlab comment <id> "message"`
+When you're done: `clawlab submit <id>`
 
 If you need clarification, ask the user in this terminal.
 ```
@@ -134,7 +134,7 @@ defaultBranch  String?   // e.g., main
 
 ## CLI Commands
 
-### `ctx checkout <task-id>`
+### `clawlab checkout <task-id>`
 
 Signals the agent is starting work on a task.
 
@@ -144,14 +144,14 @@ Signals the agent is starting work on a task.
 - Returns task details (title, description, plan doc if exists)
 
 ```
-$ ctx checkout qu117wx6
+$ clawlab checkout qu117wx6
 ✓ Checked out: Payment webhooks
   Mode:     EXECUTE
   Plan:     CI/CD Pipeline Plan (spnmdno3)
   Subtasks: 3 (1 done, 1 in progress, 1 todo)
 ```
 
-### `ctx submit <task-id>`
+### `clawlab submit <task-id>`
 
 Signals the agent has completed work and is requesting review.
 
@@ -161,18 +161,18 @@ Signals the agent has completed work and is requesting review.
 - Notifies the user via toast/notification
 
 ```
-$ ctx submit qu117wx6
+$ clawlab submit qu117wx6
 ✓ Submitted for review: Payment webhooks
   Duration:  1h 23min
   Progress:  90% (awaiting human approval)
 ```
 
-### `ctx status` (agent self-status)
+### `clawlab status` (agent self-status)
 
 Shows the agent's current session state.
 
 ```
-$ ctx status
+$ clawlab status
   Agent:    Harriet
   Session:  active since 47min ago
   Task:     Payment webhooks (qu117wx6)
@@ -192,7 +192,7 @@ $ ctx status
 
 ### Bootstrap Sequence
 
-When launching a terminal session, Context runs a bootstrap before handing control to the agent CLI:
+When launching a terminal session, ClawLab runs a bootstrap before handing control to the agent CLI:
 
 ```typescript
 // 1. Create agent session record
@@ -210,7 +210,7 @@ const pty = spawn('zsh', [], {
 })
 
 // 3. Bootstrap commands (run before agent CLI)
-pty.write('ctx catchup\n')
+pty.write('clawlab catchup\n')
 
 // 4. Launch agent CLI with system instruction
 pty.write(`codex --system-prompt "${systemInstruction}"\n`)
@@ -258,7 +258,7 @@ When tasks have dependencies (`blockedBy`), the system coordinates automatically
 3. Agent A completes and submits for review
 4. Human approves Agent A's work
 5. Agent B's blocker clears automatically
-6. If Agent B has an active terminal, it receives a system event: "Your blocker 'Auth refactor' has been resolved. Run `ctx catchup` to continue."
+6. If Agent B has an active terminal, it receives a system event: "Your blocker 'Auth refactor' has been resolved. Run `clawlab catchup` to continue."
 7. Agent B's terminal tab changes from ⏳ to 🟢
 
 No human dispatch required for the handoff.
@@ -267,8 +267,8 @@ No human dispatch required for the handoff.
 
 Track which files each task/agent touches:
 
-- On `ctx checkout`, agent declares target files/modules (or Context infers from task description)
-- On commit, Context records changed files per session
+- On `clawlab checkout`, agent declares target files/modules (or ClawLab infers from task description)
+- On commit, ClawLab records changed files per session
 - If two active sessions touch overlapping files, warn the user:
   "⚠️ Harriet (webhooks) and Codex-1 (auth) are both modifying server/utils/auth.ts"
 
@@ -288,7 +288,7 @@ Track which files each task/agent touches:
 │           │  Terminal Panel                               │
 │           │  [🟢 Harriet·webhooks·47m] [🟡 Codex-1·auth] │
 │           │                                              │
-│           │  $ ctx checkout qu117wx6                      │
+│           │  $ clawlab checkout qu117wx6                      │
 │           │  ✓ Checked out: Payment webhooks              │
 │           │  ...                                         │
 │           │                                              │
@@ -311,7 +311,7 @@ Right-click an agent to: Launch terminal, View sessions, Configure.
 ### Phase 1: Foundation
 - [ ] AgentSession model + migration
 - [ ] Project `repoPath` / `repoUrl` fields
-- [ ] `ctx checkout` and `ctx submit` CLI commands
+- [ ] `clawlab checkout` and `clawlab submit` CLI commands
 - [ ] AgentSession API endpoints (create, update, list, current)
 - [ ] Update catchup to show checked-out state
 
@@ -346,11 +346,11 @@ Right-click an agent to: Launch terminal, View sessions, Configure.
 
 ## Key Design Decisions
 
-1. **Agent-runtime agnostic**: Context doesn't integrate deeply with any agent framework. It spawns a process, injects context via env vars and system prompt, communicates via the ctx CLI. Works with any agent that can run shell commands.
+1. **Agent-runtime agnostic**: ClawLab doesn't integrate deeply with any agent framework. It spawns a process, injects context via env vars and system prompt, communicates via the clawlab CLI. Works with any agent that can run shell commands.
 
 2. **Server-side PTY**: Terminal sessions run on the server (user's machine for self-hosted). Sessions persist across browser disconnects. This is correct for the self-hosted use case where security is not a concern.
 
-3. **Checkout/submit over status overloading**: Explicit `ctx checkout` and `ctx submit` commands are clearer than inferring work sessions from status changes. They create clean timestamp boundaries for focus tracking.
+3. **Checkout/submit over status overloading**: Explicit `clawlab checkout` and `clawlab submit` commands are clearer than inferring work sessions from status changes. They create clean timestamp boundaries for focus tracking.
 
 4. **Focus tracking parity**: Agent work sessions use the same model as human focus sessions. This enables apples-to-apples comparison of human vs agent contribution, which is the leverage story.
 

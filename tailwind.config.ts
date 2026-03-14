@@ -39,8 +39,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Context brand colors
-        ctx: {
+        // ClawLab brand colors
+        clawlab: {
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
