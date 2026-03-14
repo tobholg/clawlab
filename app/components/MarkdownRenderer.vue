@@ -84,11 +84,11 @@ const rendered = computed(() => {
   html = html.replace(/^\s*&gt;\s?(.+)$/gm, '<blockquote class="border-l-2 border-slate-300 dark:border-zinc-600 pl-3 text-slate-500 dark:text-zinc-400 italic my-2">$1</blockquote>')
 
   // Unordered lists (- item or * item)
-  html = html.replace(/^\s*[\-\*] (.+)$/gm, '<li class="ml-4 list-disc text-slate-600 dark:text-zinc-400">$1</li>')
+  html = html.replace(/^\s*[\-\*] (.+)$/gm, '<li class="ml-4 list-disc text-slate-700 dark:text-zinc-200">$1</li>')
   html = html.replace(/((?:<li class="ml-4 list-disc[^"]*">.*<\/li>\n?)+)/g, (match) => `<ul class="my-2 space-y-1">${match}</ul>`)
 
   // Ordered lists (1. item)
-  html = html.replace(/^\s*\d+\.\s(.+)$/gm, '<li class="ml-4 list-decimal text-slate-600 dark:text-zinc-400">$1</li>')
+  html = html.replace(/^\s*\d+\.\s(.+)$/gm, '<li class="ml-4 list-decimal text-slate-700 dark:text-zinc-200">$1</li>')
   html = html.replace(/((?:<li class="ml-4 list-decimal[^"]*">.*<\/li>\n?)+)/g, (match) => `<ol class="my-2 space-y-1">${match}</ol>`)
 
   // 5. Inline elements
