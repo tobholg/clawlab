@@ -35,7 +35,8 @@ watch(projectId, (id) => {
   }
 }, { immediate: true })
 
-const activeView = ref<'kanban' | 'timeline' | 'list' | 'documents' | 'external' | 'inbound'>('kanban')
+const activeView = ref<'tasks' | 'kanban' | 'timeline' | 'list' | 'documents' | 'external' | 'inbound'>('tasks')
+const taskStreamTab = ref<'tasks' | 'archive'>('tasks')
 const viewSwitchPulse = ref(false)
 const inboundQueueRef = ref<any>(null)
 
@@ -96,9 +97,10 @@ const createDocumentFromHeader = async () => {
 // View options configuration
 const viewOptions = computed(() => {
   const base = [
-    { key: 'kanban', icon: 'heroicons:view-columns', label: 'Kanban', shortcut: 'K' },
+    { key: 'tasks', icon: 'heroicons:queue-list', label: 'Kanban', shortcut: 'K' },
+    { key: 'kanban', icon: 'heroicons:view-columns', label: 'Classic', shortcut: 'C' },
     { key: 'timeline', icon: 'heroicons:calendar', label: 'Timeline', shortcut: 'T' },
-    { key: 'list', icon: 'heroicons:bars-3', label: 'List', shortcut: 'L' },
+    { key: 'list', icon: 'heroicons:table-cells', label: 'Table', shortcut: 'L' },
     { key: 'documents', icon: 'heroicons:document-text', label: 'Documents', shortcut: 'D' },
   ]
   if (isRootProject.value) {
@@ -113,6 +115,8 @@ const viewOptions = computed(() => {
 const activeViewOption = computed(() => {
   return viewOptions.value.find(v => v.key === activeView.value) || viewOptions.value[0]
 })
+
+const archiveCount = computed(() => currentScope.value?.doneChildrenCount ?? filteredItems.value.filter(item => item.status === 'done').length)
 
 // Get sidebar refresh function from layout (must be called at top level)
 const refreshSidebar = inject<() => Promise<void>>('refreshSidebarProjects')
@@ -557,6 +561,30 @@ onMounted(() => {
 
     <!-- Filters -->
     <div v-if="activeView !== 'documents' && activeView !== 'external' && activeView !== 'inbound'" class="flex items-center gap-2">
+      <div
+        v-if="activeView === 'tasks'"
+        class="inline-flex items-center rounded-full border border-slate-200 bg-white p-0.5 shadow-sm dark:border-white/[0.06] dark:bg-dm-card"
+      >
+        <button
+          class="rounded-full px-2.5 py-1.5 text-xs transition-colors"
+          :class="taskStreamTab === 'tasks'
+            ? 'bg-slate-900 text-white dark:bg-white/[0.12] dark:text-zinc-100'
+            : 'text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'"
+          @click="taskStreamTab = 'tasks'"
+        >
+          Tasks
+        </button>
+        <button
+          class="rounded-full px-2.5 py-1.5 text-xs transition-colors"
+          :class="taskStreamTab === 'archive'
+            ? 'bg-slate-900 text-white dark:bg-white/[0.12] dark:text-zinc-100'
+            : 'text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'"
+          @click="taskStreamTab = 'archive'"
+        >
+          Archive
+        </button>
+      </div>
+
       <!-- Category -->
       <div class="group/category relative">
         <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-dm-card cursor-pointer transition-all duration-150 group-hover/category:border-slate-300 dark:group-hover/category:border-white/[0.1] group-hover/category:shadow-sm">
@@ -709,7 +737,7 @@ onMounted(() => {
   </header>
 
   <!-- Content -->
-  <div class="flex-1 overflow-auto px-5 pb-5">
+  <div :class="['flex-1 px-5 pb-5', activeView === 'tasks' ? 'overflow-hidden' : 'overflow-auto']">
     <!-- Documents View -->
     <DocumentsSection
       v-if="activeView === 'documents'"
@@ -721,9 +749,24 @@ onMounted(() => {
       :empty-message="'No documents yet.'"
     />
 
+    <!-- Tasks Stream View -->
+    <ViewsTaskStreamView
+      v-if="activeView === 'tasks'"
+      :items="filteredItems"
+      :tab="taskStreamTab"
+      :archive-count="archiveCount"
+      :parent-item-id="currentScopeId ?? undefined"
+      @drill-down="handleDrillDown"
+      @open-detail="handleOpenDetail"
+      @status-change="handleStatusChange"
+      @open-attention="handleOpenAttention"
+      @open-docs="handleOpenDocs"
+      @open-archive="showArchiveModal = true"
+    />
+
     <!-- Kanban View -->
     <ViewsKanbanView
-      v-if="activeView === 'kanban'"
+      v-else-if="activeView === 'kanban'"
       :items="filteredItems"
       :parent-item-id="currentScopeId ?? undefined"
       @drill-down="handleDrillDown"
