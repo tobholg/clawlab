@@ -5,7 +5,7 @@
       class="fixed inset-0 z-40 flex flex-col"
     >
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-md" @click="close" />
+        <div class="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-xl" @click="close" />
 
         <!-- Chrome -->
         <div class="relative z-10 flex flex-col h-full px-5 pt-5 pb-5 gap-3">
@@ -25,9 +25,12 @@
                 <Icon :name="showScopePane ? 'heroicons:chevron-left' : 'heroicons:chevron-right'" class="w-4 h-4" />
               </button>
               <span
-                v-if="totalOpenCount"
-                class="text-[10px] font-medium text-slate-500 dark:text-zinc-500 bg-white/85 dark:bg-white/[0.06] border border-slate-200 dark:border-transparent px-1.5 py-0.5 rounded-md tabular-nums"
-              >{{ scopeOpenCount }}/{{ MAX_TERMINALS_PER_SCOPE }} · {{ totalOpenCount }}/{{ MAX_TERMINALS_TOTAL }}</span>
+                v-if="scopeCapacityLabel"
+                class="text-[10px] font-medium tabular-nums px-1.5 py-0.5 rounded-md border"
+                :class="scopeCapacityUrgent
+                  ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20'
+                  : 'text-slate-500 dark:text-zinc-500 bg-white/85 dark:bg-white/[0.06] border-slate-200 dark:border-transparent'"
+              >{{ scopeCapacityLabel }}</span>
             </div>
 
             <div class="flex-1" />
@@ -109,6 +112,7 @@
 
           <!-- Scoped terminal workspace -->
           <div class="flex-1 min-h-0 flex gap-2">
+            <Transition name="scope-pane">
             <aside
               v-if="showScopePane"
               class="w-56 shrink-0 overflow-y-auto"
@@ -122,38 +126,22 @@
                   :key="scope.id"
                   class="space-y-1"
                 >
-                  <div class="flex items-center gap-1">
-                    <button
-                      @click="selectScope(scope.id)"
-                      class="flex-1 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors min-w-0"
-                      :class="scope.id === selectedScopeId
-                        ? 'bg-slate-200/50 text-slate-900 dark:bg-white/[0.07] dark:text-zinc-100'
-                        : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]'"
-                    >
-                      <Icon :name="scope.type === 'global' ? 'heroicons:globe-alt' : 'heroicons:folder'" class="w-4 h-4 shrink-0" />
-                      <span class="text-sm truncate flex-1">{{ scope.label }}</span>
-                      <span class="text-[10px] tabular-nums rounded px-1.5 py-0.5 bg-white/80 dark:bg-white/[0.08] border border-slate-200 dark:border-transparent shrink-0">
-                        {{ scope.count }}/{{ MAX_TERMINALS_PER_SCOPE }}
-                      </span>
-                    </button>
-                    <button
+                  <button
+                    @click="selectScopeAndToggle(scope.id)"
+                    class="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors min-w-0"
+                    :class="scope.id === selectedScopeId
+                      ? 'bg-slate-200/50 text-slate-900 dark:bg-white/[0.07] dark:text-zinc-100'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]'"
+                  >
+                    <Icon :name="scope.type === 'global' ? 'heroicons:globe-alt' : 'heroicons:folder'" class="w-4 h-4 shrink-0" />
+                    <span class="text-sm truncate flex-1">{{ scope.label }}</span>
+                    <Icon
                       v-if="scope.sessions.length"
-                      @click.stop="toggleScopeExpanded(scope.id)"
-                      class="inline-flex h-5 w-5 items-center justify-center leading-none rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-zinc-600 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-colors shrink-0"
-                      :title="isScopeExpanded(scope.id) ? 'Collapse sessions' : 'Expand sessions'"
-                    >
-                      <Icon
-                        name="heroicons:chevron-right"
-                        class="w-3.5 h-3.5 transition-transform duration-150"
-                        :class="isScopeExpanded(scope.id) ? 'rotate-90' : ''"
-                      />
-                    </button>
-                    <span
-                      v-else
-                      class="inline-flex h-5 w-5 shrink-0"
-                      aria-hidden="true"
+                      name="heroicons:chevron-right"
+                      class="w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-zinc-600 transition-transform duration-150"
+                      :class="isScopeExpanded(scope.id) ? 'rotate-90' : ''"
                     />
-                  </div>
+                  </button>
 
                   <div
                     v-if="scope.sessions.length && isScopeExpanded(scope.id)"
@@ -188,6 +176,7 @@
               </div>
               <p v-if="loadingProjects" class="text-[11px] text-slate-400 dark:text-zinc-600 px-2 pt-2">Loading projects…</p>
             </aside>
+            </Transition>
 
             <div class="flex-1 min-h-0 grid gap-2" :class="gridClass">
               <!-- Empty state -->
@@ -395,6 +384,18 @@ const scopeLimitText = computed(() => {
   if (scopeOpenCount.value >= MAX_TERMINALS_PER_SCOPE) return `Max ${MAX_TERMINALS_PER_SCOPE} open in this scope`
   return ''
 })
+
+const scopeCapacityLabel = computed(() => {
+  const scopeN = scopeOpenCount.value
+  const totalN = totalOpenCount.value
+  const parts: string[] = []
+  if (scopeN >= 4) parts.push(`${scopeN}/${MAX_TERMINALS_PER_SCOPE}`)
+  if (totalN >= 20) parts.push(`${totalN}/${MAX_TERMINALS_TOTAL}`)
+  return parts.join(' · ') || ''
+})
+const scopeCapacityUrgent = computed(() => (
+  scopeOpenCount.value >= 5 || totalOpenCount.value >= 22
+))
 
 const layoutMode = computed<'tiled' | 'columns'>({
   get() {
@@ -623,6 +624,15 @@ function selectScope(scopeId: string) {
   expandedScopeIds.value = {
     ...expandedScopeIds.value,
     [scopeId]: true,
+  }
+}
+
+function selectScopeAndToggle(scopeId: string) {
+  // If already selected, toggle the expand/collapse
+  if (scopeId === selectedScopeId.value && scopeEntries.value.find(e => e.id === scopeId)?.sessions.length) {
+    toggleScopeExpanded(scopeId)
+  } else {
+    selectScope(scopeId)
   }
 }
 
@@ -1010,5 +1020,18 @@ onUnmounted(() => {
 .modal-leave-to {
   opacity: 0;
   transform: scale(0.97);
+}
+
+.scope-pane-enter-active {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scope-pane-leave-active {
+  transition: all 0.15s ease-in;
+}
+.scope-pane-enter-from,
+.scope-pane-leave-to {
+  opacity: 0;
+  transform: translateX(-12px);
+  margin-right: -224px; /* w-56 = 14rem = 224px — collapses space */
 }
 </style>
