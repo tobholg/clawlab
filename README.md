@@ -3,6 +3,7 @@
 ClawLab is an open source workspace for human-agent teams. It combines recursive project planning, chat, stakeholder portals, and terminal-driven agents in a self-hostable Nuxt application.
 
 Canonical repository: [https://github.com/tobholg/clawlab](https://github.com/tobholg/clawlab)
+Project site: [https://claw-lab.ai/](https://claw-lab.ai/)
 
 ## Status
 
