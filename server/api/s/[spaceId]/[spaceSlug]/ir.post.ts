@@ -8,7 +8,9 @@ interface RequestBody {
 }
 
 function getGlobalStakeholderRequestLimit() {
-  const parsed = Number(process.env.CLAWLAB_LIMIT_STAKEHOLDER_REQUESTS_PER_24H)
+  const value = process.env.CLAWLAB_LIMIT_STAKEHOLDER_REQUESTS_PER_24H?.trim()
+  if (!value) return null
+  const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 0) return null
   return Math.floor(parsed)
 }

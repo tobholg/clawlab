@@ -4,7 +4,9 @@ import { requireUser } from '../../../../utils/auth'
 import { checkCanCreateExternalSpace } from '../../../../utils/planLimits'
 
 function getDefaultMaxIrsPer24h() {
-  const parsed = Number(process.env.CLAWLAB_DEFAULT_MAX_IRS_PER_24H)
+  const value = process.env.CLAWLAB_DEFAULT_MAX_IRS_PER_24H?.trim()
+  if (!value) return 10
+  const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 0) return 10
   return Math.floor(parsed)
 }

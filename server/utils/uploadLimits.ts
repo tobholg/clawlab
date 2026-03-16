@@ -5,7 +5,9 @@ const UNLIMITED = Number.POSITIVE_INFINITY
 
 function parsePositiveInt(value: string | undefined) {
   if (typeof value !== 'string') return null
-  const parsed = Number(value)
+  const normalized = value.trim()
+  if (!normalized) return null
+  const parsed = Number(normalized)
   if (!Number.isFinite(parsed) || parsed < 0) return null
   return Math.floor(parsed)
 }
