@@ -2,7 +2,8 @@ import { requireUser, requireWorkspaceMember } from '../../../utils/auth'
 import { createPtySession, destroyPtySession, generateTerminalId, getPtySession, listPtySessions, writeToPty } from '../../../utils/ptyManager'
 import { prisma } from '../../../utils/prisma'
 import { resolveRunnerCommand } from '../../../utils/agentRunner'
-import { resolve } from 'node:path'
+import { homedir } from 'node:os'
+import { delimiter, join, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 
 const MAX_TERMINALS_PER_SCOPE = 6
@@ -22,6 +23,40 @@ function quoteForDouble(value: string) {
 
 function quoteForShellArg(value: string) {
   return `'${value.replace(/'/g, `'\\''`)}'`
+}
+
+function pathExists(path: string | null | undefined): path is string {
+  return typeof path === 'string' && path.trim().length > 0 && existsSync(path)
+}
+
+function buildTerminalPath(...entries: Array<string | null | undefined>) {
+  const parts: string[] = []
+  const seen = new Set<string>()
+
+  for (const entry of entries) {
+    if (!entry) continue
+    for (const segment of entry.split(delimiter)) {
+      const trimmed = segment.trim()
+      if (!trimmed || seen.has(trimmed)) continue
+      seen.add(trimmed)
+      parts.push(trimmed)
+    }
+  }
+
+  return parts.join(delimiter)
+}
+
+function resolveExecutableOnPath(executable: string, pathValue: string | null | undefined): string | null {
+  if (!pathValue) return null
+
+  for (const dir of pathValue.split(delimiter)) {
+    const trimmed = dir.trim()
+    if (!trimmed) continue
+    const candidate = join(trimmed, executable)
+    if (existsSync(candidate)) return candidate
+  }
+
+  return null
 }
 
 function inferRunnerId(value: string | null | undefined): string | null {
@@ -132,25 +167,51 @@ function buildLaunchCommand(
 function resolveRunnerExecutable(runner: string | null): string | null {
   if (!runner) return null
 
+  if (runner.includes('/') && pathExists(runner)) {
+    return runner
+  }
+
+  const defaultPath = buildTerminalPath(
+    process.env.PATH,
+    join(homedir(), '.local', 'bin'),
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+  )
+
   if (runner === 'codex') {
     // Prefer explicit override, then known macOS app path, then PATH lookup.
     const candidates = [
       process.env.CODEX_BIN,
       '/Applications/Codex.app/Contents/Resources/codex',
-    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      resolveExecutableOnPath('codex', defaultPath),
+    ].filter(pathExists)
 
     for (const candidate of candidates) {
-      if (existsSync(candidate)) return candidate
+      return candidate
     }
   }
 
   if (runner === 'claude') {
     const candidates = [
       process.env.CLAUDE_BIN,
-    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      join(homedir(), '.local', 'bin', 'claude'),
+      '/opt/homebrew/bin/claude',
+      '/usr/local/bin/claude',
+      resolveExecutableOnPath('claude', defaultPath),
+    ].filter(pathExists)
 
     for (const candidate of candidates) {
-      if (existsSync(candidate)) return candidate
+      return candidate
+    }
+  }
+
+  if (runner === 'aider') {
+    const candidates = [
+      resolveExecutableOnPath('aider', defaultPath),
+    ].filter(pathExists)
+
+    for (const candidate of candidates) {
+      return candidate
     }
   }
 
@@ -319,15 +380,22 @@ export default defineEventHandler(async (event) => {
   const appRoot = process.cwd()
   const ctxBinDir = resolve(appRoot, 'cli/bin')
   const ctxCliPath = resolve(appRoot, 'cli/bin/clawlab.mjs')
-  const quotedCtxBinDir = quoteForDouble(ctxBinDir)
   const quotedCtxCliPath = quoteForDouble(ctxCliPath)
   const origin = getRequestURL(event).origin || 'http://localhost:3001'
   const agentName = agent?.name || 'Terminal'
   const systemPrompt = agent ? buildSystemPrompt(agentName, task ? { id: task.id, title: task.title } : null) : ''
 
+  const terminalPath = buildTerminalPath(
+    ctxBinDir,
+    join(homedir(), '.local', 'bin'),
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+    process.env.PATH ?? '',
+  )
+
   const env: Record<string, string> = {
     ...toStringEnv(process.env),
-    PATH: `${ctxBinDir}:${process.env.PATH ?? ''}`,
+    PATH: terminalPath,
     TERM: 'xterm-256color',
     // Prevent inherited zsh right-prompt noise from host environment.
     RPROMPT: '',
@@ -362,7 +430,7 @@ export default defineEventHandler(async (event) => {
   setTimeout(() => {
     if (agent) {
       // Agent terminal: make clawlab available, set prompt, show banner, launch agent CLI
-      writeToPty(terminalId, `export PATH="${quotedCtxBinDir}:$PATH"\n`)
+      writeToPty(terminalId, `export PATH="${quoteForDouble(terminalPath)}"\n`)
       writeToPty(terminalId, `alias clawlab="node ${quotedCtxCliPath}"\n`)
       writeToPty(terminalId, `export PS1=$'\\e[35m${agentName}\\e[0m \\e[34m%~\\e[0m $ '\n`)
       writeToPty(terminalId, `echo $'\\e[35m═══ ClawLab Agent Terminal ═══\\e[0m'\n`)
