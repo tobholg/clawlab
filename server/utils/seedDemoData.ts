@@ -93,6 +93,30 @@ function logSeedError(step: string, err: unknown) {
   console.error(`[demo seed] ${step}`, err)
 }
 
+async function createManySkipDuplicatesCompat<T>(ops: {
+  data: T[]
+  createMany: (args: { data: T[]; skipDuplicates: true }) => Promise<unknown>
+  createOne: (args: { data: T }) => Promise<unknown>
+}) {
+  if (!ops.data.length) return
+
+  if (process.env.DATABASE_URL) {
+    await ops.createMany({ data: ops.data, skipDuplicates: true })
+    return
+  }
+
+  await Promise.all(
+    ops.data.map(async (entry) => {
+      try {
+        await ops.createOne({ data: entry })
+      } catch (err: any) {
+        if (err?.code === 'P2002') return
+        throw err
+      }
+    })
+  )
+}
+
 export async function seedDemoData(workspaceId: string, ownerId: string): Promise<void> {
   // Look up workspace's organization for org membership + seats
   const workspace = await prisma.workspace.findUniqueOrThrow({
@@ -122,13 +146,14 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
 
   // Add team members to organization
   try {
-    await prisma.organizationMember.createMany({
+    await createManySkipDuplicatesCompat({
       data: teamMembers.map(member => ({
         organizationId,
         userId: member.id,
         role: 'MEMBER' as const,
       })),
-      skipDuplicates: true,
+      createMany: (args) => prisma.organizationMember.createMany(args),
+      createOne: (args) => prisma.organizationMember.create(args),
     })
   } catch (err) {
     logSeedError('add demo users to organization', err)
@@ -734,9 +759,10 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
     ].filter(entry => entry.itemId)
 
     if (stakeholderData.length) {
-      await prisma.itemStakeholder.createMany({
+      await createManySkipDuplicatesCompat({
         data: stakeholderData as Array<{ itemId: string; userId: string }>,
-        skipDuplicates: true,
+        createMany: (args) => prisma.itemStakeholder.createMany(args),
+        createOne: (args) => prisma.itemStakeholder.create(args),
       })
     }
   }
@@ -866,7 +892,7 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
         })
       }
 
-      await prisma.stakeholderAccess.createMany({
+      await createManySkipDuplicatesCompat({
         data: [
           {
             userId: externalUsers[0].id,
@@ -887,7 +913,8 @@ export async function seedDemoData(workspaceId: string, ownerId: string): Promis
             maxIRsPer24h: 4,
           },
         ],
-        skipDuplicates: true,
+        createMany: (args) => prisma.stakeholderAccess.createMany(args),
+        createOne: (args) => prisma.stakeholderAccess.create(args),
       })
 
       const inboundParentId = productSection?.id ?? primaryProject.id
