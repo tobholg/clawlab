@@ -8,8 +8,14 @@ import { broadcastNewMessage } from '../../../utils/websocket'
 const AI_CREDIT_COST = 30
 const MAX_CONTEXT_MESSAGES = 50
 const MAX_INPUT_LENGTH = 8192
-const AI_EMAIL = 'ai@claw-lab.ai'
-const AI_NAME = 'ClawLab AI'
+
+function getAiIdentity() {
+  const config = useRuntimeConfig()
+  return {
+    email: (config.aiUserEmail as string) || 'ai@clawlab.invalid',
+    name: (config.aiUserName as string) || 'ClawLab AI',
+  }
+}
 
 type ProjectSummary = {
   id: string
@@ -32,6 +38,7 @@ type TaskProposal = {
 }
 
 export default defineEventHandler(async (event) => {
+  const aiIdentity = getAiIdentity()
   const channelId = getRouterParam(event, 'id')
 
   if (!channelId) {
@@ -100,9 +107,9 @@ export default defineEventHandler(async (event) => {
   await consumeAICredit(workspace.organizationId, user.id, AI_CREDIT_COST)
 
   const aiUser = await prisma.user.upsert({
-    where: { email: AI_EMAIL },
-    update: { name: AI_NAME, isAgent: true },
-    create: { email: AI_EMAIL, name: AI_NAME, isAgent: true, agentProvider: 'custom' },
+    where: { email: aiIdentity.email },
+    update: { name: aiIdentity.name, isAgent: true },
+    create: { email: aiIdentity.email, name: aiIdentity.name, isAgent: true, agentProvider: 'custom' },
   })
 
   const message = await prisma.message.create({

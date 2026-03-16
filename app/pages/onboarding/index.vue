@@ -5,6 +5,7 @@ definePageMeta({
 })
 
 const route = useRoute()
+const runtimeConfig = useRuntimeConfig()
 const selectedPlan = computed(() => {
   return (route.query.plan as string)?.toUpperCase() === 'PRO' ? 'PRO' : 'FREE'
 })
@@ -188,6 +189,14 @@ const stepIndicators = computed(() => {
 })
 
 const progressWidth = computed(() => `${(currentStep.value / totalSteps.value) * 100}%`)
+const appDomainDisplay = computed(() => {
+  try {
+    const url = new URL(runtimeConfig.public.appUrl)
+    return `${url.host}/`
+  } catch {
+    return 'your-domain.example/'
+  }
+})
 
 onMounted(() => {
   requestAnimationFrame(() => {
@@ -321,7 +330,7 @@ onMounted(() => {
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-1.5">URL slug</label>
                   <div class="flex items-center">
-                    <span class="px-3 py-3 bg-slate-50 border border-r-0 border-slate-200 rounded-l-xl text-slate-400 text-sm">claw-lab.ai/</span>
+                    <span class="px-3 py-3 bg-slate-50 border border-r-0 border-slate-200 rounded-l-xl text-slate-400 text-sm">{{ appDomainDisplay }}</span>
                     <input
                       v-model="orgSlug"
                       type="text"

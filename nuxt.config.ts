@@ -48,6 +48,9 @@ export default defineNuxtConfig({
     openaiModel: process.env.OPENAI_MODEL || 'gpt-5-mini',
     openaiBaseUrl: process.env.OPENAI_BASE_URL,
     postmarkApiToken: process.env.POSTMARK_API_TOKEN,
+    emailFrom: process.env.EMAIL_FROM || 'ClawLab <noreply@example.com>',
+    aiUserEmail: process.env.AI_USER_EMAIL || 'ai@clawlab.invalid',
+    aiUserName: process.env.AI_USER_NAME || 'ClawLab AI',
     public: {
       appName: 'ClawLab',
       appUrl: process.env.APP_URL || 'http://localhost:3000'

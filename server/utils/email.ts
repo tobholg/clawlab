@@ -1,7 +1,5 @@
 import { useRuntimeConfig } from '#imports'
 
-const FROM_EMAIL = 'ClawLab <noreply@claw-lab.ai>'
-
 function getPostmarkToken(): string {
   const config = useRuntimeConfig()
   const token = config.postmarkApiToken as string
@@ -11,6 +9,11 @@ function getPostmarkToken(): string {
   return token
 }
 
+function getFromEmail(): string {
+  const config = useRuntimeConfig()
+  return (config.emailFrom as string) || 'ClawLab <noreply@example.com>'
+}
+
 async function sendEmail(opts: {
   to: string
   subject: string
@@ -18,6 +21,7 @@ async function sendEmail(opts: {
   textBody: string
 }) {
   const token = getPostmarkToken()
+  const from = getFromEmail()
 
   const res = await fetch('https://api.postmarkapp.com/email', {
     method: 'POST',
@@ -27,7 +31,7 @@ async function sendEmail(opts: {
       'X-Postmark-Server-Token': token,
     },
     body: JSON.stringify({
-      From: FROM_EMAIL,
+      From: from,
       To: opts.to,
       Subject: opts.subject,
       HtmlBody: opts.htmlBody,
