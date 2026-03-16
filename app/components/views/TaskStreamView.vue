@@ -603,23 +603,19 @@ function getToneDot(item: ItemNode) {
 
                       <button
                         v-if="(item.atRiskChildrenCount ?? 0) > 0"
-                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] text-amber-700 transition-colors hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-500/10"
+                        class="inline-flex items-center gap-0.5 text-[11px] text-amber-700 transition-colors hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200"
                         @click.stop="emit('openAttention', item, 'at-risk')"
                       >
-                        <span class="inline-flex h-5 w-5 items-center justify-center leading-none rounded-full bg-amber-100 dark:bg-amber-500/15">
-                          <Icon name="heroicons:exclamation-triangle" class="h-3.5 w-3.5" />
-                        </span>
+                        <Icon name="heroicons:exclamation-triangle" class="h-3.5 w-3.5" />
                         <span>{{ item.atRiskChildrenCount }}</span>
                       </button>
 
                       <button
                         v-if="(item.blockedChildrenCount ?? 0) > 0"
-                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] text-rose-700 transition-colors hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                        class="inline-flex items-center gap-0.5 text-[11px] text-rose-700 transition-colors hover:text-rose-800 dark:text-rose-300 dark:hover:text-rose-200"
                         @click.stop="emit('openAttention', item, 'blocked')"
                       >
-                        <span class="inline-flex h-5 w-5 items-center justify-center leading-none rounded-full bg-rose-100 dark:bg-rose-500/15">
-                          <Icon name="heroicons:lock-closed" class="h-3.5 w-3.5" />
-                        </span>
+                        <Icon name="heroicons:lock-closed" class="h-3.5 w-3.5" />
                         <span>{{ item.blockedChildrenCount }}</span>
                       </button>
                     </div>
