@@ -693,7 +693,16 @@ watch(itemDetail, (detail) => {
     descriptionExpanded.value = false
     // Only reset tab when navigating to a different item, not on refresh
     if (detail.id !== lastLoadedItemId.value) {
-      activeTab.value = 'subtasks'
+      // Default to the leftmost tab that has content
+      if (detail.children?.length || detail.childrenCount) {
+        activeTab.value = 'subtasks'
+      } else if (detail.comments?.length) {
+        activeTab.value = 'comments'
+      } else if (detail.attachmentCount) {
+        activeTab.value = 'attachments'
+      } else {
+        activeTab.value = 'subtasks'
+      }
       lastLoadedItemId.value = detail.id
     }
     // Allow auto-save after a tick
