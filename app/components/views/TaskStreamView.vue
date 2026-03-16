@@ -69,7 +69,7 @@ const boardColumns: Array<{
     label: 'To do',
     dot: 'bg-slate-400',
     bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
-    groupText: 'text-slate-500 dark:text-zinc-400',
+    groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['todo', 'blocked'],
   },
   {
@@ -77,7 +77,7 @@ const boardColumns: Array<{
     label: 'In progress',
     dot: 'bg-blue-400',
     bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
-    groupText: 'text-slate-500 dark:text-zinc-400',
+    groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['in_progress', 'paused'],
   },
   {
@@ -85,7 +85,7 @@ const boardColumns: Array<{
     label: 'Done',
     dot: 'bg-emerald-400',
     bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
-    groupText: 'text-slate-500 dark:text-zinc-400',
+    groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['done'],
   },
 ]
@@ -560,7 +560,7 @@ function getToneDot(item: ItemNode) {
             >
               <button
                 v-if="group.label"
-                class="flex w-full items-center gap-1.5 rounded-lg bg-white/70 px-2 py-1.5 text-left text-[11px] font-medium transition-colors hover:bg-white/90 dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
+                class="flex w-full items-center gap-1.5 rounded-lg bg-white/70 px-2 py-1.5 text-left text-[11px] font-medium transition-colors hover:bg-white/90 dark:bg-white/[0.035] dark:hover:bg-white/[0.06]"
                 :class="dragTargetGroupKey === group.key ? 'ring-1 ring-inset ring-slate-300/80 dark:ring-white/[0.12]' : ''"
                 @click="toggleSection(group.key)"
                 @dragover="handleGroupDragOver($event, column.key, group.key)"
@@ -575,7 +575,7 @@ function getToneDot(item: ItemNode) {
                   <Icon v-if="group.icon" :name="group.icon" class="h-3 w-3" />
                 </span>
                 <span class="flex-1" :class="column.groupText">{{ group.label }}</span>
-                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400 dark:bg-white/[0.06] dark:text-zinc-500">
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400 dark:bg-white/[0.05] dark:text-zinc-500">
                   {{ group.items.length }}
                 </span>
               </button>
