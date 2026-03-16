@@ -203,15 +203,26 @@
                 v-for="(tab, index) in scopeTabs"
                 :key="tab.terminalId"
                 class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150"
-                :class="[tileClass(index), activeTabId === tab.terminalId
-                  ? 'border-slate-300 dark:border-white/[0.10]'
-                  : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]']"
+                :class="[
+                  tileClass(index),
+                  tileDragId === tab.terminalId ? 'opacity-40' : '',
+                  tileDragOverId === tab.terminalId && tileDragId !== tab.terminalId
+                    ? 'border-blue-400 dark:border-blue-500/50 ring-1 ring-blue-400/30 dark:ring-blue-500/20'
+                    : activeTabId === tab.terminalId
+                      ? 'border-slate-300 dark:border-white/[0.10]'
+                      : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]',
+                ]"
                 @click="openSidebarSession(tab.terminalId)"
+                @dragover="onTileDragOver($event, tab.terminalId)"
+                @drop="onTileDrop($event, tab.terminalId)"
               >
-                <!-- Tile header -->
+                <!-- Tile header (draggable) -->
                 <div
-                  class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none"
+                  draggable="true"
+                  class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none cursor-grab active:cursor-grabbing"
                   :class="activeTabId === tab.terminalId ? 'bg-blue-50 dark:bg-blue-900/35' : 'bg-white/90 dark:bg-[#111115]'"
+                  @dragstart="onTileDragStart($event, tab.terminalId)"
+                  @dragend="onTileDragEnd"
                 >
                   <!-- Status dot -->
                   <span :class="[
@@ -425,6 +436,53 @@ const gridClass = computed(() => {
 const tileClass = (index: number) => {
   if (layoutMode.value === 'tiled' && scopeTabs.value.length === 3 && index === 0) return 'row-span-2'
   return ''
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tile drag-to-reorder
+// ─────────────────────────────────────────────────────────────────────────────
+
+const tileDragId = ref<string | null>(null)
+const tileDragOverId = ref<string | null>(null)
+
+function onTileDragStart(e: DragEvent, terminalId: string) {
+  tileDragId.value = terminalId
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', terminalId)
+  }
+}
+
+function onTileDragOver(e: DragEvent, terminalId: string) {
+  if (!tileDragId.value || tileDragId.value === terminalId) return
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  tileDragOverId.value = terminalId
+}
+
+function onTileDrop(e: DragEvent, targetTerminalId: string) {
+  e.preventDefault()
+  if (!tileDragId.value || tileDragId.value === targetTerminalId) {
+    tileDragId.value = null
+    tileDragOverId.value = null
+    return
+  }
+
+  const fromIdx = tabs.value.findIndex(t => t.terminalId === tileDragId.value)
+  const toIdx = tabs.value.findIndex(t => t.terminalId === targetTerminalId)
+  if (fromIdx !== -1 && toIdx !== -1) {
+    const [moved] = tabs.value.splice(fromIdx, 1)
+    tabs.value.splice(toIdx, 0, moved)
+  }
+
+  tileDragId.value = null
+  tileDragOverId.value = null
+  nextTick(() => attachVisibleScopeTerminals())
+}
+
+function onTileDragEnd() {
+  tileDragId.value = null
+  tileDragOverId.value = null
 }
 
 type ScopeEntry = {
@@ -681,13 +739,26 @@ function initTerminal(terminalId: string) {
   const container = terminalRefs.get(terminalId)
   if (!container) return
 
+  const tab = tabs.value.find(t => t.terminalId === terminalId)
+  const isAgent = tab && !tab.isPlainTerminal
+
   updateDarkMode()
+  const theme = { ...currentTerminalTheme.value }
+  // Agent TUIs (Claude Code etc.) draw their own cursor — hide xterm's
+  // so it doesn't show as a stray blue block below the TUI area.
+  if (isAgent) {
+    theme.cursor = theme.background
+    theme.cursorAccent = theme.background
+  }
+
   const term = new Terminal({
-    cursorBlink: true,
+    cursorBlink: !isAgent,
+    cursorStyle: isAgent ? 'bar' : 'block',
+    cursorInactiveStyle: isAgent ? 'none' : undefined,
     fontSize: 13,
     fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
     lineHeight: 1.4,
-    theme: currentTerminalTheme.value,
+    theme,
   })
 
   const fit = new FitAddon()
