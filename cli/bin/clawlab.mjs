@@ -181,6 +181,11 @@ function formatTaskRef(task) {
   return `${formatTaskPath(task)} (id: ${shortId(task?.id)})`
 }
 
+function itemTypeTag(task) {
+  const type = String(task?.itemType || 'TASK').toUpperCase()
+  return type === 'WORKSTREAM' ? ' [workstream]' : ''
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function requireToken() {
@@ -751,11 +756,11 @@ commands.catchup = {
         const modeLabel = mode.toUpperCase()
         const hint = modeHints[mode] || `Mode: ${modeLabel}`
         const isCurrentTask = currentTaskId === t.id
-        const isProject = !t.parentId
+        const isWorkstream = String(t.itemType || '').toUpperCase() === 'WORKSTREAM'
         print(``)
-        print(`     ⚡ ${modeLabel}  ${isProject ? '📁 ' : ''}${formatTaskRef(t)}  ${t.progress ?? 0}%`)
-        if (isProject) {
-          print(`       ⚠  This is a project, not a task. Create tasks under it:`)
+        print(`     ⚡ ${modeLabel}  ${isWorkstream ? '📁 ' : ''}${formatTaskRef(t)}${itemTypeTag(t)}  ${t.progress ?? 0}%`)
+        if (isWorkstream) {
+          print(`       ⚠  Workstream — create tasks under it, don't work on it directly`)
           print(`       $ clawlab task create --parent ${t.id.slice(-8)} --title "Task title"`)
         } else if (isCurrentTask) {
           const elapsedMs = currentCheckedOutAt ? Date.now() - new Date(currentCheckedOutAt).getTime() : 0
@@ -801,25 +806,39 @@ commands.catchup = {
 
     const newTasks = (data.tasks.assigned || []).filter(t => !actionIds.has(t.id))
     if (newTasks.length > 0) {
-      print(`\n  📋 New tasks (${newTasks.length})`)
+      print(`\n  📋 New items (${newTasks.length})`)
       for (const t of newTasks) {
-        const isProject = !t.parentId
-        print(`     ${t.status.padEnd(12)} ${isProject ? '📁 ' : ''}${formatTaskRef(t)}`)
-        if (isProject) {
-          print(`       ⚠  Project — create tasks under it, don't work on it directly`)
+        const isWorkstream = String(t.itemType || '').toUpperCase() === 'WORKSTREAM'
+        print(`     ${t.status.padEnd(12)} ${isWorkstream ? '📁 ' : ''}${formatTaskRef(t)}${itemTypeTag(t)}`)
+        if (isWorkstream) {
+          print(`       ⚠  Workstream — create tasks under it, don't work on it directly`)
+        }
+        if (t.comments && t.comments.length > 0) {
+          for (const c of t.comments.slice(0, 3)) {
+            const preview = c.content.replace(/\s+/g, ' ').slice(0, 80)
+            print(`       └ ${c.author.name}: ${preview}`)
+          }
         }
       }
     }
 
     const updatedTasks = (data.tasks.updated || []).filter(t => !actionIds.has(t.id))
     if (updatedTasks.length > 0) {
-      print(`\n  🔄 Updated tasks (${updatedTasks.length})`)
+      print(`\n  🔄 Updated items (${updatedTasks.length})`)
       for (const t of updatedTasks) {
-        print(`     ${t.status.padEnd(12)} ${formatTaskRef(t)}`)
+        print(`     ${t.status.padEnd(12)} ${formatTaskRef(t)}${itemTypeTag(t)}`)
+        if (t.comments && t.comments.length > 0) {
+          for (const c of t.comments.slice(0, 3)) {
+            const preview = c.content.replace(/\s+/g, ' ').slice(0, 80)
+            print(`       └ ${c.author.name}: ${preview}`)
+          }
+        }
       }
     }
 
-    if (s.commentCount > 0) {
+    // Legacy flat comment list — only show if tasks don't have nested comments
+    const hasNestedComments = [...newTasks, ...updatedTasks].some(t => t.comments && t.comments.length > 0)
+    if (s.commentCount > 0 && !hasNestedComments) {
       print(`\n  💬 New comments (${s.commentCount})`)
       for (const c of data.tasks.commented) {
         const preview = c.content.replace(/\s+/g, ' ').slice(0, 80)
@@ -843,6 +862,33 @@ commands.catchup = {
       for (const r of data.channels.threadReplies) {
         const preview = r.content.replace(/<@[^>]+>/g, '@someone').replace(/\s+/g, ' ').slice(0, 80)
         print(`     #${r.channelName} — ${r.author.name}: ${preview}`)
+      }
+    }
+
+    // Recent work history — not time-windowed, always shows last N sessions
+    const recentWork = data.recentWork || []
+    if (recentWork.length > 0) {
+      print(`\n  📝 Your recent work (last ${recentWork.length})`)
+      for (const w of recentWork) {
+        const statusIcon = w.status === 'DONE' ? '✓' : w.status === 'IN_PROGRESS' ? '◐' : '○'
+        const breadcrumb = Array.isArray(w.breadcrumb) && w.breadcrumb.length
+          ? `${w.breadcrumb.join(' › ')} › `
+          : ''
+        const duration = w.sessionDurationMs ? ` (${formatDurationMs(w.sessionDurationMs)})` : ''
+        const wType = String(w.itemType || 'TASK').toUpperCase() === 'WORKSTREAM' ? ' [workstream]' : ''
+        print(`\n     ${statusIcon} ${w.status.padEnd(12)} ${breadcrumb}${w.title} (id: ${shortId(w.taskId)})${wType}  ${w.progress ?? 0}%${duration}`)
+        if (w.comments && w.comments.length > 0) {
+          for (const c of w.comments) {
+            const preview = c.content.replace(/\s+/g, ' ').slice(0, 80)
+            print(`       └ ${c.author.name}: ${preview}`)
+          }
+        }
+        if (w.commits && w.commits.length > 0) {
+          for (const c of w.commits) {
+            const msg = c.message.replace(/\s+/g, ' ').slice(0, 70)
+            print(`       └ commit ${c.sha}: ${msg}`)
+          }
+        }
       }
     }
 

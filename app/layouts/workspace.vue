@@ -291,7 +291,7 @@ const statusDotClass = (status: string) => {
             'relative w-full flex items-center px-2 rounded-lg text-sm hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all duration-200',
             sidebarCollapsed ? 'justify-center py-2' : 'gap-2.5 py-1',
             hasTerminals || terminalOpen
-              ? 'text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300'
+              ? 'text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
               : 'text-slate-700 hover:text-slate-900 dark:text-zinc-100 dark:hover:text-white'
           ]"
         >

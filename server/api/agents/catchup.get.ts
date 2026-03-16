@@ -80,11 +80,11 @@ export default defineEventHandler(async (event) => {
     take: MAX_RESULTS_PER_SECTION,
   })
 
-  // 3. New comments on agent's tasks
+  // 3. New comments on agent's tasks (by others, since window — for the legacy flat list)
   const commentedTasks = await prisma.comment.findMany({
     where: {
       createdAt: { gte: since },
-      userId: { not: agent.id }, // Exclude agent's own comments
+      userId: { not: agent.id },
       item: {
         assignees: { some: { userId: agent.id } },
       },
@@ -202,17 +202,115 @@ export default defineEventHandler(async (event) => {
     createdAt: m.message.createdAt.toISOString(),
   }))
 
+  // 6. Recent work: last 10 tasks the agent worked on (via AgentSession), not time-windowed
+  const MAX_RECENT_WORK = 10
+  const MAX_COMMENTS_PER_TASK = 5
+
+  const recentSessions = await prisma.agentSession.findMany({
+    where: {
+      agentId: agent.id,
+      itemId: { not: null },
+    },
+    select: {
+      id: true,
+      checkedOutAt: true,
+      completedAt: true,
+      status: true,
+      updatedAt: true,
+      item: {
+        select: {
+          id: true,
+          title: true,
+          itemType: true,
+          status: true,
+          subStatus: true,
+          agentMode: true,
+          progress: true,
+          priority: true,
+          projectId: true,
+          parentId: true,
+        },
+      },
+      commits: {
+        select: { sha: true, message: true },
+        orderBy: { createdAt: 'desc' as const },
+        take: 10,
+      },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: MAX_RECENT_WORK * 2, // fetch extra to deduplicate by item
+  })
+
+  // Deduplicate by item (keep most recent session per task)
+  const seenItemIds = new Set<string>()
+  const recentWorkSessions = recentSessions.filter((s) => {
+    if (!s.item || seenItemIds.has(s.item.id)) return false
+    seenItemIds.add(s.item.id)
+    return true
+  }).slice(0, MAX_RECENT_WORK)
+
+  // Fetch all comments on all assigned tasks (for nesting under tasks)
+  const allAssignedItemIds = await prisma.itemAssignment.findMany({
+    where: { userId: agent.id },
+    select: { itemId: true },
+  })
+  const assignedItemIdSet = new Set(allAssignedItemIds.map((a) => a.itemId))
+
+  // Also include recent work item IDs
+  for (const s of recentWorkSessions) {
+    if (s.item) assignedItemIdSet.add(s.item.id)
+  }
+
+  // Fetch comments for all relevant tasks (both agent's own and others')
+  const allTaskComments = assignedItemIdSet.size > 0
+    ? await prisma.comment.findMany({
+        where: {
+          itemId: { in: [...assignedItemIdSet] },
+        },
+        select: {
+          id: true,
+          itemId: true,
+          content: true,
+          createdAt: true,
+          user: {
+            select: { id: true, name: true, avatar: true, isAgent: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: MAX_RESULTS_PER_SECTION * 2,
+      })
+    : []
+
+  // Group comments by task, limit per task
+  const commentsByTask = new Map<string, typeof allTaskComments>()
+  for (const c of allTaskComments) {
+    const existing = commentsByTask.get(c.itemId) || []
+    if (existing.length < MAX_COMMENTS_PER_TASK) {
+      existing.push(c)
+      commentsByTask.set(c.itemId, existing)
+    }
+  }
+
   // Build breadcrumbs for all tasks (project > parent > task)
-  const allTaskItems = [...assignedTasks, ...updatedTasks]
+  const recentWorkItems = recentWorkSessions
+    .filter((s) => s.item)
+    .map((s) => s.item!)
+  const allTaskItems = [...assignedTasks, ...updatedTasks, ...recentWorkItems]
   const parentIds = new Set<string>()
   for (const t of allTaskItems) {
     if (t.parentId) parentIds.add(t.parentId)
     if (t.projectId) parentIds.add(t.projectId)
   }
-  // Remove ids we already have
-  for (const t of allTaskItems) parentIds.delete(t.id)
-
   const ancestorMap = new Map<string, { id: string; title: string; parentId: string | null }>()
+
+  // If a parent is already in allTaskItems, add it to ancestorMap directly
+  // so getBreadcrumb can find it, then remove from the fetch list
+  for (const t of allTaskItems) {
+    if (parentIds.has(t.id)) {
+      ancestorMap.set(t.id, { id: t.id, title: t.title, parentId: t.parentId })
+      parentIds.delete(t.id)
+    }
+  }
   if (parentIds.size > 0) {
     const ancestors = await prisma.item.findMany({
       where: { id: { in: [...parentIds] } },
@@ -261,6 +359,17 @@ export default defineEventHandler(async (event) => {
 
   const actionableTaskCount = [...assignedTasks, ...updatedTasks].filter(isActionableTask).length
 
+  // Helper to format comments nested under a task
+  function getTaskComments(taskId: string) {
+    const comments = commentsByTask.get(taskId) || []
+    return comments.map((c) => ({
+      id: c.id,
+      author: { id: c.user.id, name: c.user.name, isAgent: (c.user as any).isAgent ?? false },
+      content: c.content.slice(0, 300),
+      createdAt: c.createdAt.toISOString(),
+    }))
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     refreshRequested,
@@ -270,12 +379,15 @@ export default defineEventHandler(async (event) => {
         ...t,
         breadcrumb: getBreadcrumb(t),
         createdAt: t.createdAt.toISOString(),
+        comments: getTaskComments(t.id),
       })),
       updated: updatedTasks.map((t) => ({
         ...t,
         breadcrumb: getBreadcrumb(t),
         updatedAt: t.updatedAt.toISOString(),
+        comments: getTaskComments(t.id),
       })),
+      // Keep flat list for backward compat, but nested comments above are preferred
       commented: commentedTasks.map((c) => ({
         id: c.id,
         content: c.content.slice(0, 300),
@@ -284,6 +396,24 @@ export default defineEventHandler(async (event) => {
         createdAt: c.createdAt.toISOString(),
       })),
     },
+    recentWork: recentWorkSessions.map((s) => ({
+      taskId: s.item!.id,
+      title: s.item!.title,
+      itemType: s.item!.itemType,
+      status: s.item!.status,
+      subStatus: s.item!.subStatus,
+      agentMode: s.item!.agentMode,
+      progress: s.item!.progress,
+      priority: s.item!.priority,
+      breadcrumb: getBreadcrumb(s.item!),
+      lastWorkedAt: s.updatedAt.toISOString(),
+      sessionStatus: s.status,
+      sessionDurationMs: s.checkedOutAt && s.completedAt
+        ? new Date(s.completedAt).getTime() - new Date(s.checkedOutAt).getTime()
+        : null,
+      commits: s.commits.map((c) => ({ sha: c.sha.slice(0, 7), message: c.message })),
+      comments: getTaskComments(s.item!.id),
+    })),
     channels: {
       mentions: channelMentions,
       threadReplies: threadReplies.map((r) => ({
@@ -303,6 +433,7 @@ export default defineEventHandler(async (event) => {
       mentionCount: channelMentions.length,
       threadReplyCount: threadReplies.length,
       actionRequiredCount: actionableTaskCount,
+      recentWorkCount: recentWorkSessions.length,
     },
   }
 })

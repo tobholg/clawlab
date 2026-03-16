@@ -1586,7 +1586,7 @@ defineExpose({ handleClose })
           <!-- Content -->
           <div class="flex-1 min-h-0 overflow-hidden">
             <div class="h-full flex min-w-0">
-              <div class="p-6 space-y-6 flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+              <div class="p-6 space-y-6 flex-1 min-w-0 overflow-y-auto overflow-x-hidden detail-scrollbar">
                 <div v-if="statusError" class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-xs text-rose-700 dark:text-rose-400">
                   {{ statusError }}
                 </div>
@@ -1745,7 +1745,7 @@ defineExpose({ handleClose })
                 class="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2"
               >
                 <Icon name="heroicons:check-circle" class="w-4 h-4 text-emerald-500" />
-                <span class="text-sm text-emerald-700 dark:text-emerald-300">Completed - awaiting review</span>
+                <span class="text-sm text-emerald-700 dark:text-emerald-300">{{ editedStatus === 'done' ? 'Completed' : 'Completed - awaiting review' }}</span>
               </div>
 
               <!-- Waiting for plan -->
@@ -3082,5 +3082,41 @@ defineExpose({ handleClose })
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+.detail-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+
+.detail-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.detail-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.detail-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+}
+
+.detail-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .detail-scrollbar {
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+  }
+
+  .detail-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .detail-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.14);
+  }
 }
 </style>

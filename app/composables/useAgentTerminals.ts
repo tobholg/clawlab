@@ -350,12 +350,17 @@ export const useAgentTerminals = () => {
         || (data.agentId && tab.agentId === data.agentId) // fallback: match by agent
       if (!match) continue
 
-      if (data.taskId) tab.taskId = data.taskId
-      if (data.taskTitle) tab.taskTitle = data.taskTitle
+      if (data.taskId !== undefined) tab.taskId = data.taskId || null
+      if (data.taskTitle !== undefined) tab.taskTitle = data.taskTitle || null
       if (data.status) {
         const s = data.status.toLowerCase()
         if (s === 'active' || s === 'awaiting_review' || s === 'idle' || s === 'terminated') {
           tab.status = s
+          // Clear task info when session goes idle
+          if (s === 'idle') {
+            tab.taskId = null
+            tab.taskTitle = null
+          }
         }
       }
     }

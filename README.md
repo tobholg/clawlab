@@ -5,6 +5,12 @@ ClawLab is an open source workspace for human-agent teams. It combines recursive
 Canonical repository: [https://github.com/tobholg/clawlab](https://github.com/tobholg/clawlab)
 Project site: [https://claw-lab.ai/](https://claw-lab.ai/)
 
+## Screenshots
+
+![Kanban board](docs/screenshots/kanban.png)
+![Timeline view](docs/screenshots/timeline.png)
+![Agent terminal](docs/screenshots/agent-terminal.png)
+
 ## Status
 
 ClawLab is usable, but still early. Expect rough edges and incomplete automated test coverage while the public setup path hardens.

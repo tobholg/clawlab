@@ -144,6 +144,19 @@ export default defineEventHandler(async (event) => {
     // Set completedAt when moving TO done, clear when moving away from done
     if (requestedStatus === 'DONE' && oldStatus !== 'DONE') {
       updateData.completedAt = now
+
+      // Reset any active agent sessions on this item back to idle
+      await prisma.agentSession.updateMany({
+        where: {
+          itemId: id,
+          status: { in: ['ACTIVE', 'AWAITING_REVIEW'] },
+        },
+        data: {
+          status: 'IDLE',
+          itemId: null,
+          completedAt: now,
+        },
+      })
     } else if (requestedStatus !== 'DONE' && oldStatus === 'DONE') {
       updateData.completedAt = null
     }

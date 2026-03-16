@@ -52,6 +52,8 @@ export default defineEventHandler(async (event) => {
 
   let nextSubStatus: string | null | undefined
   let nextStatus: 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED' | 'DONE' | undefined
+  let nextProgress: number | undefined
+
   if (status !== undefined) {
     let normalizedStatus = typeof status === 'string' ? status.toUpperCase() : ''
     if (normalizedStatus === 'DONE') {
@@ -68,8 +70,6 @@ export default defineEventHandler(async (event) => {
     }
     nextStatus = normalizedStatus as 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'PAUSED' | 'DONE'
   }
-
-  let nextProgress: number | undefined
   if (progress !== undefined) {
     if (typeof progress !== 'number' || Number.isNaN(progress)) {
       throw createError({ statusCode: 400, message: 'progress must be a number' })

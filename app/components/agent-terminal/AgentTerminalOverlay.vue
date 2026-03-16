@@ -56,18 +56,18 @@
               <!-- + Shell -->
               <button
                 @click="launchShell"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 shadow-sm transition-all shrink-0"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-900 dark:text-zinc-100 bg-white/85 dark:bg-white/[0.08] hover:bg-slate-50 dark:hover:bg-white/[0.12] border border-slate-200 dark:border-white/[0.1] hover:border-slate-300 dark:hover:border-white/[0.15] shadow-sm transition-all shrink-0"
               >
                 <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
                 Shell
-                <kbd class="ml-0.5 text-[10px] text-slate-500 bg-slate-100 px-1 py-0.5 rounded font-mono leading-none">⌥T</kbd>
+                <kbd class="ml-0.5 text-[10px] text-slate-500 dark:text-zinc-500 bg-slate-100 dark:bg-white/[0.06] px-1 py-0.5 rounded font-mono leading-none">⌥T</kbd>
               </button>
 
               <!-- Agent hover dropdown -->
               <div class="relative group/agent shrink-0">
                 <button
                   @mouseenter="fetchWorkspaceAgents"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-300/60 dark:border-blue-500/20 hover:border-blue-400 dark:hover:border-blue-500/30 transition-all"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100/80 dark:hover:bg-blue-500/25 border border-blue-200 dark:border-blue-400/25 hover:border-blue-300 dark:hover:border-blue-400/40 transition-all"
                 >
                   <Icon name="heroicons:cpu-chip" class="w-3.5 h-3.5" />
                   Agent
@@ -111,7 +111,7 @@
           <div class="flex-1 min-h-0 flex gap-2">
             <aside
               v-if="showScopePane"
-              class="w-56 shrink-0 overflow-y-auto rounded-2xl bg-slate-50 dark:bg-white/[0.03] px-2 py-2"
+              class="w-56 shrink-0 overflow-y-auto"
             >
               <div class="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
                 Scopes
@@ -127,7 +127,7 @@
                       @click="selectScope(scope.id)"
                       class="flex-1 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors min-w-0"
                       :class="scope.id === selectedScopeId
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
+                        ? 'bg-slate-200/50 text-slate-900 dark:bg-white/[0.07] dark:text-zinc-100'
                         : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]'"
                     >
                       <Icon :name="scope.type === 'global' ? 'heroicons:globe-alt' : 'heroicons:folder'" class="w-4 h-4 shrink-0" />
@@ -165,17 +165,16 @@
                       @click="openSidebarSession(session.terminalId)"
                       class="w-full flex items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
                       :class="session.terminalId === activeTabId
-                        ? 'bg-slate-100 text-slate-900 dark:bg-white/[0.06] dark:text-zinc-100'
+                        ? 'bg-slate-200/50 text-slate-900 dark:bg-white/[0.07] dark:text-zinc-100'
                         : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-white/[0.06]'"
                     >
                       <span class="inline-flex h-5 w-5 items-center justify-center leading-none shrink-0 mt-0.5">
-                        <span :class="[
-                          'w-1.5 h-1.5 rounded-full',
-                          session.status === 'active' ? 'bg-emerald-400 animate-pulse' :
-                          session.status === 'awaiting_review' ? 'bg-emerald-400' :
-                          session.status === 'idle' ? 'bg-amber-400' :
-                          'bg-zinc-500'
-                        ]" />
+                        <!-- No active task: gray dot -->
+                        <span v-if="!session.taskTitle" class="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                        <!-- Task done: pulsing green dot -->
+                        <span v-else-if="session.status === 'awaiting_review'" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <!-- Working: spinner -->
+                        <Icon v-else name="heroicons:arrow-path" class="w-3 h-3 animate-spin text-blue-600 dark:text-blue-400" />
                       </span>
                       <span class="min-w-0 flex-1">
                         <span class="block text-sm font-semibold truncate">{{ sessionTitle(session) }}</span>
@@ -216,14 +215,14 @@
                 :key="tab.terminalId"
                 class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150"
                 :class="[tileClass(index), activeTabId === tab.terminalId
-                  ? 'border-blue-400/70 dark:border-blue-500/40 shadow-[0_0_0_1px_rgba(59,130,246,0.18)]'
+                  ? 'border-slate-300 dark:border-white/[0.10]'
                   : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]']"
                 @click="openSidebarSession(tab.terminalId)"
               >
                 <!-- Tile header -->
                 <div
                   class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none"
-                  :class="activeTabId === tab.terminalId ? 'bg-blue-50 dark:bg-blue-950/30' : 'bg-white/90 dark:bg-[#111115]'"
+                  :class="activeTabId === tab.terminalId ? 'bg-blue-50 dark:bg-blue-900/35' : 'bg-white/90 dark:bg-[#111115]'"
                 >
                   <!-- Status dot -->
                   <span :class="[
@@ -265,7 +264,7 @@
                 <!-- xterm container -->
                 <div
                   :ref="(el) => setTerminalRef(tab.terminalId, el as HTMLElement)"
-                  class="flex-1 min-h-0 bg-slate-50 dark:bg-[#0e0e11] overflow-hidden"
+                  class="flex-1 min-h-0 bg-slate-50 dark:bg-[#131317] overflow-hidden"
                 />
               </div>
             </div>
@@ -486,10 +485,10 @@ let darkModeObserver: MutationObserver | null = null
 let darkSchemeMedia: MediaQueryList | null = null
 
 const terminalDarkTheme = {
-  background: '#0e0e11',
+  background: '#131317',
   foreground: '#d4d4d8',
   cursor: '#60a5fa',
-  cursorAccent: '#0e0e11',
+  cursorAccent: '#131317',
   selectionBackground: '#60a5fa33',
   black: '#18181b',
   red: '#f87171',

@@ -3,7 +3,7 @@ import { getItemEstimateMeta } from '~/utils/itemRisk'
 import type { ItemNode, Item } from '~/types'
 import { STATUS_CONFIG, SUB_STATUS_CONFIG, getSubStatusesForStatus } from '~/types'
 
-type BoardColumnKey = 'todo' | 'in_progress' | 'blocked'
+type BoardColumnKey = 'todo' | 'in_progress' | 'done'
 type BoardColumnGroup = {
   key: string
   label: string | null
@@ -70,27 +70,27 @@ const boardColumns: Array<{
     dot: 'bg-slate-400',
     bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
     groupText: 'text-slate-500 dark:text-zinc-400',
-    statuses: ['todo'],
+    statuses: ['todo', 'blocked'],
   },
   {
     key: 'in_progress',
     label: 'In progress',
-    dot: 'bg-emerald-400',
+    dot: 'bg-blue-400',
     bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
     groupText: 'text-slate-500 dark:text-zinc-400',
     statuses: ['in_progress', 'paused'],
   },
   {
-    key: 'blocked',
-    label: 'Blocked',
-    dot: 'bg-rose-400',
+    key: 'done',
+    label: 'Done',
+    dot: 'bg-emerald-400',
     bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
     groupText: 'text-slate-500 dark:text-zinc-400',
-    statuses: ['blocked'],
+    statuses: ['done'],
   },
 ]
 
-const activeItems = computed(() => props.items.filter(item => item.status !== 'done'))
+const activeItems = computed(() => props.items)
 
 const itemsByColumn = computed(() => {
   return boardColumns.map((column) => {
@@ -111,6 +111,7 @@ const archivedItems = computed(() => {
 
 const activeTab = computed(() => props.tab ?? 'tasks')
 const pausedSubStatuses = new Set(Object.keys(getSubStatusesForStatus('paused')))
+const blockedSubStatuses = new Set(Object.keys(getSubStatusesForStatus('blocked')))
 
 watch(itemsByColumn, (columns) => {
   const validKeys = new Set(columns.flatMap(column => column.groups.map(group => group.key)))
@@ -154,10 +155,64 @@ function getColumnSubStatuses(column: typeof boardColumns[number]) {
     }
   }
 
+  if (column.key === 'todo') {
+    return {
+      ...getSubStatusesForStatus('todo'),
+      ...getSubStatusesForStatus('blocked'),
+    }
+  }
+
   return getSubStatusesForStatus(column.key)
 }
 
+function getDoneColumnGroups(items: ItemNode[]): BoardColumnGroup[] {
+  const now = Date.now()
+  const oneDayAgo = now - 24 * 60 * 60 * 1000
+  const sortedItems = [...items].sort((a, b) => getActivityTime(b) - getActivityTime(a))
+
+  const last24h = sortedItems.filter(item => getActivityTime(item) >= oneDayAgo)
+  const last7d = sortedItems.filter(item => getActivityTime(item) < oneDayAgo)
+
+  const groups: BoardColumnGroup[] = []
+
+  if (last24h.length) {
+    groups.push({
+      key: 'done:last_24h',
+      label: 'Last 24 hours',
+      icon: 'heroicons:clock',
+      subStatus: null,
+      targetStatus: 'done',
+      items: last24h,
+    })
+  }
+
+  if (last7d.length) {
+    groups.push({
+      key: 'done:last_7d',
+      label: 'Last 7 days',
+      icon: 'heroicons:calendar',
+      subStatus: null,
+      targetStatus: 'done',
+      items: last7d,
+    })
+  }
+
+  // Always show both groups even if one is empty
+  if (!groups.length) {
+    return [
+      { key: 'done:last_24h', label: 'Last 24 hours', icon: 'heroicons:clock', subStatus: null, targetStatus: 'done', items: [] },
+      { key: 'done:last_7d', label: 'Last 7 days', icon: 'heroicons:calendar', subStatus: null, targetStatus: 'done', items: [] },
+    ]
+  }
+
+  return groups
+}
+
 function getColumnGroups(column: typeof boardColumns[number], items: ItemNode[]): BoardColumnGroup[] {
+  if (column.key === 'done') {
+    return getDoneColumnGroups(items)
+  }
+
   const subStatusMap = getColumnSubStatuses(column)
   const subStatusKeys = Object.keys(subStatusMap)
 
@@ -219,6 +274,9 @@ function isSectionCollapsed(sectionKey: string) {
 function resolveStatusForGroup(columnKey: BoardColumnKey, subStatus: string | null) {
   if (columnKey === 'in_progress' && subStatus && pausedSubStatuses.has(subStatus)) {
     return 'paused'
+  }
+  if (columnKey === 'todo' && subStatus && blockedSubStatuses.has(subStatus)) {
+    return 'blocked'
   }
   return columnKey
 }
@@ -374,7 +432,7 @@ function getStateBadgeClasses(item: ItemNode) {
 }
 
 function getMetric(item: ItemNode) {
-  const progress = Math.max(0, Math.min(100, item.progress ?? 0))
+  const progress = item.status === 'done' ? 100 : Math.max(0, Math.min(100, item.progress ?? 0))
   return {
     value: `${progress}%`,
     label: '',
@@ -455,7 +513,8 @@ function getEstimatedCompletion(item: ItemNode) {
 function getToneDot(item: ItemNode) {
   if (item.status === 'blocked' || (item.blockedChildrenCount ?? 0) > 0) return 'bg-rose-400'
   if ((item.atRiskChildrenCount ?? 0) > 0 || item.temperature === 'critical') return 'bg-amber-400'
-  if (item.status === 'in_progress' || item.agentMode === 'EXECUTE') return 'bg-emerald-400'
+  if (item.status === 'done') return 'bg-emerald-400'
+  if (item.status === 'in_progress' || item.agentMode === 'EXECUTE') return 'bg-blue-400'
   if (item.status === 'paused') return 'bg-amber-300'
   return 'bg-slate-300 dark:bg-zinc-600'
 }
@@ -492,6 +551,7 @@ function getToneDot(item: ItemNode) {
           @dragover="handleColumnDragOver($event, column.key)"
           @drop="handleColumnDrop($event, column)"
         >
+          <!-- All columns use full cards with groups -->
           <div v-if="column.items.length" class="flex flex-1 min-h-0 flex-col gap-1.5 overflow-y-auto pr-1">
             <section
               v-for="group in column.groups"
@@ -589,7 +649,7 @@ function getToneDot(item: ItemNode) {
                         @click.stop="emit('drillDown', item)"
                       >
                         <Icon name="heroicons:arrows-pointing-out" class="h-3.5 w-3.5" />
-                        <span>{{ item.activeChildrenCount ?? item.childrenCount }}</span>
+                        <span>{{ item.childrenCount }}</span>
                       </button>
 
                       <button
@@ -640,7 +700,7 @@ function getToneDot(item: ItemNode) {
       <button
         v-for="item in archivedItems"
         :key="item.id"
-        class="group flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
+        class="group flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
         @click="emit('openDetail', item)"
       >
         <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-emerald-500" />
