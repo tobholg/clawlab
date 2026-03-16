@@ -245,7 +245,7 @@ const statusDotClass = (status: string) => {
     <!-- Sidebar -->
     <aside
       :class="[
-        'flex flex-col pt-5 bg-slate-50 dark:bg-dm-panel transition-all duration-300 ease-in-out flex-shrink-0',
+        'flex flex-col pt-5 bg-slate-50 dark:bg-white/[0.05] transition-all duration-300 ease-in-out flex-shrink-0',
         sidebarCollapsed ? 'w-[3.75rem]' : 'w-64 2xl:w-72'
       ]"
     >
