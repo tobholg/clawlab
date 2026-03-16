@@ -273,7 +273,7 @@ const statusDotClass = (status: string) => {
         <button
           @click="openSearch"
           :class="[
-            'w-full flex items-center px-2 rounded-lg text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200',
+            'w-full flex items-center px-2 rounded-lg text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-100 dark:hover:text-white dark:hover:bg-white/[0.06] transition-all duration-200',
             sidebarCollapsed ? 'justify-center py-2' : 'gap-2.5 py-1'
           ]"
         >
@@ -292,7 +292,7 @@ const statusDotClass = (status: string) => {
             sidebarCollapsed ? 'justify-center py-2' : 'gap-2.5 py-1',
             hasTerminals || terminalOpen
               ? 'text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300'
-              : 'text-slate-700 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white'
+              : 'text-slate-700 hover:text-slate-900 dark:text-zinc-100 dark:hover:text-white'
           ]"
         >
           <Icon name="heroicons:command-line" class="w-4 h-4 flex-shrink-0" />

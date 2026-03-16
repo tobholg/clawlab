@@ -56,18 +56,18 @@
               <!-- + Shell -->
               <button
                 @click="launchShell"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-cyan-700 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-500/10 hover:bg-cyan-100 dark:hover:bg-cyan-500/20 border border-cyan-300/60 dark:border-cyan-500/20 hover:border-cyan-400 dark:hover:border-cyan-500/30 transition-all shrink-0"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 shadow-sm transition-all shrink-0"
               >
                 <Icon name="heroicons:plus" class="w-3.5 h-3.5" />
                 Shell
-                <kbd class="ml-0.5 text-[10px] text-cyan-700/60 dark:text-cyan-400/50 bg-cyan-100 dark:bg-cyan-500/10 px-1 py-0.5 rounded font-mono leading-none">⌥T</kbd>
+                <kbd class="ml-0.5 text-[10px] text-slate-500 bg-slate-100 px-1 py-0.5 rounded font-mono leading-none">⌥T</kbd>
               </button>
 
               <!-- Agent hover dropdown -->
               <div class="relative group/agent shrink-0">
                 <button
                   @mouseenter="fetchWorkspaceAgents"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100/80 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20 border border-violet-300/60 dark:border-violet-500/20 hover:border-violet-400 dark:hover:border-violet-500/30 transition-all"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-300/60 dark:border-blue-500/20 hover:border-blue-400 dark:hover:border-blue-500/30 transition-all"
                 >
                   <Icon name="heroicons:cpu-chip" class="w-3.5 h-3.5" />
                   Agent
@@ -84,8 +84,8 @@
                       @click="launchAgentTerminal(agent)"
                       class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-100/80 dark:hover:bg-white/[0.04] transition-colors text-left"
                     >
-                      <div class="w-7 h-7 rounded-lg bg-violet-500/15 dark:bg-violet-500/15 flex items-center justify-center shrink-0">
-                        <Icon name="heroicons:cpu-chip" class="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                      <div class="w-7 h-7 rounded-lg bg-blue-500/15 dark:bg-blue-500/15 flex items-center justify-center shrink-0">
+                        <Icon name="heroicons:cpu-chip" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div class="flex-1 min-w-0">
                         <div class="text-sm font-medium text-slate-800 dark:text-zinc-200">{{ agent.name }}</div>
@@ -111,7 +111,7 @@
           <div class="flex-1 min-h-0 flex gap-2">
             <aside
               v-if="showScopePane"
-              class="w-56 shrink-0 overflow-y-auto"
+              class="w-56 shrink-0 overflow-y-auto rounded-2xl bg-slate-50 dark:bg-white/[0.03] px-2 py-2"
             >
               <div class="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
                 Scopes
@@ -127,7 +127,7 @@
                       @click="selectScope(scope.id)"
                       class="flex-1 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors min-w-0"
                       :class="scope.id === selectedScopeId
-                        ? 'bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-200'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
                         : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]'"
                     >
                       <Icon :name="scope.type === 'global' ? 'heroicons:globe-alt' : 'heroicons:folder'" class="w-4 h-4 shrink-0" />
@@ -165,7 +165,7 @@
                       @click="openSidebarSession(session.terminalId)"
                       class="w-full flex items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
                       :class="session.terminalId === activeTabId
-                        ? 'bg-violet-50 text-violet-900 dark:bg-violet-500/10 dark:text-violet-100'
+                        ? 'bg-slate-100 text-slate-900 dark:bg-white/[0.06] dark:text-zinc-100'
                         : 'text-slate-600 hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-white/[0.06]'"
                     >
                       <span class="inline-flex h-5 w-5 items-center justify-center leading-none shrink-0 mt-0.5">
@@ -202,7 +202,7 @@
                   <p class="text-slate-500 dark:text-zinc-600 text-sm mb-4">Launch a terminal to start an agent session</p>
                   <button
                     @click="showLauncher = true"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/10 hover:bg-violet-200 dark:hover:bg-violet-500/20 transition-colors"
+                    class="px-4 py-2 rounded-lg text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 transition-colors"
                   >
                     <Icon name="heroicons:plus" class="w-4 h-4 inline mr-1" />
                     Launch Terminal
@@ -216,14 +216,14 @@
                 :key="tab.terminalId"
                 class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150"
                 :class="[tileClass(index), activeTabId === tab.terminalId
-                  ? 'border-violet-400/70 dark:border-violet-500/40 shadow-[0_0_0_1px_rgba(139,92,246,0.15)]'
+                  ? 'border-blue-400/70 dark:border-blue-500/40 shadow-[0_0_0_1px_rgba(59,130,246,0.18)]'
                   : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.12]']"
                 @click="openSidebarSession(tab.terminalId)"
               >
                 <!-- Tile header -->
                 <div
                   class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none"
-                  :class="activeTabId === tab.terminalId ? 'bg-violet-100/90 dark:bg-violet-950/40' : 'bg-white/90 dark:bg-[#111115]'"
+                  :class="activeTabId === tab.terminalId ? 'bg-blue-50 dark:bg-blue-950/30' : 'bg-white/90 dark:bg-[#111115]'"
                 >
                   <!-- Status dot -->
                   <span :class="[
@@ -235,7 +235,7 @@
                   ]" />
 
                   <!-- Agent name -->
-                  <span class="text-[13px] font-semibold text-slate-700 dark:text-zinc-300 shrink-0 tracking-tight">{{ tab.agentName }}</span>
+                  <span class="text-[13px] font-semibold text-slate-900 dark:text-zinc-100 shrink-0 tracking-tight">{{ tab.agentName }}</span>
 
                   <span class="text-[10px] rounded px-1.5 py-0.5 shrink-0 bg-slate-100 text-slate-600 border border-slate-200 dark:bg-white/[0.08] dark:text-zinc-400 dark:border-transparent">
                     {{ tab.projectTitle || 'Root' }}
@@ -244,7 +244,7 @@
                   <!-- Task title -->
                   <span
                     v-if="tab.taskTitle"
-                    class="text-[13px] text-slate-500 dark:text-zinc-500 truncate flex-1 hover:text-violet-600 dark:hover:text-violet-400 transition-colors cursor-pointer"
+                    class="text-[13px] text-slate-500 dark:text-zinc-500 truncate flex-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
                     @click.stop="openTaskFromTab(tab)"
                   >{{ tab.taskTitle }}</span>
                   <span v-else class="text-[13px] text-slate-400 dark:text-zinc-700 flex-1">No task checked out</span>
@@ -310,10 +310,10 @@
                   v-for="agent in workspaceAgents"
                   :key="agent.id"
                   @click="launchAgentTerminal(agent)"
-                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-violet-400 dark:hover:border-violet-500/30 transition-all text-left"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-blue-400 dark:hover:border-blue-500/30 transition-all text-left"
                 >
-                  <div class="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center shrink-0">
-                    <Icon name="heroicons:cpu-chip" class="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                  <div class="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
+                    <Icon name="heroicons:cpu-chip" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="text-sm font-medium text-slate-900 dark:text-white">{{ agent.name }}</div>
@@ -332,7 +332,7 @@
 
               <!-- Launching state -->
               <div v-else class="text-center py-6">
-                <Icon name="heroicons:arrow-path" class="w-6 h-6 animate-spin text-violet-400 mx-auto mb-2" />
+                <Icon name="heroicons:arrow-path" class="w-6 h-6 animate-spin text-blue-400 mx-auto mb-2" />
                 <span class="text-sm text-slate-600 dark:text-zinc-300">Launching…</span>
               </div>
 
@@ -488,15 +488,15 @@ let darkSchemeMedia: MediaQueryList | null = null
 const terminalDarkTheme = {
   background: '#0e0e11',
   foreground: '#d4d4d8',
-  cursor: '#a78bfa',
+  cursor: '#60a5fa',
   cursorAccent: '#0e0e11',
-  selectionBackground: '#a78bfa33',
+  selectionBackground: '#60a5fa33',
   black: '#18181b',
   red: '#f87171',
   green: '#4ade80',
   yellow: '#facc15',
   blue: '#60a5fa',
-  magenta: '#c084fc',
+  magenta: '#93c5fd',
   cyan: '#22d3ee',
   white: '#e4e4e7',
   brightBlack: '#3f3f46',
@@ -504,7 +504,7 @@ const terminalDarkTheme = {
   brightGreen: '#86efac',
   brightYellow: '#fde68a',
   brightBlue: '#93bbfd',
-  brightMagenta: '#d8b4fe',
+  brightMagenta: '#bfdbfe',
   brightCyan: '#67e8f9',
   brightWhite: '#fafafa',
 }
@@ -512,15 +512,15 @@ const terminalDarkTheme = {
 const terminalLightTheme = {
   background: '#f8fafc',
   foreground: '#1f2937',
-  cursor: '#7c3aed',
+  cursor: '#2563eb',
   cursorAccent: '#f8fafc',
-  selectionBackground: '#7c3aed33',
+  selectionBackground: '#2563eb33',
   black: '#111827',
   red: '#dc2626',
   green: '#15803d',
   yellow: '#ca8a04',
   blue: '#1d4ed8',
-  magenta: '#9333ea',
+  magenta: '#2563eb',
   cyan: '#0891b2',
   white: '#e5e7eb',
   brightBlack: '#4b5563',
@@ -528,7 +528,7 @@ const terminalLightTheme = {
   brightGreen: '#22c55e',
   brightYellow: '#eab308',
   brightBlue: '#3b82f6',
-  brightMagenta: '#a855f7',
+  brightMagenta: '#3b82f6',
   brightCyan: '#06b6d4',
   brightWhite: '#f9fafb',
 }
