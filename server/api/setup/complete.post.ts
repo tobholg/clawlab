@@ -5,7 +5,7 @@ import { createDefaultChannels } from '../../utils/channelUtils'
 import { createSession } from '../../utils/auth'
 import { provisionDefaultSeats } from '../../utils/seats'
 import { hashPassword } from '../../utils/password'
-import { defaultRunnerCommandForProvider } from '../../utils/agentRunner'
+import { VALID_AGENT_PROVIDERS, defaultRunnerCommandForProvider } from '../../utils/agentRunner'
 import { isPlanLimitsEnabled } from '../../utils/planLimits'
 // Agent tokens stored as plain text (self-hosted, no hashing needed)
 
@@ -19,7 +19,7 @@ interface SetupRequest {
   agents?: Array<{ name: string; provider?: string }>
 }
 
-const VALID_AGENT_PROVIDERS = new Set(['openclaw', 'cursor', 'codex', 'custom'])
+const VALID_AGENT_PROVIDER_SET = new Set(VALID_AGENT_PROVIDERS)
 
 const slugify = (value: string) => value
   .toLowerCase()
@@ -103,10 +103,10 @@ export default defineEventHandler(async (event) => {
 
     const provider =
       typeof agent?.provider === 'string' ? agent.provider.toLowerCase().trim() : 'openclaw'
-    if (!VALID_AGENT_PROVIDERS.has(provider)) {
+    if (!VALID_AGENT_PROVIDER_SET.has(provider)) {
       throw createError({
         statusCode: 400,
-        message: `Agent #${index + 1} provider must be one of: openclaw, cursor, codex, custom`,
+        message: `Agent #${index + 1} provider must be one of: openclaw, cursor, claude, codex, custom`,
       })
     }
 

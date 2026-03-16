@@ -131,16 +131,27 @@ function buildLaunchCommand(
 
 function resolveRunnerExecutable(runner: string | null): string | null {
   if (!runner) return null
-  if (runner !== 'codex') return runner
 
-  // Prefer explicit override, then known macOS app path, then PATH lookup.
-  const candidates = [
-    process.env.CODEX_BIN,
-    '/Applications/Codex.app/Contents/Resources/codex',
-  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  if (runner === 'codex') {
+    // Prefer explicit override, then known macOS app path, then PATH lookup.
+    const candidates = [
+      process.env.CODEX_BIN,
+      '/Applications/Codex.app/Contents/Resources/codex',
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
 
-  for (const candidate of candidates) {
-    if (existsSync(candidate)) return candidate
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate
+    }
+  }
+
+  if (runner === 'claude') {
+    const candidates = [
+      process.env.CLAUDE_BIN,
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate
+    }
   }
 
   return runner

@@ -1,8 +1,8 @@
 import { requireMinRole, requireWorkspaceMember } from '../../../../utils/auth'
 import { prisma } from '../../../../utils/prisma'
-import { defaultRunnerCommandForProvider } from '../../../../utils/agentRunner'
+import { VALID_AGENT_PROVIDERS, defaultRunnerCommandForProvider } from '../../../../utils/agentRunner'
 
-const VALID_PROVIDERS = new Set(['openclaw', 'cursor', 'codex', 'custom'])
+const VALID_PROVIDERS = new Set(VALID_AGENT_PROVIDERS)
 
 export default defineEventHandler(async (event) => {
   const workspaceId = getRouterParam(event, 'id')
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (hasProvider && (!nextProvider || !VALID_PROVIDERS.has(nextProvider))) {
-    throw createError({ statusCode: 400, message: 'provider must be one of: openclaw, cursor, codex, custom' })
+    throw createError({ statusCode: 400, message: 'provider must be one of: openclaw, cursor, claude, codex, custom' })
   }
 
   const membership = await prisma.workspaceMember.findUnique({

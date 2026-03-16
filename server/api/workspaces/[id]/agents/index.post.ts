@@ -2,9 +2,9 @@ import { randomBytes } from 'node:crypto'
 import { Prisma } from '@prisma/client'
 import { requireMinRole, requireWorkspaceMember } from '../../../../utils/auth'
 import { prisma } from '../../../../utils/prisma'
-import { defaultRunnerCommandForProvider } from '../../../../utils/agentRunner'
+import { VALID_AGENT_PROVIDERS, defaultRunnerCommandForProvider } from '../../../../utils/agentRunner'
 
-const VALID_PROVIDERS = new Set(['openclaw', 'cursor', 'codex', 'custom'])
+const VALID_PROVIDERS = new Set(VALID_AGENT_PROVIDERS)
 
 const toSlug = (value: string) => value
   .toLowerCase()
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!VALID_PROVIDERS.has(provider)) {
-    throw createError({ statusCode: 400, message: 'provider must be one of: openclaw, cursor, codex, custom' })
+    throw createError({ statusCode: 400, message: 'provider must be one of: openclaw, cursor, claude, codex, custom' })
   }
 
   const workspace = await prisma.workspace.findUnique({

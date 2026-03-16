@@ -1,3 +1,5 @@
+export const VALID_AGENT_PROVIDERS = ['openclaw', 'cursor', 'claude', 'codex', 'custom'] as const
+
 const DEFAULT_RUNNER_BY_PROVIDER: Record<string, string> = {
   codex: 'codex',
   claude: 'claude',
