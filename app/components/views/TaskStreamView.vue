@@ -552,7 +552,7 @@ function getToneDot(item: ItemNode) {
           @drop="handleColumnDrop($event, column)"
         >
           <!-- All columns use full cards with groups -->
-          <div v-if="column.items.length" class="flex flex-1 min-h-0 flex-col gap-1.5 overflow-y-auto pr-1">
+          <div v-if="column.items.length" class="flex flex-1 min-h-0 flex-col gap-1.5 overflow-y-auto pr-1 kanban-scrollbar">
             <section
               v-for="group in column.groups"
               :key="group.key"
@@ -754,3 +754,55 @@ function getToneDot(item: ItemNode) {
     </div>
   </section>
 </template>
+
+<style scoped>
+.kanban-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
+.kanban-scrollbar:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.kanban-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.kanban-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.28);
+}
+
+:root.dark .kanban-scrollbar {
+  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+}
+
+:root.dark .kanban-scrollbar:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+:root.dark .kanban-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+:root.dark .kanban-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+:root.dark .kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+</style>

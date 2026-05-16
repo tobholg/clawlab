@@ -178,7 +178,7 @@
             </aside>
             </Transition>
 
-            <div class="flex-1 min-h-0 grid gap-2" :class="gridClass">
+            <div class="flex-1 min-h-0 grid gap-3" :class="gridClass">
               <!-- Empty state -->
               <div
                 v-if="!scopeTabs.length"
@@ -202,7 +202,7 @@
               <div
                 v-for="(tab, index) in scopeTabs"
                 :key="tab.terminalId"
-                class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150"
+                class="flex flex-col rounded-xl overflow-hidden border transition-all duration-150 bg-white dark:bg-[#131317]"
                 :class="[
                   tileClass(index),
                   tileDragId === tab.terminalId ? 'opacity-40' : '',
@@ -220,7 +220,7 @@
                 <div
                   draggable="true"
                   class="flex items-center gap-2 px-3 py-2 shrink-0 border-b border-slate-200 dark:border-white/[0.06] select-none cursor-grab active:cursor-grabbing"
-                  :class="activeTabId === tab.terminalId ? 'bg-blue-50 dark:bg-blue-900/35' : 'bg-white/90 dark:bg-[#111115]'"
+                  :class="activeTabId === tab.terminalId ? 'bg-blue-50 dark:bg-blue-900/35' : 'bg-white/90 dark:bg-[#19191f]'"
                   @dragstart="onTileDragStart($event, tab.terminalId)"
                   @dragend="onTileDragEnd"
                 >

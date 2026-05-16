@@ -530,7 +530,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       
       <!-- DONE column: Time-based groups (styled same as sub-status groups) -->
       <template v-if="status === 'done'">
-        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto px-0.5">
+        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto kanban-scrollbar px-0.5">
           <template v-for="group in getDoneItemsByTimeGroup()" :key="group.key">
             <!-- Group header: only show if group has more than 1 item -->
             <button
@@ -619,7 +619,7 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
       
       <!-- Other columns: Sub-status groups -->
       <template v-else>
-        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto px-0.5">
+        <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto kanban-scrollbar px-0.5">
           <template v-for="group in getItemsGroupedBySubStatus(status)" :key="group.sectionKey">
             <!-- Sub-status section header (collapsible, only if multiple groups) -->
             <button
@@ -702,3 +702,55 @@ const handleCardDrop = (e: DragEvent, targetItem: ItemNode) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.kanban-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
+.kanban-scrollbar:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.kanban-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.kanban-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.28);
+}
+
+:root.dark .kanban-scrollbar {
+  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+}
+
+:root.dark .kanban-scrollbar:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+:root.dark .kanban-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+:root.dark .kanban-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+:root.dark .kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+</style>
