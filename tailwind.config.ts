@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import colors from 'tailwindcss/colors'
 
 export default {
   darkMode: 'media',
@@ -39,6 +40,10 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Use a warmer neutral profile for existing slate/gray utility classes.
+        // This keeps the component markup stable while moving away from blue-gray.
+        slate: colors.neutral,
+        gray: colors.neutral,
         // ClawLab brand colors
         clawlab: {
           50: '#f0f9ff',
@@ -64,7 +69,7 @@ export default {
         hot: '#ef4444',
         warm: '#f97316',
         cold: '#3b82f6',
-        stale: '#6b7280',
+        stale: colors.neutral[500],
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

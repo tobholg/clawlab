@@ -140,9 +140,7 @@ const formatDate = (dateStr: string): string => {
   <div ref="containerRef" class="bg-white dark:bg-dm-card rounded-2xl border border-slate-100 dark:border-white/[0.06] p-6 shadow-sm dark:shadow-none h-full">
     <!-- Header -->
     <div class="flex items-center gap-3 mb-5">
-      <div class="w-10 h-10 bg-violet-100 dark:bg-violet-500/10 rounded-xl flex items-center justify-center">
-        <Icon name="heroicons:fire" class="w-5 h-5 text-violet-600 dark:text-violet-400" />
-      </div>
+      <Icon name="heroicons:fire" class="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" />
       <div>
         <h3 class="text-sm font-semibold text-slate-900 dark:text-zinc-100">Project Activity</h3>
         <p class="text-xs text-slate-500 dark:text-zinc-500">{{ totalCompletions }} items completed in the last {{ weeks }} weeks</p>

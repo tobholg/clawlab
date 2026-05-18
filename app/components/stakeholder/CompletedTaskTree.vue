@@ -37,12 +37,10 @@ const props = defineProps<{
       v-if="tasks.length === 0"
       class="bg-white dark:bg-dm-card border border-slate-100 dark:border-white/[0.06] rounded-2xl p-10 text-center shadow-sm dark:shadow-none"
     >
-      <div class="w-14 h-14 mx-auto mb-4 bg-slate-50 dark:bg-white/[0.04] rounded-2xl flex items-center justify-center">
-        <Icon
-          :name="emptyIcon || 'heroicons:check-badge'"
-          class="w-7 h-7 text-slate-300 dark:text-zinc-600"
-        />
-      </div>
+      <Icon
+        :name="emptyIcon || 'heroicons:check-badge'"
+        class="w-9 h-9 text-slate-300 dark:text-zinc-600 mx-auto mb-4"
+      />
       <p class="text-slate-500 dark:text-zinc-400 text-sm">
         {{ emptyMessage || 'No completed items yet' }}
       </p>

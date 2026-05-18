@@ -441,10 +441,8 @@ onMounted(async () => {
     <nav class="fixed top-0 inset-x-0 z-50 bg-white/80 dark:bg-dm-surface/80 backdrop-blur-xl border-b border-slate-100 dark:border-white/[0.06]">
       <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <NuxtLink to="/dashboard" class="flex items-center gap-2 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors group">
-            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.06] flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-white/[0.1] transition-colors">
-              <Icon name="heroicons:arrow-left" class="w-4 h-4" />
-            </div>
+          <NuxtLink to="/dashboard" class="flex h-8 w-8 items-center justify-center text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">
+            <Icon name="heroicons:arrow-left" class="w-4 h-4" />
           </NuxtLink>
           <div v-if="space" class="flex items-center gap-3">
             <div>
@@ -484,10 +482,7 @@ onMounted(async () => {
         leave-to-class="opacity-0"
       >
         <div v-if="loading" class="flex flex-col items-center justify-center py-32 gap-4">
-          <div class="relative">
-            <div class="w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-500/10 animate-pulse" />
-            <Icon name="heroicons:arrow-path" class="absolute inset-0 m-auto w-6 h-6 text-violet-500 dark:text-violet-400 animate-spin" />
-          </div>
+          <Icon name="heroicons:arrow-path" class="w-8 h-8 text-violet-500 dark:text-violet-400 animate-spin" />
           <p class="text-sm text-slate-400 dark:text-zinc-500">Loading portal...</p>
         </div>
       </Transition>
@@ -499,9 +494,7 @@ onMounted(async () => {
       >
         <div v-if="error && !loading" class="max-w-lg mx-auto mt-32 px-6">
           <div class="bg-white dark:bg-dm-card border border-slate-100 dark:border-white/[0.06] rounded-2xl p-10 text-center shadow-xl shadow-slate-100 dark:shadow-none">
-            <div class="w-16 h-16 mx-auto mb-6 bg-rose-50 dark:bg-rose-500/10 rounded-2xl flex items-center justify-center">
-              <Icon name="heroicons:exclamation-circle" class="w-8 h-8 text-rose-400" />
-            </div>
+            <Icon name="heroicons:exclamation-circle" class="w-12 h-12 text-rose-400 mx-auto mb-6" />
             <h2 class="text-xl font-semibold text-slate-900 dark:text-zinc-100 mb-2">Access Denied</h2>
             <p class="text-slate-500 dark:text-zinc-400 mb-8">{{ error }}</p>
             <NuxtLink 
@@ -618,7 +611,7 @@ onMounted(async () => {
                   class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-violet-700 dark:text-violet-400 text-sm font-medium rounded-xl border border-violet-200/60 dark:border-violet-500/20 hover:from-violet-500/15 hover:to-fuchsia-500/15 hover:border-violet-300/60 dark:hover:border-violet-500/30 transition-all active:scale-95"
                 >
                   <Icon name="heroicons:sparkles" class="w-4 h-4" />
-                  AI Chat
+                  Assistant
                 </button>
               </div>
             </div>
@@ -653,9 +646,7 @@ onMounted(async () => {
                   <div v-if="space.stats" class="grid grid-cols-2 gap-4">
                     <!-- Active Items -->
                     <div class="bg-white dark:bg-dm-card rounded-2xl border border-slate-100 dark:border-white/[0.06] p-5 shadow-sm dark:shadow-none flex items-center gap-4">
-                      <div class="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Icon name="heroicons:rectangle-stack" class="w-6 h-6 text-blue-500 dark:text-blue-400" />
-                      </div>
+                      <Icon name="heroicons:rectangle-stack" class="w-6 h-6 text-blue-500 dark:text-blue-400 flex-shrink-0" />
                       <div>
                         <div class="text-2xl font-bold text-slate-900 dark:text-zinc-100">{{ space.stats.totalActive }}</div>
                         <div class="text-xs text-slate-500 dark:text-zinc-500 font-medium">Active Items</div>
@@ -664,9 +655,7 @@ onMounted(async () => {
 
                     <!-- Completed -->
                     <div class="bg-white dark:bg-dm-card rounded-2xl border border-slate-100 dark:border-white/[0.06] p-5 shadow-sm dark:shadow-none flex items-center gap-4">
-                      <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Icon name="heroicons:check-circle" class="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
-                      </div>
+                      <Icon name="heroicons:check-circle" class="w-6 h-6 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
                       <div>
                         <div class="text-2xl font-bold text-slate-900 dark:text-zinc-100">{{ space.stats.totalCompleted }}</div>
                         <div class="text-xs text-slate-500 dark:text-zinc-500 font-medium">Completed</div>
@@ -675,9 +664,7 @@ onMounted(async () => {
 
                     <!-- Avg Progress -->
                     <div class="bg-white dark:bg-dm-card rounded-2xl border border-slate-100 dark:border-white/[0.06] p-5 shadow-sm dark:shadow-none flex items-center gap-4">
-                      <div class="w-12 h-12 bg-violet-50 dark:bg-violet-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Icon name="heroicons:chart-bar" class="w-6 h-6 text-violet-500 dark:text-violet-400" />
-                      </div>
+                      <Icon name="heroicons:chart-bar" class="w-6 h-6 text-violet-500 dark:text-violet-400 flex-shrink-0" />
                       <div>
                         <div class="text-2xl font-bold text-slate-900 dark:text-zinc-100">{{ space.stats.avgProgress }}%</div>
                         <div class="text-xs text-slate-500 dark:text-zinc-500 font-medium">Avg Progress</div>
@@ -686,9 +673,7 @@ onMounted(async () => {
 
                     <!-- Avg Confidence -->
                     <div class="bg-white dark:bg-dm-card rounded-2xl border border-slate-100 dark:border-white/[0.06] p-5 shadow-sm dark:shadow-none flex items-center gap-4">
-                      <div class="w-12 h-12 bg-amber-50 dark:bg-amber-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Icon name="heroicons:signal" class="w-6 h-6 text-amber-500 dark:text-amber-400" />
-                      </div>
+                      <Icon name="heroicons:signal" class="w-6 h-6 text-amber-500 dark:text-amber-400 flex-shrink-0" />
                       <div>
                         <div class="text-2xl font-bold text-slate-900 dark:text-zinc-100">{{ space.stats.avgConfidence }}%</div>
                         <div class="text-xs text-slate-500 dark:text-zinc-500 font-medium">Avg Confidence</div>
@@ -731,16 +716,12 @@ onMounted(async () => {
               <!-- Updates Tab -->
               <div v-else-if="activeTab === 'updates'" key="updates">
                 <div v-if="loadingUpdates" class="flex flex-col items-center justify-center py-20 gap-4">
-                  <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/10 flex items-center justify-center">
-                    <Icon name="heroicons:arrow-path" class="w-5 h-5 text-violet-500 dark:text-violet-400 animate-spin" />
-                  </div>
+                  <Icon name="heroicons:arrow-path" class="w-7 h-7 text-violet-500 dark:text-violet-400 animate-spin" />
                   <p class="text-sm text-slate-400 dark:text-zinc-500">Loading updates...</p>
                 </div>
 
                 <div v-else-if="updates.length === 0" class="bg-white dark:bg-dm-card border border-slate-100 dark:border-white/[0.06] rounded-2xl p-16 text-center shadow-sm dark:shadow-none">
-                  <div class="w-20 h-20 mx-auto mb-6 bg-slate-50 dark:bg-white/[0.04] rounded-3xl flex items-center justify-center">
-                    <Icon name="heroicons:megaphone" class="w-10 h-10 text-slate-300 dark:text-zinc-600" />
-                  </div>
+                  <Icon name="heroicons:megaphone" class="w-12 h-12 text-slate-300 dark:text-zinc-600 mx-auto mb-6" />
                   <h3 class="text-lg font-semibold text-slate-900 dark:text-zinc-100 mb-2">No updates yet</h3>
                   <p class="text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">Status updates from the team will appear here when published.</p>
                 </div>
@@ -761,16 +742,12 @@ onMounted(async () => {
               <!-- My Requests Tab -->
               <div v-else-if="activeTab === 'requests'" key="requests">
                 <div v-if="loadingRequests" class="flex flex-col items-center justify-center py-20 gap-4">
-                  <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/10 flex items-center justify-center">
-                    <Icon name="heroicons:arrow-path" class="w-5 h-5 text-violet-500 dark:text-violet-400 animate-spin" />
-                  </div>
+                  <Icon name="heroicons:arrow-path" class="w-7 h-7 text-violet-500 dark:text-violet-400 animate-spin" />
                   <p class="text-sm text-slate-400 dark:text-zinc-500">Loading requests...</p>
                 </div>
 
                 <div v-else-if="!myRequests || (myRequests.tasks.length === 0 && myRequests.irs.length === 0)" class="bg-white dark:bg-dm-card border border-slate-100 dark:border-white/[0.06] rounded-2xl p-16 text-center shadow-sm dark:shadow-none">
-                  <div class="w-20 h-20 mx-auto mb-6 bg-slate-50 dark:bg-white/[0.04] rounded-3xl flex items-center justify-center">
-                    <Icon name="heroicons:inbox" class="w-10 h-10 text-slate-300 dark:text-zinc-600" />
-                  </div>
+                  <Icon name="heroicons:inbox" class="w-12 h-12 text-slate-300 dark:text-zinc-600 mx-auto mb-6" />
                   <h3 class="text-lg font-semibold text-slate-900 dark:text-zinc-100 mb-2">No requests yet</h3>
                   <p class="text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">Your submitted tasks and questions will appear here. Use the chat to submit new requests.</p>
                 </div>
@@ -987,16 +964,12 @@ onMounted(async () => {
 
                 <!-- Q&A List -->
                 <div v-if="loadingQA" class="flex flex-col items-center justify-center py-20 gap-4">
-                  <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/10 flex items-center justify-center">
-                    <Icon name="heroicons:arrow-path" class="w-5 h-5 text-violet-500 dark:text-violet-400 animate-spin" />
-                  </div>
+                  <Icon name="heroicons:arrow-path" class="w-7 h-7 text-violet-500 dark:text-violet-400 animate-spin" />
                   <p class="text-sm text-slate-400 dark:text-zinc-500">Loading Q&A...</p>
                 </div>
 
                 <div v-else-if="qaItems.length === 0" class="bg-white dark:bg-dm-card border border-slate-100 dark:border-white/[0.06] rounded-2xl p-16 text-center shadow-sm dark:shadow-none">
-                  <div class="w-20 h-20 mx-auto mb-6 bg-slate-50 dark:bg-white/[0.04] rounded-3xl flex items-center justify-center">
-                    <Icon name="heroicons:chat-bubble-left-right" class="w-10 h-10 text-slate-300 dark:text-zinc-600" />
-                  </div>
+                  <Icon name="heroicons:chat-bubble-left-right" class="w-12 h-12 text-slate-300 dark:text-zinc-600 mx-auto mb-6" />
                   <h3 class="text-lg font-semibold text-slate-900 dark:text-zinc-100 mb-2">No questions yet</h3>
                   <p class="text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">Be the first to ask a question! Use the chat to submit your questions.</p>
                 </div>
@@ -1164,9 +1137,7 @@ onMounted(async () => {
                 
                 <!-- Empty state -->
                 <div v-if="space.stakeholders.length === 0" class="text-center py-8">
-                  <div class="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-white/[0.06] rounded-xl flex items-center justify-center">
-                    <Icon name="heroicons:users" class="w-6 h-6 text-slate-400 dark:text-zinc-500" />
-                  </div>
+                  <Icon name="heroicons:users" class="w-8 h-8 text-slate-400 dark:text-zinc-500 mx-auto mb-3" />
                   <p class="text-sm text-slate-500 dark:text-zinc-400">No stakeholders yet</p>
                 </div>
               </div>

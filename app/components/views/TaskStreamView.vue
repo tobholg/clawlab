@@ -70,7 +70,7 @@ const boardColumns: Array<{
     label: 'To do',
     dot: 'bg-slate-400',
     bodyTint: 'bg-neutral-100/70 dark:bg-neutral-400/[0.055]',
-    groupTint: 'bg-neutral-200/45 hover:bg-neutral-200/65 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]',
+    groupTint: 'bg-neutral-200/65 hover:bg-neutral-200/80 dark:bg-white/[0.065] dark:hover:bg-white/[0.085]',
     groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['todo', 'blocked'],
   },
@@ -79,7 +79,7 @@ const boardColumns: Array<{
     label: 'In progress',
     dot: 'bg-blue-400',
     bodyTint: 'bg-neutral-100/70 dark:bg-neutral-400/[0.055]',
-    groupTint: 'bg-neutral-200/45 hover:bg-neutral-200/65 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]',
+    groupTint: 'bg-neutral-200/65 hover:bg-neutral-200/80 dark:bg-white/[0.065] dark:hover:bg-white/[0.085]',
     groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['in_progress', 'paused'],
   },
@@ -88,7 +88,7 @@ const boardColumns: Array<{
     label: 'Done',
     dot: 'bg-emerald-400',
     bodyTint: 'bg-neutral-100/70 dark:bg-neutral-400/[0.055]',
-    groupTint: 'bg-neutral-200/45 hover:bg-neutral-200/65 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]',
+    groupTint: 'bg-neutral-200/65 hover:bg-neutral-200/80 dark:bg-white/[0.065] dark:hover:bg-white/[0.085]',
     groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['done'],
   },
@@ -526,7 +526,7 @@ function getToneDot(item: ItemNode) {
 
 <template>
   <section class="flex h-full min-h-0 w-full flex-col">
-    <div v-if="activeTab === 'tasks'" class="grid flex-1 min-h-0 gap-4 overflow-hidden xl:grid-cols-3">
+    <div v-if="activeTab === 'tasks'" class="grid flex-1 min-h-0 gap-4 overflow-hidden pt-2 xl:grid-cols-3">
       <section
         v-for="column in itemsByColumn"
         :key="column.key"

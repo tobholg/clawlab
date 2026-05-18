@@ -440,15 +440,6 @@ onMounted(() => {
         class="flex items-center gap-1.5 min-w-0 max-w-full"
         @click="handleBreadcrumbClick(crumb.id)"
       >
-        <Icon
-          :name="i === 0 ? 'heroicons:home' : i === 1 ? 'heroicons:folder' : 'heroicons:clipboard-document-list'"
-          :class="[
-            'w-3.5 h-3.5 transition-colors flex-shrink-0',
-            i === breadcrumbs.length - 1
-              ? (i === 0 ? 'text-slate-500' : i === 1 ? 'text-blue-500' : 'text-emerald-500')
-              : 'text-slate-300 dark:text-zinc-600'
-          ]"
-        />
         <span
           :title="crumb.title"
           :class="[

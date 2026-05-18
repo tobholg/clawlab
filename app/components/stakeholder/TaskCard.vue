@@ -122,7 +122,7 @@ const toggleExpand = () => {
         'relative rounded-xl border transition-all duration-200',
         depth === 0
           ? 'bg-white dark:bg-dm-card border-slate-100 dark:border-white/[0.06] shadow-sm dark:shadow-none hover:shadow-md dark:hover:shadow-none hover:border-slate-200 dark:hover:border-white/[0.1]'
-          : 'bg-slate-50/50 dark:bg-white/[0.02] border-slate-100/50 dark:border-white/[0.04]',
+          : 'bg-white dark:bg-dm-card border-slate-100 dark:border-white/[0.06] shadow-sm dark:shadow-none hover:shadow-md dark:hover:shadow-none hover:border-slate-200 dark:hover:border-white/[0.1]',
         depth > 0 ? 'ml-6' : ''
       ]"
     >

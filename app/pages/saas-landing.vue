@@ -295,7 +295,7 @@ onMounted(() => {
     <section
       id="hero"
       :ref="(el) => (sectionRefs.hero = el as HTMLElement | null)"
-      class="hero-section relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 overflow-hidden scroll-mt-20"
+      class="hero-section relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 md:justify-start md:pt-36 lg:pt-40 xl:pt-44 overflow-hidden scroll-mt-20"
     >
       <div class="hero-glow" aria-hidden="true" />
 
