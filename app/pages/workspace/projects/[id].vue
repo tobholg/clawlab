@@ -35,7 +35,7 @@ watch(projectId, (id) => {
   }
 }, { immediate: true })
 
-const activeView = ref<'tasks' | 'kanban' | 'timeline' | 'list' | 'documents' | 'external' | 'inbound'>('tasks')
+const activeView = ref<'tasks' | 'timeline' | 'list' | 'documents' | 'external' | 'inbound'>('tasks')
 const taskStreamTab = ref<'tasks' | 'archive'>('tasks')
 const viewSwitchPulse = ref(false)
 const inboundQueueRef = ref<any>(null)
@@ -98,7 +98,6 @@ const createDocumentFromHeader = async () => {
 const viewOptions = computed(() => {
   const base = [
     { key: 'tasks', icon: 'heroicons:queue-list', label: 'Kanban', shortcut: 'K' },
-    { key: 'kanban', icon: 'heroicons:view-columns', label: 'Classic', shortcut: 'C' },
     { key: 'timeline', icon: 'heroicons:calendar', label: 'Timeline', shortcut: 'T' },
     { key: 'list', icon: 'heroicons:table-cells', label: 'Table', shortcut: 'L' },
     { key: 'documents', icon: 'heroicons:document-text', label: 'Documents', shortcut: 'D' },
@@ -295,6 +294,29 @@ const handleRequestComplete = (item: any) => {
   completeWithChildrenError.value = null
 }
 
+const findScopedItem = (itemId: string) => {
+  const stack = [...scopedItems.value]
+  while (stack.length > 0) {
+    const item = stack.shift()
+    if (!item) continue
+    if (item.id === itemId) return item
+    if (Array.isArray(item.children)) {
+      stack.push(...item.children)
+    }
+  }
+  return null
+}
+
+const isIncompleteChildrenCompletionError = (error: any) => {
+  const message = error?.data?.message
+    || error?.data?.statusMessage
+    || error?.response?._data?.message
+    || error?.response?._data?.statusMessage
+    || error?.message
+    || ''
+  return typeof message === 'string' && message.includes('incomplete child tasks')
+}
+
 const handleCompleteWithChildren = async () => {
   if (!pendingCompleteItem.value?.id) return
   completeWithChildrenLoading.value = true
@@ -349,7 +371,18 @@ const handleStatusChange = async (itemId: string, newStatus: string, newSubStatu
   if (newSubStatus !== undefined) {
     updatePayload.subStatus = newSubStatus
   }
-  await updateItem(itemId, updatePayload)
+  try {
+    await updateItem(itemId, updatePayload)
+  } catch (e: any) {
+    if (newStatus === 'done' && isIncompleteChildrenCompletionError(e)) {
+      const item = findScopedItem(itemId)
+      if (item) {
+        handleRequestComplete(item)
+        return
+      }
+    }
+    throw e
+  }
 }
 
 // Handle parent change from drag-and-drop nesting
@@ -398,7 +431,7 @@ onMounted(() => {
 
 <template>
   <!-- Header -->
-  <header class="relative z-30 p-5 flex flex-col gap-4">
+  <header class="relative z-30 p-2 flex flex-col gap-4">
     <!-- Breadcrumbs -->
     <nav class="flex items-center gap-1.5 text-sm min-w-0 overflow-hidden flex-nowrap">
       <button
@@ -737,7 +770,7 @@ onMounted(() => {
   </header>
 
   <!-- Content -->
-  <div :class="['flex-1 px-5 pb-5', activeView === 'tasks' ? 'overflow-hidden' : 'overflow-auto']">
+  <div :class="['flex-1 px-2 pb-2', activeView === 'tasks' ? 'overflow-hidden' : 'overflow-auto']">
     <!-- Documents View -->
     <DocumentsSection
       v-if="activeView === 'documents'"
@@ -760,21 +793,6 @@ onMounted(() => {
       @open-detail="handleOpenDetail"
       @status-change="handleStatusChange"
       @open-attention="handleOpenAttention"
-      @open-docs="handleOpenDocs"
-      @open-archive="showArchiveModal = true"
-    />
-
-    <!-- Kanban View -->
-    <ViewsKanbanView
-      v-else-if="activeView === 'kanban'"
-      :items="filteredItems"
-      :parent-item-id="currentScopeId ?? undefined"
-      @drill-down="handleDrillDown"
-      @open-detail="handleOpenDetail"
-      @status-change="handleStatusChange"
-      @parent-change="handleParentChange"
-      @open-attention="handleOpenAttention"
-      @request-complete="handleRequestComplete"
       @open-docs="handleOpenDocs"
       @open-archive="showArchiveModal = true"
     />

@@ -61,6 +61,7 @@ const boardColumns: Array<{
   label: string
   dot: string
   bodyTint: string
+  groupTint: string
   groupText: string
   statuses: Item['status'][]
 }> = [
@@ -68,7 +69,8 @@ const boardColumns: Array<{
     key: 'todo',
     label: 'To do',
     dot: 'bg-slate-400',
-    bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
+    bodyTint: 'bg-neutral-100/70 dark:bg-neutral-400/[0.055]',
+    groupTint: 'bg-neutral-200/45 hover:bg-neutral-200/65 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]',
     groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['todo', 'blocked'],
   },
@@ -76,7 +78,8 @@ const boardColumns: Array<{
     key: 'in_progress',
     label: 'In progress',
     dot: 'bg-blue-400',
-    bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
+    bodyTint: 'bg-neutral-100/70 dark:bg-neutral-400/[0.055]',
+    groupTint: 'bg-neutral-200/45 hover:bg-neutral-200/65 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]',
     groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['in_progress', 'paused'],
   },
@@ -84,7 +87,8 @@ const boardColumns: Array<{
     key: 'done',
     label: 'Done',
     dot: 'bg-emerald-400',
-    bodyTint: 'bg-slate-50 dark:bg-white/[0.025]',
+    bodyTint: 'bg-neutral-100/70 dark:bg-neutral-400/[0.055]',
+    groupTint: 'bg-neutral-200/45 hover:bg-neutral-200/65 dark:bg-white/[0.045] dark:hover:bg-white/[0.065]',
     groupText: 'text-slate-500 dark:text-zinc-500',
     statuses: ['done'],
   },
@@ -560,8 +564,11 @@ function getToneDot(item: ItemNode) {
             >
               <button
                 v-if="group.label"
-                class="flex w-full items-center gap-1.5 rounded-lg bg-white/70 px-2 py-1.5 text-left text-[11px] font-medium transition-colors hover:bg-white/90 dark:bg-white/[0.035] dark:hover:bg-white/[0.06]"
-                :class="dragTargetGroupKey === group.key ? 'ring-1 ring-inset ring-slate-300/80 dark:ring-white/[0.12]' : ''"
+                class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11px] font-medium transition-colors"
+                :class="[
+                  column.groupTint,
+                  dragTargetGroupKey === group.key ? 'ring-1 ring-inset ring-slate-300/80 dark:ring-white/[0.12]' : '',
+                ]"
                 @click="toggleSection(group.key)"
                 @dragover="handleGroupDragOver($event, column.key, group.key)"
                 @drop.stop="handleGroupDrop($event, group)"
